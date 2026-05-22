@@ -1,0 +1,256 @@
+## 🚀 **PHASE 0: PRE-SETUP (Week 1)**
+# 1. Repository & Basic Structure
+mkdir Hydrion && cd Hydrion
+git init
+touch README.md LICENSE CHANGELOG.md CONTRIBUTING.md SECURITY.md PRIVACY.md .gitignore .env.example Makefile .editorconfig
+mkdir -p .github/workflows docs/{security} config i18n models/{tflite,onnx,signatures,training,llm,tests} assets/{icons,ui,images,sounds,ar} schema/migrations core/crates/{hydrion-core,hydrion-ml,hydrion-storage,hydrion-ble,hydrion-crypto,hydrion-time,hydrion-i18n,hydrion-ffi} voice/{svc,asr_models,tts_voices} app/{lib,assets,android,ios,web,test} app/lib/{state,ui/screens,ui/components,services,utils,ffi} app/test/{widget,integration} packs/{edge_llm,byok_llm,gemini_connector} cloud/functions scripts tests/{unit,integration,property,fuzz,e2e} exports logs
+
+
+## 🔧 **PHASE 1: RUST CORE INFRASTRUCTURE (Week 2-3)**
+
+### **1.1 Development Environment**
+# Install Rust, Flutter, Python toolchains
+./scripts/dev_setup.sh  # Updated to install Rust, cargo, flutter_rust_bridge
+
+
+### **1.2 Rust Workspace Setup**
+# Core workspace - execute in order:
+cd core
+cargo init --workspace
+cargo new crates/hydrion-core --lib
+cargo new crates/hydrion-ml --lib
+cargo new crates/hydrion-storage --lib
+cargo new crates/hydrion-ble --lib
+cargo new crates/hydrion-crypto --lib
+cargo new crates/hydrion-time --lib
+cargo new crates/hydrion-i18n --lib
+cargo new crates/hydrion-ffi --lib
+
+# Add dependencies to each Cargo.toml
+
+
+### **1.3 FFI Bridge Generation**
+# Generate Flutter-Rust bridge bindings
+./scripts/gen_frb_bindings.sh  # Uses flutter_rust_bridge
+
+
+## 🤖 **PHASE 2: RUST CORE DEVELOPMENT (Week 4-5)**
+
+### **2.1 Core Business Logic (Rust)**
+rust
+// Build in this order:
+1. core/crates/hydrion-core/src/targets/     # WHO targets & adjustments
+2. core/crates/hydrion-core/src/policy/      # Bandit algorithms & RL policies
+3. core/crates/hydrion-core/src/schedule/    # Cooldown scheduling
+4. core/crates/hydrion-core/src/kpi/         # TAR, RCR, annoyance metrics
+5. core/crates/hydrion-core/src/context/     # Environmental bands
+6. core/crates/hydrion-core/src/intake/      # Intake merging logic
+7. core/crates/hydrion-core/src/export/      # Data bundling
+8. core/crates/hydrion-core/src/explain/     # Explanation generation
+
+
+### **2.2 ML Engine (Rust)**
+rust
+// Build ML capabilities:
+9. core/crates/hydrion-ml/src/features.rs    # Feature engineering
+10. core/crates/hydrion-ml/src/tflite.rs     # TFLite model execution
+11. core/crates/hydrion-ml/src/forecast.rs   # Forecasting logic
+
+
+### **2.3 Storage & Crypto (Rust)**
+rust
+// Build data layer:
+12. core/crates/hydrion-storage/src/         # SQLCipher database layer
+13. core/crates/hydrion-storage/src/dao/     # Data access objects
+14. core/crates/hydrion-storage/src/types/   # Common types
+15. core/crates/hydrion-crypto/src/          # Key management & encryption
+
+
+### **2.4 BLE & Time Services (Rust)**
+rust
+// Build hardware integrations:
+16. core/crates/hydrion-ble/src/             # Bluetooth Low Energy
+17. core/crates/hydrion-time/src/            # Timezone & quiet hours
+18. core/crates/hydrion-i18n/src/            # Internationalization
+
+
+## 🎯 **PHASE 3: FLUTTER DART UI (Week 6-7)**
+
+### **3.1 Flutter App Structure**
+dart
+// app/pubspec.yaml - Add critical dependencies:
+dependencies:
+  flutter:
+  flutter_rust_bridge: ^x.x.x
+  sqlite3: ^x.x.x
+  flutter_blue_plus: ^x.x.x
+
+
+### **3.2 Core Services - Rust Bridge First**
+dart
+// app/lib/services/ in order:
+1. core_bridge.dart              # Auto-generated from FRB
+2. llm_service.dart              # LLM integration service  
+3. voice_llm_bridge.dart         # Voice + LLM integration
+4. ble_client.dart               # BLE with Rust backend
+5. voice_client.dart             # Voice service client
+6. notifications.dart            # Local notifications
+7. wearable_service.dart         # Health platform integration
+8. eco_tracker.dart              # Sustainability tracking
+9. policy_service.dart
+
+
+### **3.3 UI Components**
+dart
+// app/lib/ui/components/ then screens:
+9. ui/components/IntakeRing.dart
+10. ui/components/ReminderTile.dart
+11. ui/components/AchievementBadge.dart
+12. ui/components/HydrationScoreCard.dart
+13. ui/components/LLMAdviceCard.dart
+14. ui/components/VoiceInputWidget.dart
+
+// Screens:
+15. ui/screens/HomeScreen.dart
+16. ui/screens/AnalyticsScreen.dart  
+17. ui/screens/LogScreen.dart
+18. ui/screens/SettingsScreen.dart
+19. ui/screens/SocialChallengesScreen.dart
+20. ui/screens/ArVisualizationScreen.dart
+21. ui/screens/ChatCoachScreen.dart
+
+
+## 🗣️ **PHASE 4: VOICE SERVICE (Python) (Week 8)**
+
+### **4.1 Voice Service Setup**
+cd voice/svc
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.lock
+
+
+### **4.2 Voice Components**
+python
+# Build in order:
+1. voice/svc/ipc.py              # Inter-process communication
+2. voice/svc/asr.py              # Automatic speech recognition
+3. voice/svc/nlu.py              # Natural language understanding  
+4. voice/svc/tts.py              # Text-to-speech
+5. voice/svc/main.py             # Service entry point
+
+
+### **4.3 Model Integration**
+# Download voice models
+./scripts/download_voice_models.sh  # Gets Vosk, Piper models
+
+
+## 🔗 **PHASE 5: INTEGRATIONS & PACKS (Week 9)**
+
+### **5.1 LLM Packs & BYOK**
+dart
+// Build optional LLM integrations:
+1. packs/edge_llm/               # On-device LLM pack
+2. packs/byok_llm/client/        # Bring-your-own-keys client
+3. packs/gemini_connector/client/ # Gemini API integration
+
+
+### **5.2 Cloud Functions (Optional)**
+javascript
+// cloud/functions/ in order:
+1. llm_proxy.js                  # LLM API proxy
+2. ml_training.js                # Model training pipeline
+3. sync_handler.js               # Data synchronization
+4. index.js                      # Main entry point
+
+
+## 🧪 **PHASE 6: TESTING & VALIDATION (Week 10)**
+
+### **6.1 Rust Unit Tests**
+# Test Rust core first
+cd core
+cargo test --workspace           # Run all Rust unit tests
+
+# Specific test groups:
+cargo test -p hydrion-core
+cargo test -p hydrion-ml
+cargo test -p hydrion-storage
+
+
+### **6.2 Flutter Widget Tests**
+dart
+// app/test/ in order:
+1. widget/home_screen_test.dart
+2. widget/analytics_screen_test.dart  
+3. widget/chat_coach_test.dart
+
+
+### **6.3 Integration Tests**
+# Cross-component testing:
+./scripts/test_integration.sh    # Runs integration tests
+
+# Specific integration tests:
+1. tests/integration/ble_integration.dart
+2. tests/integration/voice_integration.dart  
+3. tests/integration/llm_integration.dart
+
+
+### **6.4 Property & Fuzz Testing (Rust)**
+rust
+// Advanced testing:
+cargo test --package hydrion-core --test property_invariants
+cargo fuzz run ble_parser_fuzz
+
+
+## 🚀 **PHASE 7: PRODUCTION READINESS (Week 11)**
+
+### **7.1 Build Scripts Execution**
+# Execute in sequence:
+./scripts/lint_all.sh            # Code quality (includes cargo fmt/clippy)
+./scripts/build_android.sh       # Build Android with Rust NDK
+./scripts/build_ios.sh           # Build iOS with Rust Xcode integration  
+./scripts/build_desktop.sh       # Build desktop platforms
+./scripts/test_all.sh            # Final test suite
+
+
+### **7.2 Model Verification**
+# Validate AI models:
+python scripts/verify_models.py
+python scripts/model_quantize.py
+
+
+### **7.3 Security & Compliance**
+# Security checks:
+./scripts/sbom.sh               # Software Bill of Materials
+cargo audit                     # Rust dependency security audit
+
+
+### **7.4 Deployment**
+# Deploy in order:
+1. .github/workflows/rust-core-ci.yml    # Validate Rust core
+2. .github/workflows/flutter-ci.yml      # Validate Flutter UI
+3. .github/workflows/ai-models-ci.yml    # Validate AI models
+4. .github/workflows/llm-packs-ci.yml    # Validate LLM integrations
+5. .github/workflows/release-android.yml
+6. .github/workflows/release-ios.yml
+7. .github/workflows/release-desktop.yml
+8. .github/workflows/release-web.yml
+9. .github/workflows/deploy-cloud.yml
+
+
+## 📋 **CRITICAL PATH SCRIPT EXECUTION ORDER**
+
+# MUST FOLLOW THIS SEQUENCE:
+1.  ./scripts/dev_setup.sh                    # Install Rust, Flutter, Python
+2.  ./scripts/gen_frb_bindings.sh            # Generate Flutter-Rust bridge
+3.  cd core && cargo build --workspace       # Build Rust core
+4.  python models/training/data_prep.py      # Prepare training data
+5.  python models/training/train_hydration.py # Train models
+6.  python scripts/model_quantize.py         # Quantize models
+7.  cd voice/svc && python main.py           # Test voice service
+8.  flutter pub get && flutter build         # Build Flutter app
+9.  ./scripts/test_all.sh                    # Run all tests
+10. ./scripts/lint_all.sh                    # Code quality
+11. ./scripts/build_android.sh               # Build for Android
+12. ./scripts/build_ios.sh                   # Build for iOS
+13. cargo test --workspace                   # Final Rust validation
+14. flutter test                             # Final Flutter validation

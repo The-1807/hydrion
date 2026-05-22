@@ -1,0 +1,36 @@
+# Hydrion.ai OpenAI / LLM Configuration
+# Purpose: Centralizes API credentials, model behavior, and safety parameters.
+# Version: 1.1
+# Author: Hydrion.ai Team
+
+openai:
+  endpoint: "https://api.openai.com/v1"
+  api_key: "${OPENAI_API_KEY}"          # Pulled from .env for security
+  organization: "${OPENAI_ORG_ID}"      # Optional
+  model_default: "gpt-4o-mini"
+  model_fallback: "gpt-3.5-turbo"       # Safe fallback if unavailable
+  temperature: 0.7                      # Creativity vs determinism
+  max_tokens: 150
+  timeout_seconds: 30
+  user_agent: "HydrionAI/1.0 (mobile+flutter+kmp)"
+  rate_limits:
+    rpm: 60                             # Requests per minute
+    rpd: 2000                           # Requests per day per user
+  retry_policy:
+    max_attempts: 3
+    backoff_factor: 1.5                 # Exponential retry delay
+  cache:
+    enabled: true
+    ttl_minutes: 120                    # Cache duration for identical prompts
+    storage: "realm"                    # Matches core/storage/LLMCache.kt
+
+security:
+  redact_sensitive: true                # Prevents leaking keys in logs
+  log_requests: true
+  log_file: "logs/llm_requests.log"
+  pii_filter: true
+
+modes:
+  coach: "hydration_coach"
+  nudge: "reminder_nudge"
+  sentiment: "sentiment_response"

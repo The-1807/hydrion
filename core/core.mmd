@@ -1,0 +1,62 @@
+graph TD
+    A[Flutter App (Dart)] -->|FFI Calls| B[hydrion-ffi]
+    B -->|Exposes APIs| C[hydrion-core]
+    B -->|Bindings| D[Dart/C Bindings]
+
+    C -->|Uses| E[hydrion-ml]
+    C -->|Uses| F[hydrion-storage]
+    C -->|Uses| G[hydrion-ble]
+    C -->|Uses| H[hydrion-crypto]
+    C -->|Uses| I[hydrion-time]
+    C -->|Uses| J[hydrion-i18n]
+
+    subgraph hydrion-core
+        C1[targets] -->|Adjusts| C2[policy]
+        C2 -->|Schedules| C3[schedule]
+        C3 -->|Tracks| C4[kpi]
+        C4 -->|Analyzes| C5[context]
+        C5 -->|Processes| C6[intake]
+        C6 -->|Exports| C7[export]
+        C7 -->|Explains| C8[explain]
+    end
+
+    subgraph hydrion-ml
+        E1[features] -->|Inputs| E2[tflite]
+        E2 -->|Predicts| E3[forecast]
+    end
+
+    subgraph hydrion-storage
+        F1[conn] -->|Manages| F2[migrations]
+        F2 -->|Populates| F3[dao]
+        F3 -->|Stores| F4[types]
+    end
+
+    subgraph hydrion-ble
+        G1[gatt] -->|Handles| G2[proto]
+        G2 -->|Syncs| G3[reconcile]
+    end
+
+    subgraph hydrion-crypto
+        H1[keyring] -->|Secures| H2[envelope]
+        H2 -->|Uses| H3[rng]
+    end
+
+    subgraph hydrion-time
+        I1[quiet_hours] -->|Adjusts| I2[tz]
+    end
+
+    subgraph hydrion-i18n
+        J1[catalog] -->|Provides| J2[Localized Strings]
+    end
+
+    subgraph External Inputs
+        K[BLE Devices] -->|Syncs| G
+        L[SQLCipher DB] -->|Stores| F
+        M[TFLite Models] -->|Used by| E
+    end
+
+    subgraph Outputs
+        C -->|Generates| N[KPIs, Digests, Schedules]
+        C -->|Exports| O[Encrypted .hydrionx]
+        B -->|Returns| P[Dart Responses to Flutter]
+    end

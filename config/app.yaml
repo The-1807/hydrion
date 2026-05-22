@@ -1,0 +1,31 @@
+# Hydrion.ai app configuration
+# Defines app-wide settings, themes, and API keys
+# Version: 1.0
+# Author: Hydrion.ai Team
+
+app:
+  name: Hydrion
+  version: 1.0.0
+  environment: development  # Options: development, staging, production
+
+theme:
+  primary_color: "#1E88E5"  # Blue for water theme
+  accent_color: "#4CAF50"   # Green for eco focus
+  font_family: Roboto       # Matches Material Design 3
+  dark_mode: true          # Default to dark mode
+
+features:
+  ble_enabled: true         # Enable BLE for smart bottles
+  voice_enabled: true       # Enable voice commands
+  ar_enabled: false         # AR visualization (V2)
+  social_enabled: false     # Social challenges (V2)
+  eco_tracking: true        # Plastic savings tracking
+  wearable_sync: true       # Apple Health/Google Fit
+
+api_keys:
+  openweather: "YOUR_OPENWEATHER_API_KEY"  # Replace with actual key
+  accuweather: "YOUR_ACCUWEATHER_API_KEY"  # Replace with actual key
+
+logging:
+  level: info              # Options: debug, info, warn, error
+  file: logs/app.log       # Log file path

@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "crates/hydrion-core",
+    "crates/hydrion-ml",
+    "crates/hydrion-storage",
+    "crates/hydrion-ble",
+    "crates/hydrion-crypto",
+    "crates/hydrion-time",
+    "crates/hydrion-i18n",
+    "crates/hydrion-ffi",
+]
+resolver = "2"

@@ -1,0 +1,134 @@
+### I. Purpose and Role within Hydrion
+
+The **Hydrion-Crypto layer** forms the defensive core of the entire Hydrion ecosystem. Every byte of data, every decision pipeline, every AI response that flows through Hydrion touches this layer-directly or indirectly. It is the **foundation of trust** on which all AI, BLE, and data analytics operations rely.
+
+This framework ensures that all information passing between devices, users, and servers remains:
+
+* Confidential (protected from unauthorized access)
+* Authentic (verifiably untampered)
+* Integral (unchanged and complete)
+* Auditable (cryptographically traceable)
+
+Hydrion-Crypto is built on **Rust**, ensuring memory safety, deterministic execution, and isolation from undefined behavior-critical properties for cryptographic reliability in embedded and AI-integrated systems.
+
+---
+
+### II. Structural Philosophy
+
+The design obeys three guiding principles:
+
+1. **Zero Trust by Default**
+   No part of the system is inherently trusted. Keys are isolated, transient where possible, and never reused for multiple contexts (voice vs data vs BLE).
+
+2. **Local First, Cloud Optional**
+   Encryption, authentication, and signing are done locally. Even AI/LLM packets are encrypted before leaving the device.
+
+3. **Deterministic Security Boundaries**
+   The layer defines strict data-lifecycle rules: when a key is created, how long it lives, how it’s used, and when it is zeroized.
+
+---
+
+### III. Core Components
+
+#### 1. **RNG (rng.rs)**
+
+The Random Number Generator provides entropy from the OS’s CSPRNG (cryptographically secure pseudorandom number generator).
+
+* Backed by `OsRng` (ChaCha20-based) with optional `rand_chacha` for deterministic testing.
+* Generates all core primitives: AES keys, nonces, salts, UUIDs.
+* Integrates **ZeroizeOnDrop** to ensure ephemeral keying material is never leaked in memory.
+* Deterministic mode allows reproducible encryption pipelines for simulations and replayable AI decision chains.
+
+#### 2. **Envelope Layer (envelope.rs)**
+
+Implements **AES-256-GCM** for authenticated encryption (AEAD), protecting both confidentiality and integrity.
+
+* Envelopes include nonce, tag, cipher ID, and key ID.
+* Supports additional authenticated data (AAD) for context-aware integrity verification (e.g., metadata binding, AI prompt signatures).
+* Enables rekeying and sealed automatic encryption for ephemeral data (voice logs, hydration metrics).
+
+This layer is **replay resistant**: every nonce is unique and tracked via keyring or temporal sequence enforcement.
+
+#### 3. **KeyRing (keyring.rs)**
+
+Manages key creation, rotation, and persistence using platform-secure APIs:
+
+* Android → Keystore
+* iOS → Keychain
+* Desktop/Embedded → in-memory secure ring buffer
+
+It provides:
+
+* Thread-safe, zeroized key storage
+* Lazy initialization
+* Hierarchical `KeyId` naming (LocalDB, Export, LLM Provider, BLE Device, etc.)
+* Deterministic aliases for cross-device sync
+* Transparent rotation and secure deletion
+
+All keys are 256-bit AES symmetric keys.
+Long-term, asymmetric key support (ECDH + Ed25519) will be introduced for device pairing and identity proofs.
+
+#### 4. **Error Layer (error.rs)**
+
+Centralized error dispatch for higher-level coordination.
+
+* Maps low-level failures (RNG, cipher mismatch, OS fault) into `CryptoError` enum.
+* Used by the `hydrion-core` orchestrator to trigger fallback routines or audit logs.
+* Provides diagnostic trace consistency across all Hydrion subsystems.
+
+---
+
+### IV. Threat Model and Defenses
+
+| Threat               | Defense                                                    |
+| -------------------- | ---------------------------------------------------------- |
+| Memory snooping      | ZeroizeOnDrop + ephemeral keys + no heap reuse             |
+| Replay attack        | Nonce uniqueness + AAD binding + per-session KeyId         |
+| Tampering            | AES-GCM tag verification                                   |
+| Key extraction       | OS-backed storage + encrypted keyring + no serialization   |
+| RNG subversion       | Dual entropy sources + optional deterministic self-test    |
+| Insider risk         | Layered key partitioning; never one global key             |
+| Side-channel leakage | Rust’s type safety + non-branching comparison (in AES-GCM) |
+
+---
+
+### V. Future Expansion
+
+1. **Post-Quantum Cryptography (PQ-ready)**
+   Integration of NIST PQC finalists like **Kyber** for key exchange and **Dilithium** for signatures.
+   These would replace symmetric key distribution in AI-to-IoT communications.
+
+2. **Hardware Security Module (HSM) Interface**
+   Hydrion devices (embedded or mobile) could offload AES/ChaCha operations to a TPM or Secure Element for isolation.
+
+3. **Cross-Identity Key Federation**
+   Hydrion Cloud and Hydrion Edge nodes will share trust graphs using signed attestations.
+   Each node’s AI model (LLM) would be able to verify data lineage through cryptographic proofs of integrity.
+
+4. **Homomorphic & Differential Privacy Layer**
+   Enables analytics on encrypted hydration and biometric data-unlocking secure computation for AI-driven feedback loops.
+
+5. **Attestation and Remote Verification**
+   Adds digital signatures to confirm device authenticity before accepting any encrypted payload.
+   Future updates will integrate an **attestation daemon** to verify firmware hashes.
+
+6. **Quantum Entropy Bridge** *(research)*
+   Exploring use of quantum entropy sources (hardware RNGs like Quantis) for seeding long-lived Hydrion identities.
+
+---
+
+### VI. Governance and Improvement Path
+
+* **Audit every release:** Mandatory cryptographic review before CI/CD signing.
+* **Versioned envelope schema:** Each cipher upgrade must retain backward decrypt compatibility for one major version.
+* **Telemetry-secure mode:** Future versions will use AES-GCM streaming for live sensor data, ensuring no cleartext leaks over BLE or network.
+* **Key Lifecycle Manager:** Integrate expiry metadata and policy enforcement (e.g., rotate LocalDB keys every 90 days).
+* **Multi-person control:** Introduce split-key scheme for administrative actions in production.
+
+---
+
+### VII. Conclusion
+
+Hydrion-Crypto isn’t just a library-it’s the *immune system* of the Hydrion architecture.
+Its design enforces digital hygiene, confidentiality, and resilience against compromise.
+It is built to scale: from a smart bottle’s BLE signal to a cloud-synced AI hydration model.

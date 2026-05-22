@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_id": "hydrion-app",
+    "project_number": "000000000000",
+    "storage_bucket": "hydrion-app.appspot.com"
+  },
+  "client": [
+    {
+      "platform": "android",
+      "mobilesdk_app_id": "1:000000000000:android:abc123",
+      "package_name": "ai.hydrion.app",
+      "api_key": [{ "current_key": "YOUR_ANDROID_API_KEY" }]
+    },
+    {
+      "platform": "ios",
+      "mobilesdk_app_id": "1:000000000000:ios:def456",
+      "bundle_id": "ai.hydrion.app",
+      "api_key": [{ "current_key": "YOUR_IOS_API_KEY" }]
+    },
+    {
+      "platform": "web",
+      "app_id": "1:000000000000:web:ghi789",
+      "api_key": "YOUR_WEB_API_KEY",
+      "auth_domain": "hydrion-app.firebaseapp.com",
+      "messaging_sender_id": "000000000000",
+      "measurement_id": "G-XXXXXXXXXX"
+    }
+  ]
+}

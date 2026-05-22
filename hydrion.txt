@@ -1,0 +1,422 @@
+Hydrion/
+├── README.md
+├── LICENSE
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── PRIVACY.md
+├── .gitignore
+├── .editorconfig
+├── .env.example
+├── Makefile
+
+# CI / DevOps
+├── .github/
+│   └── workflows/
+│       ├── flutter-ci.yml
+│       ├── rust-core-ci.yml
+│       ├── ai-models-ci.yml
+│       ├── llm-packs-ci.yml
+│       ├── release-android.yml
+│       ├── release-ios.yml
+│       ├── release-desktop.yml
+│       ├── release-web.yml
+│       └── deploy-cloud.yml
+
+# Documentation
+├── docs/
+│   ├── architecture.md
+│   ├── build_guide.md
+│   ├── ble_spec.md
+│   ├── storage.md
+│   ├── ai_models.md
+│   ├── llm_integration.md
+│   ├── integration_guide.md
+│   ├── privacy_policy.md
+│   ├── security/
+│   │   ├── threat_model.md
+│   │   └── hardening_guide.md
+│   └── roadmap.md
+
+# Configurations
+├── config/
+│   ├── app.yaml
+│   ├── i18n_manifest.json
+│   ├── weather_providers.yaml
+│   ├── ble_profiles.yaml
+│   ├── model_manifest.json
+│   ├── llm_packs.yaml
+│   ├── byok_providers.yaml
+│   ├── privacy_levels.yaml
+│   ├── firebase_config.json
+│   ├── openai_config.yaml
+│   └── prompt_templates.yaml
+
+# Internationalization
+├── i18n/
+│   ├── en.json
+│   ├── fr.json
+│   ├── es.json
+│   ├── ar.json
+│   ├── de.json
+│   ├── pt.json
+│   ├── hi.json
+│   ├── zh.json
+│   ├── ja.json
+│   ├── ko.json
+│   ├── it.json
+│   ├── nl.json
+│   ├── sv.json
+│   ├── tr.json
+│   ├── pl.json
+│   ├── id.json
+│   ├── th.json
+│   ├── vi.json
+│   ├── el.json
+│   ├── he.json
+│   ├── uk.json
+│   ├── ro.json
+│   ├── cs.json
+│   ├── hu.json
+│   ├── fi.json
+│   ├── da.json
+│   ├── no.json
+│   └── sk.json
+
+# Models
+├── models/
+│   ├── tflite/
+│   │   ├── hydration_target_v1_int8.tflite
+│   │   └── shortfall_forecast_v1_int8.tflite
+│   ├── onnx/
+│   │   └── voice_emotion.onnx
+│   ├── signatures/
+│   │   ├── hydration_target_v1.sig
+│   │   └── shortfall_forecast_v1.sig
+│   ├── training/
+│   │   ├── data_prep.py
+│   │   ├── train_hydration.py
+│   │   ├── train_shortfall.py
+│   │   └── requirements.txt
+│   ├── llm/
+│   │   ├── prompt_optimizer.py
+│   │   ├── response_validator.py
+│   │   └── cache_manager.py
+│   └── tests/
+│       ├── eval_vectors.json
+│       └── eval_report.schema.json
+
+# Assets
+├── assets/
+│   ├── icons/
+│   │   ├── app_icon.png
+│   │   └── logo.svg
+│   ├── ui/
+│   │   ├── background.webp
+│   │   ├── hydration_wave.ar
+│   │   └── progress_ring.png
+│   ├── images/
+│   │   ├── splash.png
+│   │   └── illustration.png
+│   ├── sounds/
+│   │   ├── reminder_chime.wav
+│   │   ├── achievement_unlock.wav
+│   │   └── low_hydration_alert.wav
+│   └── ar/
+│       ├── body_model.usdz
+│       └── wave_effect.glb
+
+# Database Schema (SQLCipher)
+├── schema/
+│   ├── init.sql
+│   ├── migrations/
+│   │   ├── 001_users.sql
+│   │   ├── 002_health_flags.sql
+│   │   ├── 003_context_events.sql
+│   │   ├── 004_intake_events.sql
+│   │   ├── 005_targets_daily.sql
+│   │   ├── 006_reminders.sql
+│   │   ├── 007_devices_ble.sql
+│   │   ├── 008_model_versions.sql
+│   │   ├── 009_feature_rollups_daily.sql
+│   │   ├── 010_weekly_digest.sql
+│   │   ├── 011_bandit_state.sql
+│   │   ├── 012_coach_sessions.sql
+│   │   ├── 013_achievements.sql
+│   │   ├── 014_usage_analytics.sql
+│   │   └── 015_llm_cache.sql
+│   └── README.md
+
+# Core Engine (Rust Workspace)
+├── core/
+│   ├── Cargo.toml
+│   └── crates/
+│       ├── hydrion-core/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── targets/
+│       │       │   ├── mod.rs
+│       │       │   ├── who.rs
+│       │       │   └── adjust.rs
+│       │       ├── policy/
+│       │       │   ├── mod.rs
+│       │       │   ├── bandit.rs
+│       │       │   └── rl_policy.rs
+│       │       ├── schedule/
+│       │       │   ├── mod.rs
+│       │       │   └── cooldown.rs
+│       │       ├── kpi/
+│       │       │   ├── mod.rs
+│       │       │   ├── tar.rs
+│       │       │   ├── rcr.rs
+│       │       │   └── annoyance.rs
+│       │       ├── context/
+│       │       │   ├── mod.rs
+│       │       │   └── env_bands.rs
+│       │       ├── intake/
+│       │       │   ├── mod.rs
+│       │       │   └── merge.rs
+│       │       ├── export/
+│       │       │   ├── mod.rs
+│       │       │   └── bundle.rs
+│       │       └── explain/
+│       │           ├── mod.rs
+│       │           └── why_cards.rs
+│       ├── hydrion-ml/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── features.rs
+│       │       ├── tflite.rs
+│       │       └── forecast.rs
+│       ├── hydrion-storage/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── conn.rs
+│       │       ├── migrations.rs
+│       │       ├── dao/
+│       │       │   ├── mod.rs
+│       │       │   ├── users.rs
+│       │       │   ├── health_flags.rs
+│       │       │   ├── context_events.rs
+│       │       │   ├── intake_events.rs
+│       │       │   ├── targets_daily.rs
+│       │       │   ├── reminders.rs
+│       │       │   ├── devices_ble.rs
+│       │       │   ├── model_versions.rs
+│       │       │   ├── feature_rollups_daily.rs
+│       │       │   ├── weekly_digest.rs
+│       │       │   ├── bandit_state.rs
+│       │       │   ├── achievements.rs
+│       │       │   ├── usage_analytics.rs
+│       │       │   └── audit.rs
+│       │       └── types/
+│       │           ├── mod.rs
+│       │           ├── ids.rs
+│       │           └── models.rs
+│       ├── hydrion-ble/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── gatt.rs
+│       │       ├── proto/
+│       │       │   ├── vendor_a.rs
+│       │       │   └── vendor_b.rs
+│       │       └── reconcile.rs
+│       ├── hydrion-crypto/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── keyring.rs
+│       │       ├── envelope.rs
+│       │       ├── error.rs
+│       │       └── rng.rs
+│       ├── hydrion-time/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── quiet_hours.rs
+│       │       └── tz.rs
+│       ├── hydrion-i18n/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├──  error.rs
+│       │       └── catalog.rs
+│       └── hydrion-ffi/
+│           ├── Cargo.toml
+│           └── src/
+│               ├── lib.rs
+│               ├── frb_api.rs
+│               └── bindings/
+│                   ├── dart/
+│                   │   └── core_bridge.dart
+│                   └── c/
+│                       ├── core_bridge.h
+│                       └── libcore_bridge.a
+
+# Voice Service (Python, offline)
+├── voice/
+│   ├── svc/
+│   │   ├── pyproject.toml
+│   │   ├── requirements.lock
+│   │   ├── main.py
+│   │   ├── ipc.py
+│   │   ├── asr.py
+│   │   ├── nlu.py
+│   │   └── tts.py
+│   ├── asr_models/
+│   │   ├── vosk_en_small/
+│   │   │   ├── model.conf
+│   │   │   └── graph.bin
+│   │   └── whisper_tiny.en/
+│   │       ├── model.bin
+│   │       └── license.txt
+│   └── tts_voices/
+│       ├── piper_en_us-medium.onnx
+│       └── piper_fr_fr-medium.onnx
+
+# Flutter App (Cross-Platform UI)
+├── app/
+│   ├── pubspec.yaml
+│   ├── lib/
+│   │   ├── main.dart
+│   │   ├── app_boot.dart
+│   │   ├── state/
+│   │   ├── ui/
+│   │   │   ├── screens/
+│   │   │   │   ├── HomeScreen.dart
+│   │   │   │   ├── AnalyticsScreen.dart
+│   │   │   │   ├── LogScreen.dart
+│   │   │   │   ├── SettingsScreen.dart
+│   │   │   │   ├── SocialChallengesScreen.dart
+│   │   │   │   ├── ArVisualizationScreen.dart
+│   │   │   │   └── ChatCoachScreen.dart
+│   │   │   └── components/
+│   │   │       ├── IntakeRing.dart
+│   │   │       ├── ReminderTile.dart
+│   │   │       ├── AchievementBadge.dart
+│   │   │       ├── HydrationScoreCard.dart
+│   │   │       ├── LLMAdviceCard.dart
+│   │   │       └── VoiceInputWidget.dart
+│   │   ├── services/
+│   │   │   ├── core_bridge.dart
+│   │   │   ├── ble_client.dart
+│   │   │   ├── voice_client.dart
+│   │   │   ├── notifications.dart
+│   │   │   ├── wearable_service.dart
+│   │   │   ├── eco_tracker.dart
+│   │   │   ├── llm_service.dart
+│   │   │   └── voice_llm_bridge.dart
+│   │   ├── utils/
+│   │   │   ├── permissions.dart
+│   │   │   ├── i18n_resolver.dart
+│   │   │   ├── logging.dart
+│   │   │   ├── metrics.dart
+│   │   │   └── llm_prompt_builder.dart
+│   │   └── ffi/
+│   │       └── core_bridge.dart
+│   ├── assets/
+│   │   └── symlink_to_root_assets.txt
+│   ├── android/
+│   │   ├── app/src/main/AndroidManifest.xml
+│   │   ├── app/src/main/java/com/hydrion/app/MainActivity.kt
+│   │   ├── app/src/main/java/com/hydrion/app/BlePlugin.kt
+│   │   ├── app/src/main/jniLibs/
+│   │   └── proguard-rules.pro
+│   ├── ios/
+│   │   ├── Runner/Info.plist
+│   │   ├── Runner/AppDelegate.swift
+│   │   └── Runner/SwiftBlePlugin.swift
+│   ├── web/
+│   └── test/
+│       ├── widget/
+│       │   ├── home_screen_test.dart
+│       │   ├── analytics_screen_test.dart
+│       │   └── chat_coach_test.dart
+│       └── integration/
+│           ├── app_flow_test.dart
+│           └── llm_integration_test.dart
+
+# Optional Cloud Packs (BYOK, Gemini)
+├── packs/
+│   ├── edge_llm/
+│   │   ├── README.md
+│   │   ├── model_pack/
+│   │   └── bindings/
+│   ├── byok_llm/
+│   │   ├── client/
+│   │   │   ├── lib/byok_client.dart
+│   │   │   └── redaction_rules.json
+│   │   └── server/
+│   │       ├── package.json
+│   │       ├── index.js
+│   │       └── README.md
+│   └── gemini_connector/
+│       ├── client/
+│       │   └── lib/gemini_client.dart
+│       └── server/
+│           ├── package.json
+│           ├── upload_digest.js
+│           └── README.md
+
+# Cloud Services (Optional)
+├── cloud/
+│   ├── functions/
+│   │   ├── index.js
+│   │   ├── ml_training.js
+│   │   ├── sync_handler.js
+│   │   └── llm_proxy.js
+│   └── README.md
+
+# Scripts & Utilities
+├── scripts/
+│   ├── dev_setup.sh
+│   ├── gen_frb_bindings.sh
+│   ├── build_android.sh
+│   ├── build_ios.sh
+│   ├── build_desktop.sh
+│   ├── model_quantize.py
+│   ├── verify_models.py
+│   ├── test_all.sh
+│   ├── sbom.sh
+│   ├── deploy_cloud.sh
+│   ├── lint_all.sh
+│   ├── llm_prompt_test.py
+│   └── llm_cache_cleanup.py
+
+# Tests & Benchmarks
+├── tests/
+│   ├── unit/
+│   │   ├── rust_core/
+│   │   ├── dart_ui/
+│   │   └── python_voice/
+│   ├── integration/
+│   │   ├── ble_integration.dart
+│   │   ├── voice_integration.dart
+│   │   └── llm_integration.dart
+│   ├── property/
+│   │   └── policy_invariants.rs
+│   ├── fuzz/
+│   │   ├── ble_parser_fuzz.rs
+│   │   └── model_manifest_fuzz.rs
+│   └── e2e/
+│       ├── android_e2e.dart
+│       ├── ios_e2e.dart
+│       ├── web_e2e.dart
+│       └── llm_e2e_test.dart
+
+# Data & Logs (gitignored)
+├── exports/
+│   ├── sample_export.json
+│   ├── sample_export.csv
+│   └── sample_export.hydrionx
+└── logs/
+    ├── app.log
+    ├── core.log
+    ├── voice.log
+    ├── ble.log
+    ├── cloud.log
+    └── llm_requests.log

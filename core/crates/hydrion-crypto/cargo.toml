@@ -1,0 +1,44 @@
+# core/crates/hydrion-crypto/Cargo.toml
+[package]
+name = "hydrion-crypto"
+version = "1.0.0"
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+description = "Cryptographic utilities for Hydrion: RNG, keyring, and AEAD envelopes."
+repository = "https://github.com/The1807/Hydrion"
+readme = "README.md"
+categories = ["cryptography", "security", "no-std::alloc"]
+keywords = ["aead", "aes-gcm", "rng", "zeroize", "keyring"]
+
+[dependencies]
+aes-gcm = { version = "0.10", features = ["aes"] }
+rand_core = "0.6.4"
+zeroize = { version = "1.7", features = ["zeroize_derive"] }
+thiserror = "1.0.63"
+hex = "0.4"
+
+# Deterministic RNG for tests/simulations (opt-in)
+rand_chacha = { version = "0.3.1", optional = true }
+
+[features]
+default = []
+deterministic = ["rand_chacha"]
+
+[dev-dependencies]
+rstest = "0.21.0"
+proptest = "1.4.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+unused = "deny"
+missing_docs = "warn"
+
+[profile.release]
+opt-level = "z"
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[package.metadata.docs.rs]
+all-features = true

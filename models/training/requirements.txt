@@ -1,0 +1,12 @@
+# Python dependencies for Hydrion.ai model training
+# Version: 1.0
+# Author: Hydrion.ai Team
+
+tensorflow==2.16.1
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.5.2
+onnx==1.16.2
+onnxruntime==1.19.2
+tf2onnx==1.16.1
+pytest==8.3.3

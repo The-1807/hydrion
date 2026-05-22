@@ -1,0 +1,632 @@
+# HYDRION — OVERVIEW.TXT
+
+Version 1.0 • Commercial Grade • Hybrid Architecture (Local-First + Optional Cloud Packs) • October 2025
+
+## Mission
+
+Hydrion is a secure, intelligent hydration companion. Default mode is **local-first**: all data, predictions, voice, and insights run **on-device**. Users can optionally enable **cloud-assist packs** (BYOK LLM, Gemini connector) that are sandboxed, explicit, and reversible. We optimize three core metrics:
+
+* **TAR** — Daily Target Achievement Rate
+* **RCR** — Reminder Conversion Rate
+* **Annoyance Rate** — Percent of reminders dismissed/snoozed
+
+## Operating Modes
+
+* **Local Mode (default):** 100% offline; SQLCipher, TFLite, offline ASR/TTS, Edge mini-LLM (optional pack). No network calls.
+* **Cloud-Assist (opt-in):** BYOK LLM and/or Gemini connector enabled by the user. Only **aggregated features** (no raw logs, IDs, or timestamps) leave device. Prominent “Data leaves device” badge; one-tap kill switch.
+
+---
+
+## Layer 1 — UI (Flutter / Dart)
+
+**Purpose**: Single codebase for Android/iOS/Desktop (and optionally Web). Presents dashboards, logs, coach tips, BLE status, exports, and settings.
+
+**Language**: Dart (Flutter)
+
+**Key Packages**:
+
+* State: `riverpod` (or `bloc`)
+* Charts: `syncfusion_flutter_charts` (or `fl_chart`)
+* Localization: `intl`
+* Permissions/Storage: `permission_handler`, `path_provider`, `share_plus`
+* Platform bridges: `flutter_rust_bridge` (generated bindings), custom BLE plugin wrappers
+* Optional web build guarded by feature flags; no telemetry
+
+**Bindings**:
+
+* **Rust Core** via `flutter_rust_bridge` generated Dart APIs
+* **Voice Service** via local IPC client (msgpack over UNIX domain socket / named pipes)
+* **BLE** via native plugins (Android/iOS) under a Flutter facade
+
+**Data/Inputs**:
+
+* FFI structs from Rust: KPIs, feature digests, schedule windows, bottle status
+* Voice intents from Python service
+* No direct DB access in production (read/write flows go through Rust)
+
+**APIs Consumed (Dart)**:
+
+* `CoreBridge.getWeeklyDigest()`, `CoreBridge.getTodayCurve()`, `CoreBridge.logIntake(volume)`
+* `CoreBridge.exportEncryptedBundle()`
+* `VoiceClient.asr() / tts()`
+* `BlePlugin.scan()/connect()/sync()`
+
+---
+
+## Layer 2 — Core Engine (Rust Workspace)
+
+**Purpose**: Single source of truth for business logic, policy engine (bandit/RL), scheduling, feature extraction, TFLite inference, SQLCipher persistence, export, and i18n support.
+
+**Language**: Rust (stable)
+
+**Crates**:
+
+* `hydrion-core` — targets, reminder policy, schedule, KPIs
+* `hydrion-ml` — EDA features, shortfall forecast (TFLite), tone policy
+* `hydrion-storage` — SQLCipher access, migrations, DAOs, export/import
+* `hydrion-ble` — abstractions, protocol codecs, reconcile/merge engine
+* `hydrion-crypto` — envelope crypto, passphrase flows, key rotation
+* `hydrion-time` — quiet hours, circadian math, TZ handling
+* `hydrion-i18n` — catalogs, plural rules
+* `hydrion-ffi` — `flutter_rust_bridge` surfaces for Dart
+
+**Libraries**: `tokio`, `serde`, `rusqlite` + SQLCipher, `tflite-rs`, `ring`/`orion`, `btleplug` (desktop), `cbindgen`/`ffi-support`, `polars` (local analytics), `tracing`, `proptest`
+
+**FFI API (examples)**:
+
+* `core_log_intake(volume_ml, source)`
+* `core_get_digest(period)` → JSON summary for coach/LLM
+* `core_predict_shortfall()`
+* `core_next_reminder()` / `core_ack_reminder(outcome)`
+* `core_export(path, passphrase)` / `core_import(path, passphrase)`
+* `core_ble_apply_sync(batch_events)`
+
+**Data/Inputs**:
+
+* Intake events, reminders, context bands, BLE session stats, model manifests/signatures
+
+---
+
+## Layer 3 — Storage & Schema (SQLite + SQLCipher)
+
+**Purpose**: Encrypted at rest; audited schema; deterministic exports.
+
+**Encryption**: DB key derived from OS vault (Keystore/Keychain/DPAPI/SecretService). No hardcoded keys. Exports encrypted with user passphrase (Argon2id).
+
+**Tables** (encrypted):
+
+* `users`, `health_flags`, `context_events`, `intake_events`, `targets_daily`, `reminders`, `devices_ble`, `model_versions`, `audit`
+* EDA/Policy: `feature_rollups_daily`, `weekly_digest`, `bandit_state`, `coach_sessions`
+
+**Exports**:
+
+* `.hydrionx` archive: encrypted JSON/CSV + manifest + model/version IDs; round-trippable import
+
+---
+
+## Layer 4 — BLE Device Layer (Native + Rust)
+
+**Purpose**: Connect/sync with smart bottles; handle reconnection, batching, reconciliation.
+
+**Android**: Native BLE APIs (foreground service for reliability)
+**iOS**: CoreBluetooth (background restoration + batch sync)
+**Desktop**: `btleplug` (only while app runs)
+
+**Dart Facade**: `BlePlugin` wraps platform code; calls into Rust merge
+
+**Metrics**: connection success, retries, backlog merged, RSSI band; surfaced to policy/EDA
+
+**Security**: Block unknown services by default; CRC checks; vendor profiles whitelisted via `config/ble_profiles.yaml`
+
+---
+
+## Layer 5 — ML & EDA (On-Device)
+
+**Purpose**: Compute features, run tiny predictors, prepare digests for coach/LLM.
+
+**Training**: Offline (Python/TensorFlow). Quantize to **TFLite int8**.
+**Runtime**: Rust `tflite-rs`, deterministic seeds and manifests (signed).
+
+**Models (V1)**:
+
+* `hydration_target_v1_int8.tflite`
+* `shortfall_forecast_v1_int8.tflite`
+* (tone/policy as small JSON params; RL weights local)
+
+**Features**:
+
+* Cadence curve deltas, peak hours, shortfall risk, RCR by timeband/tone, fatigue flags, temperature/activity coupling, streaks, BLE stability
+
+**Metrics**: Forecast MAE, TAR/RCR/Annoyance rolling, BLE stability rate, accept latency
+
+---
+
+## Layer 6 — Voice Service (Python, Offline)
+
+**Purpose**: Wake phrase, ASR, NLU intents, TTS — all offline.
+
+**Language**: Python 3.11+
+
+**Models/Libraries**:
+
+* ASR: Vosk or Whisper-tiny packs
+* TTS: Piper voices
+* IPC: msgpack over UNIX socket / named pipe (`asyncio`, `msgpack`)
+
+**Endpoints**:
+
+* `asr(audio)` → `{text, confidence}`
+* `intent(text)` → `{intent, entities}`
+* `tts(text)` → PCM stream
+
+**Privacy**: No raw transcripts stored; only intent labels if needed.
+
+---
+
+## Layer 7 — Edge LLM (Local Pack) & BYOK LLM (Cloud Pack, Optional)
+
+**Purpose**: Generate coaching text from **feature digests**, never raw logs.
+
+**Edge LLM (Local)**:
+
+* Small 1-3B quantized model via `llama.cpp` bindings or similar; constrained prompts; deterministic style; purely offline.
+
+**BYOK LLM (Cloud, Optional)**:
+
+* User supplies their own key (OpenAI, Gemini, Claude). Key stored ephemerally in OS vault.
+* Strict **prompt minimization**: only aggregates (e.g., “TAR_7d: 71%, late-day intake weak Wed/Thu, temp_band_hot effect +18%”).
+* UI badge “Data leaves device”; one-tap disable; audit log entry.
+
+**APIs**:
+
+* `llm_generate(digest, mode=edge|byok)`
+* `llm_validate(text)` (safety, no clinical claims)
+* `llm_purge_cache()`
+
+---
+
+## Layer 8 — Security & Supply Chain
+
+**Purpose**: Keep the trust budget intact.
+
+**Key Mgmt**: OS vaults (Android Keystore, iOS Keychain, DPAPI/Keychain).
+**Crypto**: `ring` / `orion`; Argon2id for export passphrases.
+**Build Integrity**: SBOM (Syft), SLSA provenance; code-signing, notarization; store integrity checks.
+**Model Integrity**: Signed `model_manifest.json` + per-file signatures; runtime hash check.
+**Logs**: Local only; redacted; export by user only.
+
+---
+
+## Layer 9 — Insights & Explainability (On-Device)
+
+**Purpose**: Compute KPIs; show “Why this reminder?” and “Why this tip?”
+
+**EDA Cadence**:
+
+* Realtime counters → Hourly rolls → Nightly recompute (while charging)
+
+**UX**:
+
+* “Why” cards show top 3 factors (curve delta, best window, context effect)
+* Local dashboards only; no telemetry
+
+---
+
+## Layer 10 — Exports & Gemini Connector (Optional)
+
+**Purpose**: Share insights externally in a privacy-preserving way.
+
+**Local Export**: Encrypted `.hydrionx` with digest JSONs and CSVs.
+**Gemini Connector (BYOK)**: Uses user’s key to upload **only** digests; no identifiers; explicit consent every time.
+
+---
+
+## Data Contracts (Selected)
+
+* **Digest (Weekly)**: strengths[], opportunities[], actions[], risk_flags[], numeric KPIs; no timestamps or IDs.
+* **Bandit State**: versioned params, recent reward stats; local only.
+* **BLE Batch**: deduped packets with monotonic counters; merged in Rust.
+
+---
+
+## Test & Acceptance Gates
+
+* **Golden Day** sim passes; **quiet-hour zero violations**
+* BLE: **95%+** sync success on device matrix; no double-count
+* Voice: 90% command success on noise suite; idle battery within budget
+* LLM: No clinical claims; privacy checks pass; BYOK never sends raw logs
+* Crash-free > **99.5%** in staged rollout
+
+---
+
+## Compliance Posture
+
+* Not a medical device; wellness only
+* GDPR/PIPEDA/CCPA-friendly: default local processing; explicit consent for exports/cloud packs
+* VDP with contact + PGP; 90-day patch policy
+
+---
+
+# HYDRION — DIRECTORY STRUCTURE (HYBRID • FLUTTER + RUST + PYTHON • OPTIONAL CLOUD PACKS)
+
+Hydrion/
+├── README.md
+├── LICENSE
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── PRIVACY.md
+├── .gitignore
+├── .editorconfig
+├── .env.example
+├── Makefile
+
+# ────── CI / DevOps ──────
+
+├── .github/
+│   └── workflows/
+│       ├── flutter-ci.yml                 # format, analyze, tests, integration
+│       ├── rust-core-ci.yml               # cargo fmt, clippy, test, audit, fuzz seeds
+│       ├── ai-models-ci.yml               # verify TFLite manifests, signatures, size budgets
+│       ├── llm-packs-ci.yml               # edge LLM pack checks, BYOK redaction tests
+│       ├── release-android.yml            # Play internal testing track
+│       ├── release-ios.yml                # TestFlight distribution
+│       ├── release-desktop.yml            # mac notarize, win sign, linux package
+│       ├── release-web.yml                # optional Flutter web build (flagged)
+│       └── deploy-cloud.yml               # optional: deploy BYOK proxy / Gemini connector
+
+# ────── Documentation ──────
+
+├── docs/
+│   ├── architecture.md                    # Flutter + Rust + Python + optional packs
+│   ├── build_guide.md                     # per platform build/signing
+│   ├── ble_spec.md                        # GATT profiles, reconnection, merge
+│   ├── storage.md                         # SQLCipher schema, exports, key mgmt
+│   ├── ai_models.md                       # training, quantization, model cards
+│   ├── llm_integration.md                 # edge model + BYOK contracts, redaction
+│   ├── privacy_policy.md
+│   ├── security/
+│   │   ├── threat_model.md
+│   │   └── hardening_guide.md
+│   └── roadmap.md                         # milestones M0..M6
+
+# ────── Configurations ──────
+
+├── config/
+│   ├── app.yaml                           # feature flags, reminder caps, cooldowns
+│   ├── i18n_manifest.json                 # locales and versions
+│   ├── ble_profiles.yaml                  # supported bottle/vendor characteristics
+│   ├── model_manifest.json                # signed model list + hashes
+│   ├── llm_packs.yaml                     # edge model pack, BYOK providers, enablement
+│   ├── byok_providers.yaml                # provider endpoints & scopes (OpenAI, Gemini, Claude)
+│   ├── privacy_levels.yaml                # UI badges & copy per data egress state
+│   └── prompt_templates.yaml              # coach style guides & caps (no clinical claims)
+
+# ────── Internationalization ──────
+
+├── i18n/
+│   ├── en.json
+│   ├── fr.json
+│   ├── es.json
+│   ├── ar.json
+│   ├── de.json
+│   ├── pt.json
+│   ├── hi.json
+│   ├── zh.json
+│   ├── ja.json
+│   ├── ko.json
+│   ├── it.json
+│   ├── nl.json
+│   ├── sv.json
+│   ├── tr.json
+│   ├── pl.json
+│   ├── id.json
+│   ├── th.json
+│   ├── vi.json
+│   ├── el.json
+│   ├── he.json
+│   ├── uk.json
+│   ├── ro.json
+│   ├── cs.json
+│   ├── hu.json
+│   ├── fi.json
+│   ├── da.json
+│   ├── no.json
+│   └── sk.json
+
+# ────── Models (quantized, signed) ──────
+
+├── models/
+│   ├── tflite/
+│   │   ├── hydration_target_v1_int8.tflite
+│   │   └── shortfall_forecast_v1_int8.tflite
+│   ├── signatures/
+│   │   ├── hydration_target_v1.sig
+│   │   └── shortfall_forecast_v1.sig
+│   ├── training/
+│   │   ├── data_prep.py
+│   │   ├── train_hydration.py
+│   │   ├── train_shortfall.py
+│   │   └── requirements.txt
+│   └── tests/
+│       ├── eval_vectors.json
+│       └── eval_report.schema.json
+
+# ────── Assets (local only) ──────
+
+├── assets/
+│   ├── icons/
+│   │   ├── app_icon.png
+│   │   └── logo.svg
+│   ├── images/
+│   │   ├── splash.png
+│   │   └── progress_ring.png
+│   └── sounds/
+│       ├── reminder_chime.wav
+│       └── achievement_unlock.wav
+
+# ────── Database Schema (SQLCipher) ──────
+
+├── schema/
+│   ├── init.sql
+│   ├── migrations/
+│   │   ├── 001_users.sql
+│   │   ├── 002_health_flags.sql
+│   │   ├── 003_context_events.sql
+│   │   ├── 004_intake_events.sql
+│   │   ├── 005_targets_daily.sql
+│   │   ├── 006_reminders.sql
+│   │   ├── 007_devices_ble.sql
+│   │   ├── 008_model_versions.sql
+│   │   ├── 009_feature_rollups_daily.sql
+│   │   ├── 010_weekly_digest.sql
+│   │   ├── 011_bandit_state.sql
+│   │   ├── 012_coach_sessions.sql
+│   │   └── 013_audit.sql
+│   └── README.md
+
+# ────── Core Engine (Rust Workspace) ──────
+
+├── core/
+│   ├── Cargo.toml
+│   └── crates/
+│       ├── hydrion-core/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── targets/
+│       │       │   ├── mod.rs
+│       │       │   ├── who.rs
+│       │       │   └── adjust.rs
+│       │       ├── policy/
+│       │       │   ├── mod.rs
+│       │       │   ├── bandit.rs
+│       │       │   └── rl_policy.rs
+│       │       ├── schedule/
+│       │       │   ├── mod.rs
+│       │       │   └── cooldown.rs
+│       │       ├── kpi/
+│       │       │   ├── mod.rs
+│       │       │   ├── tar.rs
+│       │       │   ├── rcr.rs
+│       │       │   └── annoyance.rs
+│       │       ├── context/
+│       │       │   ├── mod.rs
+│       │       │   └── env_bands.rs
+│       │       ├── intake/
+│       │       │   ├── mod.rs
+│       │       │   └── merge.rs
+│       │       ├── export/
+│       │       │   ├── mod.rs
+│       │       │   └── bundle.rs
+│       │       └── explain/
+│       │           ├── mod.rs
+│       │           └── why_cards.rs
+│       ├── hydrion-ml/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── features.rs
+│       │       ├── tflite.rs
+│       │       └── forecast.rs
+│       ├── hydrion-storage/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── conn.rs
+│       │       ├── migrations.rs
+│       │       ├── dao/
+│       │       │   ├── users.rs
+│       │       │   ├── health_flags.rs
+│       │       │   ├── context_events.rs
+│       │       │   ├── intake_events.rs
+│       │       │   ├── targets_daily.rs
+│       │       │   ├── reminders.rs
+│       │       │   ├── devices_ble.rs
+│       │       │   ├── model_versions.rs
+│       │       │   ├── feature_rollups_daily.rs
+│       │       │   ├── weekly_digest.rs
+│       │       │   ├── bandit_state.rs
+│       │       │   └── audit.rs
+│       │       └── types/
+│       │           ├── ids.rs
+│       │           └── models.rs
+│       ├── hydrion-ble/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── gatt.rs
+│       │       ├── proto/
+│       │       │   ├── vendor_a.rs
+│       │       │   └── vendor_b.rs
+│       │       └── reconcile.rs
+│       ├── hydrion-crypto/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── keyring.rs
+│       │       ├── envelope.rs
+│       │       └── rng.rs
+│       ├── hydrion-time/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       ├── quiet_hours.rs
+│       │       └── tz.rs
+│       ├── hydrion-i18n/
+│       │   ├── Cargo.toml
+│       │   └── src/
+│       │       ├── lib.rs
+│       │       └── catalog.rs
+│       └── hydrion-ffi/
+│           ├── Cargo.toml
+│           └── src/
+│               ├── lib.rs
+│               ├── frb_api.rs
+│               └── bindings/          # generated by flutter_rust_bridge
+│                   ├── dart/
+│                   │   └── core_bridge.dart
+│                   └── c/
+│                       ├── core_bridge.h
+│                       └── libcore_bridge.a (artifact path placeholder)
+
+# ────── Voice Service (Python, offline) ──────
+
+├── voice/
+│   ├── svc/
+│   │   ├── pyproject.toml
+│   │   ├── requirements.lock
+│   │   ├── main.py
+│   │   ├── ipc.py
+│   │   ├── asr.py
+│   │   ├── nlu.py
+│   │   └── tts.py
+│   ├── asr_models/
+│   │   ├── vosk_en_small/
+│   │   │   ├── model.conf
+│   │   │   └── graph.bin
+│   │   └── whisper_tiny.en/
+│   │       ├── model.bin
+│   │       └── license.txt
+│   └── tts_voices/
+│       ├── piper_en_us-medium.onnx
+│       └── piper_fr_fr-medium.onnx
+
+# ────── Flutter App (Cross-Platform UI) ──────
+
+├── app/
+│   ├── pubspec.yaml
+│   ├── lib/
+│   │   ├── main.dart
+│   │   ├── app_boot.dart
+│   │   ├── state/                         # riverpod/bloc stores
+│   │   ├── ui/
+│   │   │   ├── screens/
+│   │   │   │   ├── home_screen.dart
+│   │   │   │   ├── analytics_screen.dart
+│   │   │   │   ├── log_screen.dart
+│   │   │   │   ├── settings_screen.dart
+│   │   │   │   ├── coach_screen.dart
+│   │   │   │   └── export_screen.dart
+│   │   │   └── components/
+│   │   │       ├── intake_ring.dart
+│   │   │       ├── reminder_tile.dart
+│   │   │       ├── achievement_badge.dart
+│   │   │       ├── hydration_score_card.dart
+│   │   │       └── voice_input_widget.dart
+│   │   ├── services/
+│   │   │   ├── core_bridge.dart           # generated FRB wrapper (import)
+│   │   │   ├── ble_client.dart            # uses platform channels
+│   │   │   ├── voice_client.dart          # IPC to Python service
+│   │   │   ├── llm_client.dart            # edge/byok selector
+│   │   │   ├── insights_service.dart      # local digest render
+│   │   │   └── export_service.dart        # .hydrionx archives
+│   │   ├── utils/
+│   │   │   ├── permissions.dart
+│   │   │   ├── i18n_resolver.dart
+│   │   │   ├── logging.dart
+│   │   │   └── feature_flags.dart
+│   │   └── ffi/                           # FRB generated sources (symlink/checked-in)
+│   │       └── core_bridge.dart
+│   ├── android/                           # native BLE, NDK config
+│   │   ├── app/src/main/AndroidManifest.xml
+│   │   ├── app/src/main/java/com/hydrion/app/…
+│   │   ├── app/src/main/jniLibs/          # rust .so artifacts (build output)
+│   │   └── proguard-rules.pro
+│   ├── ios/                               # native BLE, Swift bridging
+│   │   ├── Runner/Info.plist
+│   │   ├n  Runner/AppDelegate.swift
+│   │   └── Runner/SwiftBlePlugin.swift
+│   ├── web/                               # optional web shell (flagged)
+│   └── test/
+│       ├── widget/
+│       │   ├── home_screen_test.dart
+│       │   └── analytics_screen_test.dart
+│       └── integration/
+│           ├── app_flow_test.dart
+│           └── ble_voice_integration_test.dart
+
+# ────── Optional Cloud Packs (BYOK, Gemini) ──────
+
+├── packs/
+│   ├── edge_llm/                          # local mini-LLM integration
+│   │   ├── README.md
+│   │   ├── model_pack/                    # quantized weights (if shipped)
+│   │   └── bindings/                      # llama.cpp or similar wrapper
+│   ├── byok_llm/                          # user-key cloud connector
+│   │   ├── client/
+│   │   │   ├── lib/byok_client.dart       # Dart client with redaction
+│   │   │   └── redaction_rules.json
+│   │   └── server/                        # optional proxy (Firebase Functions)
+│   │       ├── package.json
+│   │       ├── index.js                   # stateless prompt proxy (no logs)
+│   │       └── README.md
+│   └── gemini_connector/
+│       ├── client/
+│       │   └── lib/gemini_client.dart     # BYOK Gemini uploader for digests
+│       └── server/
+│           ├── package.json
+│           ├── upload_digest.js
+│           └── README.md
+
+# ────── Scripts & Utilities ──────
+
+├── scripts/
+│   ├── dev_setup.sh
+│   ├── gen_frb_bindings.sh                # flutter_rust_bridge codegen
+│   ├── build_android.sh
+│   ├── build_ios.sh
+│   ├── build_desktop.sh
+│   ├── model_quantize.py
+│   ├── verify_models.py                   # hash/signature checks
+│   ├── test_all.sh
+│   ├── sbom.sh                            # Syft + attestations
+│   ├── deploy_cloud.sh                    # optional packs deploy
+│   └── lint_all.sh
+
+# ────── Tests & Benchmarks ──────
+
+├── tests/
+│   ├── unit/
+│   │   ├── rust_core/                     # cargo test
+│   │   ├── dart_ui/                       # flutter test
+│   │   └── python_voice/                  # pytest
+│   ├── property/
+│   │   └── policy_invariants.rs
+│   ├── fuzz/
+│   │   ├── ble_parser_fuzz.rs
+│   │   └── model_manifest_fuzz.rs
+│   └── e2e/
+│       ├── golden_day.sim
+│       ├── ble_chaos.plan
+│       └── voice_noise.plan
+
+# ────── Data & Logs (gitignored) ──────
+
+├── exports/
+│   └── sample_export.hydrionx
+└── logs/
+├── app.log
+├── core.log
+├── voice.log
+└── ble.log

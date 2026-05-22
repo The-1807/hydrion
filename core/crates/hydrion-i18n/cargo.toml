@@ -1,0 +1,76 @@
+/// core\crates\hydrion-i18n\cargo.toml
+[package]
+name = "hydrion-i18n"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Hydrion Development Team <team@hydrion.ai>"]
+description = "High-performance, thread-safe internationalization crate with hot-reload, locale detection, and deterministic translation catalogs."
+readme = "README.md"
+repository = "https://github.com/hydrion-ai/hydrion"
+homepage = "https://github.com/hydrion-ai"
+keywords = ["i18n", "hydrion", "internationalization", "localization", "translation"]
+categories = ["localization", "internationalization", "data-structures"]
+documentation = "https://docs.rs/hydrion-i18n"
+exclude = ["/tests", "/target", "/*.bak", "/*.old", "/*.tmp"]
+
+[lib]
+name = "hydrion_i18n"
+path = "src/lib.rs"
+crate-type = ["rlib"]
+
+# ======================================================
+# Dependencies
+# ======================================================
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+once_cell = "1.19"
+ahash = "0.8"                                       # high-performance hashmap hasher
+parking_lot = { version = "0.12", optional = true }
+notify = { version = "6.1", optional = true }       # for hot reload
+sys-locale = { version = "0.3", optional = true }   # for locale detection
+tracing = { version = "0.1", optional = true }
+
+# ======================================================
+# Features
+# ======================================================
+
+[features]
+default = []
+locale-detect = ["sys-locale"]           # enable system language detection
+hot-reload = ["notify", "parking_lot"]   # enable runtime file watcher
+tracing = ["dep:tracing"]                # enable tracing spans
+
+# ======================================================
+# Dev Dependencies
+# ======================================================
+
+[dev-dependencies]
+tempfile = "3.10"
+assert-json-diff = "2.0"
+pretty_assertions = "1.4"
+
+# ======================================================
+# Build / Docs
+# ======================================================
+
+[package.metadata.docs.rs]
+features = ["locale-detect", "hot-reload", "tracing"]
+no-default-features = true
+targets = ["x86_64-unknown-linux-gnu"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+
+[profile.dev]
+opt-level = 1
+debug = true
+overflow-checks = true
+incremental = true

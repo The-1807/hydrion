@@ -1,0 +1,47 @@
+[package]
+name = "hydrion-time"
+version = "1.0.0"
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+description = "Time, timezone, and quiet-hour utilities for Hydrion AI."
+repository = "https://github.com/The1807/Hydrion"
+authors = ["Uchenna Emmanuel Anozie <webbaby@the1807.xyz>"]
+categories = ["date-and-time", "science", "utility"]
+keywords = ["hydrion", "time", "chrono", "quiet-hours", "iot"]
+readme = "README.md"
+
+[dependencies]
+chrono = { version = "0.4.38", features = ["clock", "serde"] }
+serde = { version = "1.0.210", features = ["derive"], optional = true }
+thiserror = "1.0.63"
+
+[dev-dependencies]
+rstest = "0.21.0"
+proptest = "1.4.0"
+
+[features]
+# Default: lightweight chrono-based API, no serialization.
+default = []
+
+# Enable serialization support for configs and FRB.
+serde-support = ["serde", "chrono/serde"]
+
+[lib]
+name = "hydrion_time"
+path = "src/lib.rs"
+crate-type = ["rlib"]
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+unused = "deny"
+
+[profile.release]
+opt-level = "z"
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[package.metadata.docs.rs]
+all-features = true
