@@ -1,13 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../hydrion/app/lib/services/llm_service.dart';
-import '../../utils/i18n_resolver.dart';
 
-/// LLMAdviceCard — pulls a short, personalized hydration nudge from LLMService.
-/// - Caches the call so rebuilds don’t spam the API
-/// - Graceful loading/error states
-/// - Accessible semantics + RTL aware
+import '../../services/llm_service.dart';
+
 class LLMAdviceCard extends StatefulWidget {
   final double hydrationPercent;
   final int activityMinutes;
@@ -37,7 +32,6 @@ class _LLMAdviceCardState extends State<LLMAdviceCard> {
   @override
   void didUpdateWidget(covariant LLMAdviceCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Recompute only when inputs change meaningfully
     if (oldWidget.hydrationPercent != widget.hydrationPercent ||
         oldWidget.activityMinutes != widget.activityMinutes ||
         oldWidget.temperatureC != widget.temperatureC) {
@@ -47,67 +41,59 @@ class _LLMAdviceCardState extends State<LLMAdviceCard> {
 
   Future<String> _fetch() async {
     final llm = context.read<LLMService>();
-    final msg = await llm.getHydrationCoachResponse(
+    final message = await llm.getHydrationCoachResponse(
       hydrationPercent: widget.hydrationPercent,
       activityMinutes: widget.activityMinutes,
       temperatureC: widget.temperatureC,
     );
-    _cached = msg;
-    return msg;
+    _cached = message;
+    return message;
   }
 
   @override
   Widget build(BuildContext context) {
-    final dir = Directionality.of(context);
-
     return Semantics(
       label: 'Hydration advice card',
       child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        elevation: 1,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: FutureBuilder<String>(
             future: _future,
-            builder: (context, snap) {
-              if (snap.connectionState == ConnectionState.waiting && _cached == null) {
-                return Row(
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  _cached == null) {
+                return const Row(
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Container(
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceVariant,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                    ),
+                    SizedBox(width: 12),
+                    Expanded(child: LinearProgressIndicator()),
                   ],
                 );
               }
 
-              if (snap.hasError) {
-                return _AdviceError(onRetry: () {
-                  setState(() {
-                    _future = _fetch();
-                  });
-                });
+              if (snapshot.hasError) {
+                return _AdviceError(
+                  onRetry: () {
+                    setState(() {
+                      _future = _fetch();
+                    });
+                  },
+                );
               }
 
-              final text = (snap.data ?? _cached ?? 'Stay hydrated!').trim();
+              final text =
+                  (snapshot.data ?? _cached ?? 'Stay hydrated.').trim();
               return Text(
                 text,
                 textAlign: TextAlign.center,
-                textDirection: dir,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
                     ),
               );
             },
@@ -120,20 +106,24 @@ class _LLMAdviceCardState extends State<LLMAdviceCard> {
 
 class _AdviceError extends StatelessWidget {
   final VoidCallback onRetry;
+
   const _AdviceError({required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme;
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(Icons.info_outline, color: c.error, size: 20),
+        Icon(Icons.info_outline, color: scheme.error, size: 20),
         const SizedBox(height: 8),
         Text(
           'Failed to load advice',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: c.onSurfaceVariant),
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         TextButton.icon(

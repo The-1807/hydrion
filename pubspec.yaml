@@ -2,6 +2,7 @@ name: hydrion
 description: Hydrion.ai - AI-powered hydration companion. Secure, privacy-first, multi-language.
 version: 1.0.0+1
 publish_to: "none"
+developer: "The 1807"
 
 environment:
   sdk: ">=3.5.0 <4.0.0"

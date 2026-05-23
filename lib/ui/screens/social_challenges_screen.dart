@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../hydrion/app/lib/services/ai_bridge.dart';
+import '../../services/ai_bridge.dart';
 import '../../utils/i18n_resolver.dart';
-import '../../../hydrion/app/lib/ai/ai.dart' show Challenge; // KMP model
 
-/// SocialChallengesScreen — personalized challenge from AI.
 class SocialChallengesScreen extends StatefulWidget {
   const SocialChallengesScreen({super.key});
 
@@ -14,7 +12,7 @@ class SocialChallengesScreen extends StatefulWidget {
 }
 
 class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
-  late Future<Challenge> _future;
+  late Future<HydrationChallenge> _future;
 
   @override
   void initState() {
@@ -22,81 +20,84 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
     _future = _load();
   }
 
-  Future<Challenge> _load() {
-    final ai = context.read<AIBridge>();
-    // Replace 'beginner' with real profile level from DB/profile store.
-    return ai.createChallenge(userLevel: 'beginner');
+  Future<HydrationChallenge> _load() {
+    return context.read<AIBridge>().createChallenge(userLevel: 'beginner');
   }
 
   @override
   Widget build(BuildContext context) {
     final i18n = context.read<I18nResolver>();
-    final dir = Directionality.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(i18n.getText('challenges_title', 'Challenges'), textDirection: dir),
+        title: Text(i18n.getText('challenges_title', 'Challenges')),
         centerTitle: true,
       ),
       body: RefreshIndicator(
-        onRefresh: () async => setState(() => _future = _load()),
-        child: FutureBuilder<Challenge>(
+        onRefresh: () async {
+          setState(() {
+            _future = _load();
+          });
+        },
+        child: FutureBuilder<HydrationChallenge>(
           future: _future,
-          builder: (context, snap) {
-            if (snap.connectionState == ConnectionState.waiting) {
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (snap.hasError || !snap.hasData) {
+            if (snapshot.hasError || !snapshot.hasData) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
                   const SizedBox(height: 180),
                   Center(
-                    child: Text(
-                      i18n.getText('no_challenges', 'No challenges available'),
-                      textDirection: dir,
-                    ),
+                    child: Text(i18n.getText(
+                        'no_challenges', 'No challenges available')),
                   ),
                 ],
               );
             }
 
-            final c = snap.data!;
+            final challenge = snapshot.data!;
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 1,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(c.name, textDirection: dir, style: Theme.of(context).textTheme.titleLarge),
+                        Text(challenge.name,
+                            style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 8),
                         Text(
-                          '${c.description} (${c.targetMl} ml, ${c.durationDays} days)',
-                          textDirection: dir,
+                          '${challenge.description} (${challenge.targetMl} ml, ${challenge.durationDays} days)',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 12),
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Chip(
-                              label: Text('${c.targetMl} ml/day'),
+                              label: Text('${challenge.targetMl} ml/day'),
                               avatar: const Icon(Icons.water_drop, size: 18),
                             ),
-                            const SizedBox(width: 8),
                             Chip(
-                              label: Text('${c.durationDays} days'),
-                              avatar: const Icon(Icons.calendar_today, size: 18),
+                              label: Text('${challenge.durationDays} days'),
+                              avatar:
+                                  const Icon(Icons.calendar_today, size: 18),
                             ),
-                            const Spacer(),
                             FilledButton.icon(
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(i18n.getText('challenge_joined', 'Challenge joined'))),
+                                  SnackBar(
+                                      content: Text(i18n.getText(
+                                          'challenge_joined',
+                                          'Challenge joined'))),
                                 );
                               },
                               icon: const Icon(Icons.play_arrow),

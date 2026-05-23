@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// AchievementBadge — celebratory badge with subtle animation.
-/// - Circle badge color reflects unlock state
-/// - Scales on unlock for a tiny dopamine spark
 class AchievementBadge extends StatelessWidget {
   final String badgeName;
   final bool isUnlocked;
@@ -15,21 +12,28 @@ class AchievementBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final scheme = Theme.of(context).colorScheme;
 
     return Semantics(
-      label: 'Achievement badge: $badgeName ${isUnlocked ? 'unlocked' : 'locked'}',
+      label:
+          'Achievement badge: $badgeName ${isUnlocked ? 'unlocked' : 'locked'}',
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isUnlocked ? cs.primary : cs.surfaceVariant,
+          color: isUnlocked ? scheme.primary : scheme.surfaceContainerHighest,
           boxShadow: isUnlocked
-              ? [BoxShadow(color: cs.primary.withOpacity(0.35), blurRadius: 12, spreadRadius: 1)]
+              ? [
+                  BoxShadow(
+                    color: scheme.primary.withAlpha(89),
+                    blurRadius: 12,
+                    spreadRadius: 1,
+                  ),
+                ]
               : const [],
           border: Border.all(
-            color: isUnlocked ? cs.primary : cs.outlineVariant,
+            color: isUnlocked ? scheme.primary : scheme.outlineVariant,
             width: 2,
           ),
         ),
@@ -41,7 +45,7 @@ class AchievementBadge extends StatelessWidget {
             children: [
               Icon(
                 isUnlocked ? Icons.emoji_events : Icons.lock,
-                color: isUnlocked ? cs.onPrimary : cs.onSurfaceVariant,
+                color: isUnlocked ? scheme.onPrimary : scheme.onSurfaceVariant,
                 size: 32,
               ),
               const SizedBox(height: 6),
@@ -53,7 +57,9 @@ class AchievementBadge extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: isUnlocked ? cs.onPrimary : cs.onSurfaceVariant,
+                        color: isUnlocked
+                            ? scheme.onPrimary
+                            : scheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
                 ),

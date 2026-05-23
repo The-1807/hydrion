@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../hydrion/app/lib/services/llm_service.dart';
+import '../../services/llm_service.dart';
 import '../../utils/i18n_resolver.dart';
 
-/// ChatCoachScreen — minimal conversational UI for hydration coaching.
-/// - Queues messages, disables send while awaiting response
-/// - Keeps scroll pinned to latest message
 class ChatCoachScreen extends StatefulWidget {
   const ChatCoachScreen({super.key});
 
@@ -15,9 +12,9 @@ class ChatCoachScreen extends StatefulWidget {
 }
 
 class _ChatCoachScreenState extends State<ChatCoachScreen> {
-  final _controller = TextEditingController();
-  final _scroll = ScrollController();
-  final List<Map<String, String>> _messages = [];
+  final TextEditingController _controller = TextEditingController();
+  final ScrollController _scroll = ScrollController();
+  final List<Map<String, String>> _messages = <Map<String, String>>[];
   bool _sending = false;
 
   @override
@@ -28,12 +25,10 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
   }
 
   Future<void> _send() async {
-    final llm = context.read<LLMService>();
-    final i18n = context.read<I18nResolver>();
-    final dir = Directionality.of(context);
-
     final userMessage = _controller.text.trim();
-    if (userMessage.isEmpty || _sending) return;
+    if (userMessage.isEmpty || _sending) {
+      return;
+    }
 
     setState(() {
       _sending = true;
@@ -41,56 +36,49 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
       _controller.clear();
     });
 
-    await Future<void>.delayed(Duration.zero);
-    _scroll.animateTo(
-      _scroll.position.maxScrollExtent + 80,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
-
     try {
-      // Use your real context here (pull hydration/activity/weather from DB).
-      final coach = await llm.getHydrationCoachResponse(
-        hydrationPercent: 75.0,
-        activityMinutes: 30,
-        temperatureC: 25.0,
-      );
-      if (!mounted) return;
+      final coach = await context.read<LLMService>().getCoachingAdvice(
+            userQuery: userMessage,
+            digestKey: DigestKey.weeklyDigest,
+          );
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _messages.add({'role': 'coach', 'content': coach});
       });
       await Future<void>.delayed(Duration.zero);
-      _scroll.animateTo(
-        _scroll.position.maxScrollExtent + 120,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
+      if (_scroll.hasClients) {
+        await _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
+      final i18n = context.read<I18nResolver>();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            i18n.getText('chat_error', 'Couldn’t fetch coach reply'),
-            textDirection: dir,
-          ),
-        ),
+            content: Text(
+                i18n.getText('chat_error', 'Could not fetch coach reply'))),
       );
     } finally {
-      if (mounted) setState(() => _sending = false);
+      if (mounted) {
+        setState(() => _sending = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final i18n = context.read<I18nResolver>();
-    final dir = Directionality.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          i18n.getText('chat_coach_title', 'Hydration Coach'),
-          textDirection: dir,
-        ),
+        title: Text(i18n.getText('chat_coach_title', 'Hydration Coach')),
         centerTitle: true,
       ),
       body: Column(
@@ -100,27 +88,29 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
               controller: _scroll,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               itemCount: _messages.length,
-              itemBuilder: (context, i) {
-                final m = _messages[i];
-                final isUser = m['role'] == 'user';
+              itemBuilder: (context, index) {
+                final message = _messages[index];
+                final isUser = message['role'] == 'user';
                 return Align(
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment:
+                      isUser ? Alignment.centerRight : Alignment.centerLeft,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 520),
                     child: Card(
                       color: isUser
                           ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.surfaceVariant,
+                          : Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Text(
-                          m['content'] ?? '',
-                          textDirection: dir,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          message['content'] ?? '',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
                                 color: isUser
                                     ? Theme.of(context).colorScheme.onPrimary
                                     : Theme.of(context).colorScheme.onSurface,
@@ -148,7 +138,8 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
                       decoration: InputDecoration(
-                        hintText: i18n.getText('chat_hint', 'Ask your coach...'),
+                        hintText:
+                            i18n.getText('chat_hint', 'Ask your coach...'),
                         border: const OutlineInputBorder(),
                         isDense: true,
                       ),
@@ -162,7 +153,9 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
                       onPressed: _sending ? null : _send,
                       child: _sending
                           ? const SizedBox(
-                              width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2),
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.send),
                     ),

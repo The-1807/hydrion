@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// HydrationScoreCard — simple composite score with color gradient and tips.
-/// Score formula (bounded 0..100):
-///   70% hydrationPercent + 30% activityFactor(0..100)
-/// activityFactor scales 0..60 min -> 0..100 (capped)
 class HydrationScoreCard extends StatelessWidget {
-  final double hydrationPercent; // 0..100
-  final int activityMinutes;     // minutes today
+  final double hydrationPercent;
+  final int activityMinutes;
 
   const HydrationScoreCard({
     super.key,
@@ -15,59 +11,67 @@ class HydrationScoreCard extends StatelessWidget {
   });
 
   double _score() {
-    final hp = hydrationPercent.isFinite ? hydrationPercent.clamp(0, 100) : 0.0;
-    final act = activityMinutes.isFinite ? activityMinutes : 0;
-    final actFactor = (act / 60.0 * 100.0).clamp(0.0, 100.0);
-    final s = (0.7 * hp) + (0.3 * actFactor);
-    return s.clamp(0.0, 100.0);
+    final hydration =
+        hydrationPercent.isFinite ? hydrationPercent.clamp(0.0, 100.0) : 0.0;
+    final activity = activityMinutes.clamp(0, 180);
+    final activityFactor = (activity / 60.0 * 100.0).clamp(0.0, 100.0);
+    return ((0.7 * hydration) + (0.3 * activityFactor)).clamp(0.0, 100.0);
   }
 
-  Color _colorFor(BuildContext ctx, double score) {
-    // Map 0..100 to red -> amber -> green
-    final cs = Theme.of(ctx).colorScheme;
-    if (score >= 80) return Colors.green.shade600;
-    if (score >= 60) return Colors.amber.shade700;
+  Color _colorFor(double score) {
+    if (score >= 80) {
+      return Colors.green.shade600;
+    }
+    if (score >= 60) {
+      return Colors.amber.shade700;
+    }
     return Colors.red.shade600;
   }
 
-  String _tip(double s) {
-    if (s >= 90) return 'Elite hydration rhythm—keep the streak alive.';
-    if (s >= 80) return 'Great pace. Maintain consistent sips through the afternoon.';
-    if (s >= 60) return 'You’re close. Add a bottle in the next hour to push over the top.';
-    return 'Start with a solid 300–500 ml now and set a reminder.';
+  String _tip(double score) {
+    if (score >= 90) {
+      return 'Excellent hydration rhythm. Keep the streak alive.';
+    }
+    if (score >= 80) {
+      return 'Great pace. Maintain consistent sips through the afternoon.';
+    }
+    if (score >= 60) {
+      return 'You are close. Add a bottle in the next hour to push over the top.';
+    }
+    return 'Start with 300 to 500 ml now and set a reminder.';
   }
 
   @override
   Widget build(BuildContext context) {
-    final s = _score();
-    final barColor = _colorFor(context, s);
+    final score = _score();
+    final barColor = _colorFor(score);
+    final scheme = Theme.of(context).colorScheme;
 
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      elevation: 1,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Semantics(
           label: 'Hydration score',
-          value: '${s.toStringAsFixed(0)} out of 100',
+          value: '${score.toStringAsFixed(0)} out of 100',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Hydration Score',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: scheme.onSurface,
                       fontWeight: FontWeight.w700,
-                      color: Theme.of(context).colorScheme.onSurface,
                     ),
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Text(
-                    s.toStringAsFixed(0),
+                    score.toStringAsFixed(0),
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
                           color: barColor,
+                          fontWeight: FontWeight.bold,
                         ),
                   ),
                   const SizedBox(width: 6),
@@ -75,7 +79,8 @@ class HydrationScoreCard extends StatelessWidget {
                   const Spacer(),
                   _MetricChip(
                     icon: Icons.water_drop,
-                    label: '${hydrationPercent.clamp(0, 100).toStringAsFixed(0)}%',
+                    label:
+                        '${hydrationPercent.clamp(0.0, 100.0).toStringAsFixed(0)}%',
                   ),
                   const SizedBox(width: 6),
                   _MetricChip(
@@ -85,21 +90,20 @@ class HydrationScoreCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              // Progress bar
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: LinearProgressIndicator(
-                  value: s / 100.0,
+                  value: score / 100.0,
                   minHeight: 10,
                   color: barColor,
-                  backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                  backgroundColor: scheme.surfaceContainerHighest,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                _tip(s),
+                _tip(score),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: scheme.onSurfaceVariant,
                     ),
               ),
             ],
@@ -118,22 +122,22 @@ class _MetricChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: cs.surfaceVariant,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: cs.outlineVariant),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: cs.onSurfaceVariant),
+          Icon(icon, size: 16, color: scheme.onSurfaceVariant),
           const SizedBox(width: 6),
           Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurface,
+                  color: scheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
           ),
