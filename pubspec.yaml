@@ -14,32 +14,13 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   provider: ^6.1.2
-  get_it: ^7.7.0
-  collection: ^1.18.0
-  vector_math: ^2.1.4
-  intl: ^0.20.2
-  path_provider: ^2.1.5
   yaml: ^3.1.2
-  http: ^1.2.2
-  dio: ^5.7.0
-  connectivity_plus: ^6.0.5
-  permission_handler: ^11.3.1
-  flutter_blue_plus: ^1.32.8
-  flutter_local_notifications: ^17.2.3
-  health: ^10.2.0
-  dart_openai: ^5.0.0
-  ar_flutter_plugin: ^0.7.0
-  flutter_rust_bridge: any
-  ffi: any
-  timezone: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
   integration_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  build_runner: ^2.4.11
-  flutter_gen_runner: ^5.6.0
 flutter:
   uses-material-design: true
   assets:
@@ -49,13 +30,6 @@ flutter:
     - assets/ar/
     - config/
     - i18n/
-    - models/
-    - packs/byok_llm/client/lib/
-    - packs/byok_llm/server/
-    - packs/edge_llm/bindings/
-    - packs/edge_llm/model_pack/
-    - packs/gemini_connector/client/lib/
-    - packs/gemini_connector/server/
   generate: true
 
 platforms:
@@ -64,8 +38,3 @@ platforms:
   web:
   macos:
   windows:
-
-dependency_overrides:
-  intl: 0.20.2
-  permission_handler: 11.3.1
-  flutter_local_notifications: 17.2.3
