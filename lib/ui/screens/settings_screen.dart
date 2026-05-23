@@ -15,14 +15,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Locale? _selected;
 
   @override
-  void initState() {
-    super.initState();
-    _selected = I18nResolver.supportedLocales.first;
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _selected ??= context.read<I18nResolver>().locale;
   }
 
   @override
   Widget build(BuildContext context) {
-    final i18n = context.read<I18nResolver>();
+    final i18n = context.watch<I18nResolver>();
     final permissions = context.read<Permissions>();
 
     return Scaffold(
@@ -87,8 +87,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: ListTile(
               leading: const Icon(Icons.verified_user),
               title: Text(i18n.getText('permissions', 'Permissions')),
-              subtitle: Text(
-                  i18n.getText('manage_permissions', 'Manage app permissions')),
+              subtitle: const Text(
+                'Standalone mode: BLE, Health, voice, and OS notifications are disabled.',
+              ),
               onTap: () async {
                 final messenger = ScaffoldMessenger.of(context);
                 await permissions.requestPermissions();
@@ -96,9 +97,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   return;
                 }
                 messenger.showSnackBar(
-                  SnackBar(
-                      content: Text(i18n.getText(
-                          'permissions_updated', 'Permissions updated'))),
+                  const SnackBar(
+                    content: Text(
+                      'No platform permissions requested in standalone mode',
+                    ),
+                  ),
                 );
               },
             ),

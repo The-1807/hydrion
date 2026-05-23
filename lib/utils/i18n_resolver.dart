@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-class I18nResolver {
+import '../repositories/settings_repository.dart';
+
+class I18nResolver extends ChangeNotifier {
   static const supportedLocales = <Locale>[
     Locale('en', 'US'),
     Locale('es', 'ES'),
@@ -18,12 +20,20 @@ class I18nResolver {
     GlobalCupertinoLocalizations.delegate,
   ];
 
-  Locale _locale = const Locale('en', 'US');
+  final UserSettingsRepository? _settingsRepository;
+  Locale _locale;
+
+  I18nResolver({UserSettingsRepository? settingsRepository})
+      : _settingsRepository = settingsRepository,
+        _locale =
+            settingsRepository?.settings.locale ?? const Locale('en', 'US');
 
   Locale get locale => _locale;
 
   Future<void> loadLocale(Locale locale) async {
     _locale = resolveLocale(locale, supportedLocales);
+    await _settingsRepository?.setLocale(_locale);
+    notifyListeners();
   }
 
   String getText(String key, String fallback) {

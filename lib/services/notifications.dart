@@ -1,26 +1,18 @@
+import '../repositories/reminder_repository.dart';
 import 'policy_service.dart';
-
-class ScheduledReminder {
-  final DateTime triggerTime;
-  final String message;
-  final int priority;
-
-  const ScheduledReminder({
-    required this.triggerTime,
-    required this.message,
-    required this.priority,
-  });
-}
 
 class NotificationService {
   final ReminderPolicy _policy;
-  final List<ScheduledReminder> _scheduled = <ScheduledReminder>[];
+  final ReminderRepository _reminderRepository;
 
-  NotificationService({required ReminderPolicy reminderPolicy})
-      : _policy = reminderPolicy;
+  NotificationService({
+    required ReminderPolicy reminderPolicy,
+    ReminderRepository? reminderRepository,
+  })  : _policy = reminderPolicy,
+        _reminderRepository = reminderRepository ?? ReminderRepository.memory();
 
   List<ScheduledReminder> get scheduledReminders =>
-      List.unmodifiable(_scheduled);
+      _reminderRepository.reminders;
 
   Future<ScheduledReminder?> scheduleReminder({
     required int shortfallMl,
@@ -45,12 +37,11 @@ class NotificationService {
       return null;
     }
 
-    final scheduled = ScheduledReminder(
+    final scheduled = await _reminderRepository.save(
       triggerTime: DateTime.fromMillisecondsSinceEpoch(reminder.triggerTime),
       message: reminder.message,
       priority: reminder.priority,
     );
-    _scheduled.add(scheduled);
     return scheduled;
   }
 }

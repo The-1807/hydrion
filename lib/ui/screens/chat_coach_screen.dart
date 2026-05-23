@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../repositories/hydration_repository.dart';
 import '../../services/llm_service.dart';
 import '../../utils/i18n_resolver.dart';
 
@@ -75,6 +76,8 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
   @override
   Widget build(BuildContext context) {
     final i18n = context.read<I18nResolver>();
+    final todayMl =
+        context.watch<HydrationRepository>().totalForDay(DateTime.now());
 
     return Scaffold(
       appBar: AppBar(
@@ -83,45 +86,73 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
       ),
       body: Column(
         children: [
+          Material(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: ListTile(
+              dense: true,
+              leading: const Icon(Icons.lock_outline),
+              title: const Text('Local fallback coach'),
+              subtitle: Text(
+                'Using saved on-device hydration data. Today: $todayMl ml. No cloud AI or ELKA is connected.',
+              ),
+            ),
+          ),
           Expanded(
-            child: ListView.builder(
-              controller: _scroll,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isUser = message['role'] == 'user';
-                return Align(
-                  alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: Card(
-                      color: isUser
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                      elevation: 0,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(
-                          message['content'] ?? '',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                color: isUser
-                                    ? Theme.of(context).colorScheme.onPrimary
-                                    : Theme.of(context).colorScheme.onSurface,
-                              ),
-                        ),
+            child: _messages.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        'Ask for a hydration suggestion. Replies are deterministic local guidance based on saved logs.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
                     ),
+                  )
+                : ListView.builder(
+                    controller: _scroll,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final message = _messages[index];
+                      final isUser = message['role'] == 'user';
+                      return Align(
+                        alignment: isUser
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 520),
+                          child: Card(
+                            color: isUser
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                            elevation: 0,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Text(
+                                message['content'] ?? '',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: isUser
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
           SafeArea(
             top: false,

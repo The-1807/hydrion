@@ -1,40 +1,29 @@
-class HydrationLog {
-  final int volumeMl;
-  final DateTime timestamp;
-  final String source;
+import '../repositories/hydration_repository.dart';
 
-  HydrationLog({
-    required this.volumeMl,
-    required this.timestamp,
-    required this.source,
-  });
-}
+export '../repositories/hydration_repository.dart' show HydrationLog;
 
 class WearableService {
-  final List<HydrationLog> _logs = <HydrationLog>[];
+  final HydrationRepository _hydrationRepository;
+
+  WearableService({HydrationRepository? hydrationRepository})
+      : _hydrationRepository =
+            hydrationRepository ?? HydrationRepository.memory();
 
   Future<bool> syncHydration(int volumeMl, DateTime timestamp) async {
     if (volumeMl <= 0) {
       return false;
     }
 
-    _logs.add(
-      HydrationLog(
-        volumeMl: volumeMl,
-        timestamp: timestamp,
-        source: 'local',
-      ),
+    await _hydrationRepository.addLog(
+      volumeMl: volumeMl,
+      timestamp: timestamp,
+      source: 'local',
     );
     return true;
   }
 
   Future<List<HydrationLog>> fetchHydrationData(
       DateTime start, DateTime end) async {
-    final logs = _logs.where((log) {
-      return !log.timestamp.isBefore(start) && !log.timestamp.isAfter(end);
-    }).toList()
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-    return logs;
+    return _hydrationRepository.fetch(start, end);
   }
 }

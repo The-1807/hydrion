@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../repositories/reminder_repository.dart';
 import '../../services/notifications.dart';
 
 class ReminderTile extends StatefulWidget {
@@ -22,7 +23,6 @@ class ReminderTile extends StatefulWidget {
 }
 
 class _ReminderTileState extends State<ReminderTile> {
-  DateTime? _scheduledAt;
   bool _busy = false;
 
   Future<void> _schedule() async {
@@ -41,9 +41,14 @@ class _ReminderTileState extends State<ReminderTile> {
       if (!mounted) {
         return;
       }
-      setState(() => _scheduledAt = reminder?.triggerTime ?? DateTime.now());
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reminder scheduled')),
+        SnackBar(
+          content: Text(
+            reminder == null
+                ? 'No local reminder was needed'
+                : 'Local reminder saved',
+          ),
+        ),
       );
     } catch (_) {
       if (!mounted) {
@@ -62,18 +67,20 @@ class _ReminderTileState extends State<ReminderTile> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final scheduledAt = _scheduledAt;
+    final reminders = context.watch<ReminderRepository>().reminders;
+    final nextReminder = reminders.isEmpty ? null : reminders.first;
+    final scheduledAt = nextReminder?.triggerTime;
 
     return ListTile(
       leading: Icon(Icons.notifications, color: scheme.primary),
       title: Text(
-        'Hydration Reminder',
+        'Local Reminder',
         style: Theme.of(context).textTheme.titleMedium,
       ),
       subtitle: Text(
         scheduledAt == null
-            ? 'Tap to schedule a reminder'
-            : 'Scheduled for ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
+            ? 'No reminders saved. OS notifications are not enabled yet.'
+            : '${reminders.length} saved locally. Next: ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
         style: Theme.of(context)
             .textTheme
             .bodyMedium
@@ -88,7 +95,7 @@ class _ReminderTileState extends State<ReminderTile> {
           : IconButton(
               icon: const Icon(Icons.schedule),
               onPressed: _schedule,
-              tooltip: 'Schedule',
+              tooltip: 'Save local reminder',
             ),
       onTap: _schedule,
     );

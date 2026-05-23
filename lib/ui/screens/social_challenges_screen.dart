@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../repositories/challenge_repository.dart';
+import '../../repositories/hydration_repository.dart';
 import '../../services/ai_bridge.dart';
 import '../../utils/i18n_resolver.dart';
 
@@ -26,7 +28,9 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final i18n = context.read<I18nResolver>();
+    final i18n = context.watch<I18nResolver>();
+    final challengeRepository = context.watch<ChallengeRepository>();
+    final hydrationRepository = context.watch<HydrationRepository>();
 
     return Scaffold(
       appBar: AppBar(
@@ -59,9 +63,22 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             }
 
             final challenge = snapshot.data!;
+            final joined = challengeRepository.isJoined(challenge.id);
+            final progress =
+                challengeRepository.progressFor(hydrationRepository);
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                const Card(
+                  child: ListTile(
+                    leading: Icon(Icons.info_outline),
+                    title: Text('Local challenge mode'),
+                    subtitle: Text(
+                      'Social sync is not connected yet. Challenge progress is saved on this device.',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Card(
                   elevation: 1,
                   child: Padding(
@@ -77,6 +94,15 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 12),
+                        if (joined) ...[
+                          LinearProgressIndicator(value: progress.percent),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${progress.completedDays}/${progress.durationDays} days complete. Today: ${progress.todayMl}/${progress.targetMl} ml.',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
@@ -92,16 +118,34 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                                   const Icon(Icons.calendar_today, size: 18),
                             ),
                             FilledButton.icon(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content: Text(i18n.getText(
+                              onPressed: joined
+                                  ? null
+                                  : () async {
+                                      final messenger =
+                                          ScaffoldMessenger.of(context);
+                                      final message = i18n.getText(
                                           'challenge_joined',
-                                          'Challenge joined'))),
-                                );
-                              },
-                              icon: const Icon(Icons.play_arrow),
-                              label: Text(i18n.getText('join', 'Join')),
+                                          'Challenge joined');
+                                      await challengeRepository.join(
+                                        id: challenge.id,
+                                        name: challenge.name,
+                                        description: challenge.description,
+                                        targetMl: challenge.targetMl,
+                                        durationDays: challenge.durationDays,
+                                      );
+                                      if (!mounted) {
+                                        return;
+                                      }
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                            content: Text('$message locally')),
+                                      );
+                                    },
+                              icon:
+                                  Icon(joined ? Icons.check : Icons.play_arrow),
+                              label: Text(joined
+                                  ? 'Joined'
+                                  : i18n.getText('join', 'Join')),
                             ),
                           ],
                         ),

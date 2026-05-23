@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../services/ai_bridge.dart';
+import '../../repositories/hydration_repository.dart';
 import '../../services/eco_tracker.dart';
 import '../../utils/i18n_resolver.dart';
 import '../components/achievement_badge.dart';
@@ -12,73 +12,138 @@ class AnalyticsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final i18n = context.read<I18nResolver>();
-    final aiBridge = context.read<AIBridge>();
+    final i18n = context.watch<I18nResolver>();
+    final hydrationRepository = context.watch<HydrationRepository>();
     final ecoTracker = context.read<EcoTracker>();
+    final today = DateTime.now();
+    const targetMl = 2200;
+    final todayMl = hydrationRepository.totalForDay(today);
+    final todayLogs = hydrationRepository.fetch(
+      DateTime(today.year, today.month, today.day),
+      DateTime(today.year, today.month, today.day + 1),
+    );
+    final hydrationPercent = (todayMl / targetMl * 100).clamp(0.0, 100.0);
+    final streakDays = _streakDays(hydrationRepository, targetMl);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(i18n.getText('analytics_title', 'Analytics')),
         centerTitle: true,
       ),
-      body: FutureBuilder<HydrationSummary>(
-        future: aiBridge.getHydrationSummary(),
-        builder: (context, snapshot) {
-          final summary = snapshot.data ??
-              const HydrationSummary(
-                hydrationPercent: 0,
-                activityMinutes: 0,
-                consumedMl: 0,
-                targetMl: 2200,
-              );
-
-          return ListView(
-            padding: const EdgeInsets.all(16),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (hydrationRepository.logs.isEmpty) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.insights,
+                      size: 40,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No analytics yet',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Log hydration on Home to build local trends.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          HydrationScoreCard(
+            hydrationPercent: hydrationPercent,
+            activityMinutes: todayLogs.length * 5,
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.water_drop),
+              title: Text('$todayMl / $targetMl ml today'),
+              subtitle: Text(
+                '${todayLogs.length} local entries today. Data stays on this device.',
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            i18n.getText('achievements', 'Achievements'),
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
             children: [
-              HydrationScoreCard(
-                hydrationPercent: summary.hydrationPercent,
-                activityMinutes: summary.activityMinutes,
+              AchievementBadge(
+                badgeName: '2L day',
+                isUnlocked: todayMl >= 2000,
               ),
-              const SizedBox(height: 20),
-              Text(
-                i18n.getText('achievements', 'Achievements'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
+              AchievementBadge(
+                badgeName: '3 logs today',
+                isUnlocked: todayLogs.length >= 3,
               ),
-              const SizedBox(height: 8),
-              const Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  AchievementBadge(badgeName: '7 day streak', isUnlocked: true),
-                  AchievementBadge(badgeName: '2L goal', isUnlocked: false),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                i18n.getText('eco_impact', 'Environmental Impact'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              FutureBuilder<double>(
-                future: ecoTracker.getTotalPlasticSavedKg(),
-                builder: (context, ecoSnapshot) {
-                  final value = (ecoSnapshot.data ?? 0.0).toStringAsFixed(2);
-                  return Text(
-                    'Plastic Saved: $value kg',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  );
-                },
+              AchievementBadge(
+                badgeName: '7 day streak',
+                isUnlocked: streakDays >= 7,
               ),
             ],
-          );
-        },
+          ),
+          const SizedBox(height: 20),
+          Text(
+            i18n.getText('eco_impact', 'Environmental Impact'),
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          FutureBuilder<double>(
+            future: ecoTracker.getTotalPlasticSavedKg(),
+            builder: (context, ecoSnapshot) {
+              final value = (ecoSnapshot.data ?? 0.0).toStringAsFixed(2);
+              return Card(
+                child: ListTile(
+                  leading: const Icon(Icons.eco),
+                  title: Text('Plastic saved: $value kg'),
+                  subtitle: const Text(
+                    'Local estimate from all saved hydration logs.',
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
+  }
+
+  int _streakDays(HydrationRepository repository, int targetMl) {
+    var streak = 0;
+    final today = DateTime.now();
+
+    for (var offset = 0; offset < 30; offset += 1) {
+      final day = DateTime(today.year, today.month, today.day - offset);
+      if (repository.totalForDay(day) >= targetMl) {
+        streak += 1;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
   }
 }

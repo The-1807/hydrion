@@ -1,27 +1,38 @@
 import 'dart:convert';
 
+import '../repositories/hydration_repository.dart';
+
 class CoreBridge {
-  final List<int> _hydrationEvents = <int>[];
+  final HydrationRepository _hydrationRepository;
+
+  CoreBridge({HydrationRepository? hydrationRepository})
+      : _hydrationRepository =
+            hydrationRepository ?? HydrationRepository.memory();
 
   Future<void> logEcoEvent(int volumeMl) async {
     if (volumeMl <= 0) {
       return;
     }
-    _hydrationEvents.add(volumeMl);
+    await _hydrationRepository.addLog(
+      volumeMl: volumeMl,
+      timestamp: DateTime.now(),
+      source: 'eco',
+    );
   }
 
   Future<double> getTotalPlasticSavedKg() async {
-    final totalMl = _hydrationEvents.fold<int>(0, (sum, value) => sum + value);
+    final totalMl = _hydrationRepository.totalMl;
     final avoidedHalfLiterBottles = totalMl / 500.0;
     return avoidedHalfLiterBottles * 0.01;
   }
 
   Future<String> coreGetDigest(String digestKey) async {
-    final totalMl = _hydrationEvents.fold<int>(0, (sum, value) => sum + value);
+    final todayMl = _hydrationRepository.totalForDay(DateTime.now());
     return jsonEncode({
       'digestKey': digestKey,
-      'totalMl': totalMl,
-      'eventCount': _hydrationEvents.length,
+      'totalMl': todayMl,
+      'lifetimeMl': _hydrationRepository.totalMl,
+      'eventCount': _hydrationRepository.eventCount,
     });
   }
 

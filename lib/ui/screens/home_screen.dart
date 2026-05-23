@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../repositories/hydration_repository.dart';
 import '../../services/ai_bridge.dart';
-import '../../services/eco_tracker.dart';
 import '../../services/wearable_service.dart';
 import '../../utils/i18n_resolver.dart';
 import '../components/intake_ring.dart';
@@ -18,28 +18,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<HydrationSummary> _summary;
-
-  @override
-  void initState() {
-    super.initState();
-    _summary = context.read<AIBridge>().getHydrationSummary();
-  }
+  int _selectedVolumeMl = 250;
 
   Future<void> _logWater(int volumeMl) async {
     final wearables = context.read<WearableService>();
-    final ecoTracker = context.read<EcoTracker>();
-    final aiBridge = context.read<AIBridge>();
     final messenger = ScaffoldMessenger.of(context);
     final now = DateTime.now();
     await wearables.syncHydration(volumeMl, now);
-    await ecoTracker.logHydration(volumeMl);
     if (!mounted) {
       return;
     }
-    setState(() {
-      _summary = aiBridge.getHydrationSummary();
-    });
     messenger.showSnackBar(
       SnackBar(content: Text('Logged $volumeMl ml')),
     );
@@ -48,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final i18n = context.read<I18nResolver>();
+    context.watch<HydrationRepository>();
 
     return Scaffold(
       appBar: AppBar(
@@ -61,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: FutureBuilder<HydrationSummary>(
-        future: _summary,
+        future: context.read<AIBridge>().getHydrationSummary(),
         builder: (context, snapshot) {
           final summary = snapshot.data ??
               const HydrationSummary(
@@ -88,6 +77,62 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 12),
               Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Log hydration',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              key: const Key('volume-picker'),
+                              initialValue: _selectedVolumeMl,
+                              decoration: const InputDecoration(
+                                labelText: 'Amount',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              items: const [150, 250, 350, 500, 750, 1000]
+                                  .map(
+                                    (amount) => DropdownMenuItem<int>(
+                                      value: amount,
+                                      child: Text('$amount ml'),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => _selectedVolumeMl = value);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.icon(
+                            key: const Key('log-water-button'),
+                            onPressed: () => _logWater(_selectedVolumeMl),
+                            icon: const Icon(Icons.local_drink),
+                            label: Text('Log $_selectedVolumeMl ml'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Saved locally on this device.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
                 child: ReminderTile(
                   shortfallMl: (summary.targetMl - summary.consumedMl)
                       .clamp(0, summary.targetMl),
@@ -95,12 +140,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   hydrationPercent: summary.hydrationPercent,
                   isActiveTime: true,
                 ),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: () => _logWater(250),
-                icon: const Icon(Icons.local_drink),
-                label: const Text('Log 250 ml'),
               ),
               const SizedBox(height: 12),
               const Wrap(
@@ -122,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: Icons.emoji_events,
                       route: '/challenges'),
                   _RouteButton(
-                      label: 'AR', icon: Icons.view_in_ar, route: '/ar'),
+                      label: 'AR future', icon: Icons.view_in_ar, route: '/ar'),
                 ],
               ),
             ],
@@ -155,6 +194,7 @@ class _RouteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ActionChip(
+      key: Key('route-$route'),
       avatar: Icon(icon, size: 18),
       label: Text(label),
       onPressed: () => Navigator.of(context).pushNamed(route),

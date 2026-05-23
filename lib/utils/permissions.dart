@@ -14,7 +14,7 @@ class PermissionSummary {
 
 class Permissions {
   PermissionSummary _summary = const PermissionSummary(
-    notifications: true,
+    notifications: false,
     bluetooth: false,
     health: false,
   );
@@ -27,11 +27,11 @@ class Permissions {
 
   Future<bool> requestPermissions() async {
     _summary = const PermissionSummary(
-      notifications: true,
+      notifications: false,
       bluetooth: false,
       health: false,
     );
-    return true;
+    return false;
   }
 
   Future<bool> hasAll() async {
