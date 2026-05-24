@@ -33,6 +33,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
     final i18n = context.watch<I18nResolver>();
     final challengeRepository = context.watch<ChallengeRepository>();
     final hydrationRepository = context.watch<HydrationRepository>();
+    final capabilities = context.watch<AppCapabilityReporter>().capabilities;
 
     return Scaffold(
       appBar: AppBar(
@@ -71,12 +72,18 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const Card(
+                Card(
                   child: ListTile(
-                    leading: Icon(Icons.info_outline),
-                    title: Text('Local challenge mode'),
+                    leading: const Icon(Icons.info_outline),
+                    title: Text(
+                      capabilities.socialSync
+                          ? 'Social challenge capability reported'
+                          : 'Local challenge mode',
+                    ),
                     subtitle: Text(
-                      'Social sync is not connected yet. Challenge progress is saved on this device.',
+                      capabilities.socialSync
+                          ? 'No social adapter is wired yet. Progress is still saved on this device.'
+                          : 'Social sync is not connected yet. Challenge progress is saved on this device.',
                     ),
                   ),
                 ),

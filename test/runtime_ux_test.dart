@@ -127,7 +127,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byTooltip('Voice commands are a future local feature'),
+      find.byTooltip('Voice input disabled by app capabilities'),
       findsOneWidget,
     );
     await scrollToHomeItem(tester, find.byKey(const Key('route-/ar')));
@@ -143,6 +143,52 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('settings distinguish local controls from unavailable adapters',
+      (tester) async {
+    final services = HydrionServices.memory();
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings-logo')), findsOneWidget);
+    expect(find.text('Standalone local mode'), findsOneWidget);
+    expect(find.text('Language choice is saved locally.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('settings-permissions-check')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('No platform permissions requested in standalone mode'),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('settings-locale-picker')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Spanish (ES)').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Idioma actualizado'), findsOneWidget);
+    expect(services.i18n.locale.languageCode, 'es');
+
+    await tester.scrollUntilVisible(
+      find.text('Local persistence'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Runtime feature status'), findsOneWidget);
+    expect(find.text('On device'), findsOneWidget);
+    expect(find.text('ELKA adapter'), findsOneWidget);
+    expect(find.text('Unconfigured'), findsOneWidget);
+    expect(find.text('Voice input'), findsOneWidget);
+    expect(find.text('Disabled'), findsWidgets);
   });
 
   testWidgets('local challenge join state is persisted in app services',

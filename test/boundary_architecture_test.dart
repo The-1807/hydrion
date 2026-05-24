@@ -1,0 +1,71 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  final uiFiles = Directory('lib/ui')
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'))
+      .toList()
+    ..sort((a, b) => a.path.compareTo(b.path));
+
+  test('UI does not import forbidden adapters, packs, SDKs, or wrappers', () {
+    final forbiddenImports = <Pattern>[
+      RegExp(r'''import\s+['"].*adapters/(elka|local)/'''),
+      RegExp(r'''import\s+['"].*packs/'''),
+      RegExp(r'''import\s+['"].*services/(ai_bridge|llm_service)\.dart'''),
+      RegExp(r'''import\s+['"].*dart_openai'''),
+      RegExp(r'''import\s+['"].*google_generative_ai'''),
+      RegExp(r'''import\s+['"].*openai'''),
+      RegExp(r'''import\s+['"].*gemini'''),
+      RegExp(r'''import\s+['"].*byok'''),
+      RegExp(r'''import\s+['"].*edge_llm'''),
+    ];
+
+    final violations = <String>[];
+
+    for (final file in uiFiles) {
+      final lines = file.readAsLinesSync();
+      for (var index = 0; index < lines.length; index += 1) {
+        final line = lines[index].trim();
+        if (!line.startsWith('import ')) {
+          continue;
+        }
+        for (final pattern in forbiddenImports) {
+          if (line.contains(pattern)) {
+            violations.add('${file.path}:${index + 1}: $line');
+          }
+        }
+      }
+    }
+
+    expect(violations, isEmpty);
+  });
+
+  test('UI does not reference deprecated AI compatibility wrappers', () {
+    final forbiddenTokens = <Pattern>[
+      RegExp(r'\bAIBridge\b'),
+      RegExp(r'\bLLMService\b'),
+      RegExp(r'\bDigestKey\.'),
+      RegExp(r'\bLlmMode\b'),
+    ];
+    final violations = <String>[];
+
+    for (final file in uiFiles) {
+      final content = file.readAsStringSync();
+      for (final token in forbiddenTokens) {
+        if (content.contains(token)) {
+          violations.add('${file.path}: $token');
+        }
+      }
+    }
+
+    expect(violations, isEmpty);
+  });
+
+  test('deprecated compatibility wrapper files are removed', () {
+    expect(File('lib/services/ai_bridge.dart').existsSync(), isFalse);
+    expect(File('lib/services/llm_service.dart').existsSync(), isFalse);
+  });
+}

@@ -96,10 +96,16 @@ const Map<String, Map<String, String>> _localizedText = {
     'app_title': 'Hydrion',
     'analytics_title': 'Analitica',
     'settings_title': 'Configuracion',
+    'language': 'Idioma',
+    'lang_updated': 'Idioma actualizado',
+    'permissions': 'Permisos',
   },
   'fr': {
     'app_title': 'Hydrion',
     'analytics_title': 'Analyses',
     'settings_title': 'Parametres',
+    'language': 'Langue',
+    'lang_updated': 'Langue mise a jour',
+    'permissions': 'Autorisations',
   },
 };

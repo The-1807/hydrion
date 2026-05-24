@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../domain/hydration_contracts.dart';
 
 class VoiceInputWidget extends StatelessWidget {
   final void Function(Map<String, dynamic> command) onCommandParsed;
@@ -8,17 +11,24 @@ class VoiceInputWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final capabilities = context.watch<AppCapabilityReporter>().capabilities;
+    final voiceEnabled = capabilities.voiceInput;
 
     return Semantics(
       button: true,
-      enabled: false,
-      label: 'Voice input disabled',
+      enabled: voiceEnabled,
+      label: voiceEnabled ? 'Voice input available' : 'Voice input disabled',
       child: FloatingActionButton(
         heroTag: 'voice_fab',
         onPressed: null,
-        tooltip: 'Voice commands are a future local feature',
+        tooltip: voiceEnabled
+            ? 'Voice capability reported, but no voice adapter is wired'
+            : 'Voice input disabled by app capabilities',
         backgroundColor: scheme.surfaceContainerHighest,
-        child: Icon(Icons.mic_off, color: scheme.onSurfaceVariant),
+        child: Icon(
+          voiceEnabled ? Icons.mic_none : Icons.mic_off,
+          color: scheme.onSurfaceVariant,
+        ),
       ),
     );
   }

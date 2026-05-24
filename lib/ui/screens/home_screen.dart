@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../utils/i18n_resolver.dart';
+import '../components/hydrion_logo.dart';
 import '../components/intake_ring.dart';
 import '../components/llm_advice_card.dart';
 import '../components/reminder_tile.dart';
@@ -39,11 +40,26 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final i18n = context.read<I18nResolver>();
+    final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     context.watch<HydrationRepository>();
+    final syncStatus = [
+      if (!capabilities.bleSync) 'BLE',
+      if (!capabilities.healthSync) 'Health',
+    ];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(i18n.getText('app_title', 'Hydrion')),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const HydrionLogo(
+              size: 32,
+              imageKey: Key('home-logo'),
+            ),
+            const SizedBox(width: 8),
+            Text(i18n.getText('app_title', 'Hydrion')),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -127,7 +143,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Saved locally on this device. BLE and Health sync are disabled.',
+                        syncStatus.isEmpty
+                            ? 'Saved locally on this device.'
+                            : 'Saved locally on this device. ${syncStatus.join(' and ')} sync ${syncStatus.length == 1 ? 'is' : 'are'} disabled.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -145,30 +163,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Wrap(
+              Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _RouteButton(
+                  const _RouteButton(
                       label: 'Analytics',
                       icon: Icons.insights,
                       route: '/analytics'),
-                  _RouteButton(
+                  const _RouteButton(
                       label: 'Log', icon: Icons.list_alt, route: '/log'),
-                  _RouteButton(
+                  const _RouteButton(
                       label: 'Coach',
                       icon: Icons.chat_bubble_outline,
                       route: '/chat'),
-                  _RouteButton(
+                  const _RouteButton(
                       label: 'Challenges',
                       icon: Icons.emoji_events,
                       route: '/challenges'),
-                  _RouteButton(
+                  const _RouteButton(
                       label: 'Reminders',
                       icon: Icons.notifications_none,
                       route: '/reminders'),
                   _RouteButton(
-                      label: 'AR disabled',
+                      label: capabilities.arVisualization
+                          ? 'AR unavailable'
+                          : 'AR disabled',
                       icon: Icons.view_in_ar,
                       route: '/ar'),
                 ],

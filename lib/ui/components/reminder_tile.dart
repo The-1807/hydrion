@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/hydration_contracts.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../services/notifications.dart';
 
@@ -41,12 +42,16 @@ class _ReminderTileState extends State<ReminderTile> {
       if (!mounted) {
         return;
       }
+      final capabilities = context.read<AppCapabilityReporter>().capabilities;
+      final notificationStatus = capabilities.osNotifications
+          ? 'OS notifications are available.'
+          : 'OS notifications are disabled.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             reminder == null
                 ? 'No local reminder definition was needed'
-                : 'Local reminder definition saved. OS notifications are disabled.',
+                : 'Local reminder definition saved. $notificationStatus',
           ),
         ),
       );
@@ -68,8 +73,12 @@ class _ReminderTileState extends State<ReminderTile> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final reminders = context.watch<ReminderRepository>().reminders;
+    final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final nextReminder = reminders.isEmpty ? null : reminders.first;
     final scheduledAt = nextReminder?.triggerTime;
+    final notificationStatus = capabilities.osNotifications
+        ? 'OS notifications are available.'
+        : 'OS notifications are disabled.';
 
     return ListTile(
       leading: Icon(Icons.notifications, color: scheme.primary),
@@ -79,8 +88,8 @@ class _ReminderTileState extends State<ReminderTile> {
       ),
       subtitle: Text(
         scheduledAt == null
-            ? 'No reminders saved. Hydrion stores reminder definitions only; OS notifications are disabled.'
-            : '${reminders.length} saved locally. Next definition: ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}. No OS alert will fire.',
+            ? 'No reminders saved. Hydrion stores reminder definitions only. $notificationStatus'
+            : '${reminders.length} saved locally. Next definition: ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}. $notificationStatus',
         style: Theme.of(context)
             .textTheme
             .bodyMedium

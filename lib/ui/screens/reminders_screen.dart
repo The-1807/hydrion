@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/hydration_contracts.dart';
 import '../../repositories/reminder_repository.dart';
 
 class RemindersScreen extends StatelessWidget {
@@ -10,6 +11,8 @@ class RemindersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repository = context.watch<ReminderRepository>();
     final reminders = repository.reminders;
+    final capabilities = context.watch<AppCapabilityReporter>().capabilities;
+    final notificationsEnabled = capabilities.osNotifications;
 
     return Scaffold(
       appBar: AppBar(
@@ -19,12 +22,22 @@ class RemindersScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Card(
+          Card(
             child: ListTile(
-              leading: Icon(Icons.notifications_off_outlined),
-              title: Text('OS notifications disabled'),
+              leading: Icon(
+                notificationsEnabled
+                    ? Icons.notifications_active_outlined
+                    : Icons.notifications_off_outlined,
+              ),
+              title: Text(
+                notificationsEnabled
+                    ? 'OS notifications capability reported'
+                    : 'OS notifications disabled',
+              ),
               subtitle: Text(
-                'Standalone mode stores reminder definitions locally only. No platform notification will fire.',
+                notificationsEnabled
+                    ? 'No notification adapter is wired yet. Definitions remain local.'
+                    : 'Standalone mode stores reminder definitions locally only. No platform notification will fire.',
               ),
             ),
           ),
