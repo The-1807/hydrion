@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../utils/i18n_resolver.dart';
 import '../../utils/permissions.dart';
 import '../components/hydrion_logo.dart';
@@ -25,12 +26,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final i18n = context.watch<I18nResolver>();
+    final l10n = AppLocalizations.of(context);
     final permissions = context.read<Permissions>();
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(i18n.getText('settings_title', 'Settings')),
+        title: Text(l10n.settingsTitle),
         centerTitle: true,
       ),
       body: ListView(
@@ -49,7 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const Icon(Icons.language),
                       const SizedBox(width: 12),
                       Text(
-                        i18n.getText('language', 'Language'),
+                        l10n.language,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ],
@@ -59,14 +61,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     key: const Key('settings-locale-picker'),
                     initialValue: _selected,
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'App language',
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: l10n.appLanguageLabel,
                     ),
                     items: I18nResolver.supportedLocales.map((locale) {
                       return DropdownMenuItem(
                         value: locale,
-                        child: Text(_localeLabel(locale)),
+                        child: Text(_localeLabel(locale, l10n)),
                       );
                     }).toList(),
                     onChanged: (locale) async {
@@ -79,22 +81,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (!mounted) {
                         return;
                       }
+                      final selectedL10n = lookupAppLocalizations(i18n.locale);
                       messenger.showSnackBar(
                         SnackBar(
-                          content: Text(
-                            i18n.getText('lang_updated', 'Language updated'),
-                          ),
+                          content: Text(selectedL10n.languageUpdated),
                         ),
                       );
                     },
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _localeCoverage(_selected ?? i18n.locale),
+                    _localeCoverage(_selected ?? i18n.locale, l10n),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Text(
-                    'Language choice is saved locally.',
+                    l10n.languageChoiceSaved,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.futureLanguagesNote,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -115,12 +121,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          i18n.getText('permissions', 'Permissions'),
+                          l10n.permissions,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Standalone mode does not request Bluetooth, Health, microphone, camera, or notification permissions.',
+                          l10n.standalonePermissionsExplanation,
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],
@@ -136,15 +142,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         return;
                       }
                       messenger.showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            'No platform permissions requested in standalone mode',
+                            l10n.noPlatformPermissionsRequested,
                           ),
                         ),
                       );
                     },
                     icon: const Icon(Icons.fact_check_outlined),
-                    label: const Text('Check'),
+                    label: Text(l10n.check),
                   ),
                 ],
               ),
@@ -157,27 +163,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  String _localeLabel(Locale locale) {
+  String _localeLabel(Locale locale, AppLocalizations l10n) {
     return switch (locale.languageCode) {
-      'en' => 'English (US)',
-      'es' => 'Spanish (ES)',
-      'fr' => 'French (FR)',
-      'ar' => 'Arabic (SA)',
-      'de' => 'German (DE)',
-      'pt' => 'Portuguese (PT)',
-      'zh' => 'Chinese (CN)',
+      'en' => l10n.localeNameEnglish,
+      'es' => l10n.localeNameSpanish,
+      'fr' => l10n.localeNameFrench,
       _ => locale.toLanguageTag(),
     };
   }
 
-  String _localeCoverage(Locale locale) {
+  String _localeCoverage(Locale locale, AppLocalizations l10n) {
     return switch (locale.languageCode) {
-      'en' => 'Hydrion strings are available for this locale.',
-      'es' ||
-      'fr' =>
-        'Partial Hydrion strings are available; untranslated text falls back to English.',
-      _ =>
-        'Material widgets use this locale; Hydrion text currently falls back to English.',
+      'en' || 'es' || 'fr' => l10n.localeCoverageComplete,
+      _ => l10n.futureLanguagesNote,
     };
   }
 }
@@ -190,15 +188,17 @@ class _SettingsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            const HydrionLogo(
+            HydrionLogo(
               size: 56,
-              imageKey: Key('settings-logo'),
+              imageKey: const Key('settings-logo'),
+              semanticLabel: l10n.hydrionLogoSemantics,
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -206,19 +206,21 @@ class _SettingsHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Hydrion',
+                    l10n.appTitle,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    capabilities.modeLabel,
+                    capabilities.elkaConfigured
+                        ? l10n.elkaAdapterConfiguredMode
+                        : l10n.standaloneLocalMode,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           color: colorScheme.primary,
                         ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Local data, local rules, no provider runtime.',
+                    l10n.localDataNoProviderRuntime,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -238,6 +240,8 @@ class _CapabilityStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Card(
       child: Column(
         children: [
@@ -249,7 +253,7 @@ class _CapabilityStatusCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Runtime feature status',
+                    l10n.runtimeFeatureStatus,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -258,91 +262,83 @@ class _CapabilityStatusCard extends StatelessWidget {
           ),
           _CapabilityTile(
             icon: Icons.storage_outlined,
-            title: 'Local persistence',
+            title: l10n.localPersistence,
             enabled: capabilities.localPersistence,
-            enabledLabel: 'On device',
-            disabledLabel: 'Unavailable',
-            description:
-                'Hydration logs, settings, reminders, and challenge state are stored locally.',
+            enabledLabel: l10n.onDevice,
+            disabledLabel: l10n.unavailable,
+            description: l10n.localPersistenceDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(
             icon: Icons.hub_outlined,
-            title: 'ELKA adapter',
+            title: l10n.elkaAdapter,
             enabled: capabilities.elkaConfigured,
-            enabledLabel: 'Configured',
-            disabledLabel: 'Unconfigured',
-            description:
-                'Adapter boundary exists, but no ELKA runtime is connected.',
+            enabledLabel: l10n.configured,
+            disabledLabel: l10n.unconfigured,
+            description: l10n.elkaAdapterDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(
             icon: Icons.cloud_off_outlined,
-            title: 'Cloud AI',
+            title: l10n.cloudAi,
             enabled: capabilities.cloudAi,
-            enabledLabel: 'Connected',
-            disabledLabel: 'Disabled',
-            description: 'No provider SDK or cloud model is connected.',
+            enabledLabel: l10n.connected,
+            disabledLabel: l10n.disabled,
+            description: l10n.cloudAiDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(
             icon: Icons.mic_off_outlined,
-            title: 'Voice input',
+            title: l10n.voiceInput,
             enabled: capabilities.voiceInput,
-            enabledLabel: 'Available',
-            disabledLabel: 'Disabled',
-            description:
-                'Typed commands can be parsed; microphone capture is unavailable.',
+            enabledLabel: l10n.available,
+            disabledLabel: l10n.disabled,
+            description: l10n.voiceInputDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(
             icon: Icons.bluetooth_disabled_outlined,
-            title: 'BLE bottle sync',
+            title: l10n.bleBottleSync,
             enabled: capabilities.bleSync,
-            enabledLabel: 'Available',
-            disabledLabel: 'Disabled',
-            description:
-                'No Bluetooth scan, connection, or bottle level read is started.',
+            enabledLabel: l10n.available,
+            disabledLabel: l10n.disabled,
+            description: l10n.bleSyncDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(
             icon: Icons.health_and_safety_outlined,
-            title: 'Health sync',
+            title: l10n.healthSync,
             enabled: capabilities.healthSync,
-            enabledLabel: 'Available',
-            disabledLabel: 'Disabled',
-            description:
-                'No HealthKit, Google Fit, or wearable read is active.',
+            enabledLabel: l10n.available,
+            disabledLabel: l10n.disabled,
+            description: l10n.healthSyncDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(
             icon: Icons.notifications_off_outlined,
-            title: 'OS notifications',
+            title: l10n.osNotifications,
             enabled: capabilities.osNotifications,
-            enabledLabel: 'Available',
-            disabledLabel: 'Disabled',
-            description:
-                'Reminder definitions save locally; no platform notification is scheduled.',
+            enabledLabel: l10n.available,
+            disabledLabel: l10n.disabled,
+            description: l10n.osNotificationsDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(
             icon: Icons.view_in_ar_outlined,
-            title: 'AR visualization',
+            title: l10n.arVisualization,
             enabled: capabilities.arVisualization,
-            enabledLabel: 'Available',
-            disabledLabel: 'Disabled',
-            description:
-                'AR route is a placeholder; no camera or native AR session starts.',
+            enabledLabel: l10n.available,
+            disabledLabel: l10n.disabled,
+            description: l10n.arVisualizationDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(
             icon: Icons.groups_2_outlined,
-            title: 'Social sync',
+            title: l10n.socialSync,
             enabled: capabilities.socialSync,
-            enabledLabel: 'Connected',
-            disabledLabel: 'Local only',
-            description:
-                'Challenges are local-only; no backend state is shared.',
+            enabledLabel: l10n.connected,
+            disabledLabel: l10n.localOnly,
+            description: l10n.socialSyncDescription,
           ),
         ],
       ),

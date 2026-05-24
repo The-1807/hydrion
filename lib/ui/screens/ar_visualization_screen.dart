@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
-import '../../utils/i18n_resolver.dart';
+import '../../l10n/app_localizations.dart';
 
 class ArVisualizationScreen extends StatelessWidget {
   const ArVisualizationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final i18n = context.read<I18nResolver>();
+    final l10n = AppLocalizations.of(context);
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final arEnabled = capabilities.arVisualization;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(i18n.getText('ar_title', 'AR Hydration View')),
+        title: Text(l10n.arTitle),
         centerTitle: true,
       ),
       body: Center(
@@ -32,16 +32,14 @@ class ArVisualizationScreen extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 arEnabled
-                    ? 'AR capability is reported, but no AR adapter is wired.'
-                    : 'AR is disabled in this standalone build.',
+                    ? l10n.arCapabilityReportedNoAdapter
+                    : l10n.arDisabledStandalone,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
               Text(
-                arEnabled
-                    ? 'Hydrion still will not start a camera or native AR session until an adapter is configured.'
-                    : 'No AR plugin, camera permission, or native AR session is active.',
+                arEnabled ? l10n.arCapabilityNoSession : l10n.arNoPluginActive,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../repositories/hydration_repository.dart';
-import '../../utils/i18n_resolver.dart';
 import '../components/hydrion_logo.dart';
 import '../components/intake_ring.dart';
 import '../components/llm_advice_card.dart';
@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _logWater(int volumeMl) async {
     final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     await repository.addLog(
       volumeMl: volumeMl,
@@ -33,13 +34,13 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     messenger.showSnackBar(
-      SnackBar(content: Text('Logged $volumeMl ml')),
+      SnackBar(content: Text(l10n.loggedVolume(volumeMl: volumeMl))),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final i18n = context.read<I18nResolver>();
+    final l10n = AppLocalizations.of(context);
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     context.watch<HydrationRepository>();
     final syncStatus = [
@@ -52,19 +53,20 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const HydrionLogo(
+            HydrionLogo(
               size: 32,
-              imageKey: Key('home-logo'),
+              imageKey: const Key('home-logo'),
+              semanticLabel: l10n.hydrionLogoSemantics,
             ),
             const SizedBox(width: 8),
-            Text(i18n.getText('app_title', 'Hydrion')),
+            Text(l10n.appTitle),
           ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => Navigator.of(context).pushNamed('/settings'),
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTooltip,
           ),
         ],
       ),
@@ -102,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Log hydration',
+                        l10n.logHydration,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
@@ -112,9 +114,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: DropdownButtonFormField<int>(
                               key: const Key('volume-picker'),
                               initialValue: _selectedVolumeMl,
-                              decoration: const InputDecoration(
-                                labelText: 'Amount',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText: l10n.amountLabel,
+                                border: const OutlineInputBorder(),
                                 isDense: true,
                               ),
                               items: const [150, 250, 350, 500, 750, 1000]
@@ -137,15 +139,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             key: const Key('log-water-button'),
                             onPressed: () => _logWater(_selectedVolumeMl),
                             icon: const Icon(Icons.local_drink),
-                            label: Text('Log $_selectedVolumeMl ml'),
+                            label: Text(
+                              l10n.logVolume(volumeMl: _selectedVolumeMl),
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Text(
                         syncStatus.isEmpty
-                            ? 'Saved locally on this device.'
-                            : 'Saved locally on this device. ${syncStatus.join(' and ')} sync ${syncStatus.length == 1 ? 'is' : 'are'} disabled.',
+                            ? l10n.savedLocally
+                            : l10n.savedLocallySyncDisabled(
+                                syncNames: syncStatus.join(' and '),
+                                verb: syncStatus.length == 1 ? 'is' : 'are',
+                              ),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -168,27 +175,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 runSpacing: 8,
                 children: [
                   const _RouteButton(
-                      label: 'Analytics',
+                      labelKey: _RouteLabel.analytics,
                       icon: Icons.insights,
                       route: '/analytics'),
                   const _RouteButton(
-                      label: 'Log', icon: Icons.list_alt, route: '/log'),
+                      labelKey: _RouteLabel.log,
+                      icon: Icons.list_alt,
+                      route: '/log'),
                   const _RouteButton(
-                      label: 'Coach',
+                      labelKey: _RouteLabel.coach,
                       icon: Icons.chat_bubble_outline,
                       route: '/chat'),
                   const _RouteButton(
-                      label: 'Challenges',
+                      labelKey: _RouteLabel.challenges,
                       icon: Icons.emoji_events,
                       route: '/challenges'),
                   const _RouteButton(
-                      label: 'Reminders',
+                      labelKey: _RouteLabel.reminders,
                       icon: Icons.notifications_none,
                       route: '/reminders'),
                   _RouteButton(
-                      label: capabilities.arVisualization
-                          ? 'AR unavailable'
-                          : 'AR disabled',
+                      labelKey: capabilities.arVisualization
+                          ? _RouteLabel.arUnavailable
+                          : _RouteLabel.arDisabled,
                       icon: Icons.view_in_ar,
                       route: '/ar'),
                 ],
@@ -201,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onCommandParsed: (command) {
           final intent = command['intent'] ?? 'unknown_command';
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Voice intent: $intent')),
+            SnackBar(content: Text(l10n.voiceIntent(intent: intent))),
           );
         },
       ),
@@ -209,19 +218,40 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+enum _RouteLabel {
+  analytics,
+  log,
+  coach,
+  challenges,
+  reminders,
+  arDisabled,
+  arUnavailable,
+}
+
 class _RouteButton extends StatelessWidget {
-  final String label;
+  final _RouteLabel labelKey;
   final IconData icon;
   final String route;
 
   const _RouteButton({
-    required this.label,
+    required this.labelKey,
     required this.icon,
     required this.route,
   });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final label = switch (labelKey) {
+      _RouteLabel.analytics => l10n.analyticsRoute,
+      _RouteLabel.log => l10n.logRoute,
+      _RouteLabel.coach => l10n.coachRoute,
+      _RouteLabel.challenges => l10n.challengesRoute,
+      _RouteLabel.reminders => l10n.remindersRoute,
+      _RouteLabel.arDisabled => l10n.arDisabledRoute,
+      _RouteLabel.arUnavailable => l10n.arUnavailableRoute,
+    };
+
     return ActionChip(
       key: Key('route-$route'),
       avatar: Icon(icon, size: 18),

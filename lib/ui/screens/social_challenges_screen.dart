@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
-import '../../utils/i18n_resolver.dart';
 
 class SocialChallengesScreen extends StatefulWidget {
   const SocialChallengesScreen({super.key});
@@ -30,14 +30,14 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final i18n = context.watch<I18nResolver>();
+    final l10n = AppLocalizations.of(context);
     final challengeRepository = context.watch<ChallengeRepository>();
     final hydrationRepository = context.watch<HydrationRepository>();
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(i18n.getText('challenges_title', 'Challenges')),
+        title: Text(l10n.challengesTitle),
         centerTitle: true,
       ),
       body: RefreshIndicator(
@@ -58,14 +58,18 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                 children: [
                   const SizedBox(height: 180),
                   Center(
-                    child: Text(i18n.getText(
-                        'no_challenges', 'No challenges available')),
+                    child: Text(l10n.noChallengesAvailable),
                   ),
                 ],
               );
             }
 
             final challenge = snapshot.data!;
+            final challengeName = _challengeName(challenge, l10n);
+            final challengeDescription = _challengeDescription(
+              challenge,
+              l10n,
+            );
             final joined = challengeRepository.isJoined(challenge.id);
             final progress =
                 challengeRepository.progressFor(hydrationRepository);
@@ -77,24 +81,24 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                     leading: const Icon(Icons.info_outline),
                     title: Text(
                       capabilities.socialSync
-                          ? 'Social challenge capability reported'
-                          : 'Local challenge mode',
+                          ? l10n.socialChallengeCapabilityReported
+                          : l10n.localChallengeMode,
                     ),
                     subtitle: Text(
                       capabilities.socialSync
-                          ? 'No social adapter is wired yet. Progress is still saved on this device.'
-                          : 'Social sync is not connected yet. Challenge progress is saved on this device.',
+                          ? l10n.socialCapabilityNoAdapter
+                          : l10n.socialSyncNotConnected,
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 if (challengeRepository.activeChallenge == null) ...[
-                  const Card(
+                  Card(
                     child: ListTile(
-                      leading: Icon(Icons.emoji_events_outlined),
-                      title: Text('No active challenge yet'),
+                      leading: const Icon(Icons.emoji_events_outlined),
+                      title: Text(l10n.noActiveChallengeYet),
                       subtitle: Text(
-                        'Join the local challenge below to start tracking progress from saved hydration logs.',
+                        l10n.joinLocalChallengeDescription,
                       ),
                     ),
                   ),
@@ -107,11 +111,15 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(challenge.name,
+                        Text(challengeName,
                             style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 8),
                         Text(
-                          '${challenge.description} (${challenge.targetMl} ml, ${challenge.durationDays} days)',
+                          l10n.challengeDetails(
+                            description: challengeDescription,
+                            targetMl: challenge.targetMl,
+                            durationDays: challenge.durationDays,
+                          ),
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 12),
@@ -119,7 +127,12 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                           LinearProgressIndicator(value: progress.percent),
                           const SizedBox(height: 8),
                           Text(
-                            '${progress.completedDays}/${progress.durationDays} days complete. Today: ${progress.todayMl}/${progress.targetMl} ml.',
+                            l10n.challengeProgress(
+                              completedDays: progress.completedDays,
+                              durationDays: progress.durationDays,
+                              todayMl: progress.todayMl,
+                              targetMl: progress.targetMl,
+                            ),
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 12),
@@ -130,11 +143,15 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Chip(
-                              label: Text('${challenge.targetMl} ml/day'),
+                              label: Text(l10n.challengeTargetPerDay(
+                                targetMl: challenge.targetMl,
+                              )),
                               avatar: const Icon(Icons.water_drop, size: 18),
                             ),
                             Chip(
-                              label: Text('${challenge.durationDays} days'),
+                              label: Text(l10n.challengeDurationDays(
+                                durationDays: challenge.durationDays,
+                              )),
                               avatar:
                                   const Icon(Icons.calendar_today, size: 18),
                             ),
@@ -144,13 +161,10 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                                   : () async {
                                       final messenger =
                                           ScaffoldMessenger.of(context);
-                                      final message = i18n.getText(
-                                          'challenge_joined',
-                                          'Challenge joined');
                                       await challengeRepository.join(
                                         id: challenge.id,
-                                        name: challenge.name,
-                                        description: challenge.description,
+                                        name: challengeName,
+                                        description: challengeDescription,
                                         targetMl: challenge.targetMl,
                                         durationDays: challenge.durationDays,
                                       );
@@ -159,14 +173,17 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                                       }
                                       messenger.showSnackBar(
                                         SnackBar(
-                                            content: Text('$message locally')),
+                                          content: Text(
+                                            l10n.challengeJoinedLocally(
+                                              message: l10n.challengeJoined,
+                                            ),
+                                          ),
+                                        ),
                                       );
                                     },
                               icon:
                                   Icon(joined ? Icons.check : Icons.play_arrow),
-                              label: Text(joined
-                                  ? 'Joined'
-                                  : i18n.getText('join', 'Join')),
+                              label: Text(joined ? l10n.joined : l10n.join),
                             ),
                           ],
                         ),
@@ -180,5 +197,20 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
         ),
       ),
     );
+  }
+
+  String _challengeName(HydrationChallenge challenge, AppLocalizations l10n) {
+    return challenge.id.startsWith('steady-sip-7-day')
+        ? l10n.challengeNameSevenDaySteadySip
+        : challenge.name;
+  }
+
+  String _challengeDescription(
+    HydrationChallenge challenge,
+    AppLocalizations l10n,
+  ) {
+    return challenge.id.startsWith('steady-sip-7-day')
+        ? l10n.challengeDescriptionSevenDaySteadySip
+        : challenge.description;
   }
 }

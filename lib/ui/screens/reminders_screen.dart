@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../repositories/reminder_repository.dart';
 
 class RemindersScreen extends StatelessWidget {
@@ -9,6 +10,7 @@ class RemindersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final repository = context.watch<ReminderRepository>();
     final reminders = repository.reminders;
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
@@ -16,7 +18,7 @@ class RemindersScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reminders'),
+        title: Text(l10n.remindersTitle),
         centerTitle: true,
       ),
       body: ListView(
@@ -31,13 +33,13 @@ class RemindersScreen extends StatelessWidget {
               ),
               title: Text(
                 notificationsEnabled
-                    ? 'OS notifications capability reported'
-                    : 'OS notifications disabled',
+                    ? l10n.osNotificationsCapabilityReported
+                    : l10n.osNotificationsDisabledTitle,
               ),
               subtitle: Text(
                 notificationsEnabled
-                    ? 'No notification adapter is wired yet. Definitions remain local.'
-                    : 'Standalone mode stores reminder definitions locally only. No platform notification will fire.',
+                    ? l10n.notificationsAdapterNotWired
+                    : l10n.standaloneRemindersLocalOnly,
               ),
             ),
           ),
@@ -55,13 +57,13 @@ class RemindersScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'No local reminders saved',
+                      l10n.noLocalRemindersSaved,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Use the Home reminder card to save a local reminder definition for later review.',
+                      l10n.remindersEmptyDescription,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
@@ -76,11 +78,14 @@ class RemindersScreen extends StatelessWidget {
                   leading: const Icon(Icons.schedule),
                   title: Text(reminder.message),
                   subtitle: Text(
-                    '${_formatTimestamp(reminder.triggerTime)} - priority ${reminder.priority}',
+                    l10n.reminderSubtitle(
+                      timestamp: _formatTimestamp(reminder.triggerTime),
+                      priority: reminder.priority,
+                    ),
                   ),
                   trailing: IconButton(
                     key: Key('delete-reminder-${reminder.id}'),
-                    tooltip: 'Delete local reminder',
+                    tooltip: l10n.deleteLocalReminderTooltip,
                     icon: const Icon(Icons.delete_outline),
                     onPressed: () async {
                       final messenger = ScaffoldMessenger.of(context);
@@ -89,8 +94,8 @@ class RemindersScreen extends StatelessWidget {
                         return;
                       }
                       messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Local reminder definition deleted'),
+                        SnackBar(
+                          content: Text(l10n.localReminderDeleted),
                         ),
                       );
                     },

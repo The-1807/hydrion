@@ -1,0 +1,347 @@
+{
+  "@@locale": "en",
+  "appTitle": "Hydrion",
+  "settingsTooltip": "Settings",
+  "hydrionLogoSemantics": "Hydrion logo",
+  "analyticsTitle": "Analytics",
+  "achievementsTitle": "Achievements",
+  "ecoImpactTitle": "Environmental Impact",
+  "challengesTitle": "Challenges",
+  "chatCoachTitle": "Hydration Coach",
+  "logTitle": "Hydration Log",
+  "remindersTitle": "Reminders",
+  "settingsTitle": "Settings",
+  "arTitle": "AR Hydration View",
+  "loggedVolume": "Logged {volumeMl} ml",
+  "@loggedVolume": {
+    "placeholders": {
+      "volumeMl": {
+        "type": "int"
+      }
+    }
+  },
+  "logHydration": "Log hydration",
+  "amountLabel": "Amount",
+  "logVolume": "Log {volumeMl} ml",
+  "@logVolume": {
+    "placeholders": {
+      "volumeMl": {
+        "type": "int"
+      }
+    }
+  },
+  "savedLocally": "Saved locally on this device.",
+  "savedLocallySyncDisabled": "Saved locally on this device. {syncNames} sync {verb} disabled.",
+  "@savedLocallySyncDisabled": {
+    "placeholders": {
+      "syncNames": {},
+      "verb": {}
+    }
+  },
+  "analyticsRoute": "Analytics",
+  "logRoute": "Log",
+  "coachRoute": "Coach",
+  "challengesRoute": "Challenges",
+  "remindersRoute": "Reminders",
+  "arDisabledRoute": "AR disabled",
+  "arUnavailableRoute": "AR unavailable",
+  "voiceIntent": "Voice intent: {intent}",
+  "@voiceIntent": {
+    "placeholders": {
+      "intent": {}
+    }
+  },
+  "hydrationAdviceCardSemantics": "Hydration advice card",
+  "stayHydratedFallback": "Stay hydrated.",
+  "failedToLoadAdvice": "Failed to load advice",
+  "retry": "Retry",
+  "osNotificationsAvailableSentence": "OS notifications are available.",
+  "osNotificationsDisabledSentence": "OS notifications are disabled.",
+  "noLocalReminderNeeded": "No local reminder definition was needed",
+  "localReminderSaved": "Local reminder definition saved. {notificationStatus}",
+  "@localReminderSaved": {
+    "placeholders": {
+      "notificationStatus": {}
+    }
+  },
+  "failedToScheduleReminder": "Failed to schedule reminder",
+  "localReminderDefinition": "Local reminder definition",
+  "reminderTileNoSaved": "No reminders saved. Hydrion stores reminder definitions only. {notificationStatus}",
+  "@reminderTileNoSaved": {
+    "placeholders": {
+      "notificationStatus": {}
+    }
+  },
+  "reminderTileSaved": "{count, plural, =1{1 saved locally. Next definition: {time}. {notificationStatus}} other{{count} saved locally. Next definition: {time}. {notificationStatus}}}",
+  "@reminderTileSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "time": {},
+      "notificationStatus": {}
+    }
+  },
+  "saveLocalReminderDefinitionTooltip": "Save local reminder definition",
+  "voiceInputAvailableSemantics": "Voice input available",
+  "voiceInputDisabledSemantics": "Voice input disabled",
+  "voiceCapabilityReportedNoAdapter": "Voice capability reported, but no voice adapter is wired",
+  "voiceInputDisabledTooltip": "Voice input disabled by app capabilities",
+  "standaloneLocalMode": "Standalone local mode",
+  "elkaAdapterConfiguredMode": "ELKA adapter configured",
+  "localDataNoProviderRuntime": "Local data, local rules, no provider runtime.",
+  "language": "Language",
+  "appLanguageLabel": "App language",
+  "languageUpdated": "Language updated",
+  "languageChoiceSaved": "Language choice is saved locally.",
+  "localeCoverageComplete": "Hydrion strings are available for this locale.",
+  "localeCoveragePartial": "Hydrion strings are available; untranslated platform text falls back safely.",
+  "futureLanguagesNote": "Future languages will appear after real ARB files are added.",
+  "localeNameEnglish": "English",
+  "localeNameSpanish": "Spanish",
+  "localeNameFrench": "French",
+  "permissions": "Permissions",
+  "standalonePermissionsExplanation": "Standalone mode does not request Bluetooth, Health, microphone, camera, or notification permissions.",
+  "check": "Check",
+  "noPlatformPermissionsRequested": "No platform permissions requested in standalone mode",
+  "runtimeFeatureStatus": "Runtime feature status",
+  "localPersistence": "Local persistence",
+  "onDevice": "On device",
+  "unavailable": "Unavailable",
+  "localPersistenceDescription": "Hydration logs, settings, reminders, and challenge state are stored locally.",
+  "elkaAdapter": "ELKA adapter",
+  "configured": "Configured",
+  "unconfigured": "Unconfigured",
+  "elkaAdapterDescription": "Adapter boundary exists, but no ELKA runtime is connected.",
+  "cloudAi": "Cloud AI",
+  "connected": "Connected",
+  "disabled": "Disabled",
+  "cloudAiDescription": "No provider SDK or cloud model is connected.",
+  "voiceInput": "Voice input",
+  "available": "Available",
+  "voiceInputDescription": "Typed commands can be parsed; microphone capture is unavailable.",
+  "bleBottleSync": "BLE bottle sync",
+  "bleSyncDescription": "No Bluetooth scan, connection, or bottle level read is started.",
+  "healthSync": "Health sync",
+  "healthSyncDescription": "No HealthKit, Google Fit, or wearable read is active.",
+  "osNotifications": "OS notifications",
+  "osNotificationsDisabledTitle": "OS notifications disabled",
+  "osNotificationsDescription": "Reminder definitions save locally; no platform notification is scheduled.",
+  "arVisualization": "AR visualization",
+  "arVisualizationDescription": "AR route is a placeholder; no camera or native AR session starts.",
+  "socialSync": "Social sync",
+  "localOnly": "Local only",
+  "socialSyncDescription": "Challenges are local-only; no backend state is shared.",
+  "hydrationLogUpdated": "Hydration log updated",
+  "hydrationLogDeleted": "Hydration log deleted",
+  "logNotFound": "Log not found",
+  "noLogs": "No hydration logs found",
+  "logEmptyDescription": "Use Home to add a local hydration entry. Logs are saved on this device.",
+  "editLogTooltip": "Edit log",
+  "deleteLogTooltip": "Delete log",
+  "editHydrationLog": "Edit hydration log",
+  "amountInMl": "Amount in ml",
+  "cancel": "Cancel",
+  "save": "Save",
+  "localEntry": "Local entry",
+  "logSourceTimestamp": "{source} - {timestamp}",
+  "@logSourceTimestamp": {
+    "placeholders": {
+      "source": {},
+      "timestamp": {}
+    }
+  },
+  "noAnalyticsYet": "No analytics yet",
+  "analyticsEmptyDescription": "Log hydration on Home to build local trends.",
+  "todayHydrationTitle": "{todayMl} / {targetMl} ml today",
+  "@todayHydrationTitle": {
+    "placeholders": {
+      "todayMl": {
+        "type": "int"
+      },
+      "targetMl": {
+        "type": "int"
+      }
+    }
+  },
+  "localEntriesToday": "{count, plural, =1{1 local entry today. Data stays on this device.} other{{count} local entries today. Data stays on this device.}}",
+  "@localEntriesToday": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "badgeTwoLiterDay": "2L day",
+  "badgeThreeLogsToday": "3 logs today",
+  "badgeSevenDayStreak": "7 day streak",
+  "plasticSavedTitle": "Plastic saved: {value} kg",
+  "@plasticSavedTitle": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "localEstimateFromLogs": "Local estimate from {lifetimeMl} ml across {eventCount, plural, =1{1 saved log} other{{eventCount} saved logs}}.",
+  "@localEstimateFromLogs": {
+    "placeholders": {
+      "lifetimeMl": {
+        "type": "int"
+      },
+      "eventCount": {
+        "type": "int"
+      }
+    }
+  },
+  "hydrationScoreTitle": "Hydration Score",
+  "hydrationScoreSemantics": "Hydration score",
+  "scoreOutOf100": "{score} out of 100",
+  "@scoreOutOf100": {
+    "placeholders": {
+      "score": {}
+    }
+  },
+  "scoreSuffix": "/ 100",
+  "logCount": "{count, plural, =1{1 log} other{{count} logs}}",
+  "@logCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hydrationTipExcellent": "Excellent hydration rhythm. Keep the streak alive.",
+  "hydrationTipGreat": "Great pace. Maintain consistent sips through the afternoon.",
+  "hydrationTipClose": "You are close. Add a bottle in the next hour to push over the top.",
+  "hydrationTipStart": "Start with 300 to 500 ml now and set a reminder.",
+  "achievementStatusUnlocked": "unlocked",
+  "achievementStatusLocked": "locked",
+  "achievementBadgeSemantics": "Achievement badge: {badgeName} {status}",
+  "@achievementBadgeSemantics": {
+    "placeholders": {
+      "badgeName": {},
+      "status": {}
+    }
+  },
+  "hydrationProgressRing": "Hydration progress ring",
+  "percentValue": "{percent} percent",
+  "@percentValue": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "consumedOfTarget": "Consumed {consumedMl} of {targetMl} milliliters",
+  "@consumedOfTarget": {
+    "placeholders": {
+      "consumedMl": {
+        "type": "int"
+      },
+      "targetMl": {
+        "type": "int"
+      }
+    }
+  },
+  "arCapabilityReportedNoAdapter": "AR capability is reported, but no AR adapter is wired.",
+  "arDisabledStandalone": "AR is disabled in this standalone build.",
+  "arCapabilityNoSession": "Hydrion still will not start a camera or native AR session until an adapter is configured.",
+  "arNoPluginActive": "No AR plugin, camera permission, or native AR session is active.",
+  "chatError": "Could not fetch coach reply",
+  "localFallbackCoach": "Local fallback coach",
+  "coachContextBanner": "{mode}. Using saved on-device hydration data. Today: {todayMl} ml. Lifetime: {lifetimeMl} ml across {eventCount, plural, =1{1 log} other{{eventCount} logs}}. No cloud AI or ELKA is connected.",
+  "@coachContextBanner": {
+    "placeholders": {
+      "mode": {},
+      "todayMl": {
+        "type": "int"
+      },
+      "lifetimeMl": {
+        "type": "int"
+      },
+      "eventCount": {
+        "type": "int"
+      }
+    }
+  },
+  "askCoachEmpty": "Ask for a hydration suggestion. Replies are deterministic local guidance based on saved logs.",
+  "chatHint": "Ask your coach...",
+  "osNotificationsCapabilityReported": "OS notifications capability reported",
+  "notificationsAdapterNotWired": "No notification adapter is wired yet. Definitions remain local.",
+  "standaloneRemindersLocalOnly": "Standalone mode stores reminder definitions locally only. No platform notification will fire.",
+  "noLocalRemindersSaved": "No local reminders saved",
+  "remindersEmptyDescription": "Use the Home reminder card to save a local reminder definition for later review.",
+  "reminderSubtitle": "{timestamp} - priority {priority}",
+  "@reminderSubtitle": {
+    "placeholders": {
+      "timestamp": {},
+      "priority": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteLocalReminderTooltip": "Delete local reminder",
+  "localReminderDeleted": "Local reminder definition deleted",
+  "noChallengesAvailable": "No challenges available",
+  "socialChallengeCapabilityReported": "Social challenge capability reported",
+  "localChallengeMode": "Local challenge mode",
+  "socialCapabilityNoAdapter": "No social adapter is wired yet. Progress is still saved on this device.",
+  "socialSyncNotConnected": "Social sync is not connected yet. Challenge progress is saved on this device.",
+  "noActiveChallengeYet": "No active challenge yet",
+  "joinLocalChallengeDescription": "Join the local challenge below to start tracking progress from saved hydration logs.",
+  "challengeNameSevenDaySteadySip": "Seven Day Steady Sip",
+  "challengeDescriptionSevenDaySteadySip": "Reach your daily hydration goal for one week.",
+  "challengeDetails": "{description} ({targetMl} ml, {durationDays} days)",
+  "@challengeDetails": {
+    "placeholders": {
+      "description": {},
+      "targetMl": {
+        "type": "int"
+      },
+      "durationDays": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeProgress": "{completedDays}/{durationDays} days complete. Today: {todayMl}/{targetMl} ml.",
+  "@challengeProgress": {
+    "placeholders": {
+      "completedDays": {
+        "type": "int"
+      },
+      "durationDays": {
+        "type": "int"
+      },
+      "todayMl": {
+        "type": "int"
+      },
+      "targetMl": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeTargetPerDay": "{targetMl} ml/day",
+  "@challengeTargetPerDay": {
+    "placeholders": {
+      "targetMl": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeDurationDays": "{durationDays} days",
+  "@challengeDurationDays": {
+    "placeholders": {
+      "durationDays": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeJoined": "Challenge joined",
+  "challengeJoinedLocally": "{message} locally",
+  "@challengeJoinedLocally": {
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "join": "Join",
+  "joined": "Joined"
+}

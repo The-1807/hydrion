@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class HydrationScoreCard extends StatelessWidget {
   final double hydrationPercent;
   final int entryCount;
@@ -29,21 +31,22 @@ class HydrationScoreCard extends StatelessWidget {
     return Colors.red.shade600;
   }
 
-  String _tip(double score) {
+  String _tip(double score, AppLocalizations l10n) {
     if (score >= 90) {
-      return 'Excellent hydration rhythm. Keep the streak alive.';
+      return l10n.hydrationTipExcellent;
     }
     if (score >= 80) {
-      return 'Great pace. Maintain consistent sips through the afternoon.';
+      return l10n.hydrationTipGreat;
     }
     if (score >= 60) {
-      return 'You are close. Add a bottle in the next hour to push over the top.';
+      return l10n.hydrationTipClose;
     }
-    return 'Start with 300 to 500 ml now and set a reminder.';
+    return l10n.hydrationTipStart;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final score = _score();
     final barColor = _colorFor(score);
     final scheme = Theme.of(context).colorScheme;
@@ -53,13 +56,13 @@ class HydrationScoreCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Semantics(
-          label: 'Hydration score',
-          value: '${score.toStringAsFixed(0)} out of 100',
+          label: l10n.hydrationScoreSemantics,
+          value: l10n.scoreOutOf100(score: score.toStringAsFixed(0)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hydration Score',
+                l10n.hydrationScoreTitle,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: scheme.onSurface,
                       fontWeight: FontWeight.w700,
@@ -76,7 +79,10 @@ class HydrationScoreCard extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(width: 6),
-                  Text('/ 100', style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    l10n.scoreSuffix,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const Spacer(),
                   _MetricChip(
                     icon: Icons.water_drop,
@@ -86,7 +92,7 @@ class HydrationScoreCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   _MetricChip(
                     icon: Icons.list_alt,
-                    label: '${entryCount.clamp(0, 24)} logs',
+                    label: l10n.logCount(count: entryCount.clamp(0, 24)),
                   ),
                 ],
               ),
@@ -102,7 +108,7 @@ class HydrationScoreCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                _tip(score),
+                _tip(score, l10n),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

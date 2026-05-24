@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'adapters/elka/elka_adapter.dart';
 import 'adapters/local/local_hydrion_adapters.dart';
 import 'domain/hydration_contracts.dart';
+import 'l10n/app_localizations.dart';
 import 'repositories/challenge_repository.dart';
 import 'repositories/hydration_repository.dart';
 import 'repositories/reminder_repository.dart';
@@ -72,8 +74,13 @@ class HydrionApp extends StatelessWidget {
             title: 'Hydrion',
             theme: _theme,
             debugShowCheckedModeBanner: false,
-            localizationsDelegates: I18nResolver.localizationsDelegates,
-            supportedLocales: I18nResolver.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
             locale: i18n.locale,
             initialRoute: '/',
             routes: {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
+import '../../l10n/app_localizations.dart';
 
 class VoiceInputWidget extends StatelessWidget {
   final void Function(Map<String, dynamic> command) onCommandParsed;
@@ -10,6 +11,7 @@ class VoiceInputWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final voiceEnabled = capabilities.voiceInput;
@@ -17,13 +19,15 @@ class VoiceInputWidget extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: voiceEnabled,
-      label: voiceEnabled ? 'Voice input available' : 'Voice input disabled',
+      label: voiceEnabled
+          ? l10n.voiceInputAvailableSemantics
+          : l10n.voiceInputDisabledSemantics,
       child: FloatingActionButton(
         heroTag: 'voice_fab',
         onPressed: null,
         tooltip: voiceEnabled
-            ? 'Voice capability reported, but no voice adapter is wired'
-            : 'Voice input disabled by app capabilities',
+            ? l10n.voiceCapabilityReportedNoAdapter
+            : l10n.voiceInputDisabledTooltip,
         backgroundColor: scheme.surfaceContainerHighest,
         child: Icon(
           voiceEnabled ? Icons.mic_none : Icons.mic_off,

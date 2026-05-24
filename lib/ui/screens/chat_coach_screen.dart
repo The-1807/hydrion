@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../repositories/hydration_repository.dart';
-import '../../utils/i18n_resolver.dart';
 
 class ChatCoachScreen extends StatefulWidget {
   const ChatCoachScreen({super.key});
@@ -60,11 +60,9 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
       if (!mounted) {
         return;
       }
-      final i18n = context.read<I18nResolver>();
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                i18n.getText('chat_error', 'Could not fetch coach reply'))),
+        SnackBar(content: Text(l10n.chatError)),
       );
     } finally {
       if (mounted) {
@@ -75,17 +73,19 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final i18n = context.read<I18nResolver>();
+    final l10n = AppLocalizations.of(context);
     final hydrationRepository = context.watch<HydrationRepository>();
     final todayMl = hydrationRepository.totalForDay(DateTime.now());
     final lifetimeMl = hydrationRepository.totalMl;
     final eventCount = hydrationRepository.eventCount;
-    final eventLabel = eventCount == 1 ? 'log' : 'logs';
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
+    final mode = capabilities.elkaConfigured
+        ? l10n.elkaAdapterConfiguredMode
+        : l10n.standaloneLocalMode;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(i18n.getText('chat_coach_title', 'Hydration Coach')),
+        title: Text(l10n.chatCoachTitle),
         centerTitle: true,
       ),
       body: Column(
@@ -95,9 +95,14 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
             child: ListTile(
               dense: true,
               leading: const Icon(Icons.lock_outline),
-              title: const Text('Local fallback coach'),
+              title: Text(l10n.localFallbackCoach),
               subtitle: Text(
-                '${capabilities.modeLabel}. Using saved on-device hydration data. Today: $todayMl ml. Lifetime: $lifetimeMl ml across $eventCount $eventLabel. No cloud AI or ELKA is connected.',
+                l10n.coachContextBanner(
+                  mode: mode,
+                  todayMl: todayMl,
+                  lifetimeMl: lifetimeMl,
+                  eventCount: eventCount,
+                ),
               ),
             ),
           ),
@@ -107,7 +112,7 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        'Ask for a hydration suggestion. Replies are deterministic local guidance based on saved logs.',
+                        l10n.askCoachEmpty,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
@@ -173,8 +178,7 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
                       decoration: InputDecoration(
-                        hintText:
-                            i18n.getText('chat_hint', 'Ask your coach...'),
+                        hintText: l10n.chatHint,
                         border: const OutlineInputBorder(),
                         isDense: true,
                       ),

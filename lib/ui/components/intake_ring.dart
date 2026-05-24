@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class IntakeRing extends StatefulWidget {
   final double consumedMl;
   final double targetMl;
@@ -69,14 +71,18 @@ class _IntakeRingState extends State<IntakeRing>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final consumed = widget.consumedMl.isFinite ? widget.consumedMl : 0.0;
     final target = widget.targetMl > 0 ? widget.targetMl : 0.0;
     final scheme = Theme.of(context).colorScheme;
 
     return Semantics(
-      label: 'Hydration progress ring',
-      value: '${(_percent * 100).round()} percent',
-      hint: 'Consumed ${consumed.toInt()} of ${target.toInt()} milliliters',
+      label: l10n.hydrationProgressRing,
+      value: l10n.percentValue(percent: (_percent * 100).round()),
+      hint: l10n.consumedOfTarget(
+        consumedMl: consumed.toInt(),
+        targetMl: target.toInt(),
+      ),
       child: SizedBox(
         width: widget.size,
         height: widget.size + 24,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../repositories/hydration_repository.dart';
-import '../../utils/i18n_resolver.dart';
 
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
@@ -15,6 +15,7 @@ class _LogScreenState extends State<LogScreen> {
   Future<void> _editLog(HydrationLog log) async {
     final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
 
     final volumeMl = await showDialog<int>(
       context: context,
@@ -34,26 +35,29 @@ class _LogScreenState extends State<LogScreen> {
     }
     messenger.showSnackBar(
       SnackBar(
-          content: Text(updated ? 'Hydration log updated' : 'Log not found')),
+        content: Text(updated ? l10n.hydrationLogUpdated : l10n.logNotFound),
+      ),
     );
   }
 
   Future<void> _deleteLog(HydrationLog log) async {
     final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final deleted = await repository.deleteLog(log.id);
     if (!mounted) {
       return;
     }
     messenger.showSnackBar(
       SnackBar(
-          content: Text(deleted ? 'Hydration log deleted' : 'Log not found')),
+        content: Text(deleted ? l10n.hydrationLogDeleted : l10n.logNotFound),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final i18n = context.watch<I18nResolver>();
+    final l10n = AppLocalizations.of(context);
     final repository = context.watch<HydrationRepository>();
     final now = DateTime.now();
     final start = now.subtract(const Duration(days: 7));
@@ -61,7 +65,7 @@ class _LogScreenState extends State<LogScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(i18n.getText('log_title', 'Hydration Log')),
+        title: Text(l10n.logTitle),
         centerTitle: true,
       ),
       body: RefreshIndicator(
@@ -79,13 +83,13 @@ class _LogScreenState extends State<LogScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    i18n.getText('no_logs', 'No hydration logs found'),
+                    l10n.noLogs,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Use Home to add a local hydration entry. Logs are saved on this device.',
+                    l10n.logEmptyDescription,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
@@ -107,7 +111,10 @@ class _LogScreenState extends State<LogScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     subtitle: Text(
-                      '${_sourceLabel(log.source)} - $timestamp',
+                      l10n.logSourceTimestamp(
+                        source: _sourceLabel(log.source, l10n),
+                        timestamp: timestamp,
+                      ),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     trailing: Wrap(
@@ -116,13 +123,13 @@ class _LogScreenState extends State<LogScreen> {
                         IconButton(
                           key: Key('edit-log-${log.id}'),
                           icon: const Icon(Icons.edit),
-                          tooltip: 'Edit log',
+                          tooltip: l10n.editLogTooltip,
                           onPressed: () => _editLog(log),
                         ),
                         IconButton(
                           key: Key('delete-log-${log.id}'),
                           icon: const Icon(Icons.delete_outline),
-                          tooltip: 'Delete log',
+                          tooltip: l10n.deleteLogTooltip,
                           onPressed: () => _deleteLog(log),
                         ),
                       ],
@@ -142,9 +149,9 @@ class _LogScreenState extends State<LogScreen> {
     return '$date $hour:$minute';
   }
 
-  String _sourceLabel(String source) {
+  String _sourceLabel(String source, AppLocalizations l10n) {
     return switch (source) {
-      'local' => 'Local entry',
+      'local' => l10n.localEntry,
       _ => source,
     };
   }
@@ -178,22 +185,24 @@ class _EditLogDialogState extends State<_EditLogDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return AlertDialog(
-      title: const Text('Edit hydration log'),
+      title: Text(l10n.editHydrationLog),
       content: TextField(
         key: const Key('edit-log-volume-field'),
         controller: _controller,
         autofocus: true,
         keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
-          labelText: 'Amount in ml',
-          border: OutlineInputBorder(),
+        decoration: InputDecoration(
+          labelText: l10n.amountInMl,
+          border: const OutlineInputBorder(),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           key: const Key('save-log-edit-button'),
@@ -203,7 +212,7 @@ class _EditLogDialogState extends State<_EditLogDialog> {
                 ? null
                 : parsed.clamp(1, 5000).toInt());
           },
-          child: const Text('Save'),
+          child: Text(l10n.save),
         ),
       ],
     );

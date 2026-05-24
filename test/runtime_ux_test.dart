@@ -170,25 +170,25 @@ void main() {
 
     await tester.tap(find.byKey(const Key('settings-locale-picker')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Spanish (ES)').last);
+    await tester.tap(find.text('Spanish').last);
     await tester.pumpAndSettle();
 
     expect(find.text('Idioma actualizado'), findsOneWidget);
     expect(services.i18n.locale.languageCode, 'es');
 
     await tester.scrollUntilVisible(
-      find.text('Local persistence'),
+      find.text('Persistencia local'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Runtime feature status'), findsOneWidget);
-    expect(find.text('On device'), findsOneWidget);
-    expect(find.text('ELKA adapter'), findsOneWidget);
-    expect(find.text('Unconfigured'), findsOneWidget);
-    expect(find.text('Voice input'), findsOneWidget);
-    expect(find.text('Disabled'), findsWidgets);
+    expect(find.text('Estado de funciones en ejecución'), findsOneWidget);
+    expect(find.text('En dispositivo'), findsOneWidget);
+    expect(find.text('Adaptador ELKA'), findsOneWidget);
+    expect(find.text('Sin configurar'), findsOneWidget);
+    expect(find.text('Entrada de voz'), findsOneWidget);
+    expect(find.text('Desactivado'), findsWidgets);
   });
 
   testWidgets('local challenge join state is persisted in app services',

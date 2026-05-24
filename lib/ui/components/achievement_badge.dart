@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class AchievementBadge extends StatelessWidget {
   final String badgeName;
   final bool isUnlocked;
@@ -12,11 +14,17 @@ class AchievementBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final status = isUnlocked
+        ? l10n.achievementStatusUnlocked
+        : l10n.achievementStatusLocked;
 
     return Semantics(
-      label:
-          'Achievement badge: $badgeName ${isUnlocked ? 'unlocked' : 'locked'}',
+      label: l10n.achievementBadgeSemantics(
+        badgeName: badgeName,
+        status: status,
+      ),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         padding: const EdgeInsets.all(10),

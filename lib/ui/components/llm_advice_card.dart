@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
+import '../../l10n/app_localizations.dart';
 
 class LLMAdviceCard extends StatefulWidget {
   final double hydrationPercent;
@@ -53,8 +54,10 @@ class _LLMAdviceCardState extends State<LLMAdviceCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Semantics(
-      label: 'Hydration advice card',
+      label: l10n.hydrationAdviceCardSemantics,
       child: Card(
         elevation: 1,
         child: Padding(
@@ -88,7 +91,8 @@ class _LLMAdviceCardState extends State<LLMAdviceCard> {
               }
 
               final text =
-                  (snapshot.data ?? _cached ?? 'Stay hydrated.').trim();
+                  (snapshot.data ?? _cached ?? l10n.stayHydratedFallback)
+                      .trim();
               return Text(
                 text,
                 textAlign: TextAlign.center,
@@ -112,6 +116,7 @@ class _AdviceError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -119,7 +124,7 @@ class _AdviceError extends StatelessWidget {
         Icon(Icons.info_outline, color: scheme.error, size: 20),
         const SizedBox(height: 8),
         Text(
-          'Failed to load advice',
+          l10n.failedToLoadAdvice,
           textAlign: TextAlign.center,
           style: Theme.of(context)
               .textTheme
@@ -130,7 +135,7 @@ class _AdviceError extends StatelessWidget {
         TextButton.icon(
           onPressed: onRetry,
           icon: const Icon(Icons.refresh),
-          label: const Text('Retry'),
+          label: Text(l10n.retry),
         ),
       ],
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../services/notifications.dart';
 
@@ -30,6 +31,7 @@ class _ReminderTileState extends State<ReminderTile> {
     if (_busy) {
       return;
     }
+    final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
       final notifications = context.read<NotificationService>();
@@ -44,14 +46,16 @@ class _ReminderTileState extends State<ReminderTile> {
       }
       final capabilities = context.read<AppCapabilityReporter>().capabilities;
       final notificationStatus = capabilities.osNotifications
-          ? 'OS notifications are available.'
-          : 'OS notifications are disabled.';
+          ? l10n.osNotificationsAvailableSentence
+          : l10n.osNotificationsDisabledSentence;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             reminder == null
-                ? 'No local reminder definition was needed'
-                : 'Local reminder definition saved. $notificationStatus',
+                ? l10n.noLocalReminderNeeded
+                : l10n.localReminderSaved(
+                    notificationStatus: notificationStatus,
+                  ),
           ),
         ),
       );
@@ -60,7 +64,7 @@ class _ReminderTileState extends State<ReminderTile> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to schedule reminder')),
+        SnackBar(content: Text(l10n.failedToScheduleReminder)),
       );
     } finally {
       if (mounted) {
@@ -71,25 +75,33 @@ class _ReminderTileState extends State<ReminderTile> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final reminders = context.watch<ReminderRepository>().reminders;
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final nextReminder = reminders.isEmpty ? null : reminders.first;
     final scheduledAt = nextReminder?.triggerTime;
     final notificationStatus = capabilities.osNotifications
-        ? 'OS notifications are available.'
-        : 'OS notifications are disabled.';
+        ? l10n.osNotificationsAvailableSentence
+        : l10n.osNotificationsDisabledSentence;
 
     return ListTile(
       leading: Icon(Icons.notifications, color: scheme.primary),
       title: Text(
-        'Local reminder definition',
+        l10n.localReminderDefinition,
         style: Theme.of(context).textTheme.titleMedium,
       ),
       subtitle: Text(
         scheduledAt == null
-            ? 'No reminders saved. Hydrion stores reminder definitions only. $notificationStatus'
-            : '${reminders.length} saved locally. Next definition: ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}. $notificationStatus',
+            ? l10n.reminderTileNoSaved(
+                notificationStatus: notificationStatus,
+              )
+            : l10n.reminderTileSaved(
+                count: reminders.length,
+                time:
+                    '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
+                notificationStatus: notificationStatus,
+              ),
         style: Theme.of(context)
             .textTheme
             .bodyMedium
@@ -104,7 +116,7 @@ class _ReminderTileState extends State<ReminderTile> {
           : IconButton(
               icon: const Icon(Icons.schedule),
               onPressed: _schedule,
-              tooltip: 'Save local reminder definition',
+              tooltip: l10n.saveLocalReminderDefinitionTooltip,
             ),
       onTap: _schedule,
     );
