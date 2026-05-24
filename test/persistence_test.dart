@@ -7,6 +7,8 @@ import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/reminder_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
+import 'package:hydrion/services/ble_service.dart';
+import 'package:hydrion/services/llm_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -120,7 +122,7 @@ void main() {
 
   test('services share one hydration source of truth', () async {
     final services = await HydrionServices.fromStore(MemoryHydrionStore());
-    final timestamp = DateTime(2026, 5, 23, 9);
+    final timestamp = DateTime.now();
 
     await services.wearables.syncHydration(500, timestamp);
 
@@ -136,8 +138,36 @@ void main() {
 
     expect(logs.single.volumeMl, 500);
     expect(summary.consumedMl, 500);
+    expect(summary.entryCount, 1);
     expect(plasticSavedKg, closeTo(0.01, 0.0001));
     expect(digest['totalMl'], 500);
     expect(digest['eventCount'], 1);
+  });
+
+  test('coach and platform services report honest local fallback status',
+      () async {
+    final services = await HydrionServices.fromStore(MemoryHydrionStore());
+    final timestamp = DateTime.now();
+
+    await services.hydrationRepository.addLog(
+      volumeMl: 750,
+      timestamp: timestamp,
+      source: 'test',
+    );
+
+    final response = await services.llm.getCoachingAdvice(
+      userQuery: 'How am I doing?',
+      digestKey: DigestKey.weeklyDigest,
+    );
+
+    expect(response, contains('local deterministic mode'));
+    expect(response, contains('Today: 750 ml'));
+    expect(response, contains('across 1 saved log'));
+    expect(services.notificationService.supportsOsNotifications, isFalse);
+    expect(services.voice.isAvailable, isFalse);
+    expect(await services.voice.initialize(), isFalse);
+    expect(services.wearables.supportsBleSync, isFalse);
+    expect(services.wearables.supportsHealthSync, isFalse);
+    expect(BLEService().isAvailable, isFalse);
   });
 }

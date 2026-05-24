@@ -45,8 +45,8 @@ class _ReminderTileState extends State<ReminderTile> {
         SnackBar(
           content: Text(
             reminder == null
-                ? 'No local reminder was needed'
-                : 'Local reminder saved',
+                ? 'No local reminder definition was needed'
+                : 'Local reminder definition saved. OS notifications are disabled.',
           ),
         ),
       );
@@ -74,13 +74,13 @@ class _ReminderTileState extends State<ReminderTile> {
     return ListTile(
       leading: Icon(Icons.notifications, color: scheme.primary),
       title: Text(
-        'Local Reminder',
+        'Local reminder definition',
         style: Theme.of(context).textTheme.titleMedium,
       ),
       subtitle: Text(
         scheduledAt == null
-            ? 'No reminders saved. OS notifications are not enabled yet.'
-            : '${reminders.length} saved locally. Next: ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
+            ? 'No reminders saved. Hydrion stores reminder definitions only; OS notifications are disabled.'
+            : '${reminders.length} saved locally. Next definition: ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}. No OS alert will fire.',
         style: Theme.of(context)
             .textTheme
             .bodyMedium
@@ -95,7 +95,7 @@ class _ReminderTileState extends State<ReminderTile> {
           : IconButton(
               icon: const Icon(Icons.schedule),
               onPressed: _schedule,
-              tooltip: 'Save local reminder',
+              tooltip: 'Save local reminder definition',
             ),
       onTap: _schedule,
     );

@@ -27,13 +27,14 @@ class LLMService {
 
   Future<String> getHydrationCoachResponse({
     required double hydrationPercent,
-    required int activityMinutes,
+    int? entryCount,
+    int? activityMinutes,
     required double temperatureC,
   }) async {
     await initialize();
 
     final hydration = hydrationPercent.clamp(0.0, 100.0);
-    final effort = activityMinutes.clamp(0, 240);
+    final entries = (entryCount ?? activityMinutes ?? 0).clamp(0, 24);
     final heat =
         temperatureC >= 28 ? ' Warm conditions raise your fluid needs.' : '';
 
@@ -43,13 +44,13 @@ class LLMService {
       >= 65.0 =>
         'You are close to target. Add a glass of water in the next hour to stay steady.$heat',
       _ =>
-        'Start with 300 to 500 ml now, then check in again after your next activity block.$heat',
+        'Start with 300 to 500 ml now, then check in again after your next drink.$heat',
     };
 
-    final activityNote = effort >= 45
-        ? ' Your activity today makes consistency extra useful.'
-        : '';
-    return _coreBridge.coreValidateLlmResponse('$advice$activityNote');
+    final entryNote = entries >= 3
+        ? ' You have $entries local entries today, which makes the trend more reliable.'
+        : ' Add entries when you drink so Hydrion can track the day honestly.';
+    return _coreBridge.coreValidateLlmResponse('$advice$entryNote');
   }
 
   Future<String> getCoachingAdvice({
@@ -61,11 +62,17 @@ class LLMService {
     final digest = jsonDecode(await _coreBridge.coreGetDigest(digestKey.name))
         as Map<String, dynamic>;
     final totalMl = digest['totalMl'] as int? ?? 0;
+    final lifetimeMl = digest['lifetimeMl'] as int? ?? 0;
+    final eventCount = digest['eventCount'] as int? ?? 0;
     final suffix =
         userQuery.trim().isEmpty ? '' : ' You asked: ${userQuery.trim()}';
+    final eventLabel = eventCount == 1 ? 'log' : 'logs';
+    final context = eventCount == 0
+        ? 'No saved hydration logs yet.'
+        : 'Today: $totalMl ml. Lifetime tracked: $lifetimeMl ml across $eventCount saved $eventLabel.';
 
     return _coreBridge.coreValidateLlmResponse(
-      'Hydrion is running in local mode. Logged hydration today: $totalMl ml.$suffix',
+      'Hydrion is running in local deterministic mode. $context$suffix',
     );
   }
 

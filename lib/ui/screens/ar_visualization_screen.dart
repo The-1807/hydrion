@@ -28,9 +28,15 @@ class ArVisualizationScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'AR visualizations are disabled until platform assets and permissions are configured.',
+                'AR is disabled in this standalone build.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'No AR plugin, camera permission, or native AR session is active.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),

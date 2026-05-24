@@ -14,6 +14,8 @@ class NotificationService {
   List<ScheduledReminder> get scheduledReminders =>
       _reminderRepository.reminders;
 
+  bool get supportsOsNotifications => false;
+
   Future<ScheduledReminder?> scheduleReminder({
     required int shortfallMl,
     required double lastDrinkHoursAgo,

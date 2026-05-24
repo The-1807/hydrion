@@ -15,43 +15,11 @@ class _LogScreenState extends State<LogScreen> {
   Future<void> _editLog(HydrationLog log) async {
     final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
-    final controller = TextEditingController(text: log.volumeMl.toString());
 
     final volumeMl = await showDialog<int>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit hydration log'),
-          content: TextField(
-            key: const Key('edit-log-volume-field'),
-            controller: controller,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Amount in ml',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              key: const Key('save-log-edit-button'),
-              onPressed: () {
-                final parsed = int.tryParse(controller.text.trim());
-                Navigator.of(context).pop(parsed == null || parsed <= 0
-                    ? null
-                    : parsed.clamp(1, 5000).toInt());
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => _EditLogDialog(initialVolumeMl: log.volumeMl),
     );
-    controller.dispose();
 
     if (volumeMl == null) {
       return;
@@ -179,5 +147,65 @@ class _LogScreenState extends State<LogScreen> {
       'local' => 'Local entry',
       _ => source,
     };
+  }
+}
+
+class _EditLogDialog extends StatefulWidget {
+  final int initialVolumeMl;
+
+  const _EditLogDialog({required this.initialVolumeMl});
+
+  @override
+  State<_EditLogDialog> createState() => _EditLogDialogState();
+}
+
+class _EditLogDialogState extends State<_EditLogDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.initialVolumeMl.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit hydration log'),
+      content: TextField(
+        key: const Key('edit-log-volume-field'),
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(
+          labelText: 'Amount in ml',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const Key('save-log-edit-button'),
+          onPressed: () {
+            final parsed = int.tryParse(_controller.text.trim());
+            Navigator.of(context).pop(parsed == null || parsed <= 0
+                ? null
+                : parsed.clamp(1, 5000).toInt());
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
   }
 }

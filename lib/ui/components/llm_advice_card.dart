@@ -5,15 +5,16 @@ import '../../services/llm_service.dart';
 
 class LLMAdviceCard extends StatefulWidget {
   final double hydrationPercent;
-  final int activityMinutes;
+  final int entryCount;
   final double temperatureC;
 
   const LLMAdviceCard({
     super.key,
     required this.hydrationPercent,
-    required this.activityMinutes,
+    int? entryCount,
+    int? activityMinutes,
     required this.temperatureC,
-  });
+  }) : entryCount = entryCount ?? activityMinutes ?? 0;
 
   @override
   State<LLMAdviceCard> createState() => _LLMAdviceCardState();
@@ -33,7 +34,7 @@ class _LLMAdviceCardState extends State<LLMAdviceCard> {
   void didUpdateWidget(covariant LLMAdviceCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.hydrationPercent != widget.hydrationPercent ||
-        oldWidget.activityMinutes != widget.activityMinutes ||
+        oldWidget.entryCount != widget.entryCount ||
         oldWidget.temperatureC != widget.temperatureC) {
       _future = _fetch();
     }
@@ -43,7 +44,7 @@ class _LLMAdviceCardState extends State<LLMAdviceCard> {
     final llm = context.read<LLMService>();
     final message = await llm.getHydrationCoachResponse(
       hydrationPercent: widget.hydrationPercent,
-      activityMinutes: widget.activityMinutes,
+      entryCount: widget.entryCount,
       temperatureC: widget.temperatureC,
     );
     _cached = message;

@@ -2,16 +2,20 @@ import '../repositories/hydration_repository.dart';
 
 class HydrationSummary {
   final double hydrationPercent;
-  final int activityMinutes;
+  final int entryCount;
   final int consumedMl;
   final int targetMl;
 
   const HydrationSummary({
     required this.hydrationPercent,
-    required this.activityMinutes,
+    int? entryCount,
+    int? activityMinutes,
     required this.consumedMl,
     required this.targetMl,
-  });
+  }) : entryCount = entryCount ?? activityMinutes ?? 0;
+
+  @Deprecated('Use entryCount; Hydrion does not read platform activity data.')
+  int get activityMinutes => entryCount;
 }
 
 class HydrationChallenge {
@@ -49,7 +53,7 @@ class AIBridge {
 
     return HydrationSummary(
       hydrationPercent: hydrationPercent,
-      activityMinutes: logsToday.length * 5,
+      entryCount: logsToday.length,
       consumedMl: consumedMl,
       targetMl: targetMl,
     );

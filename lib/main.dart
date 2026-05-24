@@ -19,6 +19,7 @@ import 'ui/screens/ar_visualization_screen.dart';
 import 'ui/screens/chat_coach_screen.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/log_screen.dart';
+import 'ui/screens/reminders_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/social_challenges_screen.dart';
 import 'storage/local_store.dart';
@@ -71,6 +72,7 @@ class HydrionApp extends StatelessWidget {
               '/analytics': (_) => const AnalyticsScreen(),
               '/chat': (_) => const ChatCoachScreen(),
               '/log': (_) => const LogScreen(),
+              '/reminders': (_) => const RemindersScreen(),
               '/settings': (_) => const SettingsScreen(),
               '/challenges': (_) => const SocialChallengesScreen(),
               '/ar': (_) => const ArVisualizationScreen(),

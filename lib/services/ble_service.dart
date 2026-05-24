@@ -9,6 +9,8 @@ class BottleConnection {
 }
 
 class BLEService {
+  bool get isAvailable => false;
+
   Future<List<BottleConnection>> scanForBottles() async {
     return const <BottleConnection>[];
   }

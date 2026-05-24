@@ -2,20 +2,21 @@ import 'package:flutter/material.dart';
 
 class HydrationScoreCard extends StatelessWidget {
   final double hydrationPercent;
-  final int activityMinutes;
+  final int entryCount;
 
   const HydrationScoreCard({
     super.key,
     required this.hydrationPercent,
-    required this.activityMinutes,
-  });
+    int? entryCount,
+    int? activityMinutes,
+  }) : entryCount = entryCount ?? activityMinutes ?? 0;
 
   double _score() {
     final hydration =
         hydrationPercent.isFinite ? hydrationPercent.clamp(0.0, 100.0) : 0.0;
-    final activity = activityMinutes.clamp(0, 180);
-    final activityFactor = (activity / 60.0 * 100.0).clamp(0.0, 100.0);
-    return ((0.7 * hydration) + (0.3 * activityFactor)).clamp(0.0, 100.0);
+    final consistency =
+        (entryCount.clamp(0, 4) / 4.0 * 100.0).clamp(0.0, 100.0);
+    return ((0.8 * hydration) + (0.2 * consistency)).clamp(0.0, 100.0);
   }
 
   Color _colorFor(double score) {
@@ -84,8 +85,8 @@ class HydrationScoreCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   _MetricChip(
-                    icon: Icons.directions_run,
-                    label: '${activityMinutes.clamp(0, 180)} min',
+                    icon: Icons.list_alt,
+                    label: '${entryCount.clamp(0, 24)} logs',
                   ),
                 ],
               ),

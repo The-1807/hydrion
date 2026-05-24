@@ -88,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.verified_user),
               title: Text(i18n.getText('permissions', 'Permissions')),
               subtitle: const Text(
-                'Standalone mode: BLE, Health, voice, and OS notifications are disabled.',
+                'Standalone mode does not request BLE, Health, voice, or notification permissions.',
               ),
               onTap: () async {
                 final messenger = ScaffoldMessenger.of(context);
@@ -104,6 +104,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 );
               },
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.bluetooth_disabled),
+                  title: Text('BLE bottle sync disabled'),
+                  subtitle: Text('No Bluetooth scan or connection is started.'),
+                ),
+                Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.health_and_safety_outlined),
+                  title: Text('Health sync disabled'),
+                  subtitle: Text('No HealthKit or Google Fit data is read.'),
+                ),
+                Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.mic_off),
+                  title: Text('Voice input disabled'),
+                  subtitle: Text(
+                      'Commands can be typed; microphone capture is not active.'),
+                ),
+                Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.notifications_off_outlined),
+                  title: Text('OS notifications disabled'),
+                  subtitle:
+                      Text('Reminder definitions are saved locally only.'),
+                ),
+              ],
             ),
           ),
         ],

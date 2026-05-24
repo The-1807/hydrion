@@ -9,6 +9,10 @@ class WearableService {
       : _hydrationRepository =
             hydrationRepository ?? HydrationRepository.memory();
 
+  bool get supportsBleSync => false;
+
+  bool get supportsHealthSync => false;
+
   Future<bool> syncHydration(int volumeMl, DateTime timestamp) async {
     if (volumeMl <= 0) {
       return false;

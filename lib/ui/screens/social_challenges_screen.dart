@@ -79,6 +79,18 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (challengeRepository.activeChallenge == null) ...[
+                  const Card(
+                    child: ListTile(
+                      leading: Icon(Icons.emoji_events_outlined),
+                      title: Text('No active challenge yet'),
+                      subtitle: Text(
+                        'Join the local challenge below to start tracking progress from saved hydration logs.',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Card(
                   elevation: 1,
                   child: Padding(

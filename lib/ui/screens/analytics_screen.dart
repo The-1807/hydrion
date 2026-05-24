@@ -18,6 +18,9 @@ class AnalyticsScreen extends StatelessWidget {
     final today = DateTime.now();
     const targetMl = 2200;
     final todayMl = hydrationRepository.totalForDay(today);
+    final lifetimeMl = hydrationRepository.totalMl;
+    final eventCount = hydrationRepository.eventCount;
+    final eventLabel = eventCount == 1 ? 'log' : 'logs';
     final todayLogs = hydrationRepository.fetch(
       DateTime(today.year, today.month, today.day),
       DateTime(today.year, today.month, today.day + 1),
@@ -63,7 +66,7 @@ class AnalyticsScreen extends StatelessWidget {
           ],
           HydrationScoreCard(
             hydrationPercent: hydrationPercent,
-            activityMinutes: todayLogs.length * 5,
+            entryCount: todayLogs.length,
           ),
           const SizedBox(height: 12),
           Card(
@@ -119,8 +122,8 @@ class AnalyticsScreen extends StatelessWidget {
                 child: ListTile(
                   leading: const Icon(Icons.eco),
                   title: Text('Plastic saved: $value kg'),
-                  subtitle: const Text(
-                    'Local estimate from all saved hydration logs.',
+                  subtitle: Text(
+                    'Local estimate from $lifetimeMl ml across $eventCount saved $eventLabel.',
                   ),
                 ),
               );

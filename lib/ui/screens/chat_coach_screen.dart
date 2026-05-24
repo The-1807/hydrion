@@ -76,8 +76,11 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
   @override
   Widget build(BuildContext context) {
     final i18n = context.read<I18nResolver>();
-    final todayMl =
-        context.watch<HydrationRepository>().totalForDay(DateTime.now());
+    final hydrationRepository = context.watch<HydrationRepository>();
+    final todayMl = hydrationRepository.totalForDay(DateTime.now());
+    final lifetimeMl = hydrationRepository.totalMl;
+    final eventCount = hydrationRepository.eventCount;
+    final eventLabel = eventCount == 1 ? 'log' : 'logs';
 
     return Scaffold(
       appBar: AppBar(
@@ -93,7 +96,7 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
               leading: const Icon(Icons.lock_outline),
               title: const Text('Local fallback coach'),
               subtitle: Text(
-                'Using saved on-device hydration data. Today: $todayMl ml. No cloud AI or ELKA is connected.',
+                'Using saved on-device hydration data. Today: $todayMl ml. Lifetime: $lifetimeMl ml across $eventCount $eventLabel. No cloud AI or ELKA is connected.',
               ),
             ),
           ),

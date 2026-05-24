@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../repositories/hydration_repository.dart';
 import '../../services/ai_bridge.dart';
-import '../../services/wearable_service.dart';
 import '../../utils/i18n_resolver.dart';
 import '../components/intake_ring.dart';
 import '../components/llm_advice_card.dart';
@@ -21,10 +20,14 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedVolumeMl = 250;
 
   Future<void> _logWater(int volumeMl) async {
-    final wearables = context.read<WearableService>();
+    final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
     final now = DateTime.now();
-    await wearables.syncHydration(volumeMl, now);
+    await repository.addLog(
+      volumeMl: volumeMl,
+      timestamp: now,
+      source: 'local',
+    );
     if (!mounted) {
       return;
     }
@@ -55,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final summary = snapshot.data ??
               const HydrationSummary(
                 hydrationPercent: 0,
-                activityMinutes: 0,
+                entryCount: 0,
                 consumedMl: 0,
                 targetMl: 2200,
               );
@@ -72,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
               LLMAdviceCard(
                 hydrationPercent: summary.hydrationPercent,
-                activityMinutes: summary.activityMinutes,
+                entryCount: summary.entryCount,
                 temperatureC: 24,
               ),
               const SizedBox(height: 12),
@@ -124,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Saved locally on this device.',
+                        'Saved locally on this device. BLE and Health sync are disabled.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -161,7 +164,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: Icons.emoji_events,
                       route: '/challenges'),
                   _RouteButton(
-                      label: 'AR future', icon: Icons.view_in_ar, route: '/ar'),
+                      label: 'Reminders',
+                      icon: Icons.notifications_none,
+                      route: '/reminders'),
+                  _RouteButton(
+                      label: 'AR disabled',
+                      icon: Icons.view_in_ar,
+                      route: '/ar'),
                 ],
               ),
             ],
