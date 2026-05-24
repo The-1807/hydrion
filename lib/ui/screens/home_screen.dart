@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/hydration_contracts.dart';
 import '../../repositories/hydration_repository.dart';
-import '../../services/ai_bridge.dart';
 import '../../utils/i18n_resolver.dart';
 import '../components/intake_ring.dart';
 import '../components/llm_advice_card.dart';
@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: FutureBuilder<HydrationSummary>(
-        future: context.read<AIBridge>().getHydrationSummary(),
+        future: context.read<HydrationSummaryService>().getHydrationSummary(),
         builder: (context, snapshot) {
           final summary = snapshot.data ??
               const HydrationSummary(

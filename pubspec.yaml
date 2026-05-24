@@ -25,12 +25,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/icons/
-    - assets/ui/
-    - assets/sounds/
-    - assets/ar/
     - config/
-    - i18n/
   generate: true
 
 platforms:

@@ -1,12 +1,13 @@
-import 'llm_service.dart';
+import '../domain/hydration_contracts.dart';
 
 class VoiceLLMBridge {
-  final LLMService _llm;
+  final HydrationCommandParser _commandParser;
 
-  VoiceLLMBridge({required LLMService llmService}) : _llm = llmService;
+  VoiceLLMBridge({required HydrationCommandParser commandParser})
+      : _commandParser = commandParser;
 
   Future<Map<String, dynamic>> parseVoiceCommand(String speech) async {
-    final parsed = await _llm.parseCommandToJson(speech);
+    final parsed = await _commandParser.parseCommandToJson(speech);
     final intent = (parsed['intent'] ?? '').toString().trim();
     final entities = parsed['entities'];
 

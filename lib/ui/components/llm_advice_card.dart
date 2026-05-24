@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../services/llm_service.dart';
+import '../../domain/hydration_contracts.dart';
 
 class LLMAdviceCard extends StatefulWidget {
   final double hydrationPercent;
@@ -41,8 +41,8 @@ class _LLMAdviceCardState extends State<LLMAdviceCard> {
   }
 
   Future<String> _fetch() async {
-    final llm = context.read<LLMService>();
-    final message = await llm.getHydrationCoachResponse(
+    final coach = context.read<HydrationCoach>();
+    final message = await coach.getHydrationCoachResponse(
       hydrationPercent: widget.hydrationPercent,
       entryCount: widget.entryCount,
       temperatureC: widget.temperatureC,

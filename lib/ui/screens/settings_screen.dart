@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/hydration_contracts.dart';
 import '../../utils/i18n_resolver.dart';
 import '../../utils/permissions.dart';
 
@@ -24,6 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final i18n = context.watch<I18nResolver>();
     final permissions = context.read<Permissions>();
+    final capabilities = context.watch<AppCapabilityReporter>().capabilities;
 
     return Scaffold(
       appBar: AppBar(
@@ -87,8 +89,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: ListTile(
               leading: const Icon(Icons.verified_user),
               title: Text(i18n.getText('permissions', 'Permissions')),
-              subtitle: const Text(
-                'Standalone mode does not request BLE, Health, voice, or notification permissions.',
+              subtitle: Text(
+                '${capabilities.modeLabel}: Hydrion does not request BLE, Health, voice, or notification permissions.',
               ),
               onTap: () async {
                 final messenger = ScaffoldMessenger.of(context);
@@ -107,33 +109,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Card(
+          Card(
             child: Column(
               children: [
                 ListTile(
-                  leading: Icon(Icons.bluetooth_disabled),
-                  title: Text('BLE bottle sync disabled'),
-                  subtitle: Text('No Bluetooth scan or connection is started.'),
-                ),
-                Divider(height: 1),
-                ListTile(
-                  leading: Icon(Icons.health_and_safety_outlined),
-                  title: Text('Health sync disabled'),
-                  subtitle: Text('No HealthKit or Google Fit data is read.'),
-                ),
-                Divider(height: 1),
-                ListTile(
-                  leading: Icon(Icons.mic_off),
-                  title: Text('Voice input disabled'),
-                  subtitle: Text(
-                      'Commands can be typed; microphone capture is not active.'),
-                ),
-                Divider(height: 1),
-                ListTile(
-                  leading: Icon(Icons.notifications_off_outlined),
-                  title: Text('OS notifications disabled'),
+                  leading: const Icon(Icons.bluetooth_disabled),
+                  title: Text(
+                    capabilities.bleSync
+                        ? 'BLE bottle sync enabled'
+                        : 'BLE bottle sync disabled',
+                  ),
                   subtitle:
-                      Text('Reminder definitions are saved locally only.'),
+                      const Text('No Bluetooth scan or connection is started.'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.health_and_safety_outlined),
+                  title: Text(
+                    capabilities.healthSync
+                        ? 'Health sync enabled'
+                        : 'Health sync disabled',
+                  ),
+                  subtitle:
+                      const Text('No HealthKit or Google Fit data is read.'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.mic_off),
+                  title: Text(
+                    capabilities.voiceInput
+                        ? 'Voice input enabled'
+                        : 'Voice input disabled',
+                  ),
+                  subtitle: const Text(
+                    'Commands can be typed; microphone capture is not active.',
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.notifications_off_outlined),
+                  title: Text(
+                    capabilities.osNotifications
+                        ? 'OS notifications enabled'
+                        : 'OS notifications disabled',
+                  ),
+                  subtitle: const Text(
+                      'Reminder definitions are saved locally only.'),
                 ),
               ],
             ),

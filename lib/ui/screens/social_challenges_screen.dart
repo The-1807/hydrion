@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/hydration_contracts.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
-import '../../services/ai_bridge.dart';
 import '../../utils/i18n_resolver.dart';
 
 class SocialChallengesScreen extends StatefulWidget {
@@ -23,7 +23,9 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
   }
 
   Future<HydrationChallenge> _load() {
-    return context.read<AIBridge>().createChallenge(userLevel: 'beginner');
+    return context
+        .read<ChallengeGenerator>()
+        .createChallenge(userLevel: 'beginner');
   }
 
   @override

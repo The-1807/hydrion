@@ -2,13 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrion/domain/hydration_contracts.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/reminder_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/ble_service.dart';
-import 'package:hydrion/services/llm_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -130,7 +130,8 @@ void main() {
       timestamp.subtract(const Duration(hours: 1)),
       timestamp.add(const Duration(hours: 1)),
     );
-    final summary = await services.aiBridge.getHydrationSummary();
+    final summary =
+        await services.hydrationSummaryService.getHydrationSummary();
     final plasticSavedKg = await services.ecoTracker.getTotalPlasticSavedKg();
     final digest = jsonDecode(
       await services.coreBridge.coreGetDigest('weeklyDigest'),
@@ -155,9 +156,9 @@ void main() {
       source: 'test',
     );
 
-    final response = await services.llm.getCoachingAdvice(
+    final response = await services.hydrationCoach.getCoachingAdvice(
       userQuery: 'How am I doing?',
-      digestKey: DigestKey.weeklyDigest,
+      digestKey: HydrationCoachDigestKey.weeklyDigest,
     );
 
     expect(response, contains('local deterministic mode'));
@@ -168,6 +169,8 @@ void main() {
     expect(await services.voice.initialize(), isFalse);
     expect(services.wearables.supportsBleSync, isFalse);
     expect(services.wearables.supportsHealthSync, isFalse);
+    expect(services.capabilityReporter.capabilities.elkaConfigured, isFalse);
+    expect(services.elkaAdapter.isConfigured, isFalse);
     expect(BLEService().isAvailable, isFalse);
   });
 }

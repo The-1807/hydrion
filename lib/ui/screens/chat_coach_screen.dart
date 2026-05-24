@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/hydration_contracts.dart';
 import '../../repositories/hydration_repository.dart';
-import '../../services/llm_service.dart';
 import '../../utils/i18n_resolver.dart';
 
 class ChatCoachScreen extends StatefulWidget {
@@ -38,9 +38,9 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
     });
 
     try {
-      final coach = await context.read<LLMService>().getCoachingAdvice(
+      final coach = await context.read<HydrationCoach>().getCoachingAdvice(
             userQuery: userMessage,
-            digestKey: DigestKey.weeklyDigest,
+            digestKey: HydrationCoachDigestKey.weeklyDigest,
           );
       if (!mounted) {
         return;
@@ -81,6 +81,7 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
     final lifetimeMl = hydrationRepository.totalMl;
     final eventCount = hydrationRepository.eventCount;
     final eventLabel = eventCount == 1 ? 'log' : 'logs';
+    final capabilities = context.watch<AppCapabilityReporter>().capabilities;
 
     return Scaffold(
       appBar: AppBar(
@@ -96,7 +97,7 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
               leading: const Icon(Icons.lock_outline),
               title: const Text('Local fallback coach'),
               subtitle: Text(
-                'Using saved on-device hydration data. Today: $todayMl ml. Lifetime: $lifetimeMl ml across $eventCount $eventLabel. No cloud AI or ELKA is connected.',
+                '${capabilities.modeLabel}. Using saved on-device hydration data. Today: $todayMl ml. Lifetime: $lifetimeMl ml across $eventCount $eventLabel. No cloud AI or ELKA is connected.',
               ),
             ),
           ),

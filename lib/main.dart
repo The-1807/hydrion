@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'adapters/elka/elka_adapter.dart';
+import 'adapters/local/local_hydrion_adapters.dart';
+import 'domain/hydration_contracts.dart';
 import 'repositories/challenge_repository.dart';
 import 'repositories/hydration_repository.dart';
 import 'repositories/reminder_repository.dart';
 import 'repositories/settings_repository.dart';
-import 'services/ai_bridge.dart';
 import 'services/core_bridge.dart';
 import 'services/eco_tracker.dart';
-import 'services/llm_service.dart';
 import 'services/notifications.dart';
 import 'services/policy_service.dart';
 import 'services/voice_client.dart';
@@ -50,11 +51,19 @@ class HydrionApp extends StatelessWidget {
         Provider.value(value: services.permissions),
         ChangeNotifierProvider.value(value: services.i18n),
         Provider.value(value: services.notificationService),
-        Provider.value(value: services.llm),
+        Provider<HydrationSummaryService>.value(
+          value: services.hydrationSummaryService,
+        ),
+        Provider<HydrationCoach>.value(value: services.hydrationCoach),
+        Provider<ChallengeGenerator>.value(value: services.challengeGenerator),
+        Provider<HydrationCommandParser>.value(value: services.commandParser),
+        Provider<AppCapabilityReporter>.value(
+          value: services.capabilityReporter,
+        ),
+        Provider.value(value: services.elkaAdapter),
         Provider.value(value: services.voice),
         Provider.value(value: services.voiceBridge),
         Provider.value(value: services.wearables),
-        Provider.value(value: services.aiBridge),
         Provider.value(value: services.ecoTracker),
       ],
       child: Consumer<I18nResolver>(
@@ -94,11 +103,15 @@ class HydrionServices {
   final Permissions permissions;
   final I18nResolver i18n;
   final NotificationService notificationService;
-  final LLMService llm;
+  final HydrationSummaryService hydrationSummaryService;
+  final HydrationCoach hydrationCoach;
+  final ChallengeGenerator challengeGenerator;
+  final HydrationCommandParser commandParser;
+  final AppCapabilityReporter capabilityReporter;
+  final ElkaAdapterShell elkaAdapter;
   final VoiceService voice;
   final VoiceLLMBridge voiceBridge;
   final WearableService wearables;
-  final AIBridge aiBridge;
   final EcoTracker ecoTracker;
 
   HydrionServices({
@@ -111,11 +124,15 @@ class HydrionServices {
     required this.permissions,
     required this.i18n,
     required this.notificationService,
-    required this.llm,
+    required this.hydrationSummaryService,
+    required this.hydrationCoach,
+    required this.challengeGenerator,
+    required this.commandParser,
+    required this.capabilityReporter,
+    required this.elkaAdapter,
     required this.voice,
     required this.voiceBridge,
     required this.wearables,
-    required this.aiBridge,
     required this.ecoTracker,
   });
 
@@ -163,11 +180,17 @@ class HydrionServices {
       reminderPolicy: policy,
       reminderRepository: reminderRepository,
     );
-    final llm = LLMService(coreBridge: coreBridge);
-    final voiceBridge = VoiceLLMBridge(llmService: llm);
+    final hydrationSummaryService = LocalHydrationSummaryService(
+      hydrationRepository: hydrationRepository,
+    );
+    final hydrationCoach = LocalHydrationCoach(coreBridge: coreBridge);
+    const challengeGenerator = LocalChallengeGenerator();
+    const commandParser = LocalHydrationCommandParser();
+    const capabilityReporter = LocalAppCapabilityReporter();
+    const elkaAdapter = ElkaAdapterShell.unconfigured();
+    final voiceBridge = VoiceLLMBridge(commandParser: commandParser);
     final voice = VoiceService(voiceLLMBridge: voiceBridge);
     final wearables = WearableService(hydrationRepository: hydrationRepository);
-    final aiBridge = AIBridge(hydrationRepository: hydrationRepository);
     final ecoTracker = EcoTracker(coreBridge: coreBridge);
 
     return HydrionServices(
@@ -180,11 +203,15 @@ class HydrionServices {
       permissions: permissions,
       i18n: i18n,
       notificationService: notificationService,
-      llm: llm,
+      hydrationSummaryService: hydrationSummaryService,
+      hydrationCoach: hydrationCoach,
+      challengeGenerator: challengeGenerator,
+      commandParser: commandParser,
+      capabilityReporter: capabilityReporter,
+      elkaAdapter: elkaAdapter,
       voice: voice,
       voiceBridge: voiceBridge,
       wearables: wearables,
-      aiBridge: aiBridge,
       ecoTracker: ecoTracker,
     );
   }
