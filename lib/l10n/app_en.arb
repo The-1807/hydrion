@@ -89,7 +89,9 @@
   "voiceInputDisabledTooltip": "Voice input disabled by app capabilities",
   "standaloneLocalMode": "Standalone local mode",
   "elkaAdapterConfiguredMode": "ELKA adapter configured",
+  "geminiProviderConfiguredMode": "Gemini provider configured",
   "localDataNoProviderRuntime": "Local data, local rules, no provider runtime.",
+  "geminiProviderConfiguredDescription": "Gemini can propose typed actions; Hydrion validates them before anything is trusted.",
   "language": "Language",
   "appLanguageLabel": "App language",
   "languageUpdated": "Language updated",
@@ -117,6 +119,7 @@
   "connected": "Connected",
   "disabled": "Disabled",
   "cloudAiDescription": "No provider SDK or cloud model is connected.",
+  "cloudAiConfiguredDescription": "Gemini is configured as an optional provider; providers cannot mutate app state.",
   "voiceInput": "Voice input",
   "available": "Available",
   "voiceInputDescription": "Typed commands can be parsed; microphone capture is unavailable.",
@@ -249,7 +252,22 @@
   "chatError": "Could not fetch coach reply",
   "localFallbackCoach": "Local fallback coach",
   "coachContextBanner": "{mode}. Using saved on-device hydration data. Today: {todayMl} ml. Lifetime: {lifetimeMl} ml across {eventCount, plural, =1{1 log} other{{eventCount} logs}}. No cloud AI or ELKA is connected.",
+  "providerCoachContextBanner": "{mode}. Using saved on-device hydration data. Today: {todayMl} ml. Lifetime: {lifetimeMl} ml across {eventCount, plural, =1{1 log} other{{eventCount} logs}}. Provider output is validated before Hydrion trusts it.",
   "@coachContextBanner": {
+    "placeholders": {
+      "mode": {},
+      "todayMl": {
+        "type": "int"
+      },
+      "lifetimeMl": {
+        "type": "int"
+      },
+      "eventCount": {
+        "type": "int"
+      }
+    }
+  },
+  "@providerCoachContextBanner": {
     "placeholders": {
       "mode": {},
       "todayMl": {

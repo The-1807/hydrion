@@ -81,7 +81,22 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final mode = capabilities.elkaConfigured
         ? l10n.elkaAdapterConfiguredMode
-        : l10n.standaloneLocalMode;
+        : capabilities.geminiConfigured
+            ? l10n.geminiProviderConfiguredMode
+            : l10n.standaloneLocalMode;
+    final contextBanner = capabilities.cloudAi
+        ? l10n.providerCoachContextBanner(
+            mode: mode,
+            todayMl: todayMl,
+            lifetimeMl: lifetimeMl,
+            eventCount: eventCount,
+          )
+        : l10n.coachContextBanner(
+            mode: mode,
+            todayMl: todayMl,
+            lifetimeMl: lifetimeMl,
+            eventCount: eventCount,
+          );
 
     return Scaffold(
       appBar: AppBar(
@@ -95,15 +110,12 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
             child: ListTile(
               dense: true,
               leading: const Icon(Icons.lock_outline),
-              title: Text(l10n.localFallbackCoach),
-              subtitle: Text(
-                l10n.coachContextBanner(
-                  mode: mode,
-                  todayMl: todayMl,
-                  lifetimeMl: lifetimeMl,
-                  eventCount: eventCount,
-                ),
+              title: Text(
+                capabilities.cloudAi
+                    ? l10n.chatCoachTitle
+                    : l10n.localFallbackCoach,
               ),
+              subtitle: Text(contextBanner),
             ),
           ),
           Expanded(

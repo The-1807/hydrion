@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import '../../domain/hydration_contracts.dart';
 import '../../repositories/hydration_repository.dart';
-import '../../services/core_bridge.dart';
 
 class LocalHydrationSummaryService implements HydrationSummaryService {
   final HydrationRepository _hydrationRepository;
@@ -54,12 +51,17 @@ class LocalChallengeGenerator implements ChallengeGenerator {
   }
 }
 
-class LocalHydrationCoach implements HydrationCoach {
-  final CoreBridge _coreBridge;
+class LocalHydrationCoach implements HydrationCoach, HydrationAiProvider {
+  final HydrationContextProvider _contextProvider;
+  final HydrationAiActionValidator _actionValidator;
   bool _initialized = false;
 
-  LocalHydrationCoach({required CoreBridge coreBridge})
-      : _coreBridge = coreBridge;
+  LocalHydrationCoach({
+    required HydrationContextProvider contextProvider,
+    HydrationAiActionValidator actionValidator =
+        const HydrationAiActionValidator(),
+  })  : _contextProvider = contextProvider,
+        _actionValidator = actionValidator;
 
   Future<void> initialize() async {
     if (_initialized) {
@@ -94,7 +96,11 @@ class LocalHydrationCoach implements HydrationCoach {
     final entryNote = entries >= 3
         ? ' You have $entries local entries today, which makes the trend more reliable.'
         : ' Add entries when you drink so Hydrion can track the day honestly.';
-    return _coreBridge.coreValidateLlmResponse('$advice$entryNote');
+    final action = CoachMessageAction(message: _normalize('$advice$entryNote'));
+    return _actionValidator
+        .validate(action, const CapabilityContext.standalone())
+        .action
+        .message;
   }
 
   @override
@@ -103,21 +109,51 @@ class LocalHydrationCoach implements HydrationCoach {
     required HydrationCoachDigestKey digestKey,
   }) async {
     await initialize();
-    final digest = jsonDecode(await _coreBridge.coreGetDigest(digestKey.name))
-        as Map<String, dynamic>;
-    final totalMl = digest['totalMl'] as int? ?? 0;
-    final lifetimeMl = digest['lifetimeMl'] as int? ?? 0;
-    final eventCount = digest['eventCount'] as int? ?? 0;
+    final context = await _contextProvider.getHydrationContext(
+      digestKey: digestKey,
+    );
+    final actions = await proposeActions(
+      context: context,
+      userQuery: userQuery,
+    );
+    final result = _actionValidator.validate(
+      actions.first,
+      context.capabilities,
+    );
+    return result.action.message;
+  }
+
+  @override
+  Future<List<HydrationAiAction>> proposeActions({
+    required HydrationContext context,
+    required String userQuery,
+  }) async {
+    await initialize();
+    final totalMl = context.dailySummary.consumedMl;
+    final lifetimeMl = context.lifetimeMl;
+    final eventCount = context.eventCount;
     final suffix =
         userQuery.trim().isEmpty ? '' : ' You asked: ${userQuery.trim()}';
     final eventLabel = eventCount == 1 ? 'log' : 'logs';
-    final context = eventCount == 0
+    final contextText = eventCount == 0
         ? 'No saved hydration logs yet.'
         : 'Today: $totalMl ml. Lifetime tracked: $lifetimeMl ml across $eventCount saved $eventLabel.';
 
-    return _coreBridge.coreValidateLlmResponse(
-      'Hydrion is running in local deterministic mode. $context$suffix',
-    );
+    return [
+      CoachMessageAction(
+        message: _normalize(
+          'Hydrion is running in local deterministic mode. $contextText$suffix',
+        ),
+      ),
+    ];
+  }
+
+  String _normalize(String response) {
+    final oneLine = response.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (oneLine.isEmpty) {
+      return 'Hydrion is running locally. Take a steady sip and keep tracking.';
+    }
+    return oneLine.length > 220 ? '${oneLine.substring(0, 217)}...' : oneLine;
   }
 }
 

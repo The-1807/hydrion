@@ -61,18 +61,18 @@ Forbidden:
 The architecture tests in `test/boundary_architecture_test.dart` enforce the UI
 import rules.
 
-## Gemini Plug-In Point
+## Gemini Adapter
 
-Gemini should plug in later as an adapter that implements one or more domain
-contracts, most likely:
+Gemini is available as an optional provider in `lib/adapters/gemini/`. It is
+not required for boot, is unavailable until configured with Dart defines, and is
+wired only from the composition root.
 
-- `HydrationCoach`
-- `ChallengeGenerator`
-- `HydrationCommandParser`
+Gemini implements `HydrationAiProvider` and returns typed
+`HydrationAiAction` proposals. `ProviderBackedHydrationCoach` validates those
+proposals and falls back to local rules when Gemini is absent, unavailable,
+failed, timed out, or unsafe.
 
-The Gemini adapter should live outside `lib/ui/**`, be wired only from the
-composition root, and provide a deterministic failure/fallback path. UI screens
-should continue reading `HydrationCoach`, `ChallengeGenerator`, and
+UI screens continue reading `HydrationCoach`, `ChallengeGenerator`, and
 `HydrationCommandParser` without knowing Gemini exists.
 
 ## ELKA Plug-In Point

@@ -174,8 +174,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get elkaAdapterConfiguredMode => 'ELKA adapter configured';
 
   @override
+  String get geminiProviderConfiguredMode => 'Gemini provider configured';
+
+  @override
   String get localDataNoProviderRuntime =>
       'Local data, local rules, no provider runtime.';
+
+  @override
+  String get geminiProviderConfiguredDescription =>
+      'Gemini can propose typed actions; Hydrion validates them before anything is trusted.';
 
   @override
   String get language => 'Language';
@@ -265,6 +272,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cloudAiDescription =>
       'No provider SDK or cloud model is connected.';
+
+  @override
+  String get cloudAiConfiguredDescription =>
+      'Gemini is configured as an optional provider; providers cannot mutate app state.';
 
   @override
   String get voiceInput => 'Voice input';
@@ -509,6 +520,21 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 log',
     );
     return '$mode. Using saved on-device hydration data. Today: $todayMl ml. Lifetime: $lifetimeMl ml across $_temp0. No cloud AI or ELKA is connected.';
+  }
+
+  @override
+  String providerCoachContextBanner(
+      {required Object mode,
+      required int todayMl,
+      required int lifetimeMl,
+      required int eventCount}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      eventCount,
+      locale: localeName,
+      other: '$eventCount logs',
+      one: '1 log',
+    );
+    return '$mode. Using saved on-device hydration data. Today: $todayMl ml. Lifetime: $lifetimeMl ml across $_temp0. Provider output is validated before Hydrion trusts it.';
   }
 
   @override

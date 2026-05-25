@@ -374,11 +374,23 @@ abstract class AppLocalizations {
   /// **'ELKA adapter configured'**
   String get elkaAdapterConfiguredMode;
 
+  /// No description provided for @geminiProviderConfiguredMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini provider configured'**
+  String get geminiProviderConfiguredMode;
+
   /// No description provided for @localDataNoProviderRuntime.
   ///
   /// In en, this message translates to:
   /// **'Local data, local rules, no provider runtime.'**
   String get localDataNoProviderRuntime;
+
+  /// No description provided for @geminiProviderConfiguredDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini can propose typed actions; Hydrion validates them before anything is trusted.'**
+  String get geminiProviderConfiguredDescription;
 
   /// No description provided for @language.
   ///
@@ -541,6 +553,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No provider SDK or cloud model is connected.'**
   String get cloudAiDescription;
+
+  /// No description provided for @cloudAiConfiguredDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini is configured as an optional provider; providers cannot mutate app state.'**
+  String get cloudAiConfiguredDescription;
 
   /// No description provided for @voiceInput.
   ///
@@ -898,6 +916,16 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{mode}. Using saved on-device hydration data. Today: {todayMl} ml. Lifetime: {lifetimeMl} ml across {eventCount, plural, =1{1 log} other{{eventCount} logs}}. No cloud AI or ELKA is connected.'**
   String coachContextBanner(
+      {required Object mode,
+      required int todayMl,
+      required int lifetimeMl,
+      required int eventCount});
+
+  /// No description provided for @providerCoachContextBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'{mode}. Using saved on-device hydration data. Today: {todayMl} ml. Lifetime: {lifetimeMl} ml across {eventCount, plural, =1{1 log} other{{eventCount} logs}}. Provider output is validated before Hydrion trusts it.'**
+  String providerCoachContextBanner(
       {required Object mode,
       required int todayMl,
       required int lifetimeMl,

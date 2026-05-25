@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'adapters/elka/elka_adapter.dart';
+import 'adapters/gemini/gemini_adapter.dart';
 import 'adapters/local/local_hydrion_adapters.dart';
 import 'domain/hydration_contracts.dart';
 import 'l10n/app_localizations.dart';
@@ -12,6 +13,9 @@ import 'repositories/reminder_repository.dart';
 import 'repositories/settings_repository.dart';
 import 'services/core_bridge.dart';
 import 'services/eco_tracker.dart';
+import 'services/ai_provider_config.dart';
+import 'services/hydration_ai_orchestrator.dart';
+import 'services/hydration_context_builder.dart';
 import 'services/notifications.dart';
 import 'services/policy_service.dart';
 import 'services/voice_client.dart';
@@ -57,6 +61,12 @@ class HydrionApp extends StatelessWidget {
           value: services.hydrationSummaryService,
         ),
         Provider<HydrationCoach>.value(value: services.hydrationCoach),
+        Provider<HydrationContextProvider>.value(
+          value: services.hydrationContextProvider,
+        ),
+        Provider<HydrationAiActionValidator>.value(
+          value: services.aiActionValidator,
+        ),
         Provider<ChallengeGenerator>.value(value: services.challengeGenerator),
         Provider<HydrationCommandParser>.value(value: services.commandParser),
         Provider<AppCapabilityReporter>.value(
@@ -101,6 +111,7 @@ class HydrionApp extends StatelessWidget {
 }
 
 class HydrionServices {
+  final HydrionAiRuntimeConfig aiRuntimeConfig;
   final HydrionLocalStore localStore;
   final HydrationRepository hydrationRepository;
   final UserSettingsRepository settingsRepository;
@@ -111,6 +122,8 @@ class HydrionServices {
   final I18nResolver i18n;
   final NotificationService notificationService;
   final HydrationSummaryService hydrationSummaryService;
+  final HydrationContextProvider hydrationContextProvider;
+  final HydrationAiActionValidator aiActionValidator;
   final HydrationCoach hydrationCoach;
   final ChallengeGenerator challengeGenerator;
   final HydrationCommandParser commandParser;
@@ -122,6 +135,7 @@ class HydrionServices {
   final EcoTracker ecoTracker;
 
   HydrionServices({
+    this.aiRuntimeConfig = const HydrionAiRuntimeConfig(),
     required this.localStore,
     required this.hydrationRepository,
     required this.settingsRepository,
@@ -132,6 +146,8 @@ class HydrionServices {
     required this.i18n,
     required this.notificationService,
     required this.hydrationSummaryService,
+    required this.hydrationContextProvider,
+    required this.aiActionValidator,
     required this.hydrationCoach,
     required this.challengeGenerator,
     required this.commandParser,
@@ -145,10 +161,16 @@ class HydrionServices {
 
   static Future<HydrionServices> local() async {
     final store = await SharedPreferencesHydrionStore.create();
-    return fromStore(store);
+    return fromStore(
+      store,
+      aiRuntimeConfig: HydrionAiRuntimeConfig.fromEnvironment(),
+    );
   }
 
-  static Future<HydrionServices> fromStore(HydrionLocalStore store) async {
+  static Future<HydrionServices> fromStore(
+    HydrionLocalStore store, {
+    HydrionAiRuntimeConfig aiRuntimeConfig = const HydrionAiRuntimeConfig(),
+  }) async {
     final hydrationRepository = await HydrationRepository.load(store);
     final settingsRepository = await UserSettingsRepository.load(store);
     final reminderRepository = await ReminderRepository.load(store);
@@ -159,16 +181,20 @@ class HydrionServices {
       settingsRepository: settingsRepository,
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
+      aiRuntimeConfig: aiRuntimeConfig,
     );
   }
 
-  factory HydrionServices.memory() {
+  factory HydrionServices.memory({
+    HydrionAiRuntimeConfig aiRuntimeConfig = const HydrionAiRuntimeConfig(),
+  }) {
     return _build(
       store: MemoryHydrionStore(),
       hydrationRepository: HydrationRepository.memory(),
       settingsRepository: UserSettingsRepository.memory(),
       reminderRepository: ReminderRepository.memory(),
       challengeRepository: ChallengeRepository.memory(),
+      aiRuntimeConfig: aiRuntimeConfig,
     );
   }
 
@@ -178,6 +204,7 @@ class HydrionServices {
     required UserSettingsRepository settingsRepository,
     required ReminderRepository reminderRepository,
     required ChallengeRepository challengeRepository,
+    required HydrionAiRuntimeConfig aiRuntimeConfig,
   }) {
     final coreBridge = CoreBridge(hydrationRepository: hydrationRepository);
     final permissions = Permissions();
@@ -187,13 +214,38 @@ class HydrionServices {
       reminderPolicy: policy,
       reminderRepository: reminderRepository,
     );
+    const challengeGenerator = LocalChallengeGenerator();
+    const commandParser = LocalHydrationCommandParser();
+    final capabilityReporter = LocalAppCapabilityReporter(
+      capabilities: const AppCapabilities.standalone().copyWith(
+        geminiConfigured: aiRuntimeConfig.shouldUseGemini,
+        cloudAi: aiRuntimeConfig.shouldUseGemini,
+      ),
+    );
     final hydrationSummaryService = LocalHydrationSummaryService(
       hydrationRepository: hydrationRepository,
     );
-    final hydrationCoach = LocalHydrationCoach(coreBridge: coreBridge);
-    const challengeGenerator = LocalChallengeGenerator();
-    const commandParser = LocalHydrationCommandParser();
-    const capabilityReporter = LocalAppCapabilityReporter();
+    final hydrationContextProvider = LocalHydrationContextProvider(
+      hydrationRepository: hydrationRepository,
+      reminderRepository: reminderRepository,
+      challengeRepository: challengeRepository,
+      capabilityReporter: capabilityReporter,
+    );
+    const aiActionValidator = HydrationAiActionValidator();
+    final localHydrationCoach = LocalHydrationCoach(
+      contextProvider: hydrationContextProvider,
+      actionValidator: aiActionValidator,
+    );
+    final geminiProvider = GeminiHydrationAiProvider(
+      config: aiRuntimeConfig.gemini,
+    );
+    final hydrationCoach = ProviderBackedHydrationCoach(
+      selectedProvider: aiRuntimeConfig.provider,
+      primaryProvider: geminiProvider,
+      localRulesProvider: localHydrationCoach,
+      contextProvider: hydrationContextProvider,
+      actionValidator: aiActionValidator,
+    );
     const elkaAdapter = ElkaAdapterShell.unconfigured();
     final voiceBridge = VoiceLLMBridge(commandParser: commandParser);
     final voice = VoiceService(voiceLLMBridge: voiceBridge);
@@ -201,6 +253,7 @@ class HydrionServices {
     final ecoTracker = EcoTracker(coreBridge: coreBridge);
 
     return HydrionServices(
+      aiRuntimeConfig: aiRuntimeConfig,
       localStore: store,
       hydrationRepository: hydrationRepository,
       settingsRepository: settingsRepository,
@@ -211,6 +264,8 @@ class HydrionServices {
       i18n: i18n,
       notificationService: notificationService,
       hydrationSummaryService: hydrationSummaryService,
+      hydrationContextProvider: hydrationContextProvider,
+      aiActionValidator: aiActionValidator,
       hydrationCoach: hydrationCoach,
       challengeGenerator: challengeGenerator,
       commandParser: commandParser,

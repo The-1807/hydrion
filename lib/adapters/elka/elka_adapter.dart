@@ -3,6 +3,7 @@ import '../../domain/hydration_contracts.dart';
 class ElkaAdapterShell
     implements
         HydrationCoach,
+        HydrationAiProvider,
         ChallengeGenerator,
         HydrationCommandParser,
         AppCapabilityReporter {
@@ -51,6 +52,14 @@ class ElkaAdapterShell
     required double temperatureC,
   }) {
     return _unconfigured<String>();
+  }
+
+  @override
+  Future<List<HydrationAiAction>> proposeActions({
+    required HydrationContext context,
+    required String userQuery,
+  }) {
+    return _unconfigured<List<HydrationAiAction>>();
   }
 
   @override

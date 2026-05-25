@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/hydration_contracts.dart';
@@ -133,16 +131,15 @@ void main() {
     final summary =
         await services.hydrationSummaryService.getHydrationSummary();
     final plasticSavedKg = await services.ecoTracker.getTotalPlasticSavedKg();
-    final digest = jsonDecode(
-      await services.coreBridge.coreGetDigest('weeklyDigest'),
-    ) as Map<String, dynamic>;
+    final context = await services.hydrationContextProvider
+        .getHydrationContext(now: timestamp);
 
     expect(logs.single.volumeMl, 500);
     expect(summary.consumedMl, 500);
     expect(summary.entryCount, 1);
     expect(plasticSavedKg, closeTo(0.01, 0.0001));
-    expect(digest['totalMl'], 500);
-    expect(digest['eventCount'], 1);
+    expect(context.dailySummary.consumedMl, 500);
+    expect(context.eventCount, 1);
   });
 
   test('coach and platform services report honest local fallback status',

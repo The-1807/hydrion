@@ -108,42 +108,61 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              key: const Key('volume-picker'),
-                              initialValue: _selectedVolumeMl,
-                              decoration: InputDecoration(
-                                labelText: l10n.amountLabel,
-                                border: const OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              items: const [150, 250, 350, 500, 750, 1000]
-                                  .map(
-                                    (amount) => DropdownMenuItem<int>(
-                                      value: amount,
-                                      child: Text('$amount ml'),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() => _selectedVolumeMl = value);
-                                }
-                              },
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final stackControls = constraints.maxWidth < 380;
+                          final picker = DropdownButtonFormField<int>(
+                            key: const Key('volume-picker'),
+                            initialValue: _selectedVolumeMl,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: l10n.amountLabel,
+                              border: const OutlineInputBorder(),
+                              isDense: true,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilledButton.icon(
+                            items: const [150, 250, 350, 500, 750, 1000]
+                                .map(
+                                  (amount) => DropdownMenuItem<int>(
+                                    value: amount,
+                                    child: Text('$amount ml'),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => _selectedVolumeMl = value);
+                              }
+                            },
+                          );
+                          final button = FilledButton.icon(
                             key: const Key('log-water-button'),
                             onPressed: () => _logWater(_selectedVolumeMl),
                             icon: const Icon(Icons.local_drink),
                             label: Text(
                               l10n.logVolume(volumeMl: _selectedVolumeMl),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          );
+
+                          if (stackControls) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                picker,
+                                const SizedBox(height: 8),
+                                button,
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              Expanded(child: picker),
+                              const SizedBox(width: 8),
+                              button,
+                            ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 8),
                       Text(

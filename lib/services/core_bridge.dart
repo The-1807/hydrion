@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import '../repositories/hydration_repository.dart';
 
 class CoreBridge {
@@ -24,16 +22,6 @@ class CoreBridge {
     final totalMl = _hydrationRepository.totalMl;
     final avoidedHalfLiterBottles = totalMl / 500.0;
     return avoidedHalfLiterBottles * 0.01;
-  }
-
-  Future<String> coreGetDigest(String digestKey) async {
-    final todayMl = _hydrationRepository.totalForDay(DateTime.now());
-    return jsonEncode({
-      'digestKey': digestKey,
-      'totalMl': todayMl,
-      'lifetimeMl': _hydrationRepository.totalMl,
-      'eventCount': _hydrationRepository.eventCount,
-    });
   }
 
   Future<String> coreValidateLlmResponse(String response) async {

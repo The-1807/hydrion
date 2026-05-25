@@ -211,16 +211,16 @@ class _SettingsHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    capabilities.elkaConfigured
-                        ? l10n.elkaAdapterConfiguredMode
-                        : l10n.standaloneLocalMode,
+                    _modeLabel(capabilities, l10n),
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           color: colorScheme.primary,
                         ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    l10n.localDataNoProviderRuntime,
+                    capabilities.geminiConfigured
+                        ? l10n.geminiProviderConfiguredDescription
+                        : l10n.localDataNoProviderRuntime,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -284,7 +284,9 @@ class _CapabilityStatusCard extends StatelessWidget {
             enabled: capabilities.cloudAi,
             enabledLabel: l10n.connected,
             disabledLabel: l10n.disabled,
-            description: l10n.cloudAiDescription,
+            description: capabilities.cloudAi
+                ? l10n.cloudAiConfiguredDescription
+                : l10n.cloudAiDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(
@@ -344,6 +346,16 @@ class _CapabilityStatusCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _modeLabel(AppCapabilities capabilities, AppLocalizations l10n) {
+  if (capabilities.elkaConfigured) {
+    return l10n.elkaAdapterConfiguredMode;
+  }
+  if (capabilities.geminiConfigured) {
+    return l10n.geminiProviderConfiguredMode;
+  }
+  return l10n.standaloneLocalMode;
 }
 
 class _CapabilityTile extends StatelessWidget {

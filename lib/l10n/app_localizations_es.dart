@@ -177,8 +177,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get elkaAdapterConfiguredMode => 'Adaptador ELKA configurado';
 
   @override
+  String get geminiProviderConfiguredMode => 'Proveedor Gemini configurado';
+
+  @override
   String get localDataNoProviderRuntime =>
       'Datos locales, reglas locales, sin runtime de proveedor.';
+
+  @override
+  String get geminiProviderConfiguredDescription =>
+      'Gemini puede proponer acciones tipadas; Hydrion las valida antes de confiar en ellas.';
 
   @override
   String get language => 'Idioma';
@@ -269,6 +276,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get cloudAiDescription =>
       'No hay SDK de proveedor ni modelo en la nube conectado.';
+
+  @override
+  String get cloudAiConfiguredDescription =>
+      'Gemini está configurado como proveedor opcional; los proveedores no pueden modificar el estado de la app.';
 
   @override
   String get voiceInput => 'Entrada de voz';
@@ -516,6 +527,21 @@ class AppLocalizationsEs extends AppLocalizations {
       one: '1 registro',
     );
     return '$mode. Usando datos de hidratación guardados en el dispositivo. Hoy: $todayMl ml. Total: $lifetimeMl ml en $_temp0. No hay IA en la nube ni ELKA conectado.';
+  }
+
+  @override
+  String providerCoachContextBanner(
+      {required Object mode,
+      required int todayMl,
+      required int lifetimeMl,
+      required int eventCount}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      eventCount,
+      locale: localeName,
+      other: '$eventCount registros',
+      one: '1 registro',
+    );
+    return '$mode. Usando datos de hidratación guardados en el dispositivo. Hoy: $todayMl ml. Total: $lifetimeMl ml en $_temp0. La salida del proveedor se valida antes de que Hydrion confíe en ella.';
   }
 
   @override

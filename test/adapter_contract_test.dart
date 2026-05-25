@@ -4,7 +4,6 @@ import 'package:hydrion/adapters/local/local_hydrion_adapters.dart';
 import 'package:hydrion/domain/hydration_contracts.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
-import 'package:hydrion/services/core_bridge.dart';
 
 void main() {
   test('local summary adapter derives today summary from hydration logs',
@@ -28,22 +27,24 @@ void main() {
     expect(summary.hydrationPercent, closeTo(34.09, 0.1));
   });
 
-  test('local coach adapter uses persisted hydration digest', () async {
-    final repository = HydrationRepository.memory();
-    await repository.addLog(
+  test('local coach adapter uses typed persisted hydration context', () async {
+    final services = HydrionServices.memory();
+    await services.hydrationRepository.addLog(
       volumeMl: 600,
       timestamp: DateTime.now(),
       source: 'test',
     );
-    final coach = LocalHydrationCoach(
-      coreBridge: CoreBridge(hydrationRepository: repository),
-    );
 
-    final response = await coach.getCoachingAdvice(
+    final context =
+        await services.hydrationContextProvider.getHydrationContext();
+    final response = await services.hydrationCoach.getCoachingAdvice(
       userQuery: 'How am I doing?',
       digestKey: HydrationCoachDigestKey.weeklyDigest,
     );
 
+    expect(context.dailySummary.consumedMl, 600);
+    expect(context.lifetimeMl, 600);
+    expect(context.eventCount, 1);
     expect(response, contains('local deterministic mode'));
     expect(response, contains('Today: 600 ml'));
     expect(response, contains('across 1 saved log'));
@@ -79,7 +80,9 @@ void main() {
 
     expect(capabilities.localPersistence, isTrue);
     expect(capabilities.elkaConfigured, isFalse);
+    expect(capabilities.geminiConfigured, isFalse);
     expect(capabilities.cloudAi, isFalse);
+    expect(capabilities.cloudSync, isFalse);
     expect(capabilities.voiceInput, isFalse);
     expect(capabilities.bleSync, isFalse);
     expect(capabilities.healthSync, isFalse);
@@ -103,6 +106,76 @@ void main() {
       ),
       throwsA(isA<UnsupportedError>()),
     );
+
+    await expectLater(
+      elka.proposeActions(
+        context: _standaloneContext(),
+        userQuery: 'hello',
+      ),
+      throwsA(isA<UnsupportedError>()),
+    );
+  });
+
+  test('fake provider can propose typed actions through domain contracts',
+      () async {
+    const provider = _FakeAiProvider([
+      CoachMessageAction(message: 'Typed fake provider response'),
+      SuggestHydrationLogAction(
+        message: 'Suggest 250 ml',
+        volumeMl: 250,
+      ),
+    ]);
+
+    final actions = await provider.proposeActions(
+      context: _standaloneContext(),
+      userQuery: 'what next?',
+    );
+
+    expect(actions.first.type, HydrationAiActionType.coachMessage);
+    expect(actions.last.type, HydrationAiActionType.suggestHydrationLog);
+  });
+
+  test('unsupported provider actions are blocked by capability rules',
+      () async {
+    const validator = HydrationAiActionValidator();
+    final context = _standaloneContext();
+    const provider = _FakeAiProvider([
+      SuggestReminderAction(
+        message: 'OS notifications are scheduled and will fire.',
+        delay: Duration(minutes: 20),
+        claimsOsNotificationScheduled: true,
+      ),
+      CoachMessageAction(
+        message: 'Gemini is connected and voice input is enabled.',
+      ),
+    ]);
+
+    final actions = await provider.proposeActions(
+      context: context,
+      userQuery: 'schedule this',
+    );
+    final reminderResult = validator.validate(
+      actions.first,
+      context.capabilities,
+    );
+    final claimResult = validator.validate(
+      actions.last,
+      context.capabilities,
+    );
+
+    expect(reminderResult.isAllowed, isFalse);
+    expect(reminderResult.action.type,
+        HydrationAiActionType.unsupportedCapabilityNotice);
+    expect(
+      reminderResult.blockedCapabilities,
+      contains(HydrionCapability.osNotifications),
+    );
+    expect(claimResult.isAllowed, isFalse);
+    expect(claimResult.blockedCapabilities, contains(HydrionCapability.gemini));
+    expect(
+      claimResult.blockedCapabilities,
+      contains(HydrionCapability.voiceInput),
+    );
   });
 
   testWidgets('app shell swaps to fake domain adapters without UI changes',
@@ -119,6 +192,8 @@ void main() {
       i18n: base.i18n,
       notificationService: base.notificationService,
       hydrationSummaryService: const _FakeSummaryService(),
+      hydrationContextProvider: base.hydrationContextProvider,
+      aiActionValidator: base.aiActionValidator,
       hydrationCoach: const _FakeCoach(),
       challengeGenerator: const _FakeChallengeGenerator(),
       commandParser: const _FakeCommandParser(),
@@ -139,6 +214,22 @@ void main() {
   });
 }
 
+HydrationContext _standaloneContext() {
+  return HydrationContext(
+    dailySummary: DailyHydrationSummary(
+      date: DateTime(2026, 5, 25),
+      consumedMl: 0,
+      targetMl: 2200,
+      entryCount: 0,
+    ),
+    lifetimeMl: 0,
+    eventCount: 0,
+    reminder: const ReminderContext.empty(),
+    challenge: const ChallengeContext.none(),
+    capabilities: const CapabilityContext.standalone(),
+  );
+}
+
 class _FakeSummaryService implements HydrationSummaryService {
   const _FakeSummaryService();
 
@@ -153,7 +244,7 @@ class _FakeSummaryService implements HydrationSummaryService {
   }
 }
 
-class _FakeCoach implements HydrationCoach {
+class _FakeCoach implements HydrationCoach, HydrationAiProvider {
   const _FakeCoach();
 
   @override
@@ -172,6 +263,30 @@ class _FakeCoach implements HydrationCoach {
     required double temperatureC,
   }) async {
     return 'Fake coach adapter response';
+  }
+
+  @override
+  Future<List<HydrationAiAction>> proposeActions({
+    required HydrationContext context,
+    required String userQuery,
+  }) async {
+    return const [
+      CoachMessageAction(message: 'Fake coach adapter response'),
+    ];
+  }
+}
+
+class _FakeAiProvider implements HydrationAiProvider {
+  final List<HydrationAiAction> actions;
+
+  const _FakeAiProvider(this.actions);
+
+  @override
+  Future<List<HydrationAiAction>> proposeActions({
+    required HydrationContext context,
+    required String userQuery,
+  }) async {
+    return actions;
   }
 }
 
