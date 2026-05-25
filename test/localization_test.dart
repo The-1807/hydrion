@@ -44,6 +44,7 @@ void main() {
     expect(find.text('Hydrion'), findsOneWidget);
     expect(find.text('Registrar hidratación'), findsOneWidget);
     expect(find.text('Registrar 250 ml'), findsOneWidget);
+    expect(find.textContaining('Empieza con 300'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
@@ -63,6 +64,7 @@ void main() {
     expect(find.text('Hydrion'), findsOneWidget);
     expect(find.text('Enregistrer hydratation'), findsOneWidget);
     expect(find.text('Enregistrer 250 ml'), findsOneWidget);
+    expect(find.textContaining('Commencez avec 300'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
@@ -78,12 +80,15 @@ void main() {
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
     expect(find.text('Log hydration'), findsOneWidget);
+    expect(find.textContaining('Start with 300'), findsOneWidget);
 
     await services.i18n.setLocale(const Locale('es'));
     await tester.pumpAndSettle();
 
     expect(find.text('Registrar hidratación'), findsOneWidget);
     expect(find.text('Log hydration'), findsNothing);
+    expect(find.textContaining('Empieza con 300'), findsOneWidget);
+    expect(find.textContaining('Start with 300'), findsNothing);
   });
 
   testWidgets('generated localization lookup works in widget tests',

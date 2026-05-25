@@ -102,6 +102,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stayHydratedFallback => 'Stay hydrated.';
 
   @override
+  String get homeAdviceStrong =>
+      'You are on a strong hydration pace. Keep taking small sips through the day.';
+
+  @override
+  String get homeAdviceClose =>
+      'You are close to target. Add a glass of water in the next hour to stay steady.';
+
+  @override
+  String get homeAdviceStart =>
+      'Start with 300 to 500 ml now, then check in again after your next drink.';
+
+  @override
+  String get homeAdviceHeat => 'Warm conditions raise your fluid needs.';
+
+  @override
+  String homeAdviceReliableEntries({required int count}) {
+    return 'You have $count local entries today, which makes the trend more reliable.';
+  }
+
+  @override
+  String get homeAdviceAddEntries =>
+      'Add entries when you drink so Hydrion can track the day honestly.';
+
+  @override
   String get failedToLoadAdvice => 'Failed to load advice';
 
   @override

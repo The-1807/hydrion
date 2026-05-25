@@ -235,6 +235,17 @@ class HydrionServices {
     final localHydrationCoach = LocalHydrationCoach(
       contextProvider: hydrationContextProvider,
       actionValidator: aiActionValidator,
+      adviceBuilder: ({
+        required double hydrationPercent,
+        required int entryCount,
+        required double temperatureC,
+      }) =>
+          _localizedHomeAdvice(
+        l10n: lookupAppLocalizations(i18n.locale),
+        hydrationPercent: hydrationPercent,
+        entryCount: entryCount,
+        temperatureC: temperatureC,
+      ),
     );
     final geminiProvider = GeminiHydrationAiProvider(
       config: aiRuntimeConfig.gemini,
@@ -284,3 +295,22 @@ final ThemeData _theme = ThemeData(
   colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E88E5)),
   visualDensity: VisualDensity.adaptivePlatformDensity,
 );
+
+String _localizedHomeAdvice({
+  required AppLocalizations l10n,
+  required double hydrationPercent,
+  required int entryCount,
+  required double temperatureC,
+}) {
+  final hydration = hydrationPercent.clamp(0.0, 100.0);
+  final advice = switch (hydration) {
+    >= 85.0 => l10n.homeAdviceStrong,
+    >= 65.0 => l10n.homeAdviceClose,
+    _ => l10n.homeAdviceStart,
+  };
+  final heat = temperatureC >= 28 ? ' ${l10n.homeAdviceHeat}' : '';
+  final entryNote = entryCount >= 3
+      ? ' ${l10n.homeAdviceReliableEntries(count: entryCount)}'
+      : ' ${l10n.homeAdviceAddEntries}';
+  return '$advice$heat$entryNote';
+}

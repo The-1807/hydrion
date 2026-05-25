@@ -53,6 +53,19 @@
   },
   "hydrationAdviceCardSemantics": "Hydration advice card",
   "stayHydratedFallback": "Stay hydrated.",
+  "homeAdviceStrong": "You are on a strong hydration pace. Keep taking small sips through the day.",
+  "homeAdviceClose": "You are close to target. Add a glass of water in the next hour to stay steady.",
+  "homeAdviceStart": "Start with 300 to 500 ml now, then check in again after your next drink.",
+  "homeAdviceHeat": "Warm conditions raise your fluid needs.",
+  "homeAdviceReliableEntries": "You have {count} local entries today, which makes the trend more reliable.",
+  "@homeAdviceReliableEntries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeAdviceAddEntries": "Add entries when you drink so Hydrion can track the day honestly.",
   "failedToLoadAdvice": "Failed to load advice",
   "retry": "Retry",
   "osNotificationsAvailableSentence": "OS notifications are available.",

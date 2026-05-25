@@ -1,6 +1,12 @@
 import '../../domain/hydration_contracts.dart';
 import '../../repositories/hydration_repository.dart';
 
+typedef LocalHydrationAdviceBuilder = String Function({
+  required double hydrationPercent,
+  required int entryCount,
+  required double temperatureC,
+});
+
 class LocalHydrationSummaryService implements HydrationSummaryService {
   final HydrationRepository _hydrationRepository;
 
@@ -54,14 +60,17 @@ class LocalChallengeGenerator implements ChallengeGenerator {
 class LocalHydrationCoach implements HydrationCoach, HydrationAiProvider {
   final HydrationContextProvider _contextProvider;
   final HydrationAiActionValidator _actionValidator;
+  final LocalHydrationAdviceBuilder? _adviceBuilder;
   bool _initialized = false;
 
   LocalHydrationCoach({
     required HydrationContextProvider contextProvider,
     HydrationAiActionValidator actionValidator =
         const HydrationAiActionValidator(),
+    LocalHydrationAdviceBuilder? adviceBuilder,
   })  : _contextProvider = contextProvider,
-        _actionValidator = actionValidator;
+        _actionValidator = actionValidator,
+        _adviceBuilder = adviceBuilder;
 
   Future<void> initialize() async {
     if (_initialized) {
@@ -81,6 +90,19 @@ class LocalHydrationCoach implements HydrationCoach, HydrationAiProvider {
 
     final hydration = hydrationPercent.clamp(0.0, 100.0);
     final entries = (entryCount ?? activityMinutes ?? 0).clamp(0, 24);
+    final localizedAdvice = _adviceBuilder?.call(
+      hydrationPercent: hydration,
+      entryCount: entries,
+      temperatureC: temperatureC,
+    );
+    if (localizedAdvice != null) {
+      final action = CoachMessageAction(message: _normalize(localizedAdvice));
+      return _actionValidator
+          .validate(action, const CapabilityContext.standalone())
+          .action
+          .message;
+    }
+
     final heat =
         temperatureC >= 28 ? ' Warm conditions raise your fluid needs.' : '';
 

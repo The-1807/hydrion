@@ -269,6 +269,42 @@ abstract class AppLocalizations {
   /// **'Stay hydrated.'**
   String get stayHydratedFallback;
 
+  /// No description provided for @homeAdviceStrong.
+  ///
+  /// In en, this message translates to:
+  /// **'You are on a strong hydration pace. Keep taking small sips through the day.'**
+  String get homeAdviceStrong;
+
+  /// No description provided for @homeAdviceClose.
+  ///
+  /// In en, this message translates to:
+  /// **'You are close to target. Add a glass of water in the next hour to stay steady.'**
+  String get homeAdviceClose;
+
+  /// No description provided for @homeAdviceStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with 300 to 500 ml now, then check in again after your next drink.'**
+  String get homeAdviceStart;
+
+  /// No description provided for @homeAdviceHeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm conditions raise your fluid needs.'**
+  String get homeAdviceHeat;
+
+  /// No description provided for @homeAdviceReliableEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {count} local entries today, which makes the trend more reliable.'**
+  String homeAdviceReliableEntries({required int count});
+
+  /// No description provided for @homeAdviceAddEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'Add entries when you drink so Hydrion can track the day honestly.'**
+  String get homeAdviceAddEntries;
+
   /// No description provided for @failedToLoadAdvice.
   ///
   /// In en, this message translates to:

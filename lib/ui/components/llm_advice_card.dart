@@ -24,11 +24,17 @@ class LLMAdviceCard extends StatefulWidget {
 class _LLMAdviceCardState extends State<LLMAdviceCard> {
   Future<String>? _future;
   String? _cached;
+  Locale? _locale;
 
   @override
-  void initState() {
-    super.initState();
-    _future = _fetch();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Localizations.localeOf(context);
+    if (_locale != locale) {
+      _locale = locale;
+      _cached = null;
+      _future = _fetch();
+    }
   }
 
   @override
@@ -37,6 +43,7 @@ class _LLMAdviceCardState extends State<LLMAdviceCard> {
     if (oldWidget.hydrationPercent != widget.hydrationPercent ||
         oldWidget.entryCount != widget.entryCount ||
         oldWidget.temperatureC != widget.temperatureC) {
+      _cached = null;
       _future = _fetch();
     }
   }
