@@ -14,10 +14,12 @@ import 'repositories/settings_repository.dart';
 import 'services/core_bridge.dart';
 import 'services/eco_tracker.dart';
 import 'services/ai_provider_config.dart';
+import 'services/hydration_ai_action_executor.dart';
 import 'services/hydration_ai_orchestrator.dart';
 import 'services/hydration_context_builder.dart';
 import 'services/notifications.dart';
 import 'services/policy_service.dart';
+import 'services/provider_health.dart';
 import 'services/voice_client.dart';
 import 'services/voice_llm_bridge.dart';
 import 'services/wearable_service.dart';
@@ -72,6 +74,12 @@ class HydrionApp extends StatelessWidget {
         Provider<AppCapabilityReporter>.value(
           value: services.capabilityReporter,
         ),
+        Provider<ProviderHealthReporter>.value(
+          value: services.providerHealthReporter,
+        ),
+        Provider<HydrationAiActionExecutionService>.value(
+          value: services.aiActionExecutor,
+        ),
         Provider.value(value: services.elkaAdapter),
         Provider.value(value: services.voice),
         Provider.value(value: services.voiceBridge),
@@ -125,9 +133,11 @@ class HydrionServices {
   final HydrationContextProvider hydrationContextProvider;
   final HydrationAiActionValidator aiActionValidator;
   final HydrationCoach hydrationCoach;
+  final HydrationAiActionExecutionService aiActionExecutor;
   final ChallengeGenerator challengeGenerator;
   final HydrationCommandParser commandParser;
   final AppCapabilityReporter capabilityReporter;
+  final ProviderHealthReporter providerHealthReporter;
   final ElkaAdapterShell elkaAdapter;
   final VoiceService voice;
   final VoiceLLMBridge voiceBridge;
@@ -149,9 +159,11 @@ class HydrionServices {
     required this.hydrationContextProvider,
     required this.aiActionValidator,
     required this.hydrationCoach,
+    required this.aiActionExecutor,
     required this.challengeGenerator,
     required this.commandParser,
     required this.capabilityReporter,
+    required this.providerHealthReporter,
     required this.elkaAdapter,
     required this.voice,
     required this.voiceBridge,
@@ -214,6 +226,9 @@ class HydrionServices {
       reminderPolicy: policy,
       reminderRepository: reminderRepository,
     );
+    final providerHealthReporter = LocalProviderHealthReporter.fromConfig(
+      aiRuntimeConfig,
+    );
     const challengeGenerator = LocalChallengeGenerator();
     const commandParser = LocalHydrationCommandParser();
     final capabilityReporter = LocalAppCapabilityReporter(
@@ -256,6 +271,14 @@ class HydrionServices {
       localRulesProvider: localHydrationCoach,
       contextProvider: hydrationContextProvider,
       actionValidator: aiActionValidator,
+      providerHealth: providerHealthReporter,
+    );
+    final aiActionExecutor = LocalHydrationAiActionExecutor(
+      hydrationRepository: hydrationRepository,
+      reminderRepository: reminderRepository,
+      challengeRepository: challengeRepository,
+      capabilityReporter: capabilityReporter,
+      validator: aiActionValidator,
     );
     const elkaAdapter = ElkaAdapterShell.unconfigured();
     final voiceBridge = VoiceLLMBridge(commandParser: commandParser);
@@ -278,9 +301,11 @@ class HydrionServices {
       hydrationContextProvider: hydrationContextProvider,
       aiActionValidator: aiActionValidator,
       hydrationCoach: hydrationCoach,
+      aiActionExecutor: aiActionExecutor,
       challengeGenerator: challengeGenerator,
       commandParser: commandParser,
       capabilityReporter: capabilityReporter,
+      providerHealthReporter: providerHealthReporter,
       elkaAdapter: elkaAdapter,
       voice: voice,
       voiceBridge: voiceBridge,

@@ -22,6 +22,8 @@ void main() {
       RegExp(r'''import\s+['"].*packs/'''),
       RegExp(r'''import\s+['"].*services/(ai_bridge|llm_service)\.dart'''),
       RegExp(r'''import\s+['"].*services/hydration_context_builder\.dart'''),
+      RegExp(r'''import\s+['"].*services/hydration_ai_action_executor\.dart'''),
+      RegExp(r'''import\s+['"].*services/provider_health\.dart'''),
       RegExp(r'''import\s+['"].*dart_openai'''),
       RegExp(r'''import\s+['"].*google_generative_ai'''),
       RegExp(r'''import\s+['"].*openai'''),
@@ -65,6 +67,8 @@ void main() {
       RegExp(r'\bSuggestChallengeAction\b'),
       RegExp(r'\bUnsupportedCapabilityNoticeAction\b'),
       RegExp(r'\bHydrationAiActionValidator\b'),
+      RegExp(r'\bHydrationAiActionExecutionService\b'),
+      RegExp(r'\bLocalHydrationAiActionExecutor\b'),
       RegExp(r'\bproposeActions\s*\('),
     ];
     final violations = <String>[];

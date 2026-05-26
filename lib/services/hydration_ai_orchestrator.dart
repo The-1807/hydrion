@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../domain/hydration_contracts.dart';
 import 'ai_provider_config.dart';
+import 'provider_health.dart';
 
 class ProviderBackedHydrationCoach
     implements HydrationCoach, HydrationAiProvider {
@@ -10,6 +11,7 @@ class ProviderBackedHydrationCoach
   final HydrationAiProvider localRulesProvider;
   final HydrationContextProvider contextProvider;
   final HydrationAiActionValidator actionValidator;
+  final LocalProviderHealthReporter? providerHealth;
   final Duration providerTimeout;
 
   const ProviderBackedHydrationCoach({
@@ -18,6 +20,7 @@ class ProviderBackedHydrationCoach
     required this.localRulesProvider,
     required this.contextProvider,
     this.actionValidator = const HydrationAiActionValidator(),
+    this.providerHealth,
     this.providerTimeout = const Duration(seconds: 14),
   });
 
@@ -123,8 +126,21 @@ class ProviderBackedHydrationCoach
             userQuery: userQuery,
           )
           .timeout(providerTimeout);
-      return _allowedActions(actions, context.capabilities);
+      final allowed = _allowedActions(actions, context.capabilities);
+      if (allowed.isEmpty && actions.isNotEmpty) {
+        providerHealth?.recordProviderFallback(
+          failedProvider: _providerKind(provider),
+          reason: 'Provider returned no safe actions after validation.',
+        );
+      } else if (allowed.isNotEmpty) {
+        providerHealth?.recordProviderSuccess(_providerKind(provider));
+      }
+      return allowed;
     } catch (_) {
+      providerHealth?.recordProviderFallback(
+        failedProvider: _providerKind(provider),
+        reason: 'Provider failed or timed out; local_rules is active.',
+      );
       if (fallbackToEmpty) {
         return const <HydrationAiAction>[];
       }
@@ -166,5 +182,15 @@ class ProviderBackedHydrationCoach
       userQuery: userQuery,
       digestKey: digestKey,
     );
+  }
+
+  HydrionAiProviderKind _providerKind(HydrationAiProvider provider) {
+    if (identical(provider, localRulesProvider)) {
+      return HydrionAiProviderKind.localRules;
+    }
+    if (selectedProvider == HydrionAiProviderSelection.gemini) {
+      return HydrionAiProviderKind.gemini;
+    }
+    return HydrionAiProviderKind.localRules;
   }
 }

@@ -68,6 +68,11 @@ such as `SuggestHydrationLogAction`, `SuggestReminderAction`, and
 executable after validation returns an allowed result and
 `canExecute(userConfirmed: true)` passes.
 
+In Phase 4.1, `HydrationAiActionExecutionService` is the central execution
+contract. The local executor validates the action, checks current capability
+state, rejects unconfirmed state-changing actions, and writes only through
+Hydrion repositories. Provider adapters still never mutate app state directly.
+
 ## Capability Validation
 
 `HydrationAiActionValidator` checks every action before Hydrion trusts it.
@@ -143,6 +148,11 @@ flutter run \
   --dart-define=HYDRION_AI_PROVIDER=gemini \
   --dart-define=HYDRION_GEMINI_API_KEY=...
 ```
+
+This Dart-define key path is local development only. Production web/mobile
+builds must not ship a shared Gemini key inside client artifacts. Future
+production options are BYOK, a secure backend proxy, or another provider
+strategy that keeps shared secrets out of the client.
 
 The Gemini adapter lives in `lib/adapters/gemini/` and is wired only from the
 composition root. It consumes `HydrationContext`, serializes that typed context

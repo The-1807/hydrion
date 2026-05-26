@@ -12,6 +12,17 @@
 .swiftpm/
 migrate_working_dir/
 
+# Local secrets and provider credentials
+.env
+.env.*
+!.env.example
+*.local.env
+*.secrets.json
+secrets/
+.secrets/
+gitleaks-report.*
+secret-scan-report.*
+
 # IntelliJ related
 *.iml
 *.ipr

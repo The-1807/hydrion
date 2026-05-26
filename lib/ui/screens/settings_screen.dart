@@ -29,6 +29,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l10n = AppLocalizations.of(context);
     final permissions = context.read<Permissions>();
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
+    final providerHealth =
+        context.watch<ProviderHealthReporter>().providerHealth;
 
     return Scaffold(
       appBar: AppBar(
@@ -157,6 +159,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
+          _ProviderHealthCard(health: providerHealth),
+          const SizedBox(height: 12),
           _CapabilityStatusCard(capabilities: capabilities),
         ],
       ),
@@ -228,6 +232,144 @@ class _SettingsHeader extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ProviderHealthCard extends StatelessWidget {
+  final ProviderHealthSnapshot health;
+
+  const _ProviderHealthCard({required this.health});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Card(
+      key: const Key('provider-health-card'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.shield_outlined),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.providerHealthTitle,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _HealthLine(
+              label: l10n.selectedProvider,
+              value: _providerLabel(health.selectedProvider, l10n),
+            ),
+            _HealthLine(
+              label: l10n.activeProvider,
+              value: _providerLabel(health.activeProvider, l10n),
+            ),
+            _HealthLine(
+              label: l10n.localRulesProvider,
+              value: health.localRulesAvailable
+                  ? l10n.providerAvailable
+                  : l10n.providerUnavailable,
+            ),
+            _HealthLine(
+              label: l10n.geminiProvider,
+              value: health.geminiConfigured
+                  ? l10n.providerConfigured
+                  : l10n.providerUnconfigured,
+            ),
+            _HealthLine(
+              label: l10n.elkaProvider,
+              value: health.elkaAvailable
+                  ? l10n.providerAvailable
+                  : l10n.providerUnavailable,
+            ),
+            _HealthLine(
+              label: l10n.providerFallbackReason,
+              value: health.fallbackReason ?? l10n.providerNoFallback,
+            ),
+            _HealthLine(
+              label: l10n.providerLastFailure,
+              value: health.lastProviderFailure ?? l10n.providerNoFailure,
+            ),
+            const Divider(height: 24),
+            Text(
+              l10n.providerPrivacyTitle,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              health.privacyDisclosureRequired
+                  ? l10n.providerPrivacyGeminiDisclosure
+                  : l10n.providerPrivacyLocalOnly,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (health.privacyDisclosureRequired) ...[
+              const SizedBox(height: 6),
+              Text(
+                l10n.providerConsentRequired,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _providerLabel(
+    HydrionAiProviderKind provider,
+    AppLocalizations l10n,
+  ) {
+    return switch (provider) {
+      HydrionAiProviderKind.localRules => l10n.localRulesProvider,
+      HydrionAiProviderKind.gemini => l10n.geminiProvider,
+      HydrionAiProviderKind.elka => l10n.elkaProvider,
+    };
+  }
+}
+
+class _HealthLine extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _HealthLine({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 132,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
       ),
     );
   }

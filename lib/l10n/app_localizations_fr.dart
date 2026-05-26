@@ -263,6 +263,63 @@ class AppLocalizationsFr extends AppLocalizations {
   String get runtimeFeatureStatus => 'État des fonctions runtime';
 
   @override
+  String get providerHealthTitle => 'État du fournisseur IA';
+
+  @override
+  String get selectedProvider => 'Fournisseur sélectionné';
+
+  @override
+  String get activeProvider => 'Fournisseur actif';
+
+  @override
+  String get localRulesProvider => 'local_rules';
+
+  @override
+  String get geminiProvider => 'Gemini';
+
+  @override
+  String get elkaProvider => 'ELKA';
+
+  @override
+  String get providerAvailable => 'Disponible';
+
+  @override
+  String get providerUnavailable => 'Indisponible';
+
+  @override
+  String get providerConfigured => 'Configuré';
+
+  @override
+  String get providerUnconfigured => 'Non configuré';
+
+  @override
+  String get providerFallbackReason => 'Raison du repli';
+
+  @override
+  String get providerNoFallback => 'Aucun repli nécessaire';
+
+  @override
+  String get providerLastFailure => 'Dernier échec fournisseur';
+
+  @override
+  String get providerNoFailure => 'Aucun';
+
+  @override
+  String get providerPrivacyTitle => 'Confidentialité du fournisseur';
+
+  @override
+  String get providerPrivacyLocalOnly =>
+      'local_rules garde le contexte d\'hydratation sur cet appareil.';
+
+  @override
+  String get providerPrivacyGeminiDisclosure =>
+      'Quand Gemini est configuré, Hydrion peut envoyer un contexte d\'hydratation typé à Gemini. N\'intégrez pas de clé Gemini partagée dans les artefacts web ou mobiles.';
+
+  @override
+  String get providerConsentRequired =>
+      'L\'IA non locale nécessite un consentement utilisateur explicite avant la production.';
+
+  @override
   String get localPersistence => 'Persistance locale';
 
   @override

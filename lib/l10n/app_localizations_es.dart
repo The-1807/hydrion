@@ -264,6 +264,63 @@ class AppLocalizationsEs extends AppLocalizations {
   String get runtimeFeatureStatus => 'Estado de funciones en ejecución';
 
   @override
+  String get providerHealthTitle => 'Estado del proveedor de IA';
+
+  @override
+  String get selectedProvider => 'Proveedor seleccionado';
+
+  @override
+  String get activeProvider => 'Proveedor activo';
+
+  @override
+  String get localRulesProvider => 'local_rules';
+
+  @override
+  String get geminiProvider => 'Gemini';
+
+  @override
+  String get elkaProvider => 'ELKA';
+
+  @override
+  String get providerAvailable => 'Disponible';
+
+  @override
+  String get providerUnavailable => 'No disponible';
+
+  @override
+  String get providerConfigured => 'Configurado';
+
+  @override
+  String get providerUnconfigured => 'Sin configurar';
+
+  @override
+  String get providerFallbackReason => 'Motivo de respaldo';
+
+  @override
+  String get providerNoFallback => 'No se necesita respaldo';
+
+  @override
+  String get providerLastFailure => 'Último fallo del proveedor';
+
+  @override
+  String get providerNoFailure => 'Ninguno';
+
+  @override
+  String get providerPrivacyTitle => 'Privacidad del proveedor';
+
+  @override
+  String get providerPrivacyLocalOnly =>
+      'local_rules mantiene el contexto de hidratación en este dispositivo.';
+
+  @override
+  String get providerPrivacyGeminiDisclosure =>
+      'Cuando Gemini está configurado, Hydrion puede enviar contexto de hidratación tipado a Gemini. No incluyas una clave compartida de Gemini en artefactos web o móviles.';
+
+  @override
+  String get providerConsentRequired =>
+      'La IA no local requiere consentimiento explícito del usuario antes de producción.';
+
+  @override
   String get localPersistence => 'Persistencia local';
 
   @override

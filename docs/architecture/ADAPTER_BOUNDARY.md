@@ -109,3 +109,8 @@ fallback adapters only.
 
 If the UI needs a new behavior, add or extend a domain contract first, then wire
 an implementation in `HydrionServices`.
+
+Provider action execution is also behind a contract:
+`HydrationAiActionExecutionService`. UI must not import executor
+implementations or validators directly. State-changing provider suggestions
+must be validated, confirmed, and applied only through the executor.

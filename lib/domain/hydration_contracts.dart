@@ -53,6 +53,12 @@ enum HydrationCoachDigestKey {
   commandParsing,
 }
 
+enum HydrionAiProviderKind {
+  localRules,
+  gemini,
+  elka,
+}
+
 class AppCapabilities {
   final bool localPersistence;
   final bool elkaConfigured;
@@ -440,6 +446,35 @@ class HydrationAiActionValidationResult {
   }
 }
 
+enum HydrationAiActionExecutionStatus {
+  applied,
+  displayOnly,
+  rejected,
+}
+
+class HydrationAiActionExecutionResult {
+  final HydrationAiAction originalAction;
+  final HydrationAiActionValidationResult validationResult;
+  final HydrationAiActionExecutionStatus status;
+  final String message;
+  final String? appliedEntityId;
+
+  const HydrationAiActionExecutionResult({
+    required this.originalAction,
+    required this.validationResult,
+    required this.status,
+    required this.message,
+    this.appliedEntityId,
+  });
+
+  bool get isApplied => status == HydrationAiActionExecutionStatus.applied;
+
+  bool get isRejected => status == HydrationAiActionExecutionStatus.rejected;
+
+  bool get changesAppState =>
+      status == HydrationAiActionExecutionStatus.applied;
+}
+
 class HydrationAiActionValidator {
   const HydrationAiActionValidator();
 
@@ -633,6 +668,14 @@ abstract class HydrationAiProvider {
   });
 }
 
+abstract class HydrationAiActionExecutionService {
+  Future<HydrationAiActionExecutionResult> execute(
+    HydrationAiAction action, {
+    required bool userConfirmed,
+    DateTime? now,
+  });
+}
+
 abstract class HydrationCoach {
   Future<String> getHydrationCoachResponse({
     required double hydrationPercent,
@@ -657,4 +700,80 @@ abstract class HydrationCommandParser {
 
 abstract class AppCapabilityReporter {
   AppCapabilities get capabilities;
+}
+
+class ProviderHealthSnapshot {
+  final HydrionAiProviderKind selectedProvider;
+  final HydrionAiProviderKind activeProvider;
+  final bool localRulesAvailable;
+  final bool geminiConfigured;
+  final bool geminiAvailable;
+  final bool elkaAvailable;
+  final String? lastProviderFailure;
+  final String? fallbackReason;
+  final bool privacyDisclosureRequired;
+  final bool privacyConsentRecorded;
+
+  const ProviderHealthSnapshot({
+    required this.selectedProvider,
+    required this.activeProvider,
+    required this.localRulesAvailable,
+    required this.geminiConfigured,
+    required this.geminiAvailable,
+    required this.elkaAvailable,
+    this.lastProviderFailure,
+    this.fallbackReason,
+    required this.privacyDisclosureRequired,
+    required this.privacyConsentRecorded,
+  });
+
+  const ProviderHealthSnapshot.localRules()
+      : selectedProvider = HydrionAiProviderKind.localRules,
+        activeProvider = HydrionAiProviderKind.localRules,
+        localRulesAvailable = true,
+        geminiConfigured = false,
+        geminiAvailable = false,
+        elkaAvailable = false,
+        lastProviderFailure = null,
+        fallbackReason = null,
+        privacyDisclosureRequired = false,
+        privacyConsentRecorded = true;
+
+  ProviderHealthSnapshot copyWith({
+    HydrionAiProviderKind? selectedProvider,
+    HydrionAiProviderKind? activeProvider,
+    bool? localRulesAvailable,
+    bool? geminiConfigured,
+    bool? geminiAvailable,
+    bool? elkaAvailable,
+    Object? lastProviderFailure = _unchanged,
+    Object? fallbackReason = _unchanged,
+    bool? privacyDisclosureRequired,
+    bool? privacyConsentRecorded,
+  }) {
+    return ProviderHealthSnapshot(
+      selectedProvider: selectedProvider ?? this.selectedProvider,
+      activeProvider: activeProvider ?? this.activeProvider,
+      localRulesAvailable: localRulesAvailable ?? this.localRulesAvailable,
+      geminiConfigured: geminiConfigured ?? this.geminiConfigured,
+      geminiAvailable: geminiAvailable ?? this.geminiAvailable,
+      elkaAvailable: elkaAvailable ?? this.elkaAvailable,
+      lastProviderFailure: identical(lastProviderFailure, _unchanged)
+          ? this.lastProviderFailure
+          : lastProviderFailure as String?,
+      fallbackReason: identical(fallbackReason, _unchanged)
+          ? this.fallbackReason
+          : fallbackReason as String?,
+      privacyDisclosureRequired:
+          privacyDisclosureRequired ?? this.privacyDisclosureRequired,
+      privacyConsentRecorded:
+          privacyConsentRecorded ?? this.privacyConsentRecorded,
+    );
+  }
+
+  static const Object _unchanged = Object();
+}
+
+abstract class ProviderHealthReporter {
+  ProviderHealthSnapshot get providerHealth;
 }

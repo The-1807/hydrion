@@ -518,6 +518,114 @@ abstract class AppLocalizations {
   /// **'Runtime feature status'**
   String get runtimeFeatureStatus;
 
+  /// No description provided for @providerHealthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI provider status'**
+  String get providerHealthTitle;
+
+  /// No description provided for @selectedProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected provider'**
+  String get selectedProvider;
+
+  /// No description provided for @activeProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Active provider'**
+  String get activeProvider;
+
+  /// No description provided for @localRulesProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'local_rules'**
+  String get localRulesProvider;
+
+  /// No description provided for @geminiProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini'**
+  String get geminiProvider;
+
+  /// No description provided for @elkaProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'ELKA'**
+  String get elkaProvider;
+
+  /// No description provided for @providerAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get providerAvailable;
+
+  /// No description provided for @providerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get providerUnavailable;
+
+  /// No description provided for @providerConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Configured'**
+  String get providerConfigured;
+
+  /// No description provided for @providerUnconfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Unconfigured'**
+  String get providerUnconfigured;
+
+  /// No description provided for @providerFallbackReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Fallback reason'**
+  String get providerFallbackReason;
+
+  /// No description provided for @providerNoFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'No fallback needed'**
+  String get providerNoFallback;
+
+  /// No description provided for @providerLastFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Last provider failure'**
+  String get providerLastFailure;
+
+  /// No description provided for @providerNoFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get providerNoFailure;
+
+  /// No description provided for @providerPrivacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider privacy'**
+  String get providerPrivacyTitle;
+
+  /// No description provided for @providerPrivacyLocalOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'local_rules keeps hydration context on this device.'**
+  String get providerPrivacyLocalOnly;
+
+  /// No description provided for @providerPrivacyGeminiDisclosure.
+  ///
+  /// In en, this message translates to:
+  /// **'When Gemini is configured, Hydrion may send typed hydration context to Gemini. Do not ship a shared Gemini API key in web or mobile client artifacts.'**
+  String get providerPrivacyGeminiDisclosure;
+
+  /// No description provided for @providerConsentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-local AI requires explicit user consent before production use.'**
+  String get providerConsentRequired;
+
   /// No description provided for @localPersistence.
   ///
   /// In en, this message translates to:

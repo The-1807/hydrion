@@ -62,6 +62,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Secret hygiene scan
+        run: dart run tool/secret_scan.dart
+
       - name: Verify generated package state
         run: flutter pub deps
 

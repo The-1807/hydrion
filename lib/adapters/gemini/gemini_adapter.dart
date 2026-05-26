@@ -95,6 +95,14 @@ class GeminiHttpContentClient implements GeminiContentClient {
 }
 
 class GeminiHydrationAiProvider implements HydrationAiProvider {
+  static const int maxActions = 3;
+  static const int maxMessageLength = 600;
+  static const int maxIdentifierLength = 96;
+  static const int maxNameLength = 120;
+  static const int maxDescriptionLength = 400;
+  static const int maxReminderDelayMinutes = 1440;
+  static const int maxChallengeDurationDays = 365;
+
   final GeminiProviderConfig config;
   final GeminiContentClient _client;
 
@@ -211,29 +219,52 @@ Supported action types and fields:
   }
 
   List<HydrationAiAction> _parseActions(String generatedText) {
-    final payload = jsonDecode(_extractJson(generatedText));
-    final rawActions = switch (payload) {
-      {'actions': final List actions} => actions,
-      final List actions => actions,
-      _ => throw const GeminiProviderException(
-          'Gemini output did not contain an actions list.',
-        ),
-    };
+    final Object? payload;
+    try {
+      payload = jsonDecode(_extractJson(generatedText));
+    } on FormatException {
+      throw const GeminiProviderException('Gemini output was invalid JSON.');
+    }
+
+    if (payload is! Map<String, dynamic>) {
+      throw const GeminiProviderException(
+        'Gemini output must be an object with an actions list.',
+      );
+    }
+    final rawActions = payload['actions'];
+    if (rawActions is! List) {
+      throw const GeminiProviderException(
+        'Gemini output did not contain an actions list.',
+      );
+    }
+    if (rawActions.isEmpty || rawActions.length > maxActions) {
+      throw const GeminiProviderException(
+        'Gemini output must contain 1 to 3 actions.',
+      );
+    }
 
     return [
       for (final rawAction in rawActions)
-        if (rawAction is Map)
-          _parseAction(Map<String, dynamic>.from(rawAction)),
+        if (rawAction is Map<String, dynamic>)
+          _parseAction(rawAction)
+        else
+          throw const GeminiProviderException(
+            'Gemini action entries must be JSON objects.',
+          ),
     ];
   }
 
   HydrationAiAction _parseAction(Map<String, dynamic> action) {
-    final type = _readString(action, 'type').trim();
-    final message = _readString(
+    final type = _requiredString(
+      action,
+      'type',
+      maxLength: 64,
+    );
+    final message = _requiredString(
       action,
       'message',
-      fallback: 'Gemini proposed an action.',
-    ).trim();
+      maxLength: maxMessageLength,
+    );
     final requiredCapabilities = _readCapabilities(
       action['requiredCapabilities'],
     );
@@ -245,15 +276,31 @@ Supported action types and fields:
         ),
       'suggestHydrationLog' => SuggestHydrationLogAction(
           message: message,
-          volumeMl: _readInt(action, 'volumeMl', fallback: 0),
+          volumeMl: _requiredIntInRange(
+            action,
+            'volumeMl',
+            min: 1,
+            max: 5000,
+          ),
           requiredCapabilities: requiredCapabilities,
         ),
       'suggestReminder' => SuggestReminderAction(
           message: message,
           delay: Duration(
-            minutes: _readInt(action, 'delayMinutes', fallback: 0),
+            minutes: _requiredIntInRange(
+              action,
+              'delayMinutes',
+              min: 0,
+              max: maxReminderDelayMinutes,
+            ),
           ),
-          priority: _readInt(action, 'priority', fallback: 1),
+          priority: _optionalIntInRange(
+            action,
+            'priority',
+            min: 1,
+            max: 3,
+            fallback: 1,
+          ),
           claimsOsNotificationScheduled:
               _readBool(action, 'claimsOsNotificationScheduled'),
           requiredCapabilities: requiredCapabilities,
@@ -264,23 +311,33 @@ Supported action types and fields:
         ),
       'suggestChallenge' => SuggestChallengeAction(
           message: message,
-          challengeId: _readString(
+          challengeId: _requiredString(
             action,
             'challengeId',
-            fallback: 'gemini-suggested-challenge',
+            maxLength: maxIdentifierLength,
           ),
-          name: _readString(
+          name: _requiredString(
             action,
             'name',
-            fallback: 'Gemini Suggested Challenge',
+            maxLength: maxNameLength,
           ),
-          description: _readString(
+          description: _requiredString(
             action,
             'description',
-            fallback: message,
+            maxLength: maxDescriptionLength,
           ),
-          targetMl: _readInt(action, 'targetMl', fallback: 0),
-          durationDays: _readInt(action, 'durationDays', fallback: 0),
+          targetMl: _requiredIntInRange(
+            action,
+            'targetMl',
+            min: 1,
+            max: 5000,
+          ),
+          durationDays: _requiredIntInRange(
+            action,
+            'durationDays',
+            min: 1,
+            max: maxChallengeDurationDays,
+          ),
           claimsSocialSync: _readBool(action, 'claimsSocialSync'),
           requiredCapabilities: requiredCapabilities,
         ),
@@ -318,31 +375,55 @@ Supported action types and fields:
     throw const GeminiProviderException('Gemini output was not JSON.');
   }
 
-  String _readString(
+  String _requiredString(
     Map<String, dynamic> payload,
     String key, {
-    String fallback = '',
+    required int maxLength,
   }) {
     final value = payload[key];
-    return value is String ? value : fallback;
+    if (value is! String) {
+      throw GeminiProviderException('Gemini field "$key" must be a string.');
+    }
+    final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isEmpty || normalized.length > maxLength) {
+      throw GeminiProviderException(
+        'Gemini field "$key" must be 1 to $maxLength characters.',
+      );
+    }
+    return normalized;
   }
 
-  int _readInt(
+  int _requiredIntInRange(
     Map<String, dynamic> payload,
     String key, {
-    required int fallback,
+    required int min,
+    required int max,
   }) {
     final value = payload[key];
-    if (value is int) {
-      return value;
+    final parsed = value is int
+        ? value
+        : value is String
+            ? int.tryParse(value)
+            : null;
+    if (parsed == null || parsed < min || parsed > max) {
+      throw GeminiProviderException(
+        'Gemini field "$key" must be an integer from $min to $max.',
+      );
     }
-    if (value is double) {
-      return value.round();
+    return parsed;
+  }
+
+  int _optionalIntInRange(
+    Map<String, dynamic> payload,
+    String key, {
+    required int min,
+    required int max,
+    required int fallback,
+  }) {
+    if (!payload.containsKey(key)) {
+      return fallback;
     }
-    if (value is String) {
-      return int.tryParse(value) ?? fallback;
-    }
-    return fallback;
+    return _requiredIntInRange(payload, key, min: min, max: max);
   }
 
   bool _readBool(Map<String, dynamic> payload, String key) {
@@ -360,10 +441,17 @@ Supported action types and fields:
     if (value is! List) {
       return const <HydrionCapability>{};
     }
-    return {
-      for (final item in value)
-        if (_readCapability(item) != null) _readCapability(item)!,
-    };
+    final capabilities = <HydrionCapability>{};
+    for (final item in value) {
+      final capability = _readCapability(item);
+      if (capability == null) {
+        throw const GeminiProviderException(
+          'Gemini returned an unknown required capability.',
+        );
+      }
+      capabilities.add(capability);
+    }
+    return capabilities;
   }
 
   HydrionCapability? _readCapability(Object? value) {

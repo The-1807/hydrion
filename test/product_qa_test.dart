@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
+import 'package:hydrion/services/ai_provider_config.dart';
 
 void main() {
   Future<void> pumpHydrion(
@@ -84,6 +85,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Standalone local mode'), findsOneWidget);
+    expect(find.text('AI provider status'), findsOneWidget);
+    expect(find.text('Provider privacy'), findsOneWidget);
+    expect(find.text('local_rules'), findsWidgets);
+    expect(
+      find.text('local_rules keeps hydration context on this device.'),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Runtime feature status'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Runtime feature status'), findsOneWidget);
     expect(find.text('Local persistence'), findsOneWidget);
     expect(find.text('ELKA adapter'), findsOneWidget);
@@ -91,6 +105,34 @@ void main() {
     expect(find.text('Cloud AI'), findsOneWidget);
     expect(find.text('Voice input'), findsOneWidget);
     expect(find.text('Disabled'), findsWidgets);
+  });
+
+  testWidgets(
+      'product QA: Gemini privacy disclosure is visible when configured',
+      (tester) async {
+    final services = HydrionServices.memory(
+      aiRuntimeConfig: const HydrionAiRuntimeConfig(
+        provider: HydrionAiProviderSelection.gemini,
+        gemini: GeminiProviderConfig(apiKey: 'test-key'),
+      ),
+    );
+    await pumpHydrion(tester, services: services);
+
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gemini provider configured'), findsOneWidget);
+    expect(find.text('AI provider status'), findsOneWidget);
+    expect(find.text('Gemini'), findsWidgets);
+    expect(
+      find.textContaining('Hydrion may send typed hydration context to Gemini'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+          'Non-local AI requires explicit user consent before production use.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('product QA: empty states are reachable and explicit',

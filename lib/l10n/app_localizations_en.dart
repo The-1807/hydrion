@@ -259,6 +259,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get runtimeFeatureStatus => 'Runtime feature status';
 
   @override
+  String get providerHealthTitle => 'AI provider status';
+
+  @override
+  String get selectedProvider => 'Selected provider';
+
+  @override
+  String get activeProvider => 'Active provider';
+
+  @override
+  String get localRulesProvider => 'local_rules';
+
+  @override
+  String get geminiProvider => 'Gemini';
+
+  @override
+  String get elkaProvider => 'ELKA';
+
+  @override
+  String get providerAvailable => 'Available';
+
+  @override
+  String get providerUnavailable => 'Unavailable';
+
+  @override
+  String get providerConfigured => 'Configured';
+
+  @override
+  String get providerUnconfigured => 'Unconfigured';
+
+  @override
+  String get providerFallbackReason => 'Fallback reason';
+
+  @override
+  String get providerNoFallback => 'No fallback needed';
+
+  @override
+  String get providerLastFailure => 'Last provider failure';
+
+  @override
+  String get providerNoFailure => 'None';
+
+  @override
+  String get providerPrivacyTitle => 'Provider privacy';
+
+  @override
+  String get providerPrivacyLocalOnly =>
+      'local_rules keeps hydration context on this device.';
+
+  @override
+  String get providerPrivacyGeminiDisclosure =>
+      'When Gemini is configured, Hydrion may send typed hydration context to Gemini. Do not ship a shared Gemini API key in web or mobile client artifacts.';
+
+  @override
+  String get providerConsentRequired =>
+      'Non-local AI requires explicit user consent before production use.';
+
+  @override
   String get localPersistence => 'Local persistence';
 
   @override

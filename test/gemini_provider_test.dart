@@ -4,6 +4,7 @@ import 'package:hydrion/domain/hydration_contracts.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/services/ai_provider_config.dart';
 import 'package:hydrion/services/hydration_ai_orchestrator.dart';
+import 'package:hydrion/services/provider_health.dart';
 
 void main() {
   const validator = HydrationAiActionValidator();
@@ -37,6 +38,12 @@ void main() {
 
   test('Gemini failure falls back to local_rules', () async {
     final context = _standaloneContext();
+    final providerHealth = LocalProviderHealthReporter.fromConfig(
+      const HydrionAiRuntimeConfig(
+        provider: HydrionAiProviderSelection.gemini,
+        gemini: GeminiProviderConfig(apiKey: 'test-key'),
+      ),
+    );
     final coach = ProviderBackedHydrationCoach(
       selectedProvider: HydrionAiProviderSelection.gemini,
       primaryProvider: const _ThrowingAiProvider(),
@@ -45,6 +52,7 @@ void main() {
       ),
       contextProvider: _StaticContextProvider(context),
       actionValidator: validator,
+      providerHealth: providerHealth,
       providerTimeout: const Duration(milliseconds: 100),
     );
 
@@ -54,9 +62,17 @@ void main() {
     );
 
     expect(response, 'local_rules fallback response');
+    expect(
+      providerHealth.providerHealth.activeProvider,
+      HydrionAiProviderKind.localRules,
+    );
+    expect(
+        providerHealth.providerHealth.lastProviderFailure, contains('Gemini'));
+    expect(
+        providerHealth.providerHealth.fallbackReason, contains('local_rules'));
   });
 
-  test('invalid Gemini hydration log proposal is blocked', () async {
+  test('invalid Gemini hydration log proposal is rejected by schema', () async {
     final provider = GeminiHydrationAiProvider(
       config: const GeminiProviderConfig(apiKey: 'test-key'),
       client: const _FakeGeminiClient(
@@ -64,21 +80,16 @@ void main() {
       ),
     );
 
-    final actions = await provider.proposeActions(
-      context: _standaloneContext(),
-      userQuery: 'log water',
+    await expectLater(
+      provider.proposeActions(
+        context: _standaloneContext(),
+        userQuery: 'log water',
+      ),
+      throwsA(isA<GeminiProviderException>()),
     );
-    final result = validator.validate(
-      actions.single,
-      const CapabilityContext.standalone(),
-    );
-
-    expect(actions.single, isA<SuggestHydrationLogAction>());
-    expect(result.isAllowed, isFalse);
-    expect(result.reason, contains('1 to 5000 ml'));
   });
 
-  test('invalid Gemini reminder proposal is blocked', () async {
+  test('invalid Gemini reminder proposal is rejected by schema', () async {
     final provider = GeminiHydrationAiProvider(
       config: const GeminiProviderConfig(apiKey: 'test-key'),
       client: const _FakeGeminiClient(
@@ -86,18 +97,13 @@ void main() {
       ),
     );
 
-    final actions = await provider.proposeActions(
-      context: _standaloneContext(),
-      userQuery: 'remind me',
+    await expectLater(
+      provider.proposeActions(
+        context: _standaloneContext(),
+        userQuery: 'remind me',
+      ),
+      throwsA(isA<GeminiProviderException>()),
     );
-    final result = validator.validate(
-      actions.single,
-      const CapabilityContext.standalone(),
-    );
-
-    expect(actions.single, isA<SuggestReminderAction>());
-    expect(result.isAllowed, isFalse);
-    expect(result.reason, contains('negative'));
   });
 
   test('Gemini cannot claim unavailable capabilities are active', () async {
@@ -140,6 +146,41 @@ void main() {
     expect(actions, everyElement(isA<HydrationAiAction>()));
     expect(actions.first.type, HydrationAiActionType.coachMessage);
     expect(actions.last.type, HydrationAiActionType.suggestHydrationLog);
+  });
+
+  test('malformed Gemini output is rejected', () async {
+    final provider = GeminiHydrationAiProvider(
+      config: const GeminiProviderConfig(apiKey: 'test-key'),
+      client: const _FakeGeminiClient(
+        '{"actions":[{"type":"coachMessage","message":""}]}',
+      ),
+    );
+
+    await expectLater(
+      provider.proposeActions(
+        context: _standaloneContext(),
+        userQuery: 'bad output',
+      ),
+      throwsA(isA<GeminiProviderException>()),
+    );
+  });
+
+  test('oversized Gemini output is rejected', () async {
+    final oversized = List.filled(601, 'a').join();
+    final provider = GeminiHydrationAiProvider(
+      config: const GeminiProviderConfig(apiKey: 'test-key'),
+      client: _FakeGeminiClient(
+        '{"actions":[{"type":"coachMessage","message":"$oversized"}]}',
+      ),
+    );
+
+    await expectLater(
+      provider.proposeActions(
+        context: _standaloneContext(),
+        userQuery: 'too long',
+      ),
+      throwsA(isA<GeminiProviderException>()),
+    );
   });
 
   test('invalid Gemini proposals fall back before app logic trusts them',
