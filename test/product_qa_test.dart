@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrion/domain/hydration_contracts.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/services/ai_provider_config.dart';
 
@@ -22,6 +23,28 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
+  }
+
+  HydrionServices geminiSuccessServices({
+    String response = 'Gemini says: take a few steady sips.',
+  }) {
+    final base = HydrionServices.memory(
+      aiRuntimeConfig: const HydrionAiRuntimeConfig(
+        provider: HydrionAiProviderSelection.gemini,
+        gemini: GeminiProviderConfig(apiKey: 'AIza-test-key-tail'),
+      ),
+    );
+    final coach = _StaticCoach(response);
+    return _withOverrides(
+      base,
+      hydrationCoach: coach,
+      coachSuggestionService: _StaticCoachSuggestionService(
+        message: response,
+      ),
+      providerHealthReporter: _StaticProviderHealthReporter(
+        _geminiSuccessHealth(),
+      ),
+    );
   }
 
   testWidgets('product QA: English localized app shell', (tester) async {
@@ -124,6 +147,19 @@ void main() {
     expect(find.text('Gemini provider configured'), findsOneWidget);
     expect(find.text('AI provider status'), findsOneWidget);
     expect(find.text('Gemini'), findsWidgets);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
+    await tester.pumpAndSettle();
+    expect(find.text('Gemini health'), findsOneWidget);
+    expect(find.text('Gemini configured'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Gemini diagnostics'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Gemini diagnostics'));
+    await tester.pumpAndSettle();
+    expect(find.text('Request attempted'), findsOneWidget);
     expect(
       find.textContaining('Hydrion may send typed hydration context to Gemini'),
       findsOneWidget,
@@ -131,6 +167,159 @@ void main() {
     expect(
       find.text(
           'Non-local AI requires explicit user consent before production use.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('product QA: provider fallback reason is visible safely',
+      (tester) async {
+    final services = HydrionServices.memory(
+      aiRuntimeConfig: const HydrionAiRuntimeConfig(
+        provider: HydrionAiProviderSelection.gemini,
+      ),
+    );
+
+    await services.hydrationCoach.getCoachingAdvice(
+      userQuery: 'Should use Gemini?',
+      digestKey: HydrationCoachDigestKey.weeklyDigest,
+    );
+    await pumpHydrion(tester, services: services);
+
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI provider status'), findsOneWidget);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
+    await tester.pumpAndSettle();
+    expect(find.text('Using local_rules fallback'), findsOneWidget);
+    await tester.tap(find.text('Gemini diagnostics'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('no_api_key'), findsWidgets);
+    expect(find.text('Last diagnostic'), findsOneWidget);
+    expect(find.text('Request attempted'), findsOneWidget);
+    expect(find.text('No'), findsWidgets);
+    expect(find.textContaining('Should use Gemini?'), findsNothing);
+  });
+
+  testWidgets('product QA: Gemini success state is visible safely',
+      (tester) async {
+    const fullKey = 'AIza-test-key-tail';
+    final services = geminiSuccessServices();
+
+    await pumpHydrion(tester, services: services);
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI provider status'), findsOneWidget);
+    expect(find.text('Selected provider'), findsOneWidget);
+    expect(find.text('Active provider'), findsOneWidget);
+    expect(find.text('Gemini configured'), findsOneWidget);
+    expect(
+      find.text('Gemini is healthy; last response passed validation'),
+      findsOneWidget,
+    );
+    expect(find.text('success'), findsOneWidget);
+    expect(find.text('local_rules fallback is available'), findsOneWidget);
+    expect(find.text(fullKey), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('Gemini diagnostics'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Gemini diagnostics'));
+    await tester.pumpAndSettle();
+    expect(find.text('Endpoint host'), findsOneWidget);
+    expect(find.text('generativelanguage.googleapis.com'), findsOneWidget);
+    expect(find.text('API key first 4'), findsOneWidget);
+    expect(find.text('AIza'), findsOneWidget);
+    expect(find.text('tail'), findsOneWidget);
+    expect(find.text(fullKey), findsNothing);
+  });
+
+  testWidgets('product QA: Coach renders Gemini response cleanly',
+      (tester) async {
+    final services = geminiSuccessServices(
+      response: 'You are on pace. Take 250 ml over the next hour.',
+    );
+    await services.hydrationRepository.addLog(
+      volumeMl: 500,
+      timestamp: DateTime.now(),
+    );
+    await pumpHydrion(tester, services: services);
+
+    await scrollToHomeItem(tester, find.byKey(const Key('route-/chat')));
+    await tester.tap(find.byKey(const Key('route-/chat')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Provider coach'), findsOneWidget);
+    expect(find.textContaining('Today: 500 / 2200 ml'), findsOneWidget);
+    expect(find.textContaining('Active: Gemini'), findsOneWidget);
+    expect(find.textContaining('Gemini is active'), findsOneWidget);
+    expect(find.textContaining('Last diagnostic'), findsNothing);
+    expect(find.textContaining('HydrationContext'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'How am I doing?');
+    final sendButton = find.widgetWithIcon(FilledButton, Icons.send);
+    await tester.ensureVisible(sendButton);
+    await tester.pumpAndSettle();
+    await tester.tap(sendButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('You'), findsOneWidget);
+    expect(find.text('Coach'), findsOneWidget);
+    expect(
+      find.text('You are on pace. Take 250 ml over the next hour.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('success'), findsNothing);
+    expect(find.textContaining('request_attempted'), findsNothing);
+  });
+
+  testWidgets('product QA: English provider status strings render',
+      (tester) async {
+    await pumpHydrion(tester, services: geminiSuccessServices());
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI provider status'), findsOneWidget);
+    expect(find.text('Gemini configured'), findsOneWidget);
+    expect(find.text('local_rules fallback is available'), findsOneWidget);
+  });
+
+  testWidgets('product QA: Spanish provider status strings render',
+      (tester) async {
+    await pumpHydrion(
+      tester,
+      locale: const Locale('es'),
+      services: geminiSuccessServices(),
+    );
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Estado del proveedor de IA'), findsOneWidget);
+    expect(find.text('Gemini configurado'), findsOneWidget);
+    expect(
+      find.text('El respaldo local_rules está disponible'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('product QA: French provider status strings render',
+      (tester) async {
+    await pumpHydrion(
+      tester,
+      locale: const Locale('fr'),
+      services: geminiSuccessServices(),
+    );
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+
+    expect(find.text('État du fournisseur IA'), findsOneWidget);
+    expect(find.text('Gemini configuré'), findsOneWidget);
+    expect(
+      find.text('Le repli local_rules est disponible'),
       findsOneWidget,
     );
   });
@@ -175,7 +364,7 @@ void main() {
 
     expect(find.text('Local fallback coach'), findsOneWidget);
     expect(
-      find.textContaining('No cloud AI or ELKA is connected'),
+      find.textContaining('local_rules is active'),
       findsOneWidget,
     );
 
@@ -191,4 +380,137 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+HydrionServices _withOverrides(
+  HydrionServices base, {
+  required HydrationCoach hydrationCoach,
+  CoachSuggestionService? coachSuggestionService,
+  required ProviderHealthReporter providerHealthReporter,
+}) {
+  return HydrionServices(
+    aiRuntimeConfig: base.aiRuntimeConfig,
+    localStore: base.localStore,
+    hydrationRepository: base.hydrationRepository,
+    settingsRepository: base.settingsRepository,
+    reminderRepository: base.reminderRepository,
+    challengeRepository: base.challengeRepository,
+    coreBridge: base.coreBridge,
+    permissions: base.permissions,
+    i18n: base.i18n,
+    notificationService: base.notificationService,
+    hydrationSummaryService: base.hydrationSummaryService,
+    hydrationContextProvider: base.hydrationContextProvider,
+    aiActionValidator: base.aiActionValidator,
+    hydrationCoach: hydrationCoach,
+    coachSuggestionService:
+        coachSuggestionService ?? base.coachSuggestionService,
+    aiActionExecutor: base.aiActionExecutor,
+    challengeGenerator: base.challengeGenerator,
+    commandParser: base.commandParser,
+    capabilityReporter: base.capabilityReporter,
+    providerHealthReporter: providerHealthReporter,
+    elkaAdapter: base.elkaAdapter,
+    voice: base.voice,
+    voiceBridge: base.voiceBridge,
+    wearables: base.wearables,
+    ecoTracker: base.ecoTracker,
+  );
+}
+
+ProviderHealthSnapshot _geminiSuccessHealth() {
+  final now = DateTime(2026, 6, 1, 12);
+  return ProviderHealthSnapshot(
+    selectedProvider: HydrionAiProviderKind.gemini,
+    activeProvider: HydrionAiProviderKind.gemini,
+    localRulesAvailable: true,
+    geminiConfigured: true,
+    geminiAvailable: true,
+    elkaAvailable: false,
+    privacyDisclosureRequired: true,
+    privacyConsentRecorded: false,
+    diagnostic: ProviderDiagnosticSnapshot(
+      selectedProvider: HydrionAiProviderKind.gemini,
+      activeProvider: HydrionAiProviderKind.gemini,
+      configured: true,
+      modelId: 'gemini-2.5-flash',
+      endpointHost: 'generativelanguage.googleapis.com',
+      modelPath: 'models/gemini-2.5-flash',
+      apiKeyPresent: true,
+      apiKeyLength: 'AIza-test-key-tail'.length,
+      apiKeyFirst4: 'AIza',
+      apiKeyLast4: 'tail',
+      apiKeyContainsWhitespace: false,
+      apiKeyWasTrimmed: false,
+      apiKeyStartsWithExpectedGooglePrefix: true,
+      authHeaderPresent: true,
+      authHeaderValueLength: 'AIza-test-key-tail'.length,
+      requestAttempted: true,
+      responseEnvelopePhase: ProviderDiagnosticCodes.success,
+      lastSuccessAt: now,
+    ),
+  );
+}
+
+class _StaticProviderHealthReporter extends ProviderHealthReporter {
+  final ProviderHealthSnapshot _health;
+
+  _StaticProviderHealthReporter(this._health);
+
+  @override
+  ProviderHealthSnapshot get providerHealth => _health;
+}
+
+class _StaticCoach implements HydrationCoach {
+  final String response;
+
+  const _StaticCoach(this.response);
+
+  @override
+  Future<String> getCoachingAdvice({
+    required String userQuery,
+    required HydrationCoachDigestKey digestKey,
+  }) async {
+    return response;
+  }
+
+  @override
+  Future<String> getHydrationCoachResponse({
+    required double hydrationPercent,
+    int? entryCount,
+    int? activityMinutes,
+    required double temperatureC,
+  }) async {
+    return response;
+  }
+}
+
+class _StaticCoachSuggestionService implements CoachSuggestionService {
+  final String message;
+
+  const _StaticCoachSuggestionService({
+    required this.message,
+  });
+
+  @override
+  Future<CoachTurn> ask({
+    required String userQuery,
+    required HydrationCoachDigestKey digestKey,
+  }) async {
+    return CoachTurn(
+      message: message,
+      suggestions: const <CoachSuggestionCard>[],
+    );
+  }
+
+  @override
+  Future<CoachSuggestionExecutionView> confirm(String suggestionId) async {
+    return CoachSuggestionExecutionView(
+      suggestionId: suggestionId,
+      status: CoachSuggestionStatus.rejected,
+    );
+  }
+
+  @override
+  void dismiss(String suggestionId) {}
 }

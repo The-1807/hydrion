@@ -14,6 +14,7 @@ import 'repositories/settings_repository.dart';
 import 'services/core_bridge.dart';
 import 'services/eco_tracker.dart';
 import 'services/ai_provider_config.dart';
+import 'services/coach_suggestion_service.dart';
 import 'services/hydration_ai_action_executor.dart';
 import 'services/hydration_ai_orchestrator.dart';
 import 'services/hydration_context_builder.dart';
@@ -63,6 +64,9 @@ class HydrionApp extends StatelessWidget {
           value: services.hydrationSummaryService,
         ),
         Provider<HydrationCoach>.value(value: services.hydrationCoach),
+        Provider<CoachSuggestionService>.value(
+          value: services.coachSuggestionService,
+        ),
         Provider<HydrationContextProvider>.value(
           value: services.hydrationContextProvider,
         ),
@@ -74,7 +78,7 @@ class HydrionApp extends StatelessWidget {
         Provider<AppCapabilityReporter>.value(
           value: services.capabilityReporter,
         ),
-        Provider<ProviderHealthReporter>.value(
+        ChangeNotifierProvider<ProviderHealthReporter>.value(
           value: services.providerHealthReporter,
         ),
         Provider<HydrationAiActionExecutionService>.value(
@@ -133,6 +137,7 @@ class HydrionServices {
   final HydrationContextProvider hydrationContextProvider;
   final HydrationAiActionValidator aiActionValidator;
   final HydrationCoach hydrationCoach;
+  final CoachSuggestionService coachSuggestionService;
   final HydrationAiActionExecutionService aiActionExecutor;
   final ChallengeGenerator challengeGenerator;
   final HydrationCommandParser commandParser;
@@ -159,6 +164,7 @@ class HydrionServices {
     required this.hydrationContextProvider,
     required this.aiActionValidator,
     required this.hydrationCoach,
+    required this.coachSuggestionService,
     required this.aiActionExecutor,
     required this.challengeGenerator,
     required this.commandParser,
@@ -280,6 +286,13 @@ class HydrionServices {
       capabilityReporter: capabilityReporter,
       validator: aiActionValidator,
     );
+    final coachSuggestionService = LocalCoachSuggestionService(
+      provider: hydrationCoach,
+      contextProvider: hydrationContextProvider,
+      validator: aiActionValidator,
+      executor: aiActionExecutor,
+      providerHealth: providerHealthReporter,
+    );
     const elkaAdapter = ElkaAdapterShell.unconfigured();
     final voiceBridge = VoiceLLMBridge(commandParser: commandParser);
     final voice = VoiceService(voiceLLMBridge: voiceBridge);
@@ -301,6 +314,7 @@ class HydrionServices {
       hydrationContextProvider: hydrationContextProvider,
       aiActionValidator: aiActionValidator,
       hydrationCoach: hydrationCoach,
+      coachSuggestionService: coachSuggestionService,
       aiActionExecutor: aiActionExecutor,
       challengeGenerator: challengeGenerator,
       commandParser: commandParser,

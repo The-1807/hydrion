@@ -293,6 +293,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get providerUnconfigured => 'Non configuré';
 
   @override
+  String get providerFallbackState => 'État du repli';
+
+  @override
+  String get providerFallbackReady => 'Le repli local_rules est disponible';
+
+  @override
+  String get providerFallbackInUse => 'Repli local_rules utilisé';
+
+  @override
+  String get providerFallbackCode => 'Code de repli';
+
+  @override
   String get providerFallbackReason => 'Raison du repli';
 
   @override
@@ -318,6 +330,111 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get providerConsentRequired =>
       'L\'IA non locale nécessite un consentement utilisateur explicite avant la production.';
+
+  @override
+  String get providerGeminiHealth => 'État Gemini';
+
+  @override
+  String get providerGeminiModel => 'Modèle Gemini';
+
+  @override
+  String get providerGeminiConfigured => 'Gemini configuré';
+
+  @override
+  String get providerDiagnosticsTitle => 'Diagnostics Gemini';
+
+  @override
+  String get providerEndpointHost => 'Hôte endpoint';
+
+  @override
+  String get providerModelPath => 'Chemin du modèle';
+
+  @override
+  String get providerApiKeyPresent => 'Clé API présente';
+
+  @override
+  String get providerApiKeyLength => 'Longueur de clé';
+
+  @override
+  String get providerApiKeyFirst4 => '4 premiers de clé';
+
+  @override
+  String get providerApiKeyLast4 => '4 derniers de clé';
+
+  @override
+  String get providerApiKeyContainsWhitespace => 'Clé avec espaces';
+
+  @override
+  String get providerApiKeyWasTrimmed => 'Clé nettoyée';
+
+  @override
+  String get providerApiKeyStartsWithGooglePrefix => 'Préfixe Google';
+
+  @override
+  String get providerAuthHeaderPresent => 'En-tête auth présent';
+
+  @override
+  String get providerAuthHeaderValueLength => 'Longueur en-tête auth';
+
+  @override
+  String get providerRequestAttempted => 'Requête tentée';
+
+  @override
+  String get providerHttpStatusClass => 'État HTTP';
+
+  @override
+  String get providerErrorStatus => 'État d\'erreur Gemini';
+
+  @override
+  String get providerErrorMessage => 'Message d\'erreur Gemini';
+
+  @override
+  String get providerErrorDetails => 'Détails d\'erreur Gemini';
+
+  @override
+  String get providerLastDiagnosticPhase => 'Dernier diagnostic';
+
+  @override
+  String get providerParserCode => 'Code analyseur';
+
+  @override
+  String get providerValidatorCode => 'Code validateur';
+
+  @override
+  String get providerBlockedCapabilities => 'Capacités bloquées';
+
+  @override
+  String get providerLastSuccess => 'Dernier succès Gemini';
+
+  @override
+  String get providerLastFailureAt => 'Heure du dernier échec';
+
+  @override
+  String get providerNotAvailable => 'Indisponible';
+
+  @override
+  String get providerDiagnosticNoApiKey => 'Aucune clé API Gemini configurée';
+
+  @override
+  String get providerDiagnosticHealthy =>
+      'Gemini est sain ; la dernière réponse a passé la validation';
+
+  @override
+  String get providerDiagnosticFallbackActive =>
+      'Le repli local_rules est actif';
+
+  @override
+  String get providerDiagnosticNotProven =>
+      'Gemini est configuré, mais pas encore prouvé sain';
+
+  @override
+  String get providerDiagnosticLocalRules => 'local_rules est actif';
+
+  @override
+  String get yes => 'Oui';
+
+  @override
+  String get no => 'Non';
 
   @override
   String get localPersistence => 'Persistance locale';
@@ -597,6 +714,43 @@ class AppLocalizationsFr extends AppLocalizations {
   String get localFallbackCoach => 'Coach local de secours';
 
   @override
+  String get providerCoachTitle => 'Coach fournisseur';
+
+  @override
+  String get coachUserMessageLabel => 'Vous';
+
+  @override
+  String get coachReplyMessageLabel => 'Coach';
+
+  @override
+  String coachContextSnapshot(
+      {required int todayMl,
+      required int targetMl,
+      required int eventCount,
+      required Object activeProvider}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      eventCount,
+      locale: localeName,
+      other: '$eventCount',
+      one: '1',
+    );
+    return 'Aujourd\'hui : $todayMl / $targetMl ml. Journaux totaux : $_temp0. Actif : $activeProvider.';
+  }
+
+  @override
+  String coachProviderReady({required Object activeProvider}) {
+    return '$activeProvider est actif. Les réponses sont validées avant que Hydrion leur fasse confiance.';
+  }
+
+  @override
+  String get coachProviderFallbackActive =>
+      'Repli local_rules utilisé. La sortie du fournisseur reste optionnelle.';
+
+  @override
+  String get coachLocalProviderReady =>
+      'local_rules est actif. Le contexte hydratation reste sur cet appareil.';
+
+  @override
   String coachContextBanner(
       {required Object mode,
       required int todayMl,
@@ -632,6 +786,112 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get chatHint => 'Demandez à votre coach...';
+
+  @override
+  String get coachFallbackNoticeLabel => 'Repli';
+
+  @override
+  String get coachFallbackNotice =>
+      'Le repli local_rules a traité cette réponse.';
+
+  @override
+  String get suggestionHydrationLogTitle => 'Suggestion de journal hydratation';
+
+  @override
+  String get suggestionReminderTitle => 'Suggestion de rappel';
+
+  @override
+  String get suggestionChallengeTitle => 'Suggestion de défi';
+
+  @override
+  String get suggestionTrendTitle => 'Analyse de tendance';
+
+  @override
+  String get suggestionUnsupportedTitle => 'Capacité indisponible';
+
+  @override
+  String suggestionProviderSource({required Object provider}) {
+    return 'Source : $provider';
+  }
+
+  @override
+  String suggestionValidationStatus({required Object status}) {
+    return 'Validation : $status';
+  }
+
+  @override
+  String get suggestionConfirmationRequired => 'Confirmation requise';
+
+  @override
+  String get suggestionDisplayOnly => 'Affichage seul';
+
+  @override
+  String get suggestionValidated => 'Validée';
+
+  @override
+  String get suggestionApplied => 'Suggestion appliquée';
+
+  @override
+  String get suggestionRejected => 'Suggestion rejetée';
+
+  @override
+  String get suggestionDismissed => 'Suggestion ignorée';
+
+  @override
+  String get suggestionApply => 'Appliquer';
+
+  @override
+  String get suggestionDismiss => 'Ignorer';
+
+  @override
+  String get suggestionDetailVolume => 'Volume';
+
+  @override
+  String get suggestionDetailDelay => 'Délai';
+
+  @override
+  String get suggestionDetailPriority => 'Priorité';
+
+  @override
+  String get suggestionDetailChallenge => 'Défi';
+
+  @override
+  String get suggestionDetailTarget => 'Objectif';
+
+  @override
+  String get suggestionDetailDuration => 'Durée';
+
+  @override
+  String get suggestionDetailCapability => 'Capacité';
+
+  @override
+  String suggestionVolumeValue({required int volumeMl}) {
+    return '$volumeMl ml';
+  }
+
+  @override
+  String suggestionDelayValue({required int minutes}) {
+    return '$minutes min';
+  }
+
+  @override
+  String suggestionTargetValue({required int targetMl}) {
+    return '$targetMl ml/jour';
+  }
+
+  @override
+  String suggestionDurationValue({required int days}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days jours',
+      one: '1 jour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cloudSync => 'Synchronisation cloud';
 
   @override
   String get osNotificationsCapabilityReported =>

@@ -275,30 +275,171 @@ class _ProviderHealthCard extends StatelessWidget {
               value: _providerLabel(health.activeProvider, l10n),
             ),
             _HealthLine(
-              label: l10n.localRulesProvider,
-              value: health.localRulesAvailable
-                  ? l10n.providerAvailable
-                  : l10n.providerUnavailable,
-            ),
-            _HealthLine(
-              label: l10n.geminiProvider,
+              label: l10n.providerGeminiConfigured,
               value: health.geminiConfigured
                   ? l10n.providerConfigured
                   : l10n.providerUnconfigured,
             ),
             _HealthLine(
-              label: l10n.elkaProvider,
-              value: health.elkaAvailable
+              label: l10n.providerGeminiHealth,
+              value: _diagnosticHealthLabel(health, l10n),
+            ),
+            _HealthLine(
+              label: l10n.providerLastDiagnosticPhase,
+              value: health.diagnostic.lastDiagnosticCode,
+            ),
+            _HealthLine(
+              label: l10n.providerFallbackState,
+              value: _fallbackStateLabel(health, l10n),
+            ),
+            _HealthLine(
+              label: l10n.localRulesProvider,
+              value: health.localRulesAvailable
                   ? l10n.providerAvailable
                   : l10n.providerUnavailable,
             ),
-            _HealthLine(
-              label: l10n.providerFallbackReason,
-              value: health.fallbackReason ?? l10n.providerNoFallback,
-            ),
-            _HealthLine(
-              label: l10n.providerLastFailure,
-              value: health.lastProviderFailure ?? l10n.providerNoFailure,
+            const SizedBox(height: 8),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: EdgeInsets.zero,
+              title: Text(
+                l10n.providerDiagnosticsTitle,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              children: [
+                _HealthLine(
+                  label: l10n.providerGeminiModel,
+                  value: health.diagnostic.modelId ?? l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerEndpointHost,
+                  value: health.diagnostic.endpointHost ??
+                      l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerModelPath,
+                  value:
+                      health.diagnostic.modelPath ?? l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerApiKeyPresent,
+                  value: _yesNoOrUnavailable(
+                    health.diagnostic.apiKeyPresent,
+                    l10n,
+                  ),
+                ),
+                _HealthLine(
+                  label: l10n.providerApiKeyLength,
+                  value: _numberOrUnavailable(
+                    health.diagnostic.apiKeyLength,
+                    l10n,
+                  ),
+                ),
+                _HealthLine(
+                  label: l10n.providerApiKeyFirst4,
+                  value: health.diagnostic.apiKeyFirst4 ??
+                      l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerApiKeyLast4,
+                  value: health.diagnostic.apiKeyLast4 ??
+                      l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerApiKeyContainsWhitespace,
+                  value: _yesNoOrUnavailable(
+                    health.diagnostic.apiKeyContainsWhitespace,
+                    l10n,
+                  ),
+                ),
+                _HealthLine(
+                  label: l10n.providerApiKeyWasTrimmed,
+                  value: _yesNoOrUnavailable(
+                    health.diagnostic.apiKeyWasTrimmed,
+                    l10n,
+                  ),
+                ),
+                _HealthLine(
+                  label: l10n.providerApiKeyStartsWithGooglePrefix,
+                  value: _yesNoOrUnavailable(
+                    health.diagnostic.apiKeyStartsWithExpectedGooglePrefix,
+                    l10n,
+                  ),
+                ),
+                _HealthLine(
+                  label: l10n.providerAuthHeaderPresent,
+                  value: _yesNoOrUnavailable(
+                    health.diagnostic.authHeaderPresent,
+                    l10n,
+                  ),
+                ),
+                _HealthLine(
+                  label: l10n.providerAuthHeaderValueLength,
+                  value: _numberOrUnavailable(
+                    health.diagnostic.authHeaderValueLength,
+                    l10n,
+                  ),
+                ),
+                _HealthLine(
+                  label: l10n.providerRequestAttempted,
+                  value: _yesNo(health.diagnostic.requestAttempted, l10n),
+                ),
+                _HealthLine(
+                  label: l10n.providerHttpStatusClass,
+                  value: health.diagnostic.httpStatusClass ??
+                      l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerErrorStatus,
+                  value: health.diagnostic.providerErrorStatus ??
+                      l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerErrorMessage,
+                  value: health.diagnostic.providerErrorMessage ??
+                      l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerErrorDetails,
+                  value: health.diagnostic.providerErrorDetailTypes.isEmpty
+                      ? l10n.providerNotAvailable
+                      : health.diagnostic.providerErrorDetailTypes.join(', '),
+                ),
+                _HealthLine(
+                  label: l10n.providerParserCode,
+                  value: health.diagnostic.parserRejectionCode ??
+                      l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerValidatorCode,
+                  value: health.diagnostic.validatorRejectionCode ??
+                      l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerBlockedCapabilities,
+                  value: health.diagnostic.blockedCapabilityLabels.isEmpty
+                      ? l10n.providerNotAvailable
+                      : health.diagnostic.blockedCapabilityLabels.join(', '),
+                ),
+                _HealthLine(
+                  label: l10n.providerFallbackCode,
+                  value: _fallbackCode(health) ?? l10n.providerNotAvailable,
+                ),
+                _HealthLine(
+                  label: l10n.elkaProvider,
+                  value: health.elkaAvailable
+                      ? l10n.providerAvailable
+                      : l10n.providerUnavailable,
+                ),
+                _HealthLine(
+                  label: l10n.providerLastSuccess,
+                  value: _timestamp(health.diagnostic.lastSuccessAt, l10n),
+                ),
+                _HealthLine(
+                  label: l10n.providerLastFailureAt,
+                  value: _timestamp(health.diagnostic.lastFailureAt, l10n),
+                ),
+              ],
             ),
             const Divider(height: 24),
             Text(
@@ -334,6 +475,77 @@ class _ProviderHealthCard extends StatelessWidget {
       HydrionAiProviderKind.gemini => l10n.geminiProvider,
       HydrionAiProviderKind.elka => l10n.elkaProvider,
     };
+  }
+
+  String _yesNo(bool value, AppLocalizations l10n) {
+    return value ? l10n.yes : l10n.no;
+  }
+
+  String _yesNoOrUnavailable(bool? value, AppLocalizations l10n) {
+    if (value == null) {
+      return l10n.providerNotAvailable;
+    }
+    return _yesNo(value, l10n);
+  }
+
+  String _numberOrUnavailable(int? value, AppLocalizations l10n) {
+    if (value == null) {
+      return l10n.providerNotAvailable;
+    }
+    return value.toString();
+  }
+
+  String _timestamp(DateTime? timestamp, AppLocalizations l10n) {
+    if (timestamp == null) {
+      return l10n.providerNotAvailable;
+    }
+    return timestamp.toLocal().toIso8601String();
+  }
+
+  String _fallbackStateLabel(
+    ProviderHealthSnapshot health,
+    AppLocalizations l10n,
+  ) {
+    if (health.fallbackReason != null) {
+      return l10n.providerFallbackInUse;
+    }
+    if (health.localRulesAvailable) {
+      return l10n.providerFallbackReady;
+    }
+    return l10n.providerUnavailable;
+  }
+
+  String? _fallbackCode(ProviderHealthSnapshot health) {
+    final reason = health.fallbackReason;
+    if (reason == null || reason.trim().isEmpty) {
+      return null;
+    }
+    final separator = reason.indexOf(':');
+    if (separator <= 0) {
+      return reason.trim();
+    }
+    return reason.substring(0, separator).trim();
+  }
+
+  String _diagnosticHealthLabel(
+    ProviderHealthSnapshot health,
+    AppLocalizations l10n,
+  ) {
+    if (!health.geminiConfigured &&
+        health.selectedProvider == HydrionAiProviderKind.gemini) {
+      return l10n.providerDiagnosticNoApiKey;
+    }
+    if (health.diagnostic.lastSuccessAt != null &&
+        health.diagnostic.fallbackReason == null) {
+      return l10n.providerDiagnosticHealthy;
+    }
+    if (health.diagnostic.fallbackReason != null) {
+      return l10n.providerDiagnosticFallbackActive;
+    }
+    if (health.geminiConfigured && !health.diagnostic.requestAttempted) {
+      return l10n.providerDiagnosticNotProven;
+    }
+    return l10n.providerDiagnosticLocalRules;
   }
 }
 

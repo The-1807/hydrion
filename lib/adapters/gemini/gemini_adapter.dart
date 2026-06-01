@@ -13,49 +13,195 @@ abstract class GeminiContentClient {
   });
 }
 
+class GeminiRequestBodyBuilder {
+  const GeminiRequestBodyBuilder();
+
+  Map<String, Object?> build({
+    required GeminiProviderConfig config,
+    required String prompt,
+  }) {
+    return config.useResponseSchema
+        ? buildSchemaEnabledJsonModeRequest(prompt: prompt)
+        : buildSchemaFreeJsonModeRequest(prompt: prompt);
+  }
+
+  Map<String, Object?> buildSchemaFreeJsonModeRequest({
+    required String prompt,
+  }) {
+    return {
+      'contents': [
+        {
+          'parts': [
+            {'text': prompt},
+          ],
+        },
+      ],
+      'generationConfig': {
+        'temperature': 0.2,
+        'responseMimeType': 'application/json',
+      },
+    };
+  }
+
+  Map<String, Object?> buildSchemaEnabledJsonModeRequest({
+    required String prompt,
+  }) {
+    final body = buildSchemaFreeJsonModeRequest(prompt: prompt);
+    final generationConfig = body['generationConfig']! as Map<String, Object?>;
+    generationConfig
+      ..remove('responseMimeType')
+      ..['responseFormat'] = {
+        'text': {
+          'mimeType': 'application/json',
+          'schema': _minimalHydrionActionResponseSchema,
+        },
+      };
+    return body;
+  }
+
+  static const Map<String, Object?> _minimalHydrionActionResponseSchema = {
+    'type': 'object',
+    'properties': {
+      'actions': {
+        'type': 'array',
+        'maxItems': 3,
+        'items': {
+          'type': 'object',
+          'properties': {
+            'type': {
+              'type': 'string',
+              'enum': [
+                'coachMessage',
+                'suggestReminder',
+                'suggestHydrationLog',
+                'explainTrend',
+                'suggestChallenge',
+                'unsupportedCapabilityNotice',
+              ],
+            },
+            'message': {'type': 'string'},
+            'volumeMl': {'type': 'integer'},
+            'delayMinutes': {'type': 'integer'},
+            'priority': {'type': 'integer'},
+            'claimsOsNotificationScheduled': {'type': 'boolean'},
+            'challengeId': {'type': 'string'},
+            'name': {'type': 'string'},
+            'description': {'type': 'string'},
+            'targetMl': {'type': 'integer'},
+            'durationDays': {'type': 'integer'},
+            'claimsSocialSync': {'type': 'boolean'},
+            'capability': {
+              'type': 'string',
+              'enum': [
+                'localPersistence',
+                'elka',
+                'gemini',
+                'cloudAi',
+                'cloudSync',
+                'voiceInput',
+                'bleSync',
+                'healthSync',
+                'osNotifications',
+                'arVisualization',
+                'socialSync',
+              ],
+            },
+            'requiredCapabilities': {
+              'type': 'array',
+              'items': {
+                'type': 'string',
+                'enum': [
+                  'localPersistence',
+                  'elka',
+                  'gemini',
+                  'cloudAi',
+                  'cloudSync',
+                  'voiceInput',
+                  'bleSync',
+                  'healthSync',
+                  'osNotifications',
+                  'arVisualization',
+                  'socialSync',
+                ],
+              },
+            },
+          },
+          'required': ['type', 'message'],
+        },
+      },
+    },
+    'required': ['actions'],
+  };
+}
+
 class GeminiHttpContentClient implements GeminiContentClient {
   final http.Client _client;
+  final GeminiRequestBodyBuilder _requestBodyBuilder;
 
-  GeminiHttpContentClient({http.Client? client})
-      : _client = client ?? http.Client();
+  GeminiHttpContentClient({
+    http.Client? client,
+    GeminiRequestBodyBuilder requestBodyBuilder =
+        const GeminiRequestBodyBuilder(),
+  })  : _client = client ?? http.Client(),
+        _requestBodyBuilder = requestBodyBuilder;
 
   @override
   Future<String> generateContent({
     required GeminiProviderConfig config,
     required String prompt,
   }) async {
-    final response = await _client
-        .post(
-          config.generateContentUri,
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': config.apiKey,
-          },
-          body: jsonEncode({
-            'contents': [
-              {
-                'parts': [
-                  {'text': prompt},
-                ],
-              },
-            ],
-            'generationConfig': {
-              'temperature': 0.2,
-              'responseMimeType': 'application/json',
+    final http.Response response;
+    try {
+      response = await _client
+          .post(
+            config.generateContentUri,
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': config.trimmedApiKey,
             },
-          }),
-        )
-        .timeout(config.timeout);
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw GeminiProviderException(
-        'Gemini request failed with HTTP ${response.statusCode}.',
+            body: jsonEncode(
+              _requestBodyBuilder.build(config: config, prompt: prompt),
+            ),
+          )
+          .timeout(config.timeout);
+    } on TimeoutException {
+      throw const GeminiProviderException(
+        'Gemini request timed out.',
+        diagnosticCode: ProviderDiagnosticCodes.timeout,
+        timedOut: true,
+        responseEnvelopePhase: ProviderDiagnosticCodes.timeout,
       );
     }
 
-    final payload = jsonDecode(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final error = _safeErrorDetails(response.body);
+      throw GeminiProviderException(
+        'Gemini request failed with HTTP ${response.statusCode}.',
+        diagnosticCode: ProviderDiagnosticCodes.httpFailure,
+        httpStatusCode: response.statusCode,
+        responseEnvelopePhase: ProviderDiagnosticCodes.httpFailure,
+        providerErrorStatus: error.status,
+        providerErrorMessage: error.message,
+        providerErrorDetailTypes: error.detailTypes,
+      );
+    }
+
+    final Object? payload;
+    try {
+      payload = jsonDecode(response.body);
+    } on FormatException {
+      throw const GeminiProviderException(
+        'Gemini returned malformed JSON.',
+        diagnosticCode: ProviderDiagnosticCodes.responseJsonDecodeFailed,
+        responseEnvelopePhase: ProviderDiagnosticCodes.responseJsonDecodeFailed,
+      );
+    }
     if (payload is! Map<String, dynamic>) {
-      throw const GeminiProviderException('Gemini returned malformed JSON.');
+      throw const GeminiProviderException(
+        'Gemini returned malformed JSON.',
+        diagnosticCode: ProviderDiagnosticCodes.responseJsonDecodeFailed,
+        responseEnvelopePhase: ProviderDiagnosticCodes.responseJsonDecodeFailed,
+      );
     }
     return _extractText(payload);
   }
@@ -63,22 +209,38 @@ class GeminiHttpContentClient implements GeminiContentClient {
   static String _extractText(Map<String, dynamic> payload) {
     final candidates = payload['candidates'];
     if (candidates is! List || candidates.isEmpty) {
-      throw const GeminiProviderException('Gemini returned no candidates.');
+      throw const GeminiProviderException(
+        'Gemini returned no candidates.',
+        diagnosticCode: ProviderDiagnosticCodes.noCandidates,
+        responseEnvelopePhase: ProviderDiagnosticCodes.noCandidates,
+      );
     }
 
     final candidate = candidates.first;
     if (candidate is! Map<String, dynamic>) {
-      throw const GeminiProviderException('Gemini candidate was malformed.');
+      throw const GeminiProviderException(
+        'Gemini candidate was malformed.',
+        diagnosticCode: ProviderDiagnosticCodes.noContent,
+        responseEnvelopePhase: ProviderDiagnosticCodes.noContent,
+      );
     }
 
     final content = candidate['content'];
     if (content is! Map<String, dynamic>) {
-      throw const GeminiProviderException('Gemini content was malformed.');
+      throw const GeminiProviderException(
+        'Gemini content was malformed.',
+        diagnosticCode: ProviderDiagnosticCodes.noContent,
+        responseEnvelopePhase: ProviderDiagnosticCodes.noContent,
+      );
     }
 
     final parts = content['parts'];
     if (parts is! List) {
-      throw const GeminiProviderException('Gemini parts were malformed.');
+      throw const GeminiProviderException(
+        'Gemini parts were malformed.',
+        diagnosticCode: ProviderDiagnosticCodes.noParts,
+        responseEnvelopePhase: ProviderDiagnosticCodes.noParts,
+      );
     }
 
     final text = parts
@@ -88,10 +250,113 @@ class GeminiHttpContentClient implements GeminiContentClient {
         .join('\n')
         .trim();
     if (text.isEmpty) {
-      throw const GeminiProviderException('Gemini returned empty text.');
+      throw const GeminiProviderException(
+        'Gemini returned empty text.',
+        diagnosticCode: ProviderDiagnosticCodes.emptyText,
+        responseEnvelopePhase: ProviderDiagnosticCodes.emptyText,
+      );
     }
     return text;
   }
+
+  static _SafeGeminiErrorDetails _safeErrorDetails(String body) {
+    if (body.trim().isEmpty) {
+      return const _SafeGeminiErrorDetails();
+    }
+
+    final Object? payload;
+    try {
+      payload = jsonDecode(body);
+    } on FormatException {
+      return const _SafeGeminiErrorDetails();
+    }
+    if (payload is! Map<String, dynamic>) {
+      return const _SafeGeminiErrorDetails();
+    }
+
+    final error = payload['error'];
+    if (error is! Map<String, dynamic>) {
+      return const _SafeGeminiErrorDetails();
+    }
+
+    final status = _safeShortString(error['status']);
+    final message = _safeErrorMessage(error['message']);
+    final details = error['details'];
+    final detailTypes = <String>[];
+    if (details is List) {
+      for (final detail in details) {
+        if (detail is! Map) {
+          continue;
+        }
+        final type = _safeShortString(detail['@type'] ?? detail['type']);
+        if (type != null) {
+          detailTypes.add(type);
+        }
+      }
+    }
+
+    return _SafeGeminiErrorDetails(
+      status: status,
+      message: message,
+      detailTypes: detailTypes.take(4).toList(growable: false),
+    );
+  }
+
+  static String? _safeShortString(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isEmpty || normalized.length > 160) {
+      return null;
+    }
+    return _redactSecrets(normalized);
+  }
+
+  static String? _safeErrorMessage(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    final lower = normalized.toLowerCase();
+    const contextMarkers = [
+      'hydrationcontext',
+      'dailysummary',
+      'lifetimeml',
+      'eventcount',
+      'user query',
+      'consumedml',
+      'targetml',
+    ];
+    if (contextMarkers.any(lower.contains)) {
+      return null;
+    }
+    final redacted = _redactSecrets(normalized);
+    return redacted.length <= 240
+        ? redacted
+        : '${redacted.substring(0, 237)}...';
+  }
+
+  static String _redactSecrets(String value) {
+    return value
+        .replaceAll(RegExp(r'AIza[0-9A-Za-z_-]{20,}'), '[redacted]')
+        .replaceAll(RegExp(r'sk-[0-9A-Za-z_-]{20,}'), '[redacted]');
+  }
+}
+
+class _SafeGeminiErrorDetails {
+  final String? status;
+  final String? message;
+  final List<String> detailTypes;
+
+  const _SafeGeminiErrorDetails({
+    this.status,
+    this.message,
+    this.detailTypes = const <String>[],
+  });
 }
 
 class GeminiHydrationAiProvider implements HydrationAiProvider {
@@ -123,6 +388,8 @@ class GeminiHydrationAiProvider implements HydrationAiProvider {
     if (!isAvailable) {
       throw const GeminiProviderUnavailable(
         'Gemini provider is unavailable because no API key is configured.',
+        diagnosticCode: ProviderDiagnosticCodes.noApiKey,
+        responseEnvelopePhase: ProviderDiagnosticCodes.noApiKey,
       );
     }
 
@@ -134,6 +401,8 @@ class GeminiHydrationAiProvider implements HydrationAiProvider {
     if (actions.isEmpty) {
       throw const GeminiProviderException(
         'Gemini returned no Hydrion action proposals.',
+        diagnosticCode: ProviderDiagnosticCodes.emptyActions,
+        parserRejectionCode: ProviderDiagnosticCodes.emptyActions,
       );
     }
     return actions;
@@ -223,23 +492,40 @@ Supported action types and fields:
     try {
       payload = jsonDecode(_extractJson(generatedText));
     } on FormatException {
-      throw const GeminiProviderException('Gemini output was invalid JSON.');
+      throw const GeminiProviderException(
+        'Gemini output was invalid JSON.',
+        diagnosticCode: ProviderDiagnosticCodes.jsonDecodeFailed,
+        parserRejectionCode: ProviderDiagnosticCodes.jsonDecodeFailed,
+      );
     }
 
     if (payload is! Map<String, dynamic>) {
       throw const GeminiProviderException(
         'Gemini output must be an object with an actions list.',
+        diagnosticCode: ProviderDiagnosticCodes.missingActions,
+        parserRejectionCode: ProviderDiagnosticCodes.missingActions,
       );
     }
     final rawActions = payload['actions'];
     if (rawActions is! List) {
       throw const GeminiProviderException(
         'Gemini output did not contain an actions list.',
+        diagnosticCode: ProviderDiagnosticCodes.missingActions,
+        parserRejectionCode: ProviderDiagnosticCodes.missingActions,
       );
     }
-    if (rawActions.isEmpty || rawActions.length > maxActions) {
+    if (rawActions.isEmpty) {
       throw const GeminiProviderException(
-        'Gemini output must contain 1 to 3 actions.',
+        'Gemini output must contain at least 1 action.',
+        diagnosticCode: ProviderDiagnosticCodes.emptyActions,
+        parserRejectionCode: ProviderDiagnosticCodes.emptyActions,
+      );
+    }
+    if (rawActions.length > maxActions) {
+      throw const GeminiProviderException(
+        'Gemini output must contain no more than 3 actions.',
+        diagnosticCode: ProviderDiagnosticCodes.tooManyActions,
+        parserRejectionCode: ProviderDiagnosticCodes.tooManyActions,
       );
     }
 
@@ -250,6 +536,8 @@ Supported action types and fields:
         else
           throw const GeminiProviderException(
             'Gemini action entries must be JSON objects.',
+            diagnosticCode: ProviderDiagnosticCodes.invalidActionSchema,
+            parserRejectionCode: ProviderDiagnosticCodes.invalidActionSchema,
           ),
     ];
   }
@@ -347,6 +635,8 @@ Supported action types and fields:
         ),
       _ => throw GeminiProviderException(
           'Gemini returned unsupported action type "$type".',
+          diagnosticCode: ProviderDiagnosticCodes.unknownActionType,
+          parserRejectionCode: ProviderDiagnosticCodes.unknownActionType,
         ),
     };
   }
@@ -372,7 +662,11 @@ Supported action types and fields:
     if (firstArray >= 0 && lastArray > firstArray) {
       return withoutFence.substring(firstArray, lastArray + 1);
     }
-    throw const GeminiProviderException('Gemini output was not JSON.');
+    throw const GeminiProviderException(
+      'Gemini output was not JSON.',
+      diagnosticCode: ProviderDiagnosticCodes.outputNotJson,
+      parserRejectionCode: ProviderDiagnosticCodes.jsonDecodeFailed,
+    );
   }
 
   String _requiredString(
@@ -382,12 +676,21 @@ Supported action types and fields:
   }) {
     final value = payload[key];
     if (value is! String) {
-      throw GeminiProviderException('Gemini field "$key" must be a string.');
+      throw GeminiProviderException(
+        'Gemini field "$key" must be a string.',
+        diagnosticCode: ProviderDiagnosticCodes.missingRequiredField,
+        parserRejectionCode: ProviderDiagnosticCodes.missingRequiredField,
+      );
     }
     final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (normalized.isEmpty || normalized.length > maxLength) {
+      final code = key == 'message'
+          ? ProviderDiagnosticCodes.oversizedMessage
+          : ProviderDiagnosticCodes.missingRequiredField;
       throw GeminiProviderException(
         'Gemini field "$key" must be 1 to $maxLength characters.',
+        diagnosticCode: code,
+        parserRejectionCode: code,
       );
     }
     return normalized;
@@ -406,11 +709,27 @@ Supported action types and fields:
             ? int.tryParse(value)
             : null;
     if (parsed == null || parsed < min || parsed > max) {
+      final code = _intFieldCode(key);
       throw GeminiProviderException(
         'Gemini field "$key" must be an integer from $min to $max.',
+        diagnosticCode: code,
+        parserRejectionCode: code,
       );
     }
     return parsed;
+  }
+
+  String _intFieldCode(String key) {
+    return switch (key) {
+      'volumeMl' => ProviderDiagnosticCodes.invalidHydrationAmount,
+      'delayMinutes' ||
+      'priority' =>
+        ProviderDiagnosticCodes.invalidReminderDelay,
+      'targetMl' ||
+      'durationDays' =>
+        ProviderDiagnosticCodes.invalidChallengeShape,
+      _ => ProviderDiagnosticCodes.missingRequiredField,
+    };
   }
 
   int _optionalIntInRange(
@@ -447,6 +766,8 @@ Supported action types and fields:
       if (capability == null) {
         throw const GeminiProviderException(
           'Gemini returned an unknown required capability.',
+          diagnosticCode: ProviderDiagnosticCodes.unknownCapability,
+          parserRejectionCode: ProviderDiagnosticCodes.unknownCapability,
         );
       }
       capabilities.add(capability);
@@ -477,19 +798,83 @@ Supported action types and fields:
   }
 }
 
-class GeminiProviderUnavailable implements Exception {
+class GeminiProviderUnavailable implements ProviderDiagnosticFailure {
   final String message;
+  @override
+  final String diagnosticCode;
+  @override
+  final int? httpStatusCode;
+  @override
+  final bool timedOut;
+  @override
+  final String? responseEnvelopePhase;
+  @override
+  final String? parserRejectionCode;
+  @override
+  final String? validatorRejectionCode;
+  @override
+  final List<String> blockedCapabilityLabels;
+  @override
+  final String? providerErrorStatus;
+  @override
+  final String? providerErrorMessage;
+  @override
+  final List<String> providerErrorDetailTypes;
 
-  const GeminiProviderUnavailable(this.message);
+  const GeminiProviderUnavailable(
+    this.message, {
+    this.diagnosticCode = ProviderDiagnosticCodes.noApiKey,
+    this.httpStatusCode,
+    this.timedOut = false,
+    this.responseEnvelopePhase,
+    this.parserRejectionCode,
+    this.validatorRejectionCode,
+    this.blockedCapabilityLabels = const <String>[],
+    this.providerErrorStatus,
+    this.providerErrorMessage,
+    this.providerErrorDetailTypes = const <String>[],
+  });
 
   @override
   String toString() => message;
 }
 
-class GeminiProviderException implements Exception {
+class GeminiProviderException implements ProviderDiagnosticFailure {
   final String message;
+  @override
+  final String diagnosticCode;
+  @override
+  final int? httpStatusCode;
+  @override
+  final bool timedOut;
+  @override
+  final String? responseEnvelopePhase;
+  @override
+  final String? parserRejectionCode;
+  @override
+  final String? validatorRejectionCode;
+  @override
+  final List<String> blockedCapabilityLabels;
+  @override
+  final String? providerErrorStatus;
+  @override
+  final String? providerErrorMessage;
+  @override
+  final List<String> providerErrorDetailTypes;
 
-  const GeminiProviderException(this.message);
+  const GeminiProviderException(
+    this.message, {
+    this.diagnosticCode = ProviderDiagnosticCodes.providerFailure,
+    this.httpStatusCode,
+    this.timedOut = false,
+    this.responseEnvelopePhase,
+    this.parserRejectionCode,
+    this.validatorRejectionCode,
+    this.blockedCapabilityLabels = const <String>[],
+    this.providerErrorStatus,
+    this.providerErrorMessage,
+    this.providerErrorDetailTypes = const <String>[],
+  });
 
   @override
   String toString() => message;

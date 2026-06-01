@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class HydrationSummary {
   final double hydrationPercent;
   final int entryCount;
@@ -676,6 +678,118 @@ abstract class HydrationAiActionExecutionService {
   });
 }
 
+enum CoachSuggestionKind {
+  hydrationLog,
+  reminder,
+  challenge,
+  trendInsight,
+  unsupportedCapability,
+}
+
+enum CoachSuggestionDetailKind {
+  volumeMl,
+  delayMinutes,
+  priority,
+  challengeName,
+  targetMl,
+  durationDays,
+  capability,
+}
+
+enum CoachSuggestionStatus {
+  validated,
+  applied,
+  dismissed,
+  rejected,
+  displayOnly,
+}
+
+class CoachSuggestionDetail {
+  final CoachSuggestionDetailKind kind;
+  final int? intValue;
+  final String? textValue;
+  final HydrionCapability? capability;
+
+  const CoachSuggestionDetail({
+    required this.kind,
+    this.intValue,
+    this.textValue,
+    this.capability,
+  });
+}
+
+class CoachSuggestionCard {
+  final String id;
+  final CoachSuggestionKind kind;
+  final HydrionAiProviderKind providerSource;
+  final String message;
+  final List<CoachSuggestionDetail> details;
+  final bool changesAppState;
+  final bool requiresConfirmation;
+  final CoachSuggestionStatus status;
+
+  const CoachSuggestionCard({
+    required this.id,
+    required this.kind,
+    required this.providerSource,
+    required this.message,
+    this.details = const <CoachSuggestionDetail>[],
+    required this.changesAppState,
+    required this.requiresConfirmation,
+    this.status = CoachSuggestionStatus.validated,
+  });
+
+  CoachSuggestionCard copyWith({
+    CoachSuggestionStatus? status,
+  }) {
+    return CoachSuggestionCard(
+      id: id,
+      kind: kind,
+      providerSource: providerSource,
+      message: message,
+      details: details,
+      changesAppState: changesAppState,
+      requiresConfirmation: requiresConfirmation,
+      status: status ?? this.status,
+    );
+  }
+}
+
+class CoachTurn {
+  final String message;
+  final List<CoachSuggestionCard> suggestions;
+  final bool usedFallback;
+
+  const CoachTurn({
+    this.message = '',
+    this.suggestions = const <CoachSuggestionCard>[],
+    this.usedFallback = false,
+  });
+}
+
+class CoachSuggestionExecutionView {
+  final String suggestionId;
+  final CoachSuggestionStatus status;
+  final String? appliedEntityId;
+
+  const CoachSuggestionExecutionView({
+    required this.suggestionId,
+    required this.status,
+    this.appliedEntityId,
+  });
+}
+
+abstract class CoachSuggestionService {
+  Future<CoachTurn> ask({
+    required String userQuery,
+    required HydrationCoachDigestKey digestKey,
+  });
+
+  Future<CoachSuggestionExecutionView> confirm(String suggestionId);
+
+  void dismiss(String suggestionId);
+}
+
 abstract class HydrationCoach {
   Future<String> getHydrationCoachResponse({
     required double hydrationPercent,
@@ -713,6 +827,7 @@ class ProviderHealthSnapshot {
   final String? fallbackReason;
   final bool privacyDisclosureRequired;
   final bool privacyConsentRecorded;
+  final ProviderDiagnosticSnapshot diagnostic;
 
   const ProviderHealthSnapshot({
     required this.selectedProvider,
@@ -725,6 +840,7 @@ class ProviderHealthSnapshot {
     this.fallbackReason,
     required this.privacyDisclosureRequired,
     required this.privacyConsentRecorded,
+    required this.diagnostic,
   });
 
   const ProviderHealthSnapshot.localRules()
@@ -737,7 +853,8 @@ class ProviderHealthSnapshot {
         lastProviderFailure = null,
         fallbackReason = null,
         privacyDisclosureRequired = false,
-        privacyConsentRecorded = true;
+        privacyConsentRecorded = true,
+        diagnostic = const ProviderDiagnosticSnapshot.localRules();
 
   ProviderHealthSnapshot copyWith({
     HydrionAiProviderKind? selectedProvider,
@@ -750,6 +867,7 @@ class ProviderHealthSnapshot {
     Object? fallbackReason = _unchanged,
     bool? privacyDisclosureRequired,
     bool? privacyConsentRecorded,
+    ProviderDiagnosticSnapshot? diagnostic,
   }) {
     return ProviderHealthSnapshot(
       selectedProvider: selectedProvider ?? this.selectedProvider,
@@ -768,12 +886,266 @@ class ProviderHealthSnapshot {
           privacyDisclosureRequired ?? this.privacyDisclosureRequired,
       privacyConsentRecorded:
           privacyConsentRecorded ?? this.privacyConsentRecorded,
+      diagnostic: diagnostic ?? this.diagnostic,
     );
   }
 
   static const Object _unchanged = Object();
 }
 
-abstract class ProviderHealthReporter {
+class ProviderDiagnosticCodes {
+  static const String localRulesActive = 'local_rules_active';
+  static const String notAttempted = 'not_attempted';
+  static const String noApiKey = 'no_api_key';
+  static const String requestAttempted = 'request_attempted';
+  static const String httpFailure = 'http_failure';
+  static const String timeout = 'timeout';
+  static const String responseDecoded = 'response_decoded';
+  static const String noCandidates = 'no_candidates';
+  static const String noContent = 'no_content';
+  static const String noParts = 'no_parts';
+  static const String emptyText = 'empty_text';
+  static const String responseJsonDecodeFailed = 'response_json_decode_failed';
+  static const String jsonDecodeFailed = 'json_decode_failed';
+  static const String outputNotJson = 'output_not_json';
+  static const String missingActions = 'missing_actions';
+  static const String emptyActions = 'empty_actions';
+  static const String tooManyActions = 'too_many_actions';
+  static const String invalidActionSchema = 'invalid_action_schema';
+  static const String unknownActionType = 'unknown_action_type';
+  static const String missingRequiredField = 'missing_required_field';
+  static const String oversizedMessage = 'oversized_message';
+  static const String invalidHydrationAmount = 'invalid_hydration_amount';
+  static const String invalidReminderDelay = 'invalid_reminder_delay';
+  static const String invalidChallengeShape = 'invalid_challenge_shape';
+  static const String unknownCapability = 'unknown_capability';
+  static const String validatorRejected = 'validator_rejected';
+  static const String unsafeCapabilityClaim = 'unsafe_capability_claim';
+  static const String success = 'success';
+  static const String providerFailure = 'provider_failure';
+}
+
+abstract class ProviderDiagnosticFailure implements Exception {
+  String get diagnosticCode;
+  int? get httpStatusCode;
+  bool get timedOut;
+  String? get responseEnvelopePhase;
+  String? get parserRejectionCode;
+  String? get validatorRejectionCode;
+  List<String> get blockedCapabilityLabels;
+  String? get providerErrorStatus;
+  String? get providerErrorMessage;
+  List<String> get providerErrorDetailTypes;
+}
+
+class ProviderDiagnosticSnapshot {
+  final HydrionAiProviderKind selectedProvider;
+  final HydrionAiProviderKind activeProvider;
+  final bool configured;
+  final String? modelId;
+  final String? endpointHost;
+  final String? modelPath;
+  final bool? apiKeyPresent;
+  final int? apiKeyLength;
+  final String? apiKeyFirst4;
+  final String? apiKeyLast4;
+  final bool? apiKeyContainsWhitespace;
+  final bool? apiKeyWasTrimmed;
+  final bool? apiKeyStartsWithExpectedGooglePrefix;
+  final bool? authHeaderPresent;
+  final int? authHeaderValueLength;
+  final bool requestAttempted;
+  final String? httpStatusClass;
+  final bool timedOut;
+  final String? responseEnvelopePhase;
+  final String? parserRejectionCode;
+  final String? validatorRejectionCode;
+  final List<String> blockedCapabilityLabels;
+  final String? providerErrorStatus;
+  final String? providerErrorMessage;
+  final List<String> providerErrorDetailTypes;
+  final String? fallbackReason;
+  final DateTime? lastSuccessAt;
+  final DateTime? lastFailureAt;
+
+  const ProviderDiagnosticSnapshot({
+    required this.selectedProvider,
+    required this.activeProvider,
+    required this.configured,
+    this.modelId,
+    this.endpointHost,
+    this.modelPath,
+    this.apiKeyPresent,
+    this.apiKeyLength,
+    this.apiKeyFirst4,
+    this.apiKeyLast4,
+    this.apiKeyContainsWhitespace,
+    this.apiKeyWasTrimmed,
+    this.apiKeyStartsWithExpectedGooglePrefix,
+    this.authHeaderPresent,
+    this.authHeaderValueLength,
+    this.requestAttempted = false,
+    this.httpStatusClass,
+    this.timedOut = false,
+    this.responseEnvelopePhase,
+    this.parserRejectionCode,
+    this.validatorRejectionCode,
+    this.blockedCapabilityLabels = const <String>[],
+    this.providerErrorStatus,
+    this.providerErrorMessage,
+    this.providerErrorDetailTypes = const <String>[],
+    this.fallbackReason,
+    this.lastSuccessAt,
+    this.lastFailureAt,
+  });
+
+  const ProviderDiagnosticSnapshot.localRules()
+      : selectedProvider = HydrionAiProviderKind.localRules,
+        activeProvider = HydrionAiProviderKind.localRules,
+        configured = true,
+        modelId = null,
+        endpointHost = null,
+        modelPath = null,
+        apiKeyPresent = null,
+        apiKeyLength = null,
+        apiKeyFirst4 = null,
+        apiKeyLast4 = null,
+        apiKeyContainsWhitespace = null,
+        apiKeyWasTrimmed = null,
+        apiKeyStartsWithExpectedGooglePrefix = null,
+        authHeaderPresent = null,
+        authHeaderValueLength = null,
+        requestAttempted = false,
+        httpStatusClass = null,
+        timedOut = false,
+        responseEnvelopePhase = ProviderDiagnosticCodes.localRulesActive,
+        parserRejectionCode = null,
+        validatorRejectionCode = null,
+        blockedCapabilityLabels = const <String>[],
+        providerErrorStatus = null,
+        providerErrorMessage = null,
+        providerErrorDetailTypes = const <String>[],
+        fallbackReason = null,
+        lastSuccessAt = null,
+        lastFailureAt = null;
+
+  ProviderDiagnosticSnapshot copyWith({
+    HydrionAiProviderKind? selectedProvider,
+    HydrionAiProviderKind? activeProvider,
+    bool? configured,
+    Object? modelId = _unchanged,
+    Object? endpointHost = _unchanged,
+    Object? modelPath = _unchanged,
+    Object? apiKeyPresent = _unchanged,
+    Object? apiKeyLength = _unchanged,
+    Object? apiKeyFirst4 = _unchanged,
+    Object? apiKeyLast4 = _unchanged,
+    Object? apiKeyContainsWhitespace = _unchanged,
+    Object? apiKeyWasTrimmed = _unchanged,
+    Object? apiKeyStartsWithExpectedGooglePrefix = _unchanged,
+    Object? authHeaderPresent = _unchanged,
+    Object? authHeaderValueLength = _unchanged,
+    bool? requestAttempted,
+    Object? httpStatusClass = _unchanged,
+    bool? timedOut,
+    Object? responseEnvelopePhase = _unchanged,
+    Object? parserRejectionCode = _unchanged,
+    Object? validatorRejectionCode = _unchanged,
+    List<String>? blockedCapabilityLabels,
+    Object? providerErrorStatus = _unchanged,
+    Object? providerErrorMessage = _unchanged,
+    List<String>? providerErrorDetailTypes,
+    Object? fallbackReason = _unchanged,
+    Object? lastSuccessAt = _unchanged,
+    Object? lastFailureAt = _unchanged,
+  }) {
+    return ProviderDiagnosticSnapshot(
+      selectedProvider: selectedProvider ?? this.selectedProvider,
+      activeProvider: activeProvider ?? this.activeProvider,
+      configured: configured ?? this.configured,
+      modelId:
+          identical(modelId, _unchanged) ? this.modelId : modelId as String?,
+      endpointHost: identical(endpointHost, _unchanged)
+          ? this.endpointHost
+          : endpointHost as String?,
+      modelPath: identical(modelPath, _unchanged)
+          ? this.modelPath
+          : modelPath as String?,
+      apiKeyPresent: identical(apiKeyPresent, _unchanged)
+          ? this.apiKeyPresent
+          : apiKeyPresent as bool?,
+      apiKeyLength: identical(apiKeyLength, _unchanged)
+          ? this.apiKeyLength
+          : apiKeyLength as int?,
+      apiKeyFirst4: identical(apiKeyFirst4, _unchanged)
+          ? this.apiKeyFirst4
+          : apiKeyFirst4 as String?,
+      apiKeyLast4: identical(apiKeyLast4, _unchanged)
+          ? this.apiKeyLast4
+          : apiKeyLast4 as String?,
+      apiKeyContainsWhitespace: identical(apiKeyContainsWhitespace, _unchanged)
+          ? this.apiKeyContainsWhitespace
+          : apiKeyContainsWhitespace as bool?,
+      apiKeyWasTrimmed: identical(apiKeyWasTrimmed, _unchanged)
+          ? this.apiKeyWasTrimmed
+          : apiKeyWasTrimmed as bool?,
+      apiKeyStartsWithExpectedGooglePrefix:
+          identical(apiKeyStartsWithExpectedGooglePrefix, _unchanged)
+              ? this.apiKeyStartsWithExpectedGooglePrefix
+              : apiKeyStartsWithExpectedGooglePrefix as bool?,
+      authHeaderPresent: identical(authHeaderPresent, _unchanged)
+          ? this.authHeaderPresent
+          : authHeaderPresent as bool?,
+      authHeaderValueLength: identical(authHeaderValueLength, _unchanged)
+          ? this.authHeaderValueLength
+          : authHeaderValueLength as int?,
+      requestAttempted: requestAttempted ?? this.requestAttempted,
+      httpStatusClass: identical(httpStatusClass, _unchanged)
+          ? this.httpStatusClass
+          : httpStatusClass as String?,
+      timedOut: timedOut ?? this.timedOut,
+      responseEnvelopePhase: identical(responseEnvelopePhase, _unchanged)
+          ? this.responseEnvelopePhase
+          : responseEnvelopePhase as String?,
+      parserRejectionCode: identical(parserRejectionCode, _unchanged)
+          ? this.parserRejectionCode
+          : parserRejectionCode as String?,
+      validatorRejectionCode: identical(validatorRejectionCode, _unchanged)
+          ? this.validatorRejectionCode
+          : validatorRejectionCode as String?,
+      blockedCapabilityLabels:
+          blockedCapabilityLabels ?? this.blockedCapabilityLabels,
+      providerErrorStatus: identical(providerErrorStatus, _unchanged)
+          ? this.providerErrorStatus
+          : providerErrorStatus as String?,
+      providerErrorMessage: identical(providerErrorMessage, _unchanged)
+          ? this.providerErrorMessage
+          : providerErrorMessage as String?,
+      providerErrorDetailTypes:
+          providerErrorDetailTypes ?? this.providerErrorDetailTypes,
+      fallbackReason: identical(fallbackReason, _unchanged)
+          ? this.fallbackReason
+          : fallbackReason as String?,
+      lastSuccessAt: identical(lastSuccessAt, _unchanged)
+          ? this.lastSuccessAt
+          : lastSuccessAt as DateTime?,
+      lastFailureAt: identical(lastFailureAt, _unchanged)
+          ? this.lastFailureAt
+          : lastFailureAt as DateTime?,
+    );
+  }
+
+  String get lastDiagnosticCode =>
+      validatorRejectionCode ??
+      parserRejectionCode ??
+      responseEnvelopePhase ??
+      (timedOut ? ProviderDiagnosticCodes.timeout : null) ??
+      httpStatusClass ??
+      ProviderDiagnosticCodes.notAttempted;
+
+  static const Object _unchanged = Object();
+}
+
+abstract class ProviderHealthReporter extends ChangeNotifier {
   ProviderHealthSnapshot get providerHealth;
 }

@@ -79,6 +79,10 @@
   "providerUnavailable": "Indisponible",
   "providerConfigured": "Configuré",
   "providerUnconfigured": "Non configuré",
+  "providerFallbackState": "État du repli",
+  "providerFallbackReady": "Le repli local_rules est disponible",
+  "providerFallbackInUse": "Repli local_rules utilisé",
+  "providerFallbackCode": "Code de repli",
   "providerFallbackReason": "Raison du repli",
   "providerNoFallback": "Aucun repli nécessaire",
   "providerLastFailure": "Dernier échec fournisseur",
@@ -87,6 +91,40 @@
   "providerPrivacyLocalOnly": "local_rules garde le contexte d'hydratation sur cet appareil.",
   "providerPrivacyGeminiDisclosure": "Quand Gemini est configuré, Hydrion peut envoyer un contexte d'hydratation typé à Gemini. N'intégrez pas de clé Gemini partagée dans les artefacts web ou mobiles.",
   "providerConsentRequired": "L'IA non locale nécessite un consentement utilisateur explicite avant la production.",
+  "providerGeminiHealth": "État Gemini",
+  "providerGeminiModel": "Modèle Gemini",
+  "providerGeminiConfigured": "Gemini configuré",
+  "providerDiagnosticsTitle": "Diagnostics Gemini",
+  "providerEndpointHost": "Hôte endpoint",
+  "providerModelPath": "Chemin du modèle",
+  "providerApiKeyPresent": "Clé API présente",
+  "providerApiKeyLength": "Longueur de clé",
+  "providerApiKeyFirst4": "4 premiers de clé",
+  "providerApiKeyLast4": "4 derniers de clé",
+  "providerApiKeyContainsWhitespace": "Clé avec espaces",
+  "providerApiKeyWasTrimmed": "Clé nettoyée",
+  "providerApiKeyStartsWithGooglePrefix": "Préfixe Google",
+  "providerAuthHeaderPresent": "En-tête auth présent",
+  "providerAuthHeaderValueLength": "Longueur en-tête auth",
+  "providerRequestAttempted": "Requête tentée",
+  "providerHttpStatusClass": "État HTTP",
+  "providerErrorStatus": "État d'erreur Gemini",
+  "providerErrorMessage": "Message d'erreur Gemini",
+  "providerErrorDetails": "Détails d'erreur Gemini",
+  "providerLastDiagnosticPhase": "Dernier diagnostic",
+  "providerParserCode": "Code analyseur",
+  "providerValidatorCode": "Code validateur",
+  "providerBlockedCapabilities": "Capacités bloquées",
+  "providerLastSuccess": "Dernier succès Gemini",
+  "providerLastFailureAt": "Heure du dernier échec",
+  "providerNotAvailable": "Indisponible",
+  "providerDiagnosticNoApiKey": "Aucune clé API Gemini configurée",
+  "providerDiagnosticHealthy": "Gemini est sain ; la dernière réponse a passé la validation",
+  "providerDiagnosticFallbackActive": "Le repli local_rules est actif",
+  "providerDiagnosticNotProven": "Gemini est configuré, mais pas encore prouvé sain",
+  "providerDiagnosticLocalRules": "local_rules est actif",
+  "yes": "Oui",
+  "no": "Non",
   "localPersistence": "Persistance locale",
   "onDevice": "Sur appareil",
   "unavailable": "Indisponible",
@@ -158,10 +196,84 @@
   "arNoPluginActive": "Aucun plugin AR, autorisation caméra ni session AR native active.",
   "chatError": "Impossible d'obtenir la réponse du coach",
   "localFallbackCoach": "Coach local de secours",
+  "providerCoachTitle": "Coach fournisseur",
+  "coachUserMessageLabel": "Vous",
+  "coachReplyMessageLabel": "Coach",
+  "coachContextSnapshot": "Aujourd'hui : {todayMl} / {targetMl} ml. Journaux totaux : {eventCount, plural, =1{1} other{{eventCount}}}. Actif : {activeProvider}.",
+  "coachProviderReady": "{activeProvider} est actif. Les réponses sont validées avant que Hydrion leur fasse confiance.",
+  "coachProviderFallbackActive": "Repli local_rules utilisé. La sortie du fournisseur reste optionnelle.",
+  "coachLocalProviderReady": "local_rules est actif. Le contexte hydratation reste sur cet appareil.",
   "coachContextBanner": "{mode}. Utilisation des données hydratation enregistrées sur l'appareil. Aujourd'hui : {todayMl} ml. Total : {lifetimeMl} ml sur {eventCount, plural, =1{1 journal} other{{eventCount} journaux}}. Aucune IA cloud ni ELKA est connecté.",
   "providerCoachContextBanner": "{mode}. Utilisation des données hydratation enregistrées sur l'appareil. Aujourd'hui : {todayMl} ml. Total : {lifetimeMl} ml sur {eventCount, plural, =1{1 journal} other{{eventCount} journaux}}. La sortie du fournisseur est validée avant que Hydrion lui fasse confiance.",
   "askCoachEmpty": "Demandez une suggestion hydratation. Les réponses sont une aide locale déterministe basée sur les journaux enregistrés.",
   "chatHint": "Demandez à votre coach...",
+  "coachFallbackNoticeLabel": "Repli",
+  "coachFallbackNotice": "Le repli local_rules a traité cette réponse.",
+  "suggestionHydrationLogTitle": "Suggestion de journal hydratation",
+  "suggestionReminderTitle": "Suggestion de rappel",
+  "suggestionChallengeTitle": "Suggestion de défi",
+  "suggestionTrendTitle": "Analyse de tendance",
+  "suggestionUnsupportedTitle": "Capacité indisponible",
+  "suggestionProviderSource": "Source : {provider}",
+  "@suggestionProviderSource": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "suggestionValidationStatus": "Validation : {status}",
+  "@suggestionValidationStatus": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "suggestionConfirmationRequired": "Confirmation requise",
+  "suggestionDisplayOnly": "Affichage seul",
+  "suggestionValidated": "Validée",
+  "suggestionApplied": "Suggestion appliquée",
+  "suggestionRejected": "Suggestion rejetée",
+  "suggestionDismissed": "Suggestion ignorée",
+  "suggestionApply": "Appliquer",
+  "suggestionDismiss": "Ignorer",
+  "suggestionDetailVolume": "Volume",
+  "suggestionDetailDelay": "Délai",
+  "suggestionDetailPriority": "Priorité",
+  "suggestionDetailChallenge": "Défi",
+  "suggestionDetailTarget": "Objectif",
+  "suggestionDetailDuration": "Durée",
+  "suggestionDetailCapability": "Capacité",
+  "suggestionVolumeValue": "{volumeMl} ml",
+  "@suggestionVolumeValue": {
+    "placeholders": {
+      "volumeMl": {
+        "type": "int"
+      }
+    }
+  },
+  "suggestionDelayValue": "{minutes} min",
+  "@suggestionDelayValue": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "suggestionTargetValue": "{targetMl} ml/jour",
+  "@suggestionTargetValue": {
+    "placeholders": {
+      "targetMl": {
+        "type": "int"
+      }
+    }
+  },
+  "suggestionDurationValue": "{days, plural, =1{1 jour} other{{days} jours}}",
+  "@suggestionDurationValue": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "cloudSync": "Synchronisation cloud",
   "osNotificationsCapabilityReported": "Capacité de notifications système signalée",
   "notificationsAdapterNotWired": "Aucun adaptateur de notifications est connecté. Les définitions restent locales.",
   "standaloneRemindersLocalOnly": "Le mode autonome stocke les définitions de rappel localement seulement. Aucune notification plateforme ne se déclenchera.",

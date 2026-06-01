@@ -16,19 +16,25 @@ enum HydrionAiProviderSelection {
 }
 
 class GeminiProviderConfig {
+  static const String expectedGoogleApiKeyPrefix = 'AIza';
+
   final String apiKey;
   final String model;
   final String apiBaseUrl;
   final Duration timeout;
+  final bool useResponseSchema;
 
   const GeminiProviderConfig({
     this.apiKey = '',
     this.model = 'gemini-2.5-flash',
     this.apiBaseUrl = 'https://generativelanguage.googleapis.com',
     this.timeout = const Duration(seconds: 12),
+    this.useResponseSchema = false,
   });
 
-  bool get isConfigured => apiKey.trim().isNotEmpty;
+  String get trimmedApiKey => apiKey.trim();
+
+  bool get isConfigured => trimmedApiKey.isNotEmpty;
 
   String get modelPath {
     final trimmedModel = model.trim();
@@ -44,6 +50,69 @@ class GeminiProviderConfig {
         : apiBaseUrl;
     return Uri.parse('$base/v1beta/$modelPath:generateContent');
   }
+
+  GeminiKeyDiagnostics get keyDiagnostics {
+    final trimmed = trimmedApiKey;
+    return GeminiKeyDiagnostics(
+      present: trimmed.isNotEmpty,
+      length: trimmed.length,
+      first4: trimmed.length >= 8 ? trimmed.substring(0, 4) : '[short]',
+      last4: trimmed.length >= 8
+          ? trimmed.substring(trimmed.length - 4)
+          : '[short]',
+      containsWhitespace: RegExp(r'\s').hasMatch(apiKey),
+      wasTrimmed: apiKey != trimmed,
+      startsWithExpectedGoogleApiKeyPrefix:
+          trimmed.startsWith(expectedGoogleApiKeyPrefix),
+    );
+  }
+
+  GeminiRequestDiagnostics get requestDiagnostics {
+    final key = trimmedApiKey;
+    return GeminiRequestDiagnostics(
+      endpointHost: generateContentUri.host,
+      modelId: model.trim(),
+      modelPath: modelPath,
+      authHeaderPresent: key.isNotEmpty,
+      authHeaderValueLength: key.length,
+    );
+  }
+}
+
+class GeminiKeyDiagnostics {
+  final bool present;
+  final int length;
+  final String first4;
+  final String last4;
+  final bool containsWhitespace;
+  final bool wasTrimmed;
+  final bool startsWithExpectedGoogleApiKeyPrefix;
+
+  const GeminiKeyDiagnostics({
+    required this.present,
+    required this.length,
+    required this.first4,
+    required this.last4,
+    required this.containsWhitespace,
+    required this.wasTrimmed,
+    required this.startsWithExpectedGoogleApiKeyPrefix,
+  });
+}
+
+class GeminiRequestDiagnostics {
+  final String endpointHost;
+  final String modelId;
+  final String modelPath;
+  final bool authHeaderPresent;
+  final int authHeaderValueLength;
+
+  const GeminiRequestDiagnostics({
+    required this.endpointHost,
+    required this.modelId,
+    required this.modelPath,
+    required this.authHeaderPresent,
+    required this.authHeaderValueLength,
+  });
 }
 
 class HydrionAiRuntimeConfig {

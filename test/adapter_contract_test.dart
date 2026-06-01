@@ -195,6 +195,7 @@ void main() {
       hydrationContextProvider: base.hydrationContextProvider,
       aiActionValidator: base.aiActionValidator,
       hydrationCoach: const _FakeCoach(),
+      coachSuggestionService: base.coachSuggestionService,
       aiActionExecutor: base.aiActionExecutor,
       challengeGenerator: const _FakeChallengeGenerator(),
       commandParser: const _FakeCommandParser(),

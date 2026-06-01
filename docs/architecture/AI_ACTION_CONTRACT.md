@@ -73,6 +73,16 @@ contract. The local executor validates the action, checks current capability
 state, rejects unconfirmed state-changing actions, and writes only through
 Hydrion repositories. Provider adapters still never mutate app state directly.
 
+In Phase 4.4, `CoachSuggestionService` is the app-facing bridge between
+validated provider proposals and Coach UI suggestion cards. The Coach screen
+renders neutral `CoachSuggestionCard` DTOs, not provider action classes.
+Hydration log, reminder, and challenge suggestions require explicit user
+confirmation before `CoachSuggestionService` calls
+`HydrationAiActionExecutionService`. Text-only messages, trend explanations,
+and unsupported-capability notices remain display-only. Dismissing a card only
+removes that pending proposal from the UI/service; it does not mutate app
+state.
+
 ## Capability Validation
 
 `HydrationAiActionValidator` checks every action before Hydrion trusts it.
@@ -113,8 +123,8 @@ providers must follow.
 ## Provider Boundaries
 
 UI may depend on domain contracts such as `HydrationCoach`,
-`HydrationSummaryService`, `ChallengeGenerator`, `HydrationCommandParser`, and
-`AppCapabilityReporter`.
+`CoachSuggestionService`, `HydrationSummaryService`, `ChallengeGenerator`,
+`HydrationCommandParser`, and `AppCapabilityReporter`.
 
 UI must never import:
 
@@ -123,7 +133,8 @@ UI must never import:
 - provider SDKs
 - local adapter implementations
 - deprecated `AIBridge` or `LLMService` wrappers
-- AI action validators or provider implementations
+- AI action validators, executor internals, provider implementations, or raw
+  provider action classes
 
 Architecture tests enforce these rules.
 
@@ -132,6 +143,11 @@ Architecture tests enforce these rules.
 Gemini is the first optional real provider behind `HydrationAiProvider`.
 `local_rules` remains the default provider and Hydrion must boot without any
 Gemini configuration.
+
+Phase 4.3 confirms the Gemini REST provider can run successfully in local
+development while preserving the same typed action contract. A successful
+Gemini response is still only trusted after it parses into
+`HydrationAiAction` proposals and passes `HydrationAiActionValidator`.
 
 Configuration is compile-time and explicit:
 
@@ -167,6 +183,17 @@ unconfigured, unavailable, timed out, failed, or returned no valid action.
 The Gemini adapter uses the REST endpoint directly through a generic HTTP
 client. No Gemini SDK, OpenAI SDK, BYOK SDK, edge model SDK, cloud sync, native
 plugin, or ELKA call is added in Phase 4.
+
+Provider UX may show that Gemini is configured, active, and healthy, but this
+does not change execution authority: Gemini cannot write logs, reminders,
+settings, challenge state, local storage, cloud state, or platform state.
+`local_rules` remains available as the fallback path.
+
+Phase 4.4 adds user-facing suggestion cards for validated Gemini/local_rules
+proposals. Cards show a readable action type, provider source, validation
+state, safe details, and confirmation controls for state-changing proposals.
+They never display full API keys, raw prompts, raw hydration context, or raw
+successful provider responses.
 
 ## Gemini Plug-In Point
 

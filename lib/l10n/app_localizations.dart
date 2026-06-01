@@ -578,6 +578,30 @@ abstract class AppLocalizations {
   /// **'Unconfigured'**
   String get providerUnconfigured;
 
+  /// No description provided for @providerFallbackState.
+  ///
+  /// In en, this message translates to:
+  /// **'Fallback state'**
+  String get providerFallbackState;
+
+  /// No description provided for @providerFallbackReady.
+  ///
+  /// In en, this message translates to:
+  /// **'local_rules fallback is available'**
+  String get providerFallbackReady;
+
+  /// No description provided for @providerFallbackInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Using local_rules fallback'**
+  String get providerFallbackInUse;
+
+  /// No description provided for @providerFallbackCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Fallback code'**
+  String get providerFallbackCode;
+
   /// No description provided for @providerFallbackReason.
   ///
   /// In en, this message translates to:
@@ -625,6 +649,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Non-local AI requires explicit user consent before production use.'**
   String get providerConsentRequired;
+
+  /// No description provided for @providerGeminiHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini health'**
+  String get providerGeminiHealth;
+
+  /// No description provided for @providerGeminiModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini model'**
+  String get providerGeminiModel;
+
+  /// No description provided for @providerGeminiConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini configured'**
+  String get providerGeminiConfigured;
+
+  /// No description provided for @providerDiagnosticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini diagnostics'**
+  String get providerDiagnosticsTitle;
+
+  /// No description provided for @providerEndpointHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Endpoint host'**
+  String get providerEndpointHost;
+
+  /// No description provided for @providerModelPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Model path'**
+  String get providerModelPath;
+
+  /// No description provided for @providerApiKeyPresent.
+  ///
+  /// In en, this message translates to:
+  /// **'API key present'**
+  String get providerApiKeyPresent;
+
+  /// No description provided for @providerApiKeyLength.
+  ///
+  /// In en, this message translates to:
+  /// **'API key length'**
+  String get providerApiKeyLength;
+
+  /// No description provided for @providerApiKeyFirst4.
+  ///
+  /// In en, this message translates to:
+  /// **'API key first 4'**
+  String get providerApiKeyFirst4;
+
+  /// No description provided for @providerApiKeyLast4.
+  ///
+  /// In en, this message translates to:
+  /// **'API key last 4'**
+  String get providerApiKeyLast4;
+
+  /// No description provided for @providerApiKeyContainsWhitespace.
+  ///
+  /// In en, this message translates to:
+  /// **'Key has whitespace'**
+  String get providerApiKeyContainsWhitespace;
+
+  /// No description provided for @providerApiKeyWasTrimmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Key was trimmed'**
+  String get providerApiKeyWasTrimmed;
+
+  /// No description provided for @providerApiKeyStartsWithGooglePrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Google key prefix'**
+  String get providerApiKeyStartsWithGooglePrefix;
+
+  /// No description provided for @providerAuthHeaderPresent.
+  ///
+  /// In en, this message translates to:
+  /// **'Auth header present'**
+  String get providerAuthHeaderPresent;
+
+  /// No description provided for @providerAuthHeaderValueLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Auth header length'**
+  String get providerAuthHeaderValueLength;
+
+  /// No description provided for @providerRequestAttempted.
+  ///
+  /// In en, this message translates to:
+  /// **'Request attempted'**
+  String get providerRequestAttempted;
+
+  /// No description provided for @providerHttpStatusClass.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP status'**
+  String get providerHttpStatusClass;
+
+  /// No description provided for @providerErrorStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini error status'**
+  String get providerErrorStatus;
+
+  /// No description provided for @providerErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini error message'**
+  String get providerErrorMessage;
+
+  /// No description provided for @providerErrorDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini error details'**
+  String get providerErrorDetails;
+
+  /// No description provided for @providerLastDiagnosticPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Last diagnostic'**
+  String get providerLastDiagnosticPhase;
+
+  /// No description provided for @providerParserCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Parser code'**
+  String get providerParserCode;
+
+  /// No description provided for @providerValidatorCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Validator code'**
+  String get providerValidatorCode;
+
+  /// No description provided for @providerBlockedCapabilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked capabilities'**
+  String get providerBlockedCapabilities;
+
+  /// No description provided for @providerLastSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Gemini success'**
+  String get providerLastSuccess;
+
+  /// No description provided for @providerLastFailureAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Last failure time'**
+  String get providerLastFailureAt;
+
+  /// No description provided for @providerNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get providerNotAvailable;
+
+  /// No description provided for @providerDiagnosticNoApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'No Gemini API key configured'**
+  String get providerDiagnosticNoApiKey;
+
+  /// No description provided for @providerDiagnosticHealthy.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini is healthy; last response passed validation'**
+  String get providerDiagnosticHealthy;
+
+  /// No description provided for @providerDiagnosticFallbackActive.
+  ///
+  /// In en, this message translates to:
+  /// **'local_rules fallback is active'**
+  String get providerDiagnosticFallbackActive;
+
+  /// No description provided for @providerDiagnosticNotProven.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini configured but not yet proven healthy'**
+  String get providerDiagnosticNotProven;
+
+  /// No description provided for @providerDiagnosticLocalRules.
+  ///
+  /// In en, this message translates to:
+  /// **'local_rules is active'**
+  String get providerDiagnosticLocalRules;
+
+  /// No description provided for @yes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get yes;
+
+  /// No description provided for @no.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get no;
 
   /// No description provided for @localPersistence.
   ///
@@ -1055,6 +1283,52 @@ abstract class AppLocalizations {
   /// **'Local fallback coach'**
   String get localFallbackCoach;
 
+  /// No description provided for @providerCoachTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider coach'**
+  String get providerCoachTitle;
+
+  /// No description provided for @coachUserMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get coachUserMessageLabel;
+
+  /// No description provided for @coachReplyMessageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach'**
+  String get coachReplyMessageLabel;
+
+  /// No description provided for @coachContextSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Today: {todayMl} / {targetMl} ml. Total logs: {eventCount, plural, =1{1} other{{eventCount}}}. Active: {activeProvider}.'**
+  String coachContextSnapshot(
+      {required int todayMl,
+      required int targetMl,
+      required int eventCount,
+      required Object activeProvider});
+
+  /// No description provided for @coachProviderReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{activeProvider} is active. Replies are validated before Hydrion trusts them.'**
+  String coachProviderReady({required Object activeProvider});
+
+  /// No description provided for @coachProviderFallbackActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Using local_rules fallback. Provider output remains optional.'**
+  String get coachProviderFallbackActive;
+
+  /// No description provided for @coachLocalProviderReady.
+  ///
+  /// In en, this message translates to:
+  /// **'local_rules is active. Hydration context stays on this device.'**
+  String get coachLocalProviderReady;
+
   /// No description provided for @coachContextBanner.
   ///
   /// In en, this message translates to:
@@ -1086,6 +1360,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask your coach...'**
   String get chatHint;
+
+  /// No description provided for @coachFallbackNoticeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fallback'**
+  String get coachFallbackNoticeLabel;
+
+  /// No description provided for @coachFallbackNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'local_rules fallback handled this reply.'**
+  String get coachFallbackNotice;
+
+  /// No description provided for @suggestionHydrationLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration log suggestion'**
+  String get suggestionHydrationLogTitle;
+
+  /// No description provided for @suggestionReminderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder suggestion'**
+  String get suggestionReminderTitle;
+
+  /// No description provided for @suggestionChallengeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge suggestion'**
+  String get suggestionChallengeTitle;
+
+  /// No description provided for @suggestionTrendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trend insight'**
+  String get suggestionTrendTitle;
+
+  /// No description provided for @suggestionUnsupportedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable capability'**
+  String get suggestionUnsupportedTitle;
+
+  /// No description provided for @suggestionProviderSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source: {provider}'**
+  String suggestionProviderSource({required Object provider});
+
+  /// No description provided for @suggestionValidationStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Validation: {status}'**
+  String suggestionValidationStatus({required Object status});
+
+  /// No description provided for @suggestionConfirmationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs confirmation'**
+  String get suggestionConfirmationRequired;
+
+  /// No description provided for @suggestionDisplayOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Display only'**
+  String get suggestionDisplayOnly;
+
+  /// No description provided for @suggestionValidated.
+  ///
+  /// In en, this message translates to:
+  /// **'Validated'**
+  String get suggestionValidated;
+
+  /// No description provided for @suggestionApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestion applied'**
+  String get suggestionApplied;
+
+  /// No description provided for @suggestionRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestion rejected'**
+  String get suggestionRejected;
+
+  /// No description provided for @suggestionDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestion dismissed'**
+  String get suggestionDismissed;
+
+  /// No description provided for @suggestionApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get suggestionApply;
+
+  /// No description provided for @suggestionDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get suggestionDismiss;
+
+  /// No description provided for @suggestionDetailVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get suggestionDetailVolume;
+
+  /// No description provided for @suggestionDetailDelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Delay'**
+  String get suggestionDetailDelay;
+
+  /// No description provided for @suggestionDetailPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority'**
+  String get suggestionDetailPriority;
+
+  /// No description provided for @suggestionDetailChallenge.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge'**
+  String get suggestionDetailChallenge;
+
+  /// No description provided for @suggestionDetailTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get suggestionDetailTarget;
+
+  /// No description provided for @suggestionDetailDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get suggestionDetailDuration;
+
+  /// No description provided for @suggestionDetailCapability.
+  ///
+  /// In en, this message translates to:
+  /// **'Capability'**
+  String get suggestionDetailCapability;
+
+  /// No description provided for @suggestionVolumeValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{volumeMl} ml'**
+  String suggestionVolumeValue({required int volumeMl});
+
+  /// No description provided for @suggestionDelayValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String suggestionDelayValue({required int minutes});
+
+  /// No description provided for @suggestionTargetValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{targetMl} ml/day'**
+  String suggestionTargetValue({required int targetMl});
+
+  /// No description provided for @suggestionDurationValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{1 day} other{{days} days}}'**
+  String suggestionDurationValue({required int days});
+
+  /// No description provided for @cloudSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud sync'**
+  String get cloudSync;
 
   /// No description provided for @osNotificationsCapabilityReported.
   ///

@@ -119,27 +119,62 @@ class ProviderBackedHydrationCoach
     required String userQuery,
     bool fallbackToEmpty = true,
   }) async {
+    final providerKind = _providerKind(provider);
     try {
+      providerHealth?.recordProviderAttempt(providerKind);
       final actions = await provider
           .proposeActions(
             context: context,
             userQuery: userQuery,
           )
           .timeout(providerTimeout);
-      final allowed = _allowedActions(actions, context.capabilities);
+      final validationResults =
+          actionValidator.validateAll(actions, context.capabilities);
+      final allowed = _allowedActions(validationResults);
       if (allowed.isEmpty && actions.isNotEmpty) {
+        final blocked = validationResults.firstWhere(
+          (result) => !result.isAllowed,
+          orElse: () => validationResults.first,
+        );
+        final diagnostic = _validatorDiagnostic(
+          providerKind: providerKind,
+          context: context,
+          result: blocked,
+        );
         providerHealth?.recordProviderFallback(
-          failedProvider: _providerKind(provider),
-          reason: 'Provider returned no safe actions after validation.',
+          failedProvider: providerKind,
+          reason: 'validator_rejected: Provider returned no safe actions after '
+              'validation. local_rules is active.',
+          diagnostic: diagnostic,
         );
       } else if (allowed.isNotEmpty) {
-        providerHealth?.recordProviderSuccess(_providerKind(provider));
+        providerHealth?.recordProviderSuccess(providerKind);
       }
       return allowed;
-    } catch (_) {
+    } on TimeoutException {
       providerHealth?.recordProviderFallback(
-        failedProvider: _providerKind(provider),
-        reason: 'Provider failed or timed out; local_rules is active.',
+        failedProvider: providerKind,
+        reason: 'timeout: Provider timed out. local_rules is active.',
+        diagnostic: _failureDiagnostic(
+          providerKind: providerKind,
+          context: context,
+          failure: const _TimeoutDiagnosticFailure(),
+        ),
+      );
+      if (fallbackToEmpty) {
+        return const <HydrationAiAction>[];
+      }
+      rethrow;
+    } catch (error) {
+      final diagnostic = _failureDiagnostic(
+        providerKind: providerKind,
+        context: context,
+        failure: error is ProviderDiagnosticFailure ? error : null,
+      );
+      providerHealth?.recordProviderFallback(
+        failedProvider: providerKind,
+        reason: _failureReason(error),
+        diagnostic: diagnostic,
       );
       if (fallbackToEmpty) {
         return const <HydrationAiAction>[];
@@ -149,13 +184,154 @@ class ProviderBackedHydrationCoach
   }
 
   List<HydrationAiAction> _allowedActions(
-    Iterable<HydrationAiAction> actions,
-    CapabilityContext capabilities,
+    Iterable<HydrationAiActionValidationResult> results,
   ) {
     return [
-      for (final result in actionValidator.validateAll(actions, capabilities))
+      for (final result in results)
         if (result.isAllowed) result.action,
     ];
+  }
+
+  ProviderDiagnosticSnapshot _failureDiagnostic({
+    required HydrionAiProviderKind providerKind,
+    required HydrationContext context,
+    ProviderDiagnosticFailure? failure,
+  }) {
+    final httpStatus = failure?.httpStatusCode;
+    final base = providerHealth?.providerHealth.diagnostic;
+    return ProviderDiagnosticSnapshot(
+      selectedProvider: selectedProvider == HydrionAiProviderSelection.gemini
+          ? HydrionAiProviderKind.gemini
+          : HydrionAiProviderKind.localRules,
+      activeProvider: HydrionAiProviderKind.localRules,
+      configured: context.capabilities.geminiConfigured,
+      modelId: base?.modelId,
+      endpointHost: base?.endpointHost,
+      modelPath: base?.modelPath,
+      apiKeyPresent: base?.apiKeyPresent,
+      apiKeyLength: base?.apiKeyLength,
+      apiKeyFirst4: base?.apiKeyFirst4,
+      apiKeyLast4: base?.apiKeyLast4,
+      apiKeyContainsWhitespace: base?.apiKeyContainsWhitespace,
+      apiKeyWasTrimmed: base?.apiKeyWasTrimmed,
+      apiKeyStartsWithExpectedGooglePrefix:
+          base?.apiKeyStartsWithExpectedGooglePrefix,
+      authHeaderPresent: base?.authHeaderPresent,
+      authHeaderValueLength: base?.authHeaderValueLength,
+      requestAttempted: providerKind != HydrionAiProviderKind.localRules &&
+          failure?.diagnosticCode != ProviderDiagnosticCodes.noApiKey,
+      httpStatusClass: httpStatus == null ? null : '${httpStatus ~/ 100}xx',
+      timedOut: failure?.timedOut ?? false,
+      responseEnvelopePhase: failure?.responseEnvelopePhase ??
+          failure?.diagnosticCode ??
+          ProviderDiagnosticCodes.providerFailure,
+      parserRejectionCode: failure?.parserRejectionCode,
+      validatorRejectionCode: failure?.validatorRejectionCode,
+      blockedCapabilityLabels:
+          failure?.blockedCapabilityLabels ?? const <String>[],
+      providerErrorStatus: failure?.providerErrorStatus,
+      providerErrorMessage: failure?.providerErrorMessage,
+      providerErrorDetailTypes:
+          failure?.providerErrorDetailTypes ?? const <String>[],
+    );
+  }
+
+  ProviderDiagnosticSnapshot _validatorDiagnostic({
+    required HydrionAiProviderKind providerKind,
+    required HydrationContext context,
+    required HydrationAiActionValidationResult result,
+  }) {
+    final base = providerHealth?.providerHealth.diagnostic;
+    return ProviderDiagnosticSnapshot(
+      selectedProvider: selectedProvider == HydrionAiProviderSelection.gemini
+          ? HydrionAiProviderKind.gemini
+          : HydrionAiProviderKind.localRules,
+      activeProvider: HydrionAiProviderKind.localRules,
+      configured: context.capabilities.geminiConfigured,
+      modelId: base?.modelId,
+      endpointHost: base?.endpointHost,
+      modelPath: base?.modelPath,
+      apiKeyPresent: base?.apiKeyPresent,
+      apiKeyLength: base?.apiKeyLength,
+      apiKeyFirst4: base?.apiKeyFirst4,
+      apiKeyLast4: base?.apiKeyLast4,
+      apiKeyContainsWhitespace: base?.apiKeyContainsWhitespace,
+      apiKeyWasTrimmed: base?.apiKeyWasTrimmed,
+      apiKeyStartsWithExpectedGooglePrefix:
+          base?.apiKeyStartsWithExpectedGooglePrefix,
+      authHeaderPresent: base?.authHeaderPresent,
+      authHeaderValueLength: base?.authHeaderValueLength,
+      requestAttempted: providerKind != HydrionAiProviderKind.localRules,
+      responseEnvelopePhase: ProviderDiagnosticCodes.responseDecoded,
+      validatorRejectionCode: result.blockedCapabilities.isEmpty
+          ? ProviderDiagnosticCodes.validatorRejected
+          : ProviderDiagnosticCodes.unsafeCapabilityClaim,
+      blockedCapabilityLabels: [
+        for (final capability in result.blockedCapabilities)
+          _capabilityLabel(capability),
+      ],
+    );
+  }
+
+  String _failureReason(Object error) {
+    if (error is ProviderDiagnosticFailure) {
+      return switch (error.diagnosticCode) {
+        ProviderDiagnosticCodes.noApiKey =>
+          'no_api_key: Gemini is not configured. local_rules is active.',
+        ProviderDiagnosticCodes.httpFailure =>
+          'http_failure: Gemini returned ${_statusClass(error.httpStatusCode)}. '
+              'local_rules is active.',
+        ProviderDiagnosticCodes.timeout =>
+          'timeout: Gemini request timed out. local_rules is active.',
+        ProviderDiagnosticCodes.noCandidates ||
+        ProviderDiagnosticCodes.noContent ||
+        ProviderDiagnosticCodes.noParts ||
+        ProviderDiagnosticCodes.emptyText ||
+        ProviderDiagnosticCodes.responseJsonDecodeFailed =>
+          '${error.diagnosticCode}: Gemini response envelope was invalid. '
+              'local_rules is active.',
+        ProviderDiagnosticCodes.jsonDecodeFailed ||
+        ProviderDiagnosticCodes.outputNotJson ||
+        ProviderDiagnosticCodes.missingActions ||
+        ProviderDiagnosticCodes.emptyActions ||
+        ProviderDiagnosticCodes.tooManyActions ||
+        ProviderDiagnosticCodes.invalidActionSchema ||
+        ProviderDiagnosticCodes.unknownActionType ||
+        ProviderDiagnosticCodes.missingRequiredField ||
+        ProviderDiagnosticCodes.oversizedMessage ||
+        ProviderDiagnosticCodes.invalidHydrationAmount ||
+        ProviderDiagnosticCodes.invalidReminderDelay ||
+        ProviderDiagnosticCodes.invalidChallengeShape ||
+        ProviderDiagnosticCodes.unknownCapability =>
+          '${error.diagnosticCode}: Gemini output did not match Hydrion '
+              'action schema. local_rules is active.',
+        _ => '${error.diagnosticCode}: Provider failed. local_rules is active.',
+      };
+    }
+    return 'provider_failure: Provider failed. local_rules is active.';
+  }
+
+  String _statusClass(int? statusCode) {
+    if (statusCode == null) {
+      return 'unknown status';
+    }
+    return '${statusCode ~/ 100}xx';
+  }
+
+  String _capabilityLabel(HydrionCapability capability) {
+    return switch (capability) {
+      HydrionCapability.localPersistence => 'local persistence',
+      HydrionCapability.elka => 'ELKA',
+      HydrionCapability.gemini => 'Gemini',
+      HydrionCapability.cloudAi => 'cloud AI',
+      HydrionCapability.cloudSync => 'cloud sync',
+      HydrionCapability.voiceInput => 'voice input',
+      HydrionCapability.bleSync => 'BLE sync',
+      HydrionCapability.healthSync => 'Health sync',
+      HydrionCapability.osNotifications => 'OS notifications',
+      HydrionCapability.arVisualization => 'AR visualization',
+      HydrionCapability.socialSync => 'social sync',
+    };
   }
 
   Future<String> _localCoachResponse({
@@ -193,4 +369,38 @@ class ProviderBackedHydrationCoach
     }
     return HydrionAiProviderKind.localRules;
   }
+}
+
+class _TimeoutDiagnosticFailure implements ProviderDiagnosticFailure {
+  const _TimeoutDiagnosticFailure();
+
+  @override
+  List<String> get blockedCapabilityLabels => const <String>[];
+
+  @override
+  String get diagnosticCode => ProviderDiagnosticCodes.timeout;
+
+  @override
+  int? get httpStatusCode => null;
+
+  @override
+  String? get parserRejectionCode => null;
+
+  @override
+  List<String> get providerErrorDetailTypes => const <String>[];
+
+  @override
+  String? get providerErrorMessage => null;
+
+  @override
+  String? get providerErrorStatus => null;
+
+  @override
+  String? get responseEnvelopePhase => ProviderDiagnosticCodes.timeout;
+
+  @override
+  bool get timedOut => true;
+
+  @override
+  String? get validatorRejectionCode => null;
 }
