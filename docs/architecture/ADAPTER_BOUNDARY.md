@@ -77,7 +77,7 @@ UI screens continue reading `HydrationCoach`, `ChallengeGenerator`, and
 
 ## ELKA Plug-In Point
 
-ELKA should plug in later as an adapter behind the same contracts. The current
+ELKA should plug in loter as an adapter behind the same contracts. The current
 `lib/adapters/elka/elka_adapter.dart` is a compile-safe unconfigured shell. It
 does not call ELKA and does not perform network work.
 
