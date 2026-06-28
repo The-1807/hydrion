@@ -1,6 +1,6 @@
 # Hydrion MVP Kanban Roadmap
 
-Generated: 2026-06-12
+Date Generated: 2026-06-12
 
 Repository audited: `E:\hydrion_app`
 
