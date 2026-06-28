@@ -85,38 +85,61 @@ Major implemented capabilities include local hydration logging, local persistenc
 ### HYD-US-001: Launch Standalone Local Application
 
 **Epic:** Onboarding and Application Access  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** MVP
 
-**As a** first-time application user  
-**I need** Hydrion to open without account, network, provider, or native-service setup  
+#### User Story
+
+**As a** first-time application user
+**I need** Hydrion to open without account, network, provider, or native-service setup
 **So that** I can start tracking hydration immediately in standalone local mode.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `main()` initializes `HydrionServices.local()` and runs `HydrionApp`.
-* Confirmed: `HydrionServices.memory()` supports tests and local-only operation without external services.
-* Confirmed: default AI provider is `local_rules`, and optional Gemini is not required for boot.
-* Inferred: "Onboarding" currently means direct app access; no guided onboarding wizard is implemented.
+* Hydrion must support "Launch Standalone Local Application" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `main()` initializes `HydrionServices.local()` and runs `HydrionApp`.
+* `HydrionServices.memory()` supports tests and local-only operation without external services.
+* default AI provider is `local_rules`, and optional Gemini is not required for boot.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* "Onboarding" currently means direct app access; no guided onboarding wizard is implemented.
 
 #### Acceptance Criteria
 
-```gherkin
-Given no provider API key, account, or network dependency is configured
-When the app launches
-Then the Home screen renders with Hydrion branding and local logging controls
+- [x] The Home screen renders with Hydrion branding and local logging controls.
+- [x] Local repositories, local coach, capability reporter, and local fallback remain available.
 
-Given optional providers are absent
-When the app builds its service graph
-Then local repositories, local coach, capability reporter, and local fallback remain available
-```
+#### Acceptance Criteria Coverage
+
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HydrionServices`
 * `HydrionApp`
 * `HYD-US-031`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -129,39 +152,96 @@ Then local repositories, local coach, capability reporter, and local fallback re
 * `test/widget_test.dart`
 * `test/gemini_provider_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-002: Access Core Product Screens
 
 **Epic:** Onboarding and Application Access  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** MVP
 
-**As a** application user  
-**I need** navigation to Home, Analytics, Log, Coach, Challenges, Reminders, Settings, and AR status screens  
+#### User Story
+
+**As a** application user
+**I need** navigation to Home, Analytics, Log, Coach, Challenges, Reminders, Settings, and AR status screens
 **So that** I can reach every available hydration workflow from the app shell.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: routes are registered for `/`, `/analytics`, `/chat`, `/log`, `/reminders`, `/settings`, `/challenges`, and `/ar`.
-* Confirmed: Home exposes route chips for the main workflows.
-* Confirmed: the AR route exists as a disabled/placeholder status screen, not a real AR session.
+* Hydrion must support "Access Core Product Screens" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* routes are registered for `/`, `/analytics`, `/chat`, `/log`, `/reminders`, `/settings`, `/challenges`, and `/ar`.
+* Home exposes route chips for the main workflows.
+* the AR route exists as a disabled/placeholder status screen, not a real AR session.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the user is on Home
-When the user taps a core route chip or the Settings icon
-Then the requested screen opens without requiring external service setup
+- [x] The requested screen opens without requiring external service setup.
+- [x] The screen states the disabled or unavailable capability honestly.
 
-Given a feature is disabled
-When the user opens its route
-Then the screen states the disabled or unavailable capability honestly
-```
+#### Acceptance Criteria Coverage
+
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-001`
 * `HYD-US-031`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -174,44 +254,97 @@ Then the screen states the disabled or unavailable capability honestly
 * `lib/ui/screens/ar_visualization_screen.dart`
 * `test/runtime_ux_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-003: Log Hydration Manually
 
 **Epic:** Hydration Logging  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** MVP
 
-**As a** application user  
-**I need** to select a water amount and log it locally  
+#### User Story
+
+**As a** application user
+**I need** to select a water amount and log it locally
 **So that** Hydrion can calculate my daily hydration progress from saved intake records.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Home offers preset amounts of 150, 250, 350, 500, 750, and 1000 ml.
-* Confirmed: tapping the log button creates a local hydration record with source `local`.
-* Confirmed: repository validation rejects non-positive volumes.
-* Inferred: custom log amount entry from Home is not implemented; custom values are available only through edit/provider paths.
+* Hydrion must support "Log Hydration Manually" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Home offers preset amounts of 150, 250, 350, 500, 750, and 1000 ml.
+* tapping the log button creates a local hydration record with source `local`.
+* repository validation rejects non-positive volumes.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* custom log amount entry from Home is not implemented; custom values are available only through edit/provider paths.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the Home screen is open
-When the user selects 500 ml and taps Log
-Then a 500 ml local hydration record is saved
+- [x] A 500 ml local hydration record is saved.
+- [x] No hydration log is created.
+- [x] The user sees a localized confirmation message.
 
-Given a non-positive volume reaches the repository
-When the repository attempts to add it
-Then no hydration log is created
+#### Acceptance Criteria Coverage
 
-Given the user logs water successfully
-When the action completes
-Then the user sees a localized confirmation message
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HydrationRepository`
 * `HYD-US-004`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -223,40 +356,96 @@ Then the user sees a localized confirmation message
 * `lib/repositories/hydration_repository.dart`
 * `test/runtime_ux_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-004: Persist Hydration Logs Locally
 
 **Epic:** Hydration Logging  
-**Status:** Implemented  
+**Story Type:** System Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** MVP
 
-**As a** returning user  
-**I need** hydration records to persist on the device  
+#### User Story
+
+**As a** returning user
+**I need** hydration records to persist on the device
 **So that** my history and analytics survive app restart or refresh.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: hydration logs serialize to JSON under `hydrion.hydration_logs.v1`.
-* Confirmed: `SharedPreferencesHydrionStore` is the production local store abstraction.
-* Confirmed: repository reload restores valid logs and ignores malformed JSON or invalid records.
-* Limitation: local storage is not encrypted and has no explicit export/delete UI.
+* Hydrion must support "Persist Hydration Logs Locally" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* hydration logs serialize to JSON under `hydrion.hydration_logs.v1`.
+* `SharedPreferencesHydrionStore` is the production local store abstraction.
+* repository reload restores valid logs and ignores malformed JSON or invalid records.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a valid hydration log has been saved
-When the hydration repository is reloaded from the same store
-Then the log amount, timestamp, and day total are restored
+- [x] The log amount, timestamp, and day total are restored.
+- [x] Hydrion returns an empty log list without crashing.
 
-Given stored hydration JSON is malformed
-When the repository loads
-Then Hydrion returns an empty log list without crashing
-```
+#### Acceptance Criteria Coverage
+
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HydrionLocalStore`
 * `SharedPreferencesHydrionStore`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -268,39 +457,96 @@ Then Hydrion returns an empty log list without crashing
 * `lib/repositories/hydration_repository.dart`
 * `test/persistence_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-005: View Recent Hydration History
 
 **Epic:** Hydration History Management  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** MVP
 
-**As a** returning user  
-**I need** to review my recent hydration records with source and timestamp  
+#### User Story
+
+**As a** returning user
+**I need** to review my recent hydration records with source and timestamp
 **So that** I can verify what Hydrion used for summaries and analytics.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Log screen fetches records from the last seven days.
-* Confirmed: entries are shown with volume, localized source label, and formatted timestamp.
-* Confirmed: an empty state explains that local entries can be added from Home.
+* Hydrion must support "View Recent Hydration History" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Log screen fetches records from the last seven days.
+* entries are shown with volume, localized source label, and formatted timestamp.
+* an empty state explains that local entries can be added from Home.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given saved logs exist in the recent history window
-When the user opens the Log screen
-Then each record shows its ml amount, source, timestamp, edit action, and delete action
+- [x] Each record shows its ml amount, source, timestamp, edit action, and delete action.
+- [x] Hydrion shows a localized empty state explaining how to add local entries.
 
-Given no recent logs exist
-When the user opens the Log screen
-Then Hydrion shows a localized empty state explaining how to add local entries
-```
+#### Acceptance Criteria Coverage
+
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-003`
 * `HYD-US-004`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -312,44 +558,98 @@ Then Hydrion shows a localized empty state explaining how to add local entries
 * `lib/repositories/hydration_repository.dart`
 * `test/runtime_ux_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-006: Edit Hydration Records
 
 **Epic:** Hydration History Management  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** returning user  
-**I need** to correct a saved hydration record  
+#### User Story
+
+**As a** returning user
+**I need** to correct a saved hydration record
 **So that** mistakes do not distort my progress, analytics, score, achievements, or challenge progress.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Log screen opens an edit dialog for volume updates.
-* Confirmed: invalid or non-positive edit input is discarded by the dialog/repository.
-* Confirmed: edit values are clamped to 1 to 5000 ml in the UI.
-* Confirmed: updated records persist across repository reload.
+* Hydrion must support "Edit Hydration Records" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Log screen opens an edit dialog for volume updates.
+* invalid or non-positive edit input is discarded by the dialog/repository.
+* edit values are clamped to 1 to 5000 ml in the UI.
+* updated records persist across repository reload.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a saved hydration record exists
-When the user edits the volume to 650 ml and saves
-Then the record shows 650 ml and the repository persists the update
+- [x] The record shows 650 ml and the repository persists the update.
+- [x] No invalid hydration record is saved.
+- [x] The user sees a localized "log not found" result.
 
-Given the user enters an invalid or non-positive edit value
-When the dialog closes
-Then no invalid hydration record is saved
+#### Acceptance Criteria Coverage
 
-Given the target log id no longer exists
-When Hydrion attempts the edit
-Then the user sees a localized "log not found" result
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-004`
 * `HYD-US-005`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -362,44 +662,97 @@ Then the user sees a localized "log not found" result
 * `test/persistence_test.dart`
 * `test/runtime_ux_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-007: Delete Hydration Records
 
 **Epic:** Hydration History Management  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** returning user  
-**I need** to delete incorrect hydration records  
+#### User Story
+
+**As a** returning user
+**I need** to delete incorrect hydration records
 **So that** my local summaries and derived insights reflect only valid intake.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Log screen delete action removes a record by id.
-* Confirmed: delete persists across reload.
-* Confirmed: the UI shows "deleted" or "not found" feedback.
-* Limitation: there is no confirmation dialog before deletion.
+* Hydrion must support "Delete Hydration Records" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Log screen delete action removes a record by id.
+* delete persists across reload.
+* the UI shows "deleted" or "not found" feedback.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a hydration record exists
-When the user taps its delete action
-Then the record is removed from history and local storage
+- [x] The record is removed from history and local storage.
+- [x] The empty state is shown.
+- [x] Hydrion reports that the log was not found.
 
-Given the deleted record was the only record
-When the Log screen refreshes
-Then the empty state is shown
+#### Acceptance Criteria Coverage
 
-Given the target record id is missing
-When deletion is attempted
-Then Hydrion reports that the log was not found
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-004`
 * `HYD-US-005`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -412,44 +765,97 @@ Then Hydrion reports that the log was not found
 * `test/persistence_test.dart`
 * `test/runtime_ux_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-008: View Daily Summary and Progress Ring
 
 **Epic:** Daily Goals and Progress  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** MVP
 
-**As a** application user  
-**I need** to see today's consumed ml, target ml, and progress percentage  
+#### User Story
+
+**As a** application user
+**I need** to see today's consumed ml, target ml, and progress percentage
 **So that** I can quickly decide whether to drink more water.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: summary uses today's local logs and a fixed target of 2200 ml.
-* Confirmed: `IntakeRing` clamps progress to 0 to 100 percent and includes semantic label/value/hint.
-* Confirmed: Home updates after manual logging.
-* Limitation: day boundary uses direct `DateTime.now()` calls rather than an injected clock.
+* Hydrion must support "View Daily Summary and Progress Ring" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* summary uses today's local logs and a fixed target of 2200 ml.
+* `IntakeRing` clamps progress to 0 to 100 percent and includes semantic label/value/hint.
+* Home updates after manual logging.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given no hydration is logged today
-When the Home screen loads
-Then the progress ring shows 0 / 2200 ml and 0 percent
+- [x] The progress ring shows 0 / 2200 ml and 0 percent.
+- [x] The progress ring shows 500 / 2200 ml and a bounded progress percentage.
+- [x] The displayed progress percentage does not exceed 100 percent.
 
-Given the user logs 500 ml today
-When the Home summary refreshes
-Then the progress ring shows 500 / 2200 ml and a bounded progress percentage
+#### Acceptance Criteria Coverage
 
-Given consumed ml exceeds the target
-When the progress ring renders
-Then the displayed progress percentage does not exceed 100 percent
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-003`
 * `HYD-US-004`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -462,44 +868,99 @@ Then the displayed progress percentage does not exceed 100 percent
 * `lib/ui/screens/home_screen.dart`
 * `test/runtime_ux_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-009: Configure Hydration Goals and Units
 
 **Epic:** Daily Goals and Progress  
-**Status:** Planned  
+**Story Type:** User Story  
+**Implementation Status:** Planned  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** application user  
-**I need** to configure my daily hydration target and unit preference  
+#### User Story
+
+**As a** application user
+**I need** to configure my daily hydration target and unit preference
 **So that** Hydrion's progress reflects my personal hydration goal instead of a hardcoded default.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: current Flutter runtime uses a fixed 2200 ml target in summary, analytics, and context.
-* Confirmed: roadmap identifies target and unit preference as an MVP UX follow-up.
-* Inferred requirement: configured goals should persist through `UserSettingsRepository` or another versioned local settings model.
+* Hydrion must support "Configure Hydration Goals and Units" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Planned. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* current Flutter runtime uses a fixed 2200 ml target in summary, analytics, and context.
+* roadmap identifies target and unit preference as an MVP UX follow-up.
+* Business rule: the story must not claim behavior outside its Planned implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a user has no custom hydration goal
-When Hydrion calculates progress
-Then the current 2200 ml default remains the fallback
+- [ ] The current 2200 ml default remains the fallback.
+- [ ] They use the persisted target consistently.
+- [ ] Hydrion rejects the value without corrupting existing settings.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given the user sets a valid daily target
-When Home, Analytics, Coach context, and Challenge calculations read goal data
-Then they use the persisted target consistently
+#### Acceptance Criteria Coverage
 
-Given the user enters an invalid target or unit
-When saving settings
-Then Hydrion rejects the value without corrupting existing settings
-```
+* Checked acceptance criteria: 0.
+* Unchecked acceptance criteria: 4.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-008`
 * `HYD-US-027`
 * `HYD-US-042`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -512,39 +973,96 @@ Then Hydrion rejects the value without corrupting existing settings
 * `lib/ui/screens/analytics_screen.dart`
 * `HYDRION_MVP_KANBAN_ROADMAP.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-010: View Analytics Empty State and Daily Totals
 
 **Epic:** Analytics and Insights  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** returning user  
-**I need** analytics to reflect saved local hydration records  
+#### User Story
+
+**As a** returning user
+**I need** analytics to reflect saved local hydration records
 **So that** I can understand today's intake and whether there is enough data for insights.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Analytics displays an empty state when no logs exist.
-* Confirmed: Analytics displays today's ml against 2200 ml and local entry count.
-* Confirmed: Analytics depends only on `HydrationRepository` and local services.
+* Hydrion must support "View Analytics Empty State and Daily Totals" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Analytics displays an empty state when no logs exist.
+* Analytics displays today's ml against 2200 ml and local entry count.
+* Analytics depends only on `HydrationRepository` and local services.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given no hydration logs exist
-When the user opens Analytics
-Then Hydrion shows a localized "No analytics yet" state
+- [x] Hydrion shows a localized "No analytics yet" state.
+- [x] Hydrion shows today's consumed ml, target ml, and local entry count.
 
-Given local logs exist today
-When the user opens Analytics
-Then Hydrion shows today's consumed ml, target ml, and local entry count
-```
+#### Acceptance Criteria Coverage
+
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-004`
 * `HYD-US-008`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -556,44 +1074,96 @@ Then Hydrion shows today's consumed ml, target ml, and local entry count
 * `test/runtime_ux_test.dart`
 * `test/product_qa_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-011: Calculate Hydration Score
 
 **Epic:** Hydration Score  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** application user  
-**I need** a simple hydration score  
+#### User Story
+
+**As a** application user
+**I need** a simple hydration score
 **So that** I can interpret daily intake and logging consistency at a glance.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: score is `80% hydrationPercent + 20% consistency`, where consistency is entry count capped at 4 logs.
-* Confirmed: score is clamped to 0 to 100 and color-coded.
-* Confirmed: localized tips vary by score threshold.
-* Inferred: score is a wellness indicator, not a clinical metric.
+* Hydrion must support "Calculate Hydration Score" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* score is `80% hydrationPercent + 20% consistency`, where consistency is entry count capped at 4 logs.
+* score is clamped to 0 to 100 and color-coded.
+* localized tips vary by score threshold.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* score is a wellness indicator, not a clinical metric.
 
 #### Acceptance Criteria
 
-```gherkin
-Given today's hydration percent and entry count
-When the hydration score card renders
-Then it shows a 0 to 100 score based on the implemented weighted formula
+- [x] It shows a 0 to 100 score based on the implemented weighted formula.
+- [x] Extra entries do not increase consistency beyond 100 percent.
+- [x] The displayed color and localized tip match the threshold.
 
-Given entry count exceeds the consistency cap
-When Hydrion calculates consistency
-Then extra entries do not increase consistency beyond 100 percent
+#### Acceptance Criteria Coverage
 
-Given a score threshold is crossed
-When the card renders
-Then the displayed color and localized tip match the threshold
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-008`
 * `HYD-US-010`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -605,39 +1175,96 @@ Then the displayed color and localized tip match the threshold
 * `lib/ui/screens/analytics_screen.dart`
 * `test/product_qa_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-012: Track Daily Goal Streaks
 
 **Epic:** Streaks and Achievements  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As a** returning user  
-**I need** Hydrion to track consecutive days meeting the hydration target  
+#### User Story
+
+**As a** returning user
+**I need** Hydrion to track consecutive days meeting the hydration target
 **So that** I can maintain a healthy habit over time.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Analytics computes streak days by checking up to 30 days backward.
-* Confirmed: a seven-day streak unlocks a displayed achievement badge.
-* Limitation: streak state is derived at render time and not persisted as its own record.
+* Hydrion must support "Track Daily Goal Streaks" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Analytics computes streak days by checking up to 30 days backward.
+* a seven-day streak unlocks a displayed achievement badge.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a user met the target today and on preceding consecutive days
-When Analytics computes streaks
-Then the streak count increments until the first non-target day
+- [x] The streak count increments until the first non-target day.
+- [x] The seven-day streak badge is unlocked.
 
-Given seven consecutive target days are present
-When achievements render
-Then the seven-day streak badge is unlocked
-```
+#### Acceptance Criteria Coverage
+
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-004`
 * `HYD-US-013`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -648,43 +1275,95 @@ Then the seven-day streak badge is unlocked
 * `lib/ui/screens/analytics_screen.dart`
 * `lib/ui/components/achievement_badge.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-013: Display Local Achievement Badges
 
 **Epic:** Streaks and Achievements  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As a** application user  
-**I need** visible achievement badges based on local hydration behavior  
+#### User Story
+
+**As a** application user
+**I need** visible achievement badges based on local hydration behavior
 **So that** Hydrion reinforces useful logging and intake habits.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: current badges are 2L day, 3 logs today, and 7 day streak.
-* Confirmed: badge semantics include badge name and locked/unlocked status.
-* Limitation: achievements are not persisted or stored as historical unlock events.
+* Hydrion must support "Display Local Achievement Badges" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* current badges are 2L day, 3 logs today, and 7 day streak.
+* badge semantics include badge name and locked/unlocked status.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given today's total is at least 2000 ml
-When Analytics renders achievements
-Then the 2L day badge is unlocked
+- [x] The 2L day badge is unlocked.
+- [x] The 3 logs today badge is unlocked.
+- [x] It appears locked with appropriate accessible semantics.
 
-Given today's entry count is at least 3
-When Analytics renders achievements
-Then the 3 logs today badge is unlocked
+#### Acceptance Criteria Coverage
 
-Given a condition is not met
-When the badge renders
-Then it appears locked with appropriate accessible semantics
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-004`
 * `HYD-US-012`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -696,39 +1375,95 @@ Then it appears locked with appropriate accessible semantics
 * `lib/ui/components/achievement_badge.dart`
 * `lib/l10n/app_en.arb`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-014: Estimate Eco Impact From Local Logs
 
 **Epic:** Eco-Impact Tracking  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P2  
 **Release Scope:** Supporting
 
-**As a** sustainability-minded user  
-**I need** an environmental impact estimate from my logged hydration  
+#### User Story
+
+**As a** sustainability-minded user
+**I need** an environmental impact estimate from my logged hydration
 **So that** I can see a simple local estimate of plastic saved.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: eco estimate uses total lifetime ml from `HydrationRepository`.
-* Confirmed: the formula treats each 500 ml as an avoided half-liter bottle and estimates 0.01 kg plastic saved per bottle.
-* Inferred: this is a rough local estimate, not a verified environmental audit.
+* Hydrion must support "Estimate Eco Impact From Local Logs" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* eco estimate uses total lifetime ml from `HydrationRepository`.
+* the formula treats each 500 ml as an avoided half-liter bottle and estimates 0.01 kg plastic saved per bottle.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* this is a rough local estimate, not a verified environmental audit.
 
 #### Acceptance Criteria
 
-```gherkin
-Given lifetime hydration logs total 500 ml
-When the eco tracker calculates plastic saved
-Then it returns approximately 0.01 kg
+- [x] It returns approximately 0.01 kg.
+- [x] It shows 0.00 kg and explains the value is a local estimate from logs.
 
-Given no logs exist
-When Analytics renders eco impact
-Then it shows 0.00 kg and explains the value is a local estimate from logs
-```
+#### Acceptance Criteria Coverage
+
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-004`
 * `HYD-US-010`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -741,45 +1476,98 @@ Then it shows 0.00 kg and explains the value is a local estimate from logs
 * `lib/ui/screens/analytics_screen.dart`
 * `test/persistence_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-015: Save Local Reminder Definitions
 
 **Epic:** Reminders  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** application user  
-**I need** Hydrion to save local reminder definitions based on hydration context  
+#### User Story
+
+**As a** application user
+**I need** Hydrion to save local reminder definitions based on hydration context
 **So that** I can review hydration nudges even when OS notifications are unavailable.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Home reminder tile calls `NotificationService.scheduleReminder`.
-* Confirmed: reminder policy computes urgency, delay, message, and priority from shortfall, last drink age, hydration percent, and active time.
-* Confirmed: reminder definitions persist under `hydrion.reminders.v1`.
-* Limitation: OS notifications are not scheduled.
+* Hydrion must support "Save Local Reminder Definitions" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Home reminder tile calls `NotificationService.scheduleReminder`.
+* reminder policy computes urgency, delay, message, and priority from shortfall, last drink age, hydration percent, and active time.
+* reminder definitions persist under `hydrion.reminders.v1`.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the reminder policy allows a reminder
-When the user taps the Home reminder action
-Then a local reminder definition is saved with trigger time, message, and priority
+- [x] A local reminder definition is saved with trigger time, message, and priority.
+- [x] The reminder definition is restored from local storage.
+- [x] The confirmation message says the definition is local only.
 
-Given a reminder is saved
-When the repository reloads
-Then the reminder definition is restored from local storage
+#### Acceptance Criteria Coverage
 
-Given OS notifications are disabled
-When the reminder is saved
-Then the confirmation message says the definition is local only
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `ReminderRepository`
 * `NotificationService`
 * `HYD-US-017`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -794,42 +1582,96 @@ Then the confirmation message says the definition is local only
 * `test/persistence_test.dart`
 * `test/runtime_ux_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-016: Manage Saved Reminder Definitions
 
 **Epic:** Reminders  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** returning user  
-**I need** to view and delete saved local reminder definitions  
+#### User Story
+
+**As a** returning user
+**I need** to view and delete saved local reminder definitions
 **So that** stale reminders do not clutter my local app state.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Reminders screen lists saved reminders with timestamp and priority.
-* Confirmed: the screen displays an empty state when none exist.
-* Confirmed: delete removes the reminder and persists the change.
+* Hydrion must support "Manage Saved Reminder Definitions" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Reminders screen lists saved reminders with timestamp and priority.
+* the screen displays an empty state when none exist.
+* delete removes the reminder and persists the change.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given local reminder definitions exist
-When the user opens Reminders
-Then each reminder shows message, trigger timestamp, priority, and delete action
+- [x] Each reminder shows message, trigger timestamp, priority, and delete action.
+- [x] The reminder is removed and a localized confirmation appears.
+- [x] Hydrion shows the local reminder empty state.
 
-Given the user deletes a reminder definition
-When the action completes
-Then the reminder is removed and a localized confirmation appears
+#### Acceptance Criteria Coverage
 
-Given no reminders exist
-When the user opens Reminders
-Then Hydrion shows the local reminder empty state
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-015`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -841,44 +1683,100 @@ Then Hydrion shows the local reminder empty state
 * `lib/repositories/reminder_repository.dart`
 * `test/runtime_ux_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-017: Gate OS Notification Scheduling
 
 **Epic:** Reminders  
-**Status:** Gated  
+**Story Type:** System Story  
+**Implementation Status:** Gated  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As an** application user  
-**I need** Hydrion to clearly distinguish local reminders from real OS notifications  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** Hydrion to clearly distinguish local reminders from real OS notifications
 **So that** I do not expect a device alert that will not fire.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `NotificationService.supportsOsNotifications` returns false.
-* Confirmed: standalone capabilities set `osNotifications` to false.
-* Confirmed: Settings and Reminders copy state that definitions remain local.
-* Inferred: real notification scheduling is a post-MVP adapter requiring permissions and platform tests.
+* Hydrion must support "Gate OS Notification Scheduling" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Gated. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `NotificationService.supportsOsNotifications` returns false.
+* standalone capabilities set `osNotifications` to false.
+* Settings and Reminders copy state that definitions remain local.
+* Business rule: the story must not claim behavior outside its Gated implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* real notification scheduling is a post-MVP adapter requiring permissions and platform tests.
 
 #### Acceptance Criteria
 
-```gherkin
-Given standalone mode is active
-When the user views Settings or Reminders
-Then OS notifications are labeled disabled
+- [x] OS notifications are labeled disabled.
+- [x] The action is rejected because OS notifications are unavailable.
+- [x] The UI must distinguish configured capability from actual scheduling support.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given a provider suggests a reminder that claims OS notification scheduling
-When Hydrion validates the action
-Then the action is rejected because OS notifications are unavailable
+#### Acceptance Criteria Coverage
 
-Given a future notification adapter is enabled
-When capability reporting changes
-Then the UI must distinguish configured capability from actual scheduling support
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 1.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-015`
 * `HYD-US-031`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -892,45 +1790,98 @@ Then the UI must distinguish configured capability from actual scheduling suppor
 * `test/adapter_contract_test.dart`
 * `HYDRION_MVP_KANBAN_ROADMAP.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-018: Join a Local Hydration Challenge
 
 **Epic:** Challenges  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** motivation-focused user  
-**I need** to join a local hydration challenge  
+#### User Story
+
+**As a** motivation-focused user
+**I need** to join a local hydration challenge
 **So that** I can pursue a short-term goal without social sync or backend accounts.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: local challenge generator creates a Seven Day Steady Sip challenge.
-* Confirmed: beginner challenge target is 2000 ml/day for 7 days; other levels exist in the generator.
-* Confirmed: UI exposes a Join action and persists one active challenge.
-* Limitation: current UI loads the beginner challenge only.
+* Hydrion must support "Join a Local Hydration Challenge" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* local challenge generator creates a Seven Day Steady Sip challenge.
+* beginner challenge target is 2000 ml/day for 7 days; other levels exist in the generator.
+* UI exposes a Join action and persists one active challenge.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given no active challenge exists
-When the user opens Challenges
-Then Hydrion shows local challenge mode and a joinable local challenge
+- [x] Hydrion shows local challenge mode and a joinable local challenge.
+- [x] The challenge is marked joined and persisted locally.
+- [x] It states challenge progress is saved on this device.
 
-Given the user taps Join
-When the repository saves the challenge
-Then the challenge is marked joined and persisted locally
+#### Acceptance Criteria Coverage
 
-Given social sync is unavailable
-When the challenge screen renders
-Then it states challenge progress is saved on this device
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `ChallengeRepository`
 * `ChallengeGenerator`
 * `HYD-US-031`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -944,43 +1895,96 @@ Then it states challenge progress is saved on this device
 * `test/runtime_ux_test.dart`
 * `test/persistence_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-019: Track Local Challenge Progress
 
 **Epic:** Challenges  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** returning user in a challenge  
-**I need** challenge progress to update from saved hydration logs  
+#### User Story
+
+**As a** returning user in a challenge
+**I need** challenge progress to update from saved hydration logs
 **So that** I know how many challenge days I have completed.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: progress counts completed days where local day total meets the challenge target.
-* Confirmed: progress includes completed days, duration days, today's ml, and target ml.
-* Limitation: `DateTime.now()` is used directly; there is no injected clock/time-zone boundary abstraction yet.
+* Hydrion must support "Track Local Challenge Progress" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* progress counts completed days where local day total meets the challenge target.
+* progress includes completed days, duration days, today's ml, and target ml.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given an active challenge exists
-When the user logs enough water for a challenge day
-Then the progress calculation counts that day as complete
+- [x] The progress calculation counts that day as complete.
+- [x] Hydrion shows today's ml against the challenge target.
+- [x] Hydrion returns zero completed days and zero target context.
 
-Given today's intake is below the challenge target
-When the challenge screen renders
-Then Hydrion shows today's ml against the challenge target
+#### Acceptance Criteria Coverage
 
-Given no active challenge exists
-When progress is requested
-Then Hydrion returns zero completed days and zero target context
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-004`
 * `HYD-US-018`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -992,43 +1996,98 @@ Then Hydrion returns zero completed days and zero target context
 * `lib/ui/screens/social_challenges_screen.dart`
 * `lib/services/hydration_context_builder.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-020: Leave Challenges and Keep Completion History
 
 **Epic:** Challenges  
-**Status:** Partial  
+**Story Type:** User Story  
+**Implementation Status:** Partial  
 **Priority:** P2  
 **Release Scope:** Supporting
 
-**As a** challenge participant  
-**I need** to leave a challenge and retain local completion history  
+#### User Story
+
+**As a** challenge participant
+**I need** to leave a challenge and retain local completion history
 **So that** challenge state remains controllable and auditable.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `ChallengeRepository.leave()` can clear the active challenge.
-* Confirmed: roadmap notes missing local challenge leave, completion, and history work.
-* Limitation: current UI does not expose Leave, does not persist completion events, and supports only one active challenge.
+* Hydrion must support "Leave Challenges and Keep Completion History" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `ChallengeRepository.leave()` can clear the active challenge.
+* roadmap notes missing local challenge leave, completion, and history work.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the user has joined a challenge
-When the user chooses Leave in a future UI
-Then the active challenge is cleared from local state
+- [x] The active challenge is cleared from local state.
+- [x] Completion history is saved locally without requiring social sync.
+- [ ] Hydrion must not claim challenge history is available.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given a challenge reaches its completion condition
-When Hydrion records completion
-Then completion history is saved locally without requiring social sync
+#### Acceptance Criteria Coverage
 
-Given no completion-history implementation exists
-When current code runs
-Then Hydrion must not claim challenge history is available
-```
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 2.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-018`
 * `HYD-US-019`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -1040,44 +2099,99 @@ Then Hydrion must not claim challenge history is available
 * `lib/ui/screens/social_challenges_screen.dart`
 * `HYDRION_MVP_KANBAN_ROADMAP.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [ ] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-021: Show Local Hydration Advice on Home
 
 **Epic:** Local Hydration Coach  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** application user  
-**I need** local hydration advice based on progress and entry count  
+#### User Story
+
+**As a** application user
+**I need** local hydration advice based on progress and entry count
 **So that** I receive useful guidance without sending data off-device.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `LLMAdviceCard` uses `HydrationCoach`.
-* Confirmed: local coach advice changes by hydration percent and adds context about heat and entry count.
-* Confirmed: advice is localized on Home.
-* Confirmed: failures render a retry UI.
+* Hydrion must support "Show Local Hydration Advice on Home" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `LLMAdviceCard` uses `HydrationCoach`.
+* local coach advice changes by hydration percent and adds context about heat and entry count.
+* advice is localized on Home.
+* failures render a retry UI.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+* User-visible strings and locale state must remain compatible with generated localization resources and fallback rules.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given local_rules mode is active
-When Home renders advice
-Then the advice is generated locally and localized for the active locale
+- [x] The advice is generated locally and localized for the active locale.
+- [x] Hydrion shows a localized failure state with retry.
+- [x] Cached advice is refreshed.
 
-Given advice loading fails
-When the card renders
-Then Hydrion shows a localized failure state with retry
+#### Acceptance Criteria Coverage
 
-Given hydration percent or locale changes
-When the advice card updates
-Then cached advice is refreshed
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-008`
 * `HYD-US-029`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -1090,44 +2204,98 @@ Then cached advice is refreshed
 * `lib/main.dart`
 * `test/localization_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-022: Chat With Local Hydration Coach
 
 **Epic:** Local Hydration Coach  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** local-first user  
-**I need** to ask a hydration coach question  
+#### User Story
+
+**As a** local-first user
+**I need** to ask a hydration coach question
 **So that** I can receive deterministic guidance from saved local hydration context.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Coach screen shows today's ml, target, event count, selected provider, and active provider.
-* Confirmed: local fallback replies include local deterministic mode and saved log summary.
-* Confirmed: empty input and duplicate send while busy are ignored.
-* Confirmed: provider errors show localized snack-bar errors or fallback notices.
+* Hydrion must support "Chat With Local Hydration Coach" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Coach screen shows today's ml, target, event count, selected provider, and active provider.
+* local fallback replies include local deterministic mode and saved log summary.
+* empty input and duplicate send while busy are ignored.
+* provider errors show localized snack-bar errors or fallback notices.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given local_rules is active
-When the user asks the coach a question
-Then Hydrion responds with deterministic local guidance based on saved logs
+- [x] Hydrion responds with deterministic local guidance based on saved logs.
+- [x] No coach request is made.
+- [x] Hydrion shows a localized fallback notice.
 
-Given the user submits an empty message
-When the send action runs
-Then no coach request is made
+#### Acceptance Criteria Coverage
 
-Given a provider fallback occurs
-When the coach turn completes
-Then Hydrion shows a localized fallback notice
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-023`
 * `HYD-US-031`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -1140,34 +2308,85 @@ Then Hydrion shows a localized fallback notice
 * `lib/services/hydration_ai_orchestrator.dart`
 * `test/product_qa_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-023: Build Typed Hydration Context
 
 **Epic:** Local Hydration Coach  
-**Status:** Implemented  
+**Story Type:** System Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As a** local application service  
-**I need** a typed hydration context for coaches and providers  
+#### User Story
+
+**As a** local application service
+**I need** a typed hydration context for coaches and providers
 **So that** advice and provider proposals use consistent, bounded app state.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `LocalHydrationContextProvider` builds daily summary, lifetime ml, event count, reminder context, challenge context, and capabilities.
-* Confirmed: context is built from repositories and capability reporter.
-* Confirmed: optional providers receive typed context instead of mutating repositories.
+* Hydrion must support "Build Typed Hydration Context" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `LocalHydrationContextProvider` builds daily summary, lifetime ml, event count, reminder context, challenge context, and capabilities.
+* context is built from repositories and capability reporter.
+* optional providers receive typed context instead of mutating repositories.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given saved logs, reminders, and challenge state exist
-When Hydrion builds provider context
-Then the context contains daily summary, lifetime totals, reminder state, challenge state, and capabilities
+- [x] The context contains daily summary, lifetime totals, reminder state, challenge state, and capabilities.
+- [x] Disabled capability flags remain false.
 
-Given optional capabilities are disabled
-When context is built
-Then disabled capability flags remain false
-```
+#### Acceptance Criteria Coverage
+
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
@@ -1175,6 +2394,12 @@ Then disabled capability flags remain false
 * `HYD-US-015`
 * `HYD-US-018`
 * `HYD-US-031`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -1187,44 +2412,98 @@ Then disabled capability flags remain false
 * `docs/architecture/AI_ACTION_CONTRACT.md`
 * `test/adapter_contract_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-024: Confirm Coach Suggestions Before State Changes
 
 **Epic:** Local Hydration Coach  
-**Status:** Implemented  
+**Story Type:** Security Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As an** application user  
-**I need** coach suggestions that change logs, reminders, or challenges to require confirmation  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** coach suggestions that change logs, reminders, or challenges to require confirmation
 **So that** no provider or coach output mutates my local data without consent.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: suggestion cards can represent hydration log, reminder, challenge, trend insight, and unsupported capability proposals.
-* Confirmed: state-changing actions require confirmation.
-* Confirmed: executor writes only through repositories after validation.
-* Confirmed: dismissing a card removes the pending proposal without changing state.
+* Hydrion must support "Confirm Coach Suggestions Before State Changes" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* suggestion cards can represent hydration log, reminder, challenge, trend insight, and unsupported capability proposals.
+* state-changing actions require confirmation.
+* executor writes only through repositories after validation.
+* dismissing a card removes the pending proposal without changing state.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a valid hydration-log suggestion appears
-When the user confirms it
-Then Hydrion writes the log through `HydrationRepository`
+- [x] Hydrion writes the log through `HydrationRepository`.
+- [x] No log, reminder, or challenge state is changed.
+- [x] It is display-only and cannot be applied as a state change.
 
-Given a state-changing suggestion appears
-When the user does not confirm it
-Then no log, reminder, or challenge state is changed
+#### Acceptance Criteria Coverage
 
-Given an unsupported-capability notice appears
-When the card renders
-Then it is display-only and cannot be applied as a state change
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-022`
 * `HYD-US-031`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -1238,44 +2517,98 @@ Then it is display-only and cannot be applied as a state change
 * `test/coach_suggestion_service_test.dart`
 * `test/coach_suggestion_cards_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-025: Parse Hydration Commands for Typed or Future Voice Use
 
 **Epic:** Local Hydration Coach  
-**Status:** Partial  
+**Story Type:** Enabler Story  
+**Implementation Status:** Partial  
 **Priority:** P2  
 **Release Scope:** Supporting
 
-**As a** hands-free or typed-command user  
-**I need** Hydrion to parse hydration-related commands into stable intents  
+#### User Story
+
+**As a** hands-free or typed-command user
+**I need** Hydrion to parse hydration-related commands into stable intents
 **So that** future voice or command surfaces can route requests safely.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: local parser returns `log_hydration`, `schedule_reminder`, or `unknown_command`.
-* Confirmed: numeric ml extraction supports simple commands like "log 450 ml".
-* Confirmed: `VoiceLLMBridge` normalizes parser output.
-* Limitation: there is no active voice capture UI or typed command UI that applies parsed commands.
+* Hydrion must support "Parse Hydration Commands for Typed or Future Voice Use" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* local parser returns `log_hydration`, `schedule_reminder`, or `unknown_command`.
+* numeric ml extraction supports simple commands like "log 450 ml".
+* `VoiceLLMBridge` normalizes parser output.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the command "log 450 ml"
-When the local parser runs
-Then it returns intent `log_hydration` and `volumeMl` 450
+- [ ] It returns intent `log_hydration` and `volumeMl` 450.
+- [ ] It returns intent `schedule_reminder`.
+- [ ] It returns `unknown_command` with the original command.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given a reminder command
-When the local parser runs
-Then it returns intent `schedule_reminder`
+#### Acceptance Criteria Coverage
 
-Given an unknown command
-When the local parser runs
-Then it returns `unknown_command` with the original command
-```
+* Checked acceptance criteria: 0.
+* Unchecked acceptance criteria: 4.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-026`
 * `HYD-US-031`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -1288,44 +2621,99 @@ Then it returns `unknown_command` with the original command
 * `lib/services/voice_client.dart`
 * `test/adapter_contract_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-026: Gate Voice Capture Until a Real Adapter Exists
 
 **Epic:** Local Hydration Coach  
-**Status:** Gated  
+**Story Type:** Security Story  
+**Implementation Status:** Gated  
 **Priority:** P2  
 **Release Scope:** Post-MVP
 
-**As an** accessibility-focused or hands-free user  
-**I need** voice capture to stay disabled until microphone capture and confirmation are real  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** voice capture to stay disabled until microphone capture and confirmation are real
 **So that** Hydrion does not pretend to support a privacy-sensitive feature.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `VoiceService.isAvailable` and `initialize()` return false.
-* Confirmed: `VoiceInputWidget` is disabled and uses disabled semantics/tooltips.
-* Confirmed: permissions service does not request microphone permissions in standalone mode.
-* Inferred: future voice support needs permission flow, transcript preview, locale handling, and confirmation.
+* Hydrion must support "Gate Voice Capture Until a Real Adapter Exists" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Gated. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `VoiceService.isAvailable` and `initialize()` return false.
+* `VoiceInputWidget` is disabled and uses disabled semantics/tooltips.
+* permissions service does not request microphone permissions in standalone mode.
+* Business rule: the story must not claim behavior outside its Gated implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* future voice support needs permission flow, transcript preview, locale handling, and confirmation.
 
 #### Acceptance Criteria
 
-```gherkin
-Given standalone mode is active
-When the user views the voice floating action button
-Then it is disabled and labeled as unavailable
+- [x] It is disabled and labeled as unavailable.
+- [x] No microphone permission is requested.
+- [ ] State changes still require user confirmation before execution.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given a user checks permissions
-When standalone permissions run
-Then no microphone permission is requested
+#### Acceptance Criteria Coverage
 
-Given a future voice adapter is added
-When a command is parsed
-Then state changes still require user confirmation before execution
-```
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 2.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-025`
 * `HYD-US-031`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -1339,43 +2727,99 @@ Then state changes still require user confirmation before execution
 * `test/persistence_test.dart`
 * `HYDRION_MVP_KANBAN_ROADMAP.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-027: Persist Language Settings
 
 **Epic:** Settings and Personalization  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** multilingual user  
-**I need** to select and persist my app language  
+#### User Story
+
+**As a** multilingual user
+**I need** to select and persist my app language
 **So that** Hydrion continues in my preferred supported language after reload.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Settings exposes English, Spanish, and French in a locale picker.
-* Confirmed: `I18nResolver` persists the resolved locale through `UserSettingsRepository`.
-* Confirmed: unsupported locales fall back to English.
+* Hydrion must support "Persist Language Settings" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Settings exposes English, Spanish, and French in a locale picker.
+* `I18nResolver` persists the resolved locale through `UserSettingsRepository`.
+* unsupported locales fall back to English.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+* User-visible strings and locale state must remain compatible with generated localization resources and fallback rules.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the user selects French
-When settings save the locale
-Then app strings update to French and the locale is stored locally
+- [x] App strings update to French and the locale is stored locally.
+- [x] The previously selected locale is restored.
+- [x] Hydrion falls back to English.
 
-Given Hydrion reloads from the same local store
-When services initialize
-Then the previously selected locale is restored
+#### Acceptance Criteria Coverage
 
-Given an unsupported locale is requested
-When the resolver processes it
-Then Hydrion falls back to English
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-029`
 * `HYD-US-004`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve generated localization fallback behavior for supported and future locales.
 
 #### Out of Scope
 
@@ -1389,43 +2833,97 @@ Then Hydrion falls back to English
 * `test/localization_test.dart`
 * `test/persistence_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-028: Show Runtime Capability and Permission Status
 
 **Epic:** Settings and Personalization  
-**Status:** Implemented  
+**Story Type:** Operational Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As an** application user  
-**I need** Settings to show what Hydrion can and cannot do at runtime  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** Settings to show what Hydrion can and cannot do at runtime
 **So that** I understand which features are local, disabled, unconfigured, or future.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Settings shows local persistence, ELKA, cloud AI, voice, BLE, Health, OS notifications, AR, and social sync status.
-* Confirmed: standalone permissions check reports that no platform permissions are requested.
-* Confirmed: capability states come from `AppCapabilityReporter`.
+* Hydrion must support "Show Runtime Capability and Permission Status" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Settings shows local persistence, ELKA, cloud AI, voice, BLE, Health, OS notifications, AR, and social sync status.
+* standalone permissions check reports that no platform permissions are requested.
+* capability states come from `AppCapabilityReporter`.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given standalone capabilities are active
-When the user opens Settings
-Then local persistence is shown on-device and optional integrations are shown disabled or unconfigured
+- [x] Local persistence is shown on-device and optional integrations are shown disabled or unconfigured.
+- [x] Hydrion reports that no platform permissions were requested.
+- [x] Cloud AI/Gemini status reflects the configured provider state.
 
-Given the user taps the permission check
-When standalone mode runs
-Then Hydrion reports that no platform permissions were requested
+#### Acceptance Criteria Coverage
 
-Given Gemini is configured by runtime defines
-When Settings renders
-Then cloud AI/Gemini status reflects the configured provider state
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-031`
 * `HYD-US-033`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -1439,42 +2937,96 @@ Then cloud AI/Gemini status reflects the configured provider state
 * `test/runtime_ux_test.dart`
 * `test/product_qa_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-029: Render English, Spanish, and French App Strings
 
 **Epic:** Localization  
-**Status:** Implemented  
+**Story Type:** User Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** MVP
 
-**As a** multilingual user  
-**I need** Hydrion's core UI in English, Spanish, and French  
+#### User Story
+
+**As a** multilingual user
+**I need** Hydrion's core UI in English, Spanish, and French
 **So that** I can use the main flows in a supported language.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `lib/l10n/app_en.arb`, `app_es.arb`, and `app_fr.arb` exist.
-* Confirmed: Flutter `gen_l10n` output is committed under `lib/l10n`.
-* Confirmed: tests verify core shell strings and provider status strings in all three locales.
+* Hydrion must support "Render English, Spanish, and French App Strings" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `lib/l10n/app_en.arb`, `app_es.arb`, and `app_fr.arb` exist.
+* Flutter `gen_l10n` output is committed under `lib/l10n`.
+* tests verify core shell strings and provider status strings in all three locales.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+* User-visible strings and locale state must remain compatible with generated localization resources and fallback rules.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the locale is English, Spanish, or French
-When Hydrion renders Home and Settings
-Then core labels appear in the selected language
+- [x] Core labels appear in the selected language.
+- [x] Strings come from `AppLocalizations`.
+- [x] Visible strings update without app restart.
 
-Given generated localization lookup is used
-When a localized widget renders
-Then strings come from `AppLocalizations`
+#### Acceptance Criteria Coverage
 
-Given a user changes locale at runtime
-When `I18nResolver` notifies the app
-Then visible strings update without app restart
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-027`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -1490,44 +3042,100 @@ Then visible strings update without app restart
 * `test/localization_test.dart`
 * `test/product_qa_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-030: Handle Future and Unsupported Locales Safely
 
 **Epic:** Localization  
-**Status:** Partial  
+**Story Type:** System Story  
+**Implementation Status:** Partial  
 **Priority:** P2  
 **Release Scope:** Supporting
 
-**As a** multilingual user outside current locale coverage  
-**I need** Hydrion to fall back safely and label future languages honestly  
+#### User Story
+
+**As a** multilingual user outside current locale coverage
+**I need** Hydrion to fall back safely and label future languages honestly
 **So that** I am not shown incomplete localization as if it were shipped.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `I18nResolver.futureLocales` includes Arabic, German, Portuguese, and Chinese.
-* Confirmed: unsupported and future locales fall back to English for active UI.
-* Confirmed: RTL helper exists for locale text direction.
-* Limitation: no future-locale ARB files are active in the Flutter app.
+* Hydrion must support "Handle Future and Unsupported Locales Safely" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `I18nResolver.futureLocales` includes Arabic, German, Portuguese, and Chinese.
+* unsupported and future locales fall back to English for active UI.
+* RTL helper exists for locale text direction.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+* User-visible strings and locale state must remain compatible with generated localization resources and fallback rules.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the user requests German
-When locale resolution runs
-Then Hydrion falls back to English and identifies German as future
+- [x] Hydrion falls back to English and identifies German as future.
+- [ ] Hydrion identifies it as unsupported.
+- [x] The resolver can report RTL direction for that locale.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given the user requests an unsupported locale
-When locale status is checked
-Then Hydrion identifies it as unsupported
+#### Acceptance Criteria Coverage
 
-Given a future RTL locale becomes active
-When text direction is requested
-Then the resolver can report RTL direction for that locale
-```
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 2.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-027`
 * `HYD-US-029`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -1539,43 +3147,97 @@ Then the resolver can report RTL direction for that locale
 * `test/localization_test.dart`
 * `docs/architecture/AI_ACTION_CONTRACT.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-031: Enforce Capability Gating and Safe Action Validation
 
 **Epic:** Capability Gating  
-**Status:** Implemented  
+**Story Type:** Security Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** Supporting
 
-**As a** local application service  
-**I need** unavailable features and unsafe provider claims to be blocked  
+#### User Story
+
+**As a** local application service
+**I need** unavailable features and unsafe provider claims to be blocked
 **So that** Hydrion cannot mislead users or mutate state through unsupported capabilities.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: standalone capabilities disable ELKA, Gemini, cloud AI, cloud sync, voice, BLE, Health, OS notifications, AR, and social sync by default.
-* Confirmed: `HydrationAiActionValidator` blocks unavailable required capabilities and unsafe capability claims.
-* Confirmed: invalid hydration amounts outside 1 to 5000 ml are rejected for provider suggestions.
+* Hydrion must support "Enforce Capability Gating and Safe Action Validation" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* standalone capabilities disable ELKA, Gemini, cloud AI, cloud sync, voice, BLE, Health, OS notifications, AR, and social sync by default.
+* `HydrationAiActionValidator` blocks unavailable required capabilities and unsafe capability claims.
+* invalid hydration amounts outside 1 to 5000 ml are rejected for provider suggestions.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given an action claims disabled voice, BLE, cloud sync, ELKA, Gemini, AR, Health, social sync, or notifications are active
-When Hydrion validates the action
-Then the action is rejected and converted to an unsupported-capability notice
+- [x] The action is rejected and converted to an unsupported-capability notice.
+- [x] Hydrion does not execute it.
+- [x] They use capability state instead of guessing feature availability.
 
-Given a state-changing provider suggestion is structurally valid
-When it lacks user confirmation
-Then Hydrion does not execute it
+#### Acceptance Criteria Coverage
 
-Given standalone capabilities are reported
-When Settings and Coach render
-Then they use capability state instead of guessing feature availability
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-023`
 * `HYD-US-024`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -1589,43 +3251,88 @@ Then they use capability state instead of guessing feature availability
 * `test/adapter_contract_test.dart`
 * `docs/architecture/AI_ACTION_CONTRACT.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-032: Use Optional Gemini Provider With Local Fallback
 
 **Epic:** External Provider Integration  
-**Status:** Gated  
+**Story Type:** System Story  
+**Implementation Status:** Gated  
 **Priority:** P2  
 **Release Scope:** Supporting
 
-**As an** optional provider evaluator  
-**I need** Gemini to run only when explicitly configured  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** Gemini to run only when explicitly configured
 **So that** Hydrion keeps local_rules as default and avoids unsafe production key handling.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Gemini selection uses Dart defines `HYDRION_AI_PROVIDER=gemini`, `HYDRION_GEMINI_API_KEY`, and optional `HYDRION_GEMINI_MODEL`.
-* Confirmed: missing key, timeout, HTTP error, malformed response, parser rejection, and validator rejection fall back to `local_rules`.
-* Confirmed: Gemini returns typed `HydrationAiAction` proposals only.
-* Limitation: production shared client keys are explicitly not allowed.
+* Hydrion must support "Use Optional Gemini Provider With Local Fallback" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Gated. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Gemini selection uses Dart defines `HYDRION_AI_PROVIDER=gemini`, `HYDRION_GEMINI_API_KEY`, and optional `HYDRION_GEMINI_MODEL`.
+* missing key, timeout, HTTP error, malformed response, parser rejection, and validator rejection fall back to `local_rules`.
+* Gemini returns typed `HydrationAiAction` proposals only.
+* Business rule: the story must not claim behavior outside its Gated implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given no Gemini runtime defines are present
-When Hydrion starts
-Then selected provider remains local_rules
+- [x] Selected provider remains local_rules.
+- [x] No Gemini network request is attempted and local_rules handles the reply.
+- [ ] Hydrion may display the validated response or suggestion.
+- [x] The user receives local_rules fallback without raw prompt, context, response, or full key leakage.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given Gemini is selected but no API key is configured
-When the coach requests provider output
-Then no Gemini network request is attempted and local_rules handles the reply
+#### Acceptance Criteria Coverage
 
-Given Gemini returns valid typed action JSON
-When parser and validator accept it
-Then Hydrion may display the validated response or suggestion
-
-Given Gemini fails or returns unsafe output
-When Hydrion handles the request
-Then the user receives local_rules fallback without raw prompt, context, response, or full key leakage
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 2.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
@@ -1633,6 +3340,13 @@ Then the user receives local_rules fallback without raw prompt, context, respons
 * `HYD-US-031`
 * `HYD-US-033`
 * `HYD-US-051`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -1647,43 +3361,97 @@ Then the user receives local_rules fallback without raw prompt, context, respons
 * `docs/architecture/GEMINI_API_INTEGRATION_AUDIT.md`
 * `docs/architecture/PROVIDER_SECURITY.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-033: Display Safe Provider Health Diagnostics
 
 **Epic:** External Provider Integration  
-**Status:** Implemented  
+**Story Type:** Operational Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As an** application user or developer  
-**I need** provider status and safe diagnostics in Settings and Coach  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** provider status and safe diagnostics in Settings and Coach
 **So that** I can understand whether local_rules or an optional provider handled a response.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: provider health tracks selected provider, active provider, configured state, fallback state, diagnostics, and privacy disclosure.
-* Confirmed: Settings displays safe Gemini diagnostics such as endpoint host, model path, key presence, key length, first/last four characters, request attempted, HTTP status class, parser/validator codes, and fallback code.
-* Confirmed: normal Coach UI hides raw diagnostic internals and full secrets.
+* Hydrion must support "Display Safe Provider Health Diagnostics" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* provider health tracks selected provider, active provider, configured state, fallback state, diagnostics, and privacy disclosure.
+* Settings displays safe Gemini diagnostics such as endpoint host, model path, key presence, key length, first/last four characters, request attempted, HTTP status class, parser/validator codes, and fallback code.
+* normal Coach UI hides raw diagnostic internals and full secrets.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given local_rules is active
-When Settings renders provider health
-Then it shows local_rules as selected/active and local-only privacy copy
+- [x] It shows local_rules as selected/active and local-only privacy copy.
+- [x] It shows safe key/request metadata without full API key, raw prompt, raw context, or raw response.
+- [x] The user can see fallback is active without private query leakage.
 
-Given Gemini is configured
-When Settings renders diagnostics
-Then it shows safe key/request metadata without full API key, raw prompt, raw context, or raw response
+#### Acceptance Criteria Coverage
 
-Given provider fallback occurs
-When Settings and Coach render
-Then the user can see fallback is active without private query leakage
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-032`
 * `HYD-US-051`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -1697,45 +3465,99 @@ Then the user can see fallback is active without private query leakage
 * `test/gemini_provider_test.dart`
 * `test/product_qa_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-034: Keep ELKA as an Optional Adapter Boundary
 
 **Epic:** External Provider Integration  
-**Status:** Post-MVP  
+**Story Type:** Architecture Story  
+**Implementation Status:** Post-MVP  
 **Priority:** P2  
 **Release Scope:** Post-MVP
 
-**As an** external provider integrator  
-**I need** ELKA to plug in behind Hydrion contracts only when configured  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** ELKA to plug in behind Hydrion contracts only when configured
 **So that** Hydrion remains standalone and UI-provider independent.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `ElkaAdapterShell.unconfigured()` exists and is compile-safe.
-* Confirmed: shell methods throw `UnsupportedError` and `isConfigured` is false.
-* Confirmed: UI import rules forbid direct ELKA adapter imports.
-* Inferred: a real ELKA adapter must implement existing domain contracts and require consent/provider health UX.
+* Hydrion must support "Keep ELKA as an Optional Adapter Boundary" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Post-MVP. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `ElkaAdapterShell.unconfigured()` exists and is compile-safe.
+* shell methods throw `UnsupportedError` and `isConfigured` is false.
+* UI import rules forbid direct ELKA adapter imports.
+* Business rule: the story must not claim behavior outside its Post-MVP implementation status.
+
+#### Data and State Requirements
+
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* a real ELKA adapter must implement existing domain contracts and require consent/provider health UX.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the current app build
-When ELKA shell status is checked
-Then ELKA is unconfigured and unavailable
+- [x] ELKA is unconfigured and unavailable.
+- [ ] UI files do not import ELKA adapters directly.
+- [x] Local_rules remains the default fallback.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given UI code is inspected
-When architecture tests run
-Then UI files do not import ELKA adapters directly
+#### Acceptance Criteria Coverage
 
-Given a future ELKA adapter is implemented
-When Hydrion runs without ELKA configuration
-Then local_rules remains the default fallback
-```
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 2.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-031`
 * `HYD-US-049`
 * `HYD-US-051`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -1748,44 +3570,99 @@ Then local_rules remains the default fallback
 * `test/adapter_contract_test.dart`
 * `test/boundary_architecture_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [ ] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-035: Add Native BLE, Health, and AR Integrations Later
 
 **Epic:** Platform and Native Capabilities  
-**Status:** Post-MVP  
+**Story Type:** Architecture Story  
+**Implementation Status:** Post-MVP  
 **Priority:** P3  
 **Release Scope:** Post-MVP
 
-**As a** user with device or platform integrations  
-**I need** BLE smart-bottle, Health, and AR capabilities only after real adapters exist  
+#### User Story
+
+**As a** user with device or platform integrations
+**I need** BLE smart-bottle, Health, and AR capabilities only after real adapters exist
 **So that** Hydrion does not request sensitive permissions or show fake integration behavior.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: BLE service reports unavailable, returns empty scans, and reads no water level.
-* Confirmed: wearable service reports BLE and Health sync unsupported.
-* Confirmed: AR screen states no plugin, camera permission, or native AR session is active.
-* Confirmed: stale config may claim BLE/voice/wearable enabled, but runtime capabilities are authoritative.
+* Hydrion must support "Add Native BLE, Health, and AR Integrations Later" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Post-MVP. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* BLE service reports unavailable, returns empty scans, and reads no water level.
+* wearable service reports BLE and Health sync unsupported.
+* AR screen states no plugin, camera permission, or native AR session is active.
+* stale config may claim BLE/voice/wearable enabled, but runtime capabilities are authoritative.
+* Business rule: the story must not claim behavior outside its Post-MVP implementation status.
+
+#### Data and State Requirements
+
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given standalone mode is active
-When users inspect capability status
-Then BLE, Health, and AR are disabled or unavailable
+- [x] BLE, Health, and AR are disabled or unavailable.
+- [x] No camera or native AR session starts.
+- [ ] Hydrion must gate the feature with explicit permission, privacy copy, and tests.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given a user opens the AR screen
-When no AR adapter is configured
-Then no camera or native AR session starts
+#### Acceptance Criteria Coverage
 
-Given a future native adapter is added
-When permissions are required
-Then Hydrion must gate the feature with explicit permission, privacy copy, and tests
-```
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 2.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-028`
 * `HYD-US-031`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -1799,44 +3676,98 @@ Then Hydrion must gate the feature with explicit permission, privacy copy, and t
 * `lib/ui/screens/settings_screen.dart`
 * `docs/architecture/STALE_SCAFFOLD_AUDIT.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [ ] Estimable from current repository evidence and known constraints.
+- [ ] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-036: Run as a Web App With PWA Metadata
 
 **Epic:** Platform and PWA Capabilities  
-**Status:** Partial  
+**Story Type:** Operational Story  
+**Implementation Status:** Partial  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As a** web user  
-**I need** Hydrion to build and launch as a Flutter web app with PWA metadata  
+#### User Story
+
+**As a** web user
+**I need** Hydrion to build and launch as a Flutter web app with PWA metadata
 **So that** I can use the local-first hydration experience in a browser.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: README includes `flutter run -d chrome` and `flutter build web --release`.
-* Confirmed: CI builds and uploads `build/web`.
-* Confirmed: web manifest includes standalone display, icons, orientation, and manifest link.
-* Limitation: manifest/index title and description still use default Flutter `hydrion_app` / "A new Flutter project" metadata.
+* Hydrion must support "Run as a Web App With PWA Metadata" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* README includes `flutter run -d chrome` and `flutter build web --release`.
+* CI builds and uploads `build/web`.
+* web manifest includes standalone display, icons, orientation, and manifest link.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given Flutter dependencies are installed
-When `flutter build web --release` runs in CI
-Then Hydrion produces a web build artifact
+- [ ] Hydrion produces a web build artifact.
+- [ ] Standalone display and icon metadata are available.
+- [ ] Default Flutter title/description are replaced with Hydrion product metadata.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given the web app is installed or launched
-When the manifest is read
-Then standalone display and icon metadata are available
+#### Acceptance Criteria Coverage
 
-Given release readiness work is performed
-When metadata is audited
-Then default Flutter title/description are replaced with Hydrion product metadata
-```
+* Checked acceptance criteria: 0.
+* Unchecked acceptance criteria: 4.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-001`
 * `HYD-US-050`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -1849,44 +3780,96 @@ Then default Flutter title/description are replaced with Hydrion product metadat
 * `web/index.html`
 * `.github/workflows/flutter-ci.yml`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-037: Build Android APK
 
 **Epic:** Platform and PWA Capabilities  
-**Status:** Implemented  
+**Story Type:** Operational Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** MVP
 
-**As an** Android tester  
-**I need** Hydrion to build as an Android APK  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** Hydrion to build as an Android APK
 **So that** the MVP can be validated on Android devices or internal release channels.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: README includes `flutter build apk --release`.
-* Confirmed: CI build job builds and uploads the Android APK.
-* Confirmed: Android manifest and Gradle config are standard Flutter output.
-* Limitation: application id, app label, and release signing remain default/debug-oriented and need release cleanup.
+* Hydrion must support "Build Android APK" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* README includes `flutter build apk --release`.
+* CI build job builds and uploads the Android APK.
+* Android manifest and Gradle config are standard Flutter output.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given Android SDK and Flutter are configured
-When `flutter build apk --release` runs
-Then Hydrion produces a release APK artifact
+- [x] Hydrion produces a release APK artifact.
+- [x] `hydrion-android-apk` contains the generated APK.
+- [x] Default app id, label, and debug signing are flagged before production release.
 
-Given CI completes the Android build job
-When artifacts are uploaded
-Then `hydrion-android-apk` contains the generated APK
+#### Acceptance Criteria Coverage
 
-Given release metadata is audited
-When Android config is reviewed
-Then default app id, label, and debug signing are flagged before production release
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-001`
 * `HYD-US-050`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -1899,45 +3882,101 @@ Then default app id, label, and debug signing are flagged before production rele
 * `android/app/src/main/AndroidManifest.xml`
 * `.github/workflows/flutter-ci.yml`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-038: Design Cloud, Social, BYOK, OpenAI, and Edge Integrations
 
 **Epic:** External Provider Integration  
-**Status:** Post-MVP  
+**Story Type:** Architecture Story  
+**Implementation Status:** Post-MVP  
 **Priority:** P3  
 **Release Scope:** Post-MVP
 
-**As a** future integration owner  
-**I need** cloud/social/provider integrations to be designed before implementation  
+#### User Story
+
+**As a** future integration owner
+**I need** cloud/social/provider integrations to be designed before implementation
 **So that** user privacy, consent, credentials, moderation, and sync conflicts are handled responsibly.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Firebase and OpenAI configs are placeholders/future only.
-* Confirmed: BYOK, edge LLM, and separate Gemini connector packs are not wired into Flutter runtime.
-* Confirmed: local challenges have no social backend.
-* Confirmed: README and architecture docs prohibit production shared provider keys in clients.
+* Hydrion must support "Design Cloud, Social, BYOK, OpenAI, and Edge Integrations" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Post-MVP. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Firebase and OpenAI configs are placeholders/future only.
+* BYOK, edge LLM, and separate Gemini connector packs are not wired into Flutter runtime.
+* local challenges have no social backend.
+* README and architecture docs prohibit production shared provider keys in clients.
+* Business rule: the story must not claim behavior outside its Post-MVP implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the current MVP runtime
-When cloud sync, OpenAI, BYOK, edge, Firebase, or social sync is inspected
-Then no active runtime path depends on those systems
+- [x] No active runtime path depends on those systems.
+- [ ] The design includes auth, privacy, consent, conflict handling, export/delete behavior, and tests.
+- [ ] Shared production secrets are not shipped in client artifacts.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given a future cloud or social sync feature is proposed
-When implementation begins
-Then the design includes auth, privacy, consent, conflict handling, export/delete behavior, and tests
+#### Acceptance Criteria Coverage
 
-Given a future provider credential is required
-When productizing the provider
-Then shared production secrets are not shipped in client artifacts
-```
+* Checked acceptance criteria: 1.
+* Unchecked acceptance criteria: 3.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-031`
 * `HYD-US-041`
 * `HYD-US-051`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -1953,45 +3992,100 @@ Then shared production secrets are not shipped in client artifacts
 * `docs/architecture/STALE_SCAFFOLD_AUDIT.md`
 * `docs/architecture/PROVIDER_SECURITY.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [ ] Estimable from current repository evidence and known constraints.
+- [ ] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-039: Manage Coach Prompt Templates Safely
 
 **Epic:** Local Hydration Coach  
-**Status:** Partial  
+**Story Type:** Enabler Story  
+**Implementation Status:** Partial  
 **Priority:** P2  
 **Release Scope:** Supporting
 
-**As a** coach-content maintainer  
-**I need** prompt templates and active provider prompts to be managed without confusing dormant scaffolds for runtime behavior  
+#### User Story
+
+**As a** coach-content maintainer
+**I need** prompt templates and active provider prompts to be managed without confusing dormant scaffolds for runtime behavior
 **So that** provider guidance stays auditable and safe.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `LLMPromptBuilder` can load `config/prompt_templates.yaml`.
-* Confirmed: architecture audit classifies `config/prompt_templates.yaml` as dormant because active Gemini/local coach does not use it.
-* Confirmed: Gemini adapter builds its active prompt inline from typed `HydrationContext` and action rules.
-* Inferred: future prompt-template work should preserve typed action schema and capability safety.
+* Hydrion must support "Manage Coach Prompt Templates Safely" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `LLMPromptBuilder` can load `config/prompt_templates.yaml`.
+* architecture audit classifies `config/prompt_templates.yaml` as dormant because active Gemini/local coach does not use it.
+* Gemini adapter builds its active prompt inline from typed `HydrationContext` and action rules.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* future prompt-template work should preserve typed action schema and capability safety.
 
 #### Acceptance Criteria
 
-```gherkin
-Given prompt templates are loaded through `LLMPromptBuilder`
-When a known template key is requested
-Then variables are interpolated and empty or missing templates throw a prompt builder error
+- [ ] Variables are interpolated and empty or missing templates throw a prompt builder error.
+- [x] It uses typed context and action-contract instructions, not dormant template config.
+- [x] Tests verify schema, capability safety, localization, and no clinical claims.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given the active Gemini provider runs today
-When it builds a prompt
-Then it uses typed context and action-contract instructions, not dormant template config
+#### Acceptance Criteria Coverage
 
-Given a future prompt pipeline is enabled
-When templates affect provider output
-Then tests verify schema, capability safety, localization, and no clinical claims
-```
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 2.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-023`
 * `HYD-US-031`
 * `HYD-US-032`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -2004,45 +4098,100 @@ Then tests verify schema, capability safety, localization, and no clinical claim
 * `lib/adapters/gemini/gemini_adapter.dart`
 * `docs/architecture/STALE_SCAFFOLD_AUDIT.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-040: Keep Stale and Future Scaffolds Truthful
 
 **Epic:** Maintenance and Quality Requirements  
-**Status:** Partial  
+**Story Type:** Operational Story  
+**Implementation Status:** Partial  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As a** contributor  
-**I need** stale configs, scripts, and blueprints to be labeled separately from active runtime behavior  
+#### User Story
+
+**As a** contributor
+**I need** stale configs, scripts, and blueprints to be labeled separately from active runtime behavior
 **So that** Hydrion's MVP scope stays honest and maintainable.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `docs/architecture/STALE_SCAFFOLD_AUDIT.md` classifies active, dormant, future, stale, and experimental folders.
-* Confirmed: `config/app.yaml` claims BLE, voice, and wearable sync enabled, contradicting runtime capabilities.
-* Confirmed: `scripts/test_all.sh` references old `app/`, KMP/Gradle, and integration paths.
-* Confirmed: `overview`, `hydrion.txt`, and `p1.txt` describe a broader future/historical architecture not fully present in the repo.
+* Hydrion must support "Keep Stale and Future Scaffolds Truthful" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `docs/architecture/STALE_SCAFFOLD_AUDIT.md` classifies active, dormant, future, stale, and experimental folders.
+* `config/app.yaml` claims BLE, voice, and wearable sync enabled, contradicting runtime capabilities.
+* `scripts/test_all.sh` references old `app/`, KMP/Gradle, and integration paths.
+* `overview`, `hydrion.txt`, and `p1.txt` describe a broader future/historical architecture not fully present in the repo.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a contributor reads configs or scripts
-When those files describe future or stale features
-Then documentation marks them as non-runtime truth before release
+- [ ] Documentation marks them as non-runtime truth before release.
+- [x] Capability reporter and Settings are treated as runtime truth.
+- [x] Implementation, tests, docs, and capability status are updated together.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given runtime capability state conflicts with a dormant config
-When Hydrion renders user-facing status
-Then capability reporter and Settings are treated as runtime truth
+#### Acceptance Criteria Coverage
 
-Given a future scaffold becomes active
-When it is wired into runtime
-Then implementation, tests, docs, and capability status are updated together
-```
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 2.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-028`
 * `HYD-US-031`
 * `HYD-US-050`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -2057,47 +4206,100 @@ Then implementation, tests, docs, and capability status are updated together
 * `hydrion.txt`
 * `p1.txt`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [ ] Estimable from current repository evidence and known constraints.
+- [ ] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ## 5. Non-Functional User Stories
 
 ### HYD-US-041: Preserve Local-First Privacy Baseline
 
 **Epic:** Privacy and Local-First Operation  
-**Status:** Implemented  
+**Story Type:** Security Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** MVP
 
-**As a** privacy-conscious user  
-**I need** Hydrion to work locally by default  
+#### User Story
+
+**As a** privacy-conscious user
+**I need** Hydrion to work locally by default
 **So that** my hydration history remains on the device unless I explicitly configure a non-local provider.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: local_rules is default and requires no network.
-* Confirmed: Settings privacy copy says local_rules keeps hydration context on device.
-* Confirmed: optional Gemini is local-development only and requires explicit configuration.
-* Limitation: local data is persisted in shared preferences without encryption.
+* Hydrion must support "Preserve Local-First Privacy Baseline" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* local_rules is default and requires no network.
+* Settings privacy copy says local_rules keeps hydration context on device.
+* optional Gemini is local-development only and requires explicit configuration.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given no non-local provider is configured
-When the user logs, reviews, analyzes, and asks the coach
-Then Hydrion uses local repositories and local_rules without provider network dependency
+- [x] Hydrion uses local repositories and local_rules without provider network dependency.
+- [x] Hydrion discloses that typed hydration context may leave the device.
+- [x] Explicit consent and a provider disable path are required before release.
 
-Given Gemini is configured
-When Settings displays provider privacy
-Then Hydrion discloses that typed hydration context may leave the device
+#### Acceptance Criteria Coverage
 
-Given production provider work is proposed
-When requirements are reviewed
-Then explicit consent and a provider disable path are required before release
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-001`
 * `HYD-US-031`
 * `HYD-US-032`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -2111,39 +4313,89 @@ Then explicit consent and a provider disable path are required before release
 * `docs/architecture/PROVIDER_SECURITY.md`
 * `test/product_qa_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-042: Protect, Export, and Delete Local Personal Data
 
 **Epic:** Privacy and Local-First Operation  
-**Status:** Partial  
+**Story Type:** Security Story  
+**Implementation Status:** Partial  
 **Priority:** P0  
 **Release Scope:** MVP
 
-**As a** privacy-conscious returning user  
-**I need** clear protection, export, and deletion controls for local hydration data  
+#### User Story
+
+**As a** privacy-conscious returning user
+**I need** clear protection, export, and deletion controls for local hydration data
 **So that** I can manage personal wellness data responsibly.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: hydration logs, settings, reminders, and challenge state persist locally.
-* Confirmed: repositories expose clear methods in code, but no complete user-facing data export/delete settings workflow exists.
-* Confirmed: local storage is shared preferences, not SQLCipher or OS-vault-backed encryption.
-* Confirmed: roadmap flags local data protection as a release decision.
+* Hydrion must support "Protect, Export, and Delete Local Personal Data" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* hydration logs, settings, reminders, and challenge state persist locally.
+* repositories expose clear methods in code, but no complete user-facing data export/delete settings workflow exists.
+* local storage is shared preferences, not SQLCipher or OS-vault-backed encryption.
+* roadmap flags local data protection as a release decision.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given local hydration data exists
-When the user requests export in a future privacy workflow
-Then Hydrion produces a documented local export without sending data to a backend
+- [x] Hydrion produces a documented local export without sending data to a backend.
+- [ ] Hydration logs, reminders, settings, and challenge state are removed or reset according to documented policy.
+- [ ] The gap is explicitly accepted or implemented before beta.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given the user requests deletion in a future privacy workflow
-When deletion completes
-Then hydration logs, reminders, settings, and challenge state are removed or reset according to documented policy
+#### Acceptance Criteria Coverage
 
-Given current MVP lacks encryption/export/delete UI
-When release readiness is assessed
-Then the gap is explicitly accepted or implemented before beta
-```
+* Checked acceptance criteria: 1.
+* Unchecked acceptance criteria: 3.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
@@ -2151,6 +4403,13 @@ Then the gap is explicitly accepted or implemented before beta
 * `HYD-US-015`
 * `HYD-US-018`
 * `HYD-US-027`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -2165,44 +4424,97 @@ Then the gap is explicitly accepted or implemented before beta
 * `HYDRION_MVP_KANBAN_ROADMAP.md`
 * `docs/architecture/PROVIDER_SECURITY.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [ ] Estimable from current repository evidence and known constraints.
+- [ ] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-043: Recover Gracefully From Invalid Stored Data
 
 **Epic:** Data Persistence and Recovery  
-**Status:** Implemented  
+**Story Type:** System Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** Supporting
 
-**As a** returning user  
-**I need** Hydrion to handle corrupt or invalid local data without crashing  
+#### User Story
+
+**As a** returning user
+**I need** Hydrion to handle corrupt or invalid local data without crashing
 **So that** a bad stored payload does not block app access.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: repositories catch malformed JSON and return default/empty state.
-* Confirmed: hydration log decode drops invalid entries.
-* Confirmed: settings fallback to English.
-* Limitation: invalid records are silently ignored rather than quarantined or reported.
+* Hydrion must support "Recover Gracefully From Invalid Stored Data" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* repositories catch malformed JSON and return default/empty state.
+* hydration log decode drops invalid entries.
+* settings fallback to English.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given malformed hydration JSON is stored
-When Hydrion loads logs
-Then it returns an empty log list without throwing
+- [x] It returns an empty log list without throwing.
+- [x] The invalid reminder is skipped.
+- [x] Hydrion uses English defaults.
 
-Given a reminder entry is missing trigger time, message, or numeric priority
-When reminders load
-Then the invalid reminder is skipped
+#### Acceptance Criteria Coverage
 
-Given settings JSON is missing or malformed
-When settings load
-Then Hydrion uses English defaults
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-004`
 * `HYD-US-027`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -2216,39 +4528,88 @@ Then Hydrion uses English defaults
 * `lib/repositories/settings_repository.dart`
 * `test/persistence_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-044: Provide Reliable Error Handling and Fallback UX
 
 **Epic:** Error Handling and Reliability  
-**Status:** Implemented  
+**Story Type:** Operational Story  
+**Implementation Status:** Implemented  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As an** application user  
-**I need** Hydrion to fail gracefully across local and optional-provider flows  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** Hydrion to fail gracefully across local and optional-provider flows
 **So that** errors do not corrupt data or leave me without usable guidance.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: advice card has loading, error, and retry states.
-* Confirmed: chat catches coach errors and shows a localized error snack bar.
-* Confirmed: provider failures fall back to local_rules with safe diagnostics.
-* Confirmed: repository edit/delete failures show "log not found" feedback.
+* Hydrion must support "Provide Reliable Error Handling and Fallback UX" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* advice card has loading, error, and retry states.
+* chat catches coach errors and shows a localized error snack bar.
+* provider failures fall back to local_rules with safe diagnostics.
+* repository edit/delete failures show "log not found" feedback.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Local application state must remain scoped to Hydrion repositories and the `shared_preferences` backed local store unless the story explicitly says otherwise.
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a coach advice request fails
-When the advice card renders
-Then the user sees a retryable localized error state
+- [x] The user sees a retryable localized error state.
+- [x] Local_rules fallback remains available.
+- [x] Hydrion shows localized not-found feedback without crashing.
 
-Given an optional provider times out or returns invalid output
-When the coach handles the request
-Then local_rules fallback remains available
+#### Acceptance Criteria Coverage
 
-Given an edit or delete target is missing
-When the operation completes
-Then Hydrion shows localized not-found feedback without crashing
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
@@ -2256,6 +4617,12 @@ Then Hydrion shows localized not-found feedback without crashing
 * `HYD-US-007`
 * `HYD-US-021`
 * `HYD-US-032`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -2269,39 +4636,86 @@ Then Hydrion shows localized not-found feedback without crashing
 * `lib/ui/screens/log_screen.dart`
 * `test/gemini_provider_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-045: Support Accessibility Semantics
 
 **Epic:** Accessibility and Responsive Design  
-**Status:** Partial  
+**Story Type:** User Story  
+**Implementation Status:** Partial  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As an** accessibility-focused user  
-**I need** meaningful labels, tooltips, semantics, and clear states  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** meaningful labels, tooltips, semantics, and clear states
 **So that** Hydrion is usable with assistive technology.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Hydrion logo, progress ring, hydration score, achievement badges, and disabled voice button include semantics.
-* Confirmed: important icon buttons include tooltips.
-* Confirmed: disabled/future capabilities are labeled in UI text.
-* Limitation: no complete accessibility audit, keyboard traversal test, contrast audit, or screen-reader test suite is present.
+* Hydrion must support "Support Accessibility Semantics" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Hydrion logo, progress ring, hydration score, achievement badges, and disabled voice button include semantics.
+* important icon buttons include tooltips.
+* disabled/future capabilities are labeled in UI text.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given the progress ring renders
-When assistive technology queries it
-Then it exposes progress label, percent value, and consumed/target hint
+- [ ] It exposes progress label, percent value, and consumed/target hint.
+- [ ] It exposes badge name and locked/unlocked status.
+- [ ] Navigation, focus order, labels, contrast, and text scaling issues are documented or fixed.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given an achievement badge renders
-When assistive technology queries it
-Then it exposes badge name and locked/unlocked status
+#### Acceptance Criteria Coverage
 
-Given release accessibility validation runs in the future
-When core screens are audited
-Then navigation, focus order, labels, contrast, and text scaling issues are documented or fixed
-```
+* Checked acceptance criteria: 0.
+* Unchecked acceptance criteria: 4.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
@@ -2309,6 +4723,13 @@ Then navigation, focus order, labels, contrast, and text scaling issues are docu
 * `HYD-US-011`
 * `HYD-US-013`
 * `HYD-US-026`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -2322,44 +4743,98 @@ Then navigation, focus order, labels, contrast, and text scaling issues are docu
 * `lib/ui/components/voice_input_widget.dart`
 * `lib/ui/screens/home_screen.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [ ] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [ ] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-046: Keep Core Screens Usable on Small Viewports
 
 **Epic:** Accessibility and Responsive Design  
-**Status:** Partial  
+**Story Type:** User Story  
+**Implementation Status:** Partial  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As a** mobile or narrow-screen user  
-**I need** core Hydrion controls to remain usable on small screens  
+#### User Story
+
+**As a** mobile or narrow-screen user
+**I need** core Hydrion controls to remain usable on small screens
 **So that** logging and navigation do not depend on desktop layout.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: Home stacks the amount picker and log button under narrow width.
-* Confirmed: tests verify Home usability at a 360x640 viewport.
-* Confirmed: screens use scrollable layouts.
-* Limitation: not every screen has visual regression or small-viewport coverage.
+* Hydrion must support "Keep Core Screens Usable on Small Viewports" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* Home stacks the amount picker and log button under narrow width.
+* tests verify Home usability at a 360x640 viewport.
+* screens use scrollable layouts.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a 360x640 viewport
-When the Home screen renders
-Then logo, volume picker, log button, and progress remain reachable
+- [ ] Logo, volume picker, log button, and progress remain reachable.
+- [ ] The picker and log button stack vertically.
+- [ ] Overflow and inaccessible controls are fixed before release.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given controls do not fit horizontally
-When Home measures narrow constraints
-Then the picker and log button stack vertically
+#### Acceptance Criteria Coverage
 
-Given future responsive validation runs
-When all core screens are tested
-Then overflow and inaccessible controls are fixed before release
-```
+* Checked acceptance criteria: 0.
+* Unchecked acceptance criteria: 4.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-002`
 * `HYD-US-003`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -2370,44 +4845,102 @@ Then overflow and inaccessible controls are fixed before release
 * `lib/ui/screens/home_screen.dart`
 * `test/product_qa_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-047: Maintain Localization Quality Gates
 
 **Epic:** Localization  
-**Status:** Partial  
+**Story Type:** Operational Story  
+**Implementation Status:** Partial  
 **Priority:** P1  
 **Release Scope:** Supporting
 
-**As a** contributor  
-**I need** localization quality checks to catch missing or stale strings  
+#### User Story
+
+**As a** contributor
+**I need** localization quality checks to catch missing or stale strings
 **So that** supported locales do not regress as features change.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: active ARB files exist for EN/ES/FR and tests cover many visible strings.
-* Confirmed: CI does not explicitly run `flutter gen-l10n` or ARB parity checks in the workflow.
-* Confirmed: roadmap identifies generated localization drift and ARB parity checks as needed.
+* Hydrion must support "Maintain Localization Quality Gates" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* active ARB files exist for EN/ES/FR and tests cover many visible strings.
+* CI does not explicitly run `flutter gen-l10n` or ARB parity checks in the workflow.
+* roadmap identifies generated localization drift and ARB parity checks as needed.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+* User-visible strings and locale state must remain compatible with generated localization resources and fallback rules.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a new localized key is added
-When localization quality checks run
-Then missing EN/ES/FR keys fail before release
+- [ ] Missing EN/ES/FR keys fail before release.
+- [ ] The drift is detected.
+- [x] Future locales are not presented as active.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given generated localization files drift from ARB inputs
-When CI runs
-Then the drift is detected
+#### Acceptance Criteria Coverage
 
-Given future locales are not fully translated
-When user-facing locale lists render
-Then future locales are not presented as active
-```
+* Checked acceptance criteria: 1.
+* Unchecked acceptance criteria: 3.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-029`
 * `HYD-US-030`
 * `HYD-US-050`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve generated localization fallback behavior for supported and future locales.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -2423,45 +4956,100 @@ Then future locales are not presented as active
 * `.github/workflows/flutter-ci.yml`
 * `HYDRION_MVP_KANBAN_ROADMAP.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [ ] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-048: Preserve Local Performance and Responsiveness
 
 **Epic:** Error Handling and Reliability  
-**Status:** Partial  
+**Story Type:** Operational Story  
+**Implementation Status:** Partial  
 **Priority:** P2  
 **Release Scope:** Supporting
 
-**As an** application user  
-**I need** local logging, summaries, and coach fallback to respond quickly  
+#### User Story
+
+**As a** Hydrion stakeholder
+**I need** local logging, summaries, and coach fallback to respond quickly
 **So that** Hydrion feels dependable during repeated daily use.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: current repositories are in-memory lists persisted to shared preferences.
-* Confirmed: local summary, analytics, and coach calculations run locally over repository data.
-* Confirmed: provider calls have timeouts and fallback.
-* Limitation: no explicit performance budgets, benchmark tests, or large-history scalability tests are present.
+* Hydrion must support "Preserve Local Performance and Responsiveness" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Partial. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* current repositories are in-memory lists persisted to shared preferences.
+* local summary, analytics, and coach calculations run locally over repository data.
+* provider calls have timeouts and fallback.
+* Business rule: the story must not claim behavior outside its Partial implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given local_rules mode and normal local history size
-When the user logs water
-Then the UI updates without waiting for provider or network calls
+- [x] The UI updates without waiting for provider or network calls.
+- [x] Hydrion falls back to local_rules within the configured timeout window.
+- [ ] Measurable latency budgets and regression tests are added.
+- [ ] Remaining end-to-end user behavior for this story is implemented, verified, and ready for release..
 
-Given Gemini is configured but slow
-When the provider exceeds timeout
-Then Hydrion falls back to local_rules within the configured timeout window
+#### Acceptance Criteria Coverage
 
-Given large-history performance work is planned
-When acceptance criteria are defined
-Then measurable latency budgets and regression tests are added
-```
+* Checked acceptance criteria: 2.
+* Unchecked acceptance criteria: 2.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-003`
 * `HYD-US-010`
 * `HYD-US-032`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
+* Preserve capability gating until the unchecked acceptance criteria are implemented and verified.
 
 #### Out of Scope
 
@@ -2474,45 +5062,99 @@ Then measurable latency budgets and regression tests are added
 * `lib/services/hydration_ai_orchestrator.dart`
 * `test/gemini_provider_test.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [ ] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [ ] Estimable from current repository evidence and known constraints.
+- [ ] Small enough for a focused implementation slice.
+- [ ] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [ ] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [ ] Implementation is present for the committed story behavior.
+- [ ] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [ ] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-049: Maintain Adapter Boundary and Testability
 
 **Epic:** Maintenance and Quality Requirements  
-**Status:** Implemented  
+**Story Type:** Architecture Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** Supporting
 
-**As a** maintainer  
-**I need** UI, providers, repositories, and future integrations separated by contracts  
+#### User Story
+
+**As a** maintainer
+**I need** UI, providers, repositories, and future integrations separated by contracts
 **So that** Hydrion can evolve without coupling screens to provider SDKs or mutable state layers.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: UI depends on domain contracts and repositories, not provider SDKs.
-* Confirmed: architecture tests forbid UI imports of adapters, provider SDKs, raw AI action types, validators, and executor internals.
-* Confirmed: provider adapter shells cannot import mutable app state layers.
-* Confirmed: app shell can swap fake domain adapters in widget tests.
+* Hydrion must support "Maintain Adapter Boundary and Testability" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* UI depends on domain contracts and repositories, not provider SDKs.
+* architecture tests forbid UI imports of adapters, provider SDKs, raw AI action types, validators, and executor internals.
+* provider adapter shells cannot import mutable app state layers.
+* app shell can swap fake domain adapters in widget tests.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given UI files are inspected
-When architecture tests run
-Then UI does not import forbidden adapters, packs, SDKs, or deprecated wrappers
+- [x] UI does not import forbidden adapters, packs, SDKs, or deprecated wrappers.
+- [x] Provider shells do not import repositories or storage directly.
+- [x] UI works through contracts without provider-specific changes.
 
-Given provider adapter files are inspected
-When architecture tests run
-Then provider shells do not import repositories or storage directly
+#### Acceptance Criteria Coverage
 
-Given fake domain adapters are supplied
-When the app shell renders
-Then UI works through contracts without provider-specific changes
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
 * `HYD-US-023`
 * `HYD-US-031`
 * `HYD-US-034`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -2526,38 +5168,84 @@ Then UI works through contracts without provider-specific changes
 * `lib/domain/hydration_contracts.dart`
 * `lib/main.dart`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-050: Keep CI and Build Quality Gates Stable
 
 **Epic:** Maintenance and Quality Requirements  
-**Status:** Implemented  
+**Story Type:** Operational Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** Supporting
 
-**As a** maintainer  
-**I need** CI to validate core Flutter quality and release build artifacts  
+#### User Story
+
+**As a** maintainer
+**I need** CI to validate core Flutter quality and release build artifacts
 **So that** MVP changes stay shippable for web and Android.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: GitHub workflow runs root validation, `flutter pub get`, secret scan, dependency graph, analyze, tests with coverage, web build, and Android APK build.
-* Confirmed: artifacts are uploaded for coverage, web build, and Android APK.
-* Limitation: no coverage threshold, generated localization drift check, or complete release smoke checklist is enforced.
+* Hydrion must support "Keep CI and Build Quality Gates Stable" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* GitHub workflow runs root validation, `flutter pub get`, secret scan, dependency graph, analyze, tests with coverage, web build, and Android APK build.
+* artifacts are uploaded for coverage, web build, and Android APK.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given code changes are pushed or opened as a PR to main/develop
-When CI runs
-Then quality-gate, web build, and Android build jobs run from repository root
+- [x] Quality-gate, web build, and Android build jobs run from repository root.
+- [x] Coverage output is uploaded as an artifact.
+- [x] Coverage thresholds, localization drift checks, and smoke validation are added.
 
-Given tests run in CI
-When the test step completes
-Then coverage output is uploaded as an artifact
+#### Acceptance Criteria Coverage
 
-Given release-readiness gaps remain
-When CI is expanded
-Then coverage thresholds, localization drift checks, and smoke validation are added
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
@@ -2565,6 +5253,12 @@ Then coverage thresholds, localization drift checks, and smoke validation are ad
 * `HYD-US-037`
 * `HYD-US-047`
 * `HYD-US-051`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -2577,39 +5271,87 @@ Then coverage thresholds, localization drift checks, and smoke validation are ad
 * `scripts/build_release.sh`
 * `docs/architecture/STALE_SCAFFOLD_AUDIT.md`
 
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [ ] Estimable from current repository evidence and known constraints.
+- [ ] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
+
 ### HYD-US-051: Prevent Secret Leakage and Unsafe Provider Credentials
 
 **Epic:** Maintenance and Quality Requirements  
-**Status:** Implemented  
+**Story Type:** Security Story  
+**Implementation Status:** Implemented  
 **Priority:** P0  
 **Release Scope:** Supporting
 
-**As a** security-conscious maintainer  
-**I need** committed secrets and provider credentials to be detected or avoided  
+#### User Story
+
+**As a** security-conscious maintainer
+**I need** committed secrets and provider credentials to be detected or avoided
 **So that** Hydrion does not leak API keys, private keys, or production provider secrets.
 
-#### Details and Assumptions
+#### Description
 
-* Confirmed: `.gitignore` excludes `.env`, `.env.*`, `*.secrets.json`, `secrets/`, and secret reports.
-* Confirmed: `tool/secret_scan.dart` scans for common Google/OpenAI/Anthropic API keys and private key blocks.
-* Confirmed: tests assert no committed keys/private key blocks and placeholder keys are not treated as real secrets.
-* Confirmed: docs prohibit shipping shared production Gemini keys in clients.
+* Hydrion must support "Prevent Secret Leakage and Unsafe Provider Credentials" for the named role while keeping the repository evidence, implementation status, and release scope explicit.
+* Current status assessment: Implemented. Checked acceptance criteria below are limited to behavior supported by the evidence list.
+
+#### Details and Business Rules
+
+* `.gitignore` excludes `.env`, `.env.*`, `*.secrets.json`, `secrets/`, and secret reports.
+* `tool/secret_scan.dart` scans for common Google/OpenAI/Anthropic API keys and private key blocks.
+* tests assert no committed keys/private key blocks and placeholder keys are not treated as real secrets.
+* docs prohibit shipping shared production Gemini keys in clients.
+* Business rule: the story must not claim behavior outside its Implemented implementation status.
+
+#### Data and State Requirements
+
+* Provider-facing state must avoid persisted production secrets and must preserve local fallback behavior.
+* Integration state must be represented through capability status, adapter contracts, or disabled placeholders until a real adapter is implemented.
+
+#### Assumptions
+
+* No additional product assumption is made beyond the repository evidence and explicit out-of-scope notes.
 
 #### Acceptance Criteria
 
-```gherkin
-Given a real API key or private key block is committed in a scanned file
-When `dart run tool/secret_scan.dart` runs
-Then the scan fails and reports the file and secret type
+- [x] The scan fails and reports the file and secret type.
+- [x] Placeholders are not treated as real secrets.
+- [x] Shared production keys are kept out of web/mobile/desktop client artifacts.
 
-Given placeholder API key text is present
-When secret hygiene tests run
-Then placeholders are not treated as real secrets
+#### Acceptance Criteria Coverage
 
-Given a production non-local provider is proposed
-When credentials are designed
-Then shared production keys are kept out of web/mobile/desktop client artifacts
-```
+* Checked acceptance criteria: 3.
+* Unchecked acceptance criteria: 0.
+* Checked criteria are tied to the repository evidence listed in this story.
+* Unchecked criteria represent work or verification still needed before the criterion can be claimed complete.
 
 #### Dependencies
 
@@ -2617,6 +5359,12 @@ Then shared production keys are kept out of web/mobile/desktop client artifacts
 * `HYD-US-033`
 * `HYD-US-038`
 * `HYD-US-050`
+
+#### Non-Functional Requirements
+
+* Keep the behavior offline-tolerant and honest about local-first limits.
+* Keep user-visible behavior responsive on the supported web and Android MVP targets.
+* Do not expose secrets, provider diagnostics, or disabled integrations in a misleading way.
 
 #### Out of Scope
 
@@ -2629,6 +5377,39 @@ Then shared production keys are kept out of web/mobile/desktop client artifacts
 * `.gitignore`
 * `.github/workflows/flutter-ci.yml`
 * `docs/architecture/PROVIDER_SECURITY.md`
+
+#### Story Quality Checklist
+
+- [x] User value or system responsibility is explicit.
+- [x] Implementation status is separate from Definition of Done.
+- [x] Dependencies, assumptions, and out-of-scope boundaries are explicit.
+- [x] Repository evidence is listed for every checked claim.
+- [x] No acceptance criteria remain unchecked.
+
+#### INVEST Check
+
+- [x] Independent enough to plan without bundling unrelated epics.
+- [x] Negotiable implementation details remain outside the acceptance criteria.
+- [x] Valuable outcome is stated for a user, maintainer, or system role.
+- [x] Estimable from current repository evidence and known constraints.
+- [x] Small enough for a focused implementation slice.
+- [x] Testable through checked criteria, listed evidence, or planned verification.
+
+#### Definition of Ready
+
+- [x] Story ID, title, role, value, and release scope are defined.
+- [x] Dependencies and assumptions are visible.
+- [x] Acceptance criteria use markdown checkboxes.
+- [x] Repository evidence exists for current claims.
+- [x] Open uncertainty is low enough to start or continue implementation without re-scoping.
+
+#### Definition of Done
+
+- [x] Implementation is present for the committed story behavior.
+- [x] All acceptance criteria in this story are checked.
+- [x] Automated test, CI, or documented build evidence is linked.
+- [x] Remaining future behavior is captured in Out of Scope or unchecked criteria.
+- [x] The story has no open readiness, acceptance, or evidence gaps.
 
 ## 6. Story Dependency Map
 
