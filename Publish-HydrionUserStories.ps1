@@ -31,16 +31,23 @@ param(
     [string[]]$AllowedProjectColumns = @('Ice Box', 'Product Backlog'),
 
     [Parameter()]
-    [int[]]$AllowedStorySizes = @(1, 2, 3, 5, 8, 13),
+    [string[]]$AllowedStorySizes = @('XS', 'S', 'M', 'L', 'XL'),
 
     [Parameter()]
     [string[]]$StorySizeProjectFieldNames = @('Story Size', 'Size', 'Estimate', 'Story Points', 'Points'),
 
     [Parameter()]
+    [ValidateNotNullOrEmpty()]
+    [string]$BackupDirectory = '.hydrion-backups',
+
+    [Parameter()]
     [switch]$SkipProjectRankSync,
 
     [Parameter()]
-    [switch]$AllowExistingNumberedItems
+    [switch]$AllowExistingNumberedItems,
+
+    [Parameter()]
+    [switch]$ValidateOnly
 )
 
 Set-StrictMode -Version Latest
@@ -53,7 +60,26 @@ $IssueLabelColor = '5319E7'
 $IssueLabelDescription = 'Hydrion product user story'
 $DefaultLabelColor = 'C5DEF5'
 $DefaultLabelDescription = 'Hydrion user-story metadata'
-$ScriptVersion = '1.3.0-story-size-sync'
+$ScriptVersion = '2.0.0-clean-story-sync'
+$ForbiddenStoryPatterns = @(
+    'Story Quality Checklist',
+    'INVEST Check',
+    'Definition of Ready',
+    'Definition of Done',
+    'Acceptance Criteria Coverage',
+    'Repository Evidence',
+    'No additional product assumption is made beyond the repository evidence',
+    'Keep the behavior offline-tolerant and honest about local-first limits',
+    'Keep user-visible behavior responsive',
+    'Do not expose secrets or disabled integrations in a misleading way',
+    'Remaining end-to-end user behavior is implemented, verified, and ready for release',
+    'ready to pull or maintain',
+    'all acceptance criteria are checked',
+    'the story has no open gaps',
+    'generic CI',
+    'generic testing',
+    'Post-MVP Post-MVP'
+)
 
 function Write-Section {
     param([Parameter(Mandatory)][string]$Text)
@@ -312,24 +338,25 @@ function Get-StorySize {
         [Parameter(Mandatory)][string]$StoryId
     )
 
-    $sizeText = Get-MarkdownMetadataValue -Body $Body -Name 'Story Size'
+    $sizeText = Get-MarkdownMetadataValue -Body $Body -Name 'T-shirt Size'
 
     if ([string]::IsNullOrWhiteSpace($sizeText)) {
-        throw "$StoryId is missing required metadata field 'Story Size'."
+        throw "$StoryId is missing required metadata field 'T-shirt Size'."
     }
 
-    $sizeText = $sizeText.Replace('`', '').Trim()
-    $size = 0
+    $sizeText = $sizeText.Replace('`', '').Trim().ToUpperInvariant()
 
-    if (-not [int]::TryParse($sizeText, [ref]$size)) {
-        throw "$StoryId story size '$sizeText' is not an integer."
+    if ($sizeText -match '^\d+$') {
+        throw "$StoryId uses numeric story size '$sizeText'. Use XS, S, M, L, or XL."
     }
 
-    if (-not (@($AllowedStorySizes) -contains $size)) {
-        throw "$StoryId story size '$size' is not allowed. Allowed sizes: $(@($AllowedStorySizes) -join ', ')."
+    $allowed = @($AllowedStorySizes | ForEach-Object { $_.ToUpperInvariant() })
+
+    if (-not ($allowed -contains $sizeText)) {
+        throw "$StoryId T-shirt size '$sizeText' is not allowed. Allowed sizes: $(@($AllowedStorySizes) -join ', ')."
     }
 
-    return $size
+    return $sizeText
 }
 
 function Get-StoryLabels {
@@ -349,7 +376,7 @@ function Get-StoryLabels {
         $labels = @($IssueLabel) + @($labels)
     }
 
-    $sizeLabel = 'size:{0}' -f (Get-StorySize -Body $Body -StoryId $StoryId)
+    $sizeLabel = 'size:{0}' -f ((Get-StorySize -Body $Body -StoryId $StoryId).ToLowerInvariant())
 
     if (-not (@($labels) | Where-Object { [string]::Equals($_, $sizeLabel, [System.StringComparison]::OrdinalIgnoreCase) })) {
         $labels += $sizeLabel
@@ -446,7 +473,7 @@ function Get-HydrionStories {
     $content = [System.IO.File]::ReadAllText($Path)
     $content = $content.Replace("`r`n", "`n").Replace("`r", "`n")
 
-    $pattern = '(?ms)^###\s+(HYD-US-(\d{3})):\s+([^\n]+)\n(.*?)(?=^###\s+HYD-US-\d{3}:|^##\s+(?!#)|\z)'
+    $pattern = '(?ms)^###\s+(HYD-US-(\d{3})):\s+([^\n]+)\n(.*?)(?=^###\s+HYD-US-\d{3}:|\z)'
     $matches = [regex]::Matches($content, $pattern)
 
     if ($matches.Count -eq 0) {
@@ -548,6 +575,242 @@ function Get-HydrionStories {
     }
 
     return $orderedStories
+}
+
+function Get-MarkdownSectionContent {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Body,
+        [Parameter(Mandatory)][string]$SectionName
+    )
+
+    $pattern = '(?ms)^##\s+{0}\s*\n(.*?)(?=^##\s+|\z)' -f [regex]::Escape($SectionName)
+    $match = [regex]::Match($Body, $pattern)
+
+    if (-not $match.Success) {
+        return $null
+    }
+
+    return $match.Groups[1].Value.Trim()
+}
+
+function Get-MarkdownCheckboxItems {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$SectionContent)
+
+    return @(
+        [regex]::Matches($SectionContent, '(?m)^-\s+\[(?<state>[ xX])\]\s+(?<text>.+?)\s*$') |
+            ForEach-Object {
+                [pscustomobject]@{
+                    State = $_.Groups['state'].Value
+                    Text  = $_.Groups['text'].Value.Trim()
+                }
+            }
+    )
+}
+
+function Get-MarkdownWordCount {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Text)
+
+    return ([regex]::Matches($Text, '\b[\w''-]+\b')).Count
+}
+
+function Test-HydrionStorySource {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][object[]]$Stories
+    )
+
+    $content = [System.IO.File]::ReadAllText($Path)
+    $content = $content.Replace("`r`n", "`n").Replace("`r", "`n")
+    $errors = New-Object System.Collections.Generic.List[string]
+
+    foreach ($pattern in $ForbiddenStoryPatterns) {
+        if ($content -match [regex]::Escape($pattern)) {
+            $errors.Add("Forbidden story text remains: $pattern")
+        }
+    }
+
+    if ($content -match '(?m)^\*\*Story Size:\*\*\s*(1|2|3|5|8|13)\b') {
+        $errors.Add('Numeric story size metadata remains.')
+    }
+
+    if ($content -match '(?m)^-\s+\[[xX]\]\s+') {
+        $errors.Add('Checked backlog checkbox remains.')
+    }
+
+    if ($content -match '\.\.') {
+        $errors.Add('Double periods remain.')
+    }
+
+    $sectionSignatures = New-Object System.Collections.Generic.List[string]
+    $acceptanceCounts = New-Object System.Collections.Generic.List[int]
+    $paragraphsByText = @{}
+    $acceptanceListsByText = @{}
+    $subtaskListsByText = @{}
+    $sizeWordLimits = @{
+        XS = 450
+        S  = 650
+        M  = 900
+        L  = 1250
+        XL = 1600
+    }
+
+    foreach ($story in $Stories) {
+        foreach ($metadataName in @('Story ID', 'Title', 'Epic', 'Story Type', 'Priority', 'Release Scope', 'T-shirt Size', 'Project Column', 'Business Rank', 'Labels')) {
+            if ([string]::IsNullOrWhiteSpace((Get-MarkdownMetadataValue -Body $story.Body -Name $metadataName))) {
+                $errors.Add("$($story.Id) is missing required metadata field '$metadataName'.")
+            }
+        }
+
+        $metadataStoryId = Get-MarkdownMetadataValue -Body $story.Body -Name 'Story ID'
+        if (-not [string]::Equals($metadataStoryId, $story.Id, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $errors.Add("$($story.Id) metadata Story ID does not match its heading.")
+        }
+
+        $requiredLabelPatterns = @(
+            '^user-story$',
+            '^type:',
+            '^epic:',
+            '^priority:p[0-4]$',
+            '^scope:',
+            '^size:(xs|s|m|l|xl)$',
+            '^status:(product-backlog|ice-box)$'
+        )
+
+        foreach ($labelPattern in $requiredLabelPatterns) {
+            if (-not (@($story.Labels) | Where-Object { $_ -match $labelPattern })) {
+                $errors.Add("$($story.Id) is missing required label matching '$labelPattern'.")
+            }
+        }
+
+        foreach ($requiredSection in @('User Story', 'Business Value', 'Acceptance Criteria')) {
+            if ([string]::IsNullOrWhiteSpace((Get-MarkdownSectionContent -Body $story.Body -SectionName $requiredSection))) {
+                $errors.Add("$($story.Id) is missing required section '$requiredSection'.")
+            }
+        }
+
+        $sectionNames = @(
+            [regex]::Matches($story.Body, '(?m)^##\s+(.+?)\s*$') |
+                ForEach-Object { $_.Groups[1].Value.Trim() }
+        )
+        $sectionSignatures.Add(($sectionNames -join '|'))
+
+        $acceptanceSection = Get-MarkdownSectionContent -Body $story.Body -SectionName 'Acceptance Criteria'
+        $acceptanceItems = @()
+
+        if (-not [string]::IsNullOrWhiteSpace($acceptanceSection)) {
+            $acceptanceItems = @(Get-MarkdownCheckboxItems -SectionContent $acceptanceSection)
+        }
+
+        if ($acceptanceItems.Count -eq 0) {
+            $errors.Add("$($story.Id) has no acceptance-criteria checkboxes.")
+        }
+
+        $acceptanceCounts.Add($acceptanceItems.Count)
+
+        foreach ($item in $acceptanceItems) {
+            if ($item.State -match '[xX]') {
+                $errors.Add("$($story.Id) has a checked acceptance criterion.")
+            }
+
+            if ($item.Text -match '^(It works correctly|The user sees appropriate feedback|No hydration log is created\.|Remaining .+ implemented|Add tests|Update documentation|Ensure quality)$') {
+                $errors.Add("$($story.Id) has vague or lifecycle acceptance criterion: $($item.Text)")
+            }
+
+            if ((Get-MarkdownWordCount -Text $item.Text) -lt 6) {
+                $errors.Add("$($story.Id) has an acceptance criterion that is too vague: $($item.Text)")
+            }
+        }
+
+        $acceptanceKey = (($acceptanceItems | ForEach-Object { $_.Text.ToLowerInvariant() }) -join "`n").Trim()
+        if (-not [string]::IsNullOrWhiteSpace($acceptanceKey)) {
+            if (-not $acceptanceListsByText.ContainsKey($acceptanceKey)) {
+                $acceptanceListsByText[$acceptanceKey] = New-Object System.Collections.Generic.List[string]
+            }
+            $acceptanceListsByText[$acceptanceKey].Add($story.Id)
+        }
+
+        $subtaskSection = Get-MarkdownSectionContent -Body $story.Body -SectionName 'Sub-tasks'
+        if (-not [string]::IsNullOrWhiteSpace($subtaskSection)) {
+            $subtasks = @(Get-MarkdownCheckboxItems -SectionContent $subtaskSection)
+            $subtaskKey = (($subtasks | ForEach-Object { $_.Text.ToLowerInvariant() }) -join "`n").Trim()
+            if (-not [string]::IsNullOrWhiteSpace($subtaskKey)) {
+                if (-not $subtaskListsByText.ContainsKey($subtaskKey)) {
+                    $subtaskListsByText[$subtaskKey] = New-Object System.Collections.Generic.List[string]
+                }
+                $subtaskListsByText[$subtaskKey].Add($story.Id)
+            }
+        }
+
+        $storyParagraphs = @($story.Body -split "`n\s*`n")
+        foreach ($paragraph in $storyParagraphs) {
+            $normalized = ($paragraph -replace '(?m)^#+\s+', '' -replace '`', '' -replace '\s+', ' ').Trim()
+
+            if ([string]::IsNullOrWhiteSpace($normalized)) {
+                continue
+            }
+
+            if ($normalized -match '^\*\*(Story ID|Title|Epic|Story Type|Priority|Release Scope|T-shirt Size|Project Column|Business Rank|Labels|Milestone):\*\*') {
+                continue
+            }
+
+            if ((Get-MarkdownWordCount -Text $normalized) -le 12) {
+                continue
+            }
+
+            $key = $normalized.ToLowerInvariant()
+            if (-not $paragraphsByText.ContainsKey($key)) {
+                $paragraphsByText[$key] = New-Object System.Collections.Generic.List[string]
+            }
+            $paragraphsByText[$key].Add($story.Id)
+        }
+
+        $wordCount = Get-MarkdownWordCount -Text $story.Body
+        $limit = $sizeWordLimits[$story.StorySize]
+        if (($null -ne $limit) -and ($wordCount -gt $limit)) {
+            $errors.Add("$($story.Id) has $wordCount words, which is too large for size $($story.StorySize).")
+        }
+
+        if (($story.StorySize -eq 'XL') -and (-not (@($story.Labels) | Where-Object { [string]::Equals($_, 'needs-decomposition', [System.StringComparison]::OrdinalIgnoreCase) }))) {
+            $errors.Add("$($story.Id) is XL but missing the needs-decomposition label.")
+        }
+    }
+
+    foreach ($entry in $paragraphsByText.GetEnumerator()) {
+        $storyIds = @($entry.Value | Select-Object -Unique)
+        if ($storyIds.Count -ge 3) {
+            $errors.Add("Repeated paragraph longer than 12 words appears in $($storyIds.Count) stories: $($storyIds -join ', ')")
+        }
+    }
+
+    foreach ($entry in $acceptanceListsByText.GetEnumerator()) {
+        $storyIds = @($entry.Value | Select-Object -Unique)
+        if ($storyIds.Count -gt 1) {
+            $errors.Add("Identical acceptance-criteria list appears in: $($storyIds -join ', ')")
+        }
+    }
+
+    foreach ($entry in $subtaskListsByText.GetEnumerator()) {
+        $storyIds = @($entry.Value | Select-Object -Unique)
+        if ($storyIds.Count -gt 1) {
+            $errors.Add("Identical sub-task list appears in: $($storyIds -join ', ')")
+        }
+    }
+
+    if ((@($acceptanceCounts | Select-Object -Unique)).Count -le 1) {
+        $errors.Add('All stories have the same acceptance-criteria count.')
+    }
+
+    if ((@($sectionSignatures | Select-Object -Unique)).Count -le 1) {
+        $errors.Add('All stories have the same section structure.')
+    }
+
+    if ($errors.Count -gt 0) {
+        throw "User-story source validation failed:`n - $($errors -join "`n - ")"
+    }
 }
 
 function Get-ExactUserProject {
@@ -891,7 +1154,7 @@ function Set-ProjectItemPosition {
     param(
         [Parameter(Mandatory)][string]$ProjectId,
         [Parameter(Mandatory)][string]$ProjectItemId,
-        [Parameter()][AllowNull()][string]$AfterProjectItemId
+        [Parameter()][AllowNull()][object]$AfterProjectItemId
     )
 
     $mutation = @'
@@ -912,10 +1175,17 @@ mutation(
 }
 '@
 
+    $resolvedAfterProjectItemId = if ([string]::IsNullOrWhiteSpace([string]$AfterProjectItemId)) {
+        $null
+    }
+    else {
+        [string]$AfterProjectItemId
+    }
+
     Invoke-GhGraphQL -Query $mutation -Variables @{
         projectId = $ProjectId
         itemId = $ProjectItemId
-        afterId = $AfterProjectItemId
+        afterId = $resolvedAfterProjectItemId
     } | Out-Null
 }
 
@@ -925,10 +1195,26 @@ function Set-ProjectItemStorySize {
         [Parameter(Mandatory)][string]$ProjectId,
         [Parameter(Mandatory)][string]$ProjectItemId,
         [Parameter(Mandatory)][object]$SizeField,
-        [Parameter(Mandatory)][int]$StorySize
+        [Parameter(Mandatory)][string]$StorySize
     )
 
+    $normalizedStorySize = $StorySize.Trim().ToUpperInvariant()
+
     if ($SizeField.DataType -eq 'NUMBER') {
+        $numberValue = switch ($normalizedStorySize) {
+            'XS' { 1 }
+            'S' { 2 }
+            'M' { 3 }
+            'L' { 5 }
+            'XL' { 8 }
+            default { $null }
+        }
+
+        if ($null -eq $numberValue) {
+            Write-Warning "Project field '$($SizeField.Name)' is numeric and cannot represent story size '$StorySize'. Size labels will still be applied."
+            return $false
+        }
+
         $mutation = @'
 mutation(
   $projectId: ID!,
@@ -957,7 +1243,7 @@ mutation(
             projectId = $ProjectId
             itemId = $ProjectItemId
             fieldId = $SizeField.Id
-            number = [double]$StorySize
+            number = [double]$numberValue
         } | Out-Null
 
         return $true
@@ -992,7 +1278,7 @@ mutation(
             projectId = $ProjectId
             itemId = $ProjectItemId
             fieldId = $SizeField.Id
-            text = $StorySize.ToString()
+            text = $normalizedStorySize
         } | Out-Null
 
         return $true
@@ -1000,11 +1286,10 @@ mutation(
 
     if ($SizeField.DataType -eq 'SINGLE_SELECT') {
         $acceptedOptionNames = @(
-            $StorySize.ToString(),
-            ('size:{0}' -f $StorySize),
-            ('Size {0}' -f $StorySize),
-            ('{0} point' -f $StorySize),
-            ('{0} points' -f $StorySize)
+            $normalizedStorySize,
+            ('size:{0}' -f $normalizedStorySize.ToLowerInvariant()),
+            ('Size {0}' -f $normalizedStorySize),
+            ('T-shirt {0}' -f $normalizedStorySize)
         )
 
         $matchingOption = @(
@@ -1081,6 +1366,91 @@ function Get-ExistingPullRequests {
     return @($response)
 }
 
+function Export-HydrionIssueBackup {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Repo,
+        [Parameter(Mandatory)][string]$ProjectName,
+        [Parameter(Mandatory)][object[]]$ProjectItems,
+        [Parameter(Mandatory)][string]$Directory
+    )
+
+    $backupRoot = $Directory
+
+    if (-not [System.IO.Path]::IsPathRooted($backupRoot)) {
+        $baseDirectory = if (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+            $PSScriptRoot
+        }
+        else {
+            (Get-Location).Path
+        }
+
+        $backupRoot = Join-Path -Path $baseDirectory -ChildPath $backupRoot
+    }
+
+    New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
+
+    $projectStatusByIssueId = @{}
+
+    foreach ($item in @($ProjectItems)) {
+        if (($null -ne $item.content) -and ($null -ne $item.content.id)) {
+            $status = $null
+            if (($item.PSObject.Properties.Match('fieldValueByName').Count -gt 0) -and ($null -ne $item.fieldValueByName)) {
+                $status = $item.fieldValueByName.name
+            }
+            $projectStatusByIssueId[$item.content.id] = $status
+        }
+    }
+
+    $issues = Invoke-GhJson -Arguments @(
+        'issue',
+        'list',
+        '--repo',
+        $Repo,
+        '--state',
+        'all',
+        '--limit',
+        '1000',
+        '--json',
+        'id,number,title,state,url,body,labels,milestone'
+    )
+
+    $storyIssues = @(
+        @($issues) |
+            Where-Object { $_.title -match '^HYD-US-\d{3}:' } |
+            Sort-Object number |
+            ForEach-Object {
+                [pscustomobject]@{
+                    number = $_.number
+                    id = if ($_.title -match '^(HYD-US-\d{3}):') { $Matches[1] } else { $null }
+                    title = $_.title
+                    state = $_.state
+                    body = $_.body
+                    labels = @($_.labels | ForEach-Object { $_.name })
+                    milestone = if ($null -ne $_.milestone) { $_.milestone.title } else { $null }
+                    project = [pscustomobject]@{
+                        title = $ProjectName
+                        status = if ($projectStatusByIssueId.ContainsKey($_.id)) { $projectStatusByIssueId[$_.id] } else { $null }
+                    }
+                    url = $_.url
+                }
+            }
+    )
+
+    $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $path = Join-Path -Path $backupRoot -ChildPath "hydrion-user-stories-$timestamp.json"
+    $payload = [pscustomobject]@{
+        exportedAt = (Get-Date).ToUniversalTime().ToString('o')
+        repository = $Repo
+        project = $ProjectName
+        issueCount = $storyIssues.Count
+        issues = $storyIssues
+    }
+
+    Write-Utf8NoBom -Path $path -Content ($payload | ConvertTo-Json -Depth 50)
+    return $path
+}
+
 function Get-HydrionLabelDefinition {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Name)
@@ -1121,6 +1491,21 @@ function Get-HydrionLabelDefinition {
         '^priority:p3$' {
             $color = 'C5DEF5'
             $description = 'Future Hydrion priority'
+            break
+        }
+        '^priority:p4$' {
+            $color = 'D4C5F9'
+            $description = 'Speculative Hydrion priority'
+            break
+        }
+        '^status:product-backlog$' {
+            $color = '1D76DB'
+            $description = 'Hydrion project status: Product Backlog'
+            break
+        }
+        '^status:ice-box$' {
+            $color = 'BFDADC'
+            $description = 'Hydrion project status: Ice Box'
             break
         }
         '^status:implemented$' {
@@ -1165,7 +1550,17 @@ function Get-HydrionLabelDefinition {
         }
         '^size:' {
             $color = 'D4C5F9'
-            $description = 'Hydrion story size estimate'
+            $description = 'Hydrion T-shirt size estimate'
+            break
+        }
+        '^epic:' {
+            $color = '0E8A16'
+            $description = 'Hydrion story epic'
+            break
+        }
+        '^needs-decomposition$' {
+            $color = 'B60205'
+            $description = 'Epic-sized story that must be split before sprint execution'
             break
         }
         '^area:' {
@@ -1402,6 +1797,18 @@ function Get-IssueMilestoneTitle {
     return $null
 }
 
+function Test-HydrionManagedLabel {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Name)
+
+    if ([string]::Equals($Name, $IssueLabel, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $true
+    }
+
+    return ($Name -match '^(type|priority|scope|status|area|size|epic):') -or
+        [string]::Equals($Name, 'needs-decomposition', [System.StringComparison]::OrdinalIgnoreCase)
+}
+
 function Get-IssueBody {
     [CmdletBinding()]
     param([Parameter(Mandatory)][object]$Issue)
@@ -1493,9 +1900,14 @@ function Sync-UserStoryIssueMetadata {
     )
 
     $existingLabels = @{}
+    $desiredLabels = @{}
 
     foreach ($label in (Get-IssueLabelNames -Issue $Issue)) {
         $existingLabels[$label.ToLowerInvariant()] = $true
+    }
+
+    foreach ($label in @($Story.Labels)) {
+        $desiredLabels[$label.ToLowerInvariant()] = $true
     }
 
     $missingLabels = @(
@@ -1504,13 +1916,25 @@ function Sync-UserStoryIssueMetadata {
         }
     )
 
+    $labelsToRemove = @(
+        Get-IssueLabelNames -Issue $Issue |
+            Where-Object {
+                (Test-HydrionManagedLabel -Name $_) -and
+                (-not $desiredLabels.ContainsKey($_.ToLowerInvariant()))
+            }
+    )
+
     $currentMilestone = Get-IssueMilestoneTitle -Issue $Issue
     $shouldSetMilestone = (
         (-not [string]::IsNullOrWhiteSpace($Story.Milestone)) -and
         (-not [string]::Equals($currentMilestone, $Story.Milestone, [System.StringComparison]::OrdinalIgnoreCase))
     )
+    $shouldRemoveMilestone = (
+        [string]::IsNullOrWhiteSpace($Story.Milestone) -and
+        (-not [string]::IsNullOrWhiteSpace($currentMilestone))
+    )
 
-    if (($missingLabels.Count -eq 0) -and (-not $shouldSetMilestone)) {
+    if (($missingLabels.Count -eq 0) -and ($labelsToRemove.Count -eq 0) -and (-not $shouldSetMilestone) -and (-not $shouldRemoveMilestone)) {
         return $Issue
     }
 
@@ -1527,8 +1951,15 @@ function Sync-UserStoryIssueMetadata {
             $arguments += @('--add-label', $label)
         }
 
+        foreach ($label in $labelsToRemove) {
+            $arguments += @('--remove-label', $label)
+        }
+
         if ($shouldSetMilestone) {
             $arguments += @('--milestone', $Story.Milestone)
+        }
+        elseif ($shouldRemoveMilestone) {
+            $arguments += @('--remove-milestone')
         }
 
         Invoke-Gh -Arguments $arguments | Out-Null
@@ -1556,6 +1987,12 @@ if (
 
 $MarkdownPath = Resolve-MarkdownPath -RequestedPath $MarkdownPath
 $stories = Get-HydrionStories -Path $MarkdownPath
+Test-HydrionStorySource -Path $MarkdownPath -Stories $stories
+
+if ($ValidateOnly) {
+    Write-Host "Hydrion user-story source validation passed for $($stories.Count) stories." -ForegroundColor Green
+    return
+}
 
 if ($null -eq (Get-Command gh -ErrorAction SilentlyContinue)) {
     throw 'GitHub CLI (gh) is not installed or is not available on PATH.'
@@ -1694,6 +2131,12 @@ $milestoneMap = Ensure-HydrionMilestones -Repo $Repository -Names $requiredMiles
 $projectItems = @(Get-ProjectIssueItems -ProjectId $project.id)
 $projectItemMap = @{}
 
+$backupPath = Export-HydrionIssueBackup `
+    -Repo $Repository `
+    -ProjectName $ProjectName `
+    -ProjectItems $projectItems `
+    -Directory $BackupDirectory
+
 foreach ($item in $projectItems) {
     if (($null -ne $item.content) -and ($null -ne $item.content.id)) {
         $projectItemMap[$item.content.id] = $item
@@ -1703,6 +2146,7 @@ foreach ($item in $projectItems) {
 Write-Info "Prepared labels:              $($requiredLabelNames.Count)"
 Write-Info "Prepared milestones:          $($requiredMilestoneNames.Count)"
 Write-Info "Existing project issue items: $($projectItemMap.Count)"
+Write-Info "Issue backup:                 $backupPath"
 
 Write-Section 'Publish user stories'
 
@@ -1933,6 +2377,12 @@ foreach ($story in $stories) {
         }
     }
 
+    foreach ($label in (Get-IssueLabelNames -Issue $issue)) {
+        if ((Test-HydrionManagedLabel -Name $label) -and (-not (@($story.Labels) | Where-Object { [string]::Equals($_, $label, [System.StringComparison]::OrdinalIgnoreCase) }))) {
+            $verificationErrors.Add("$($story.Id) still has stale managed label '$label'.")
+        }
+    }
+
     $actualMilestone = Get-IssueMilestoneTitle -Issue $issue
 
     if (
@@ -1940,6 +2390,9 @@ foreach ($story in $stories) {
         (-not [string]::Equals($actualMilestone, $story.Milestone, [System.StringComparison]::OrdinalIgnoreCase))
     ) {
         $verificationErrors.Add("$($story.Id) milestone is '$actualMilestone', expected '$($story.Milestone)'.")
+    }
+    elseif ([string]::IsNullOrWhiteSpace($story.Milestone) -and (-not [string]::IsNullOrWhiteSpace($actualMilestone))) {
+        $verificationErrors.Add("$($story.Id) milestone is '$actualMilestone', expected no milestone.")
     }
 }
 
@@ -1998,6 +2451,7 @@ Write-Host "Story size field synced:        $sizeFieldSyncedCount"
 Write-Host "Story size field skipped:       $sizeFieldSkippedCount"
 Write-Host "Project cards ranked:           $rankedCardCount"
 Write-Host "Verified stories:               $ExpectedStoryCount"
+Write-Host "Backup file:                    $backupPath"
 
 if (-not $AllowExistingNumberedItems) {
     Write-Host 'Verified numbering:             HYD-US-001 = #1 through HYD-US-051 = #51'
