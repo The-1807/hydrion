@@ -357,10 +357,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get providerApiKeyLength => 'Longitud de clave';
 
   @override
-  String get providerApiKeyFirst4 => 'Primeros 4 de clave';
-
-  @override
-  String get providerApiKeyLast4 => 'Últimos 4 de clave';
+  String get providerApiKeyFingerprint => 'Huella de clave API';
 
   @override
   String get providerApiKeyContainsWhitespace => 'Clave con espacios';

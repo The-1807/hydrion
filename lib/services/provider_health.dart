@@ -45,15 +45,8 @@ class LocalProviderHealthReporter extends ProviderHealthReporter {
       apiKeyLength: config.provider == HydrionAiProviderSelection.gemini
           ? keyDiagnostic.length
           : null,
-      apiKeyFirst4: config.provider == HydrionAiProviderSelection.gemini
-          ? keyDiagnostic.present
-              ? keyDiagnostic.first4
-              : null
-          : null,
-      apiKeyLast4: config.provider == HydrionAiProviderSelection.gemini
-          ? keyDiagnostic.present
-              ? keyDiagnostic.last4
-              : null
+      apiKeyFingerprint: config.provider == HydrionAiProviderSelection.gemini
+          ? keyDiagnostic.fingerprint
           : null,
       apiKeyContainsWhitespace:
           config.provider == HydrionAiProviderSelection.gemini
@@ -186,10 +179,8 @@ class LocalProviderHealthReporter extends ProviderHealthReporter {
           _snapshot.diagnostic.apiKeyPresent,
       apiKeyLength:
           incomingDiagnostic.apiKeyLength ?? _snapshot.diagnostic.apiKeyLength,
-      apiKeyFirst4:
-          incomingDiagnostic.apiKeyFirst4 ?? _snapshot.diagnostic.apiKeyFirst4,
-      apiKeyLast4:
-          incomingDiagnostic.apiKeyLast4 ?? _snapshot.diagnostic.apiKeyLast4,
+      apiKeyFingerprint: incomingDiagnostic.apiKeyFingerprint ??
+          _snapshot.diagnostic.apiKeyFingerprint,
       apiKeyContainsWhitespace: incomingDiagnostic.apiKeyContainsWhitespace ??
           _snapshot.diagnostic.apiKeyContainsWhitespace,
       apiKeyWasTrimmed: incomingDiagnostic.apiKeyWasTrimmed ??

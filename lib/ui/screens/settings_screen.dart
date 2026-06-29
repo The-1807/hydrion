@@ -336,13 +336,8 @@ class _ProviderHealthCard extends StatelessWidget {
                   ),
                 ),
                 _HealthLine(
-                  label: l10n.providerApiKeyFirst4,
-                  value: health.diagnostic.apiKeyFirst4 ??
-                      l10n.providerNotAvailable,
-                ),
-                _HealthLine(
-                  label: l10n.providerApiKeyLast4,
-                  value: health.diagnostic.apiKeyLast4 ??
+                  label: l10n.providerApiKeyFingerprint,
+                  value: health.diagnostic.apiKeyFingerprint ??
                       l10n.providerNotAvailable,
                 ),
                 _HealthLine(

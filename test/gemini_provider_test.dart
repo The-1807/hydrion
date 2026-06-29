@@ -23,6 +23,28 @@ void main() {
     expect(environmentConfig.provider, HydrionAiProviderSelection.localRules);
   });
 
+  test('default web build config does not require a provider credential', () {
+    final environmentConfig = HydrionAiRuntimeConfig.fromEnvironment();
+
+    expect(environmentConfig.provider, HydrionAiProviderSelection.localRules);
+    expect(environmentConfig.gemini.isConfigured, isFalse);
+    expect(environmentConfig.shouldUseGemini, isFalse);
+  });
+
+  test('default Android build config does not require a provider credential',
+      () {
+    final services = HydrionServices.memory(
+      aiRuntimeConfig: const HydrionAiRuntimeConfig(),
+    );
+
+    expect(
+      services.aiRuntimeConfig.provider,
+      HydrionAiProviderSelection.localRules,
+    );
+    expect(services.aiRuntimeConfig.gemini.isConfigured, isFalse);
+    expect(services.aiRuntimeConfig.shouldUseGemini, isFalse);
+  });
+
   test('Gemini reports unavailable when no API key/config exists', () async {
     final provider = GeminiHydrationAiProvider(
       config: const GeminiProviderConfig(),
@@ -189,8 +211,7 @@ void main() {
       diagnostic.endpointHost,
       diagnostic.modelId,
       diagnostic.modelPath,
-      diagnostic.apiKeyFirst4,
-      diagnostic.apiKeyLast4,
+      diagnostic.apiKeyFingerprint,
       diagnostic.apiKeyLength?.toString(),
       diagnostic.apiKeyContainsWhitespace?.toString(),
       diagnostic.apiKeyWasTrimmed?.toString(),
@@ -201,8 +222,10 @@ void main() {
 
     expect(key.present, isTrue);
     expect(key.length, 'AIza-safe-key-tail'.length);
-    expect(key.first4, 'AIza');
-    expect(key.last4, 'tail');
+    expect(key.fingerprint, isNotNull);
+    expect(key.fingerprint, diagnostic.apiKeyFingerprint);
+    expect(key.fingerprint, isNot(contains('AIza')));
+    expect(key.fingerprint, isNot(contains('tail')));
     expect(key.containsWhitespace, isTrue);
     expect(key.wasTrimmed, isTrue);
     expect(key.startsWithExpectedGoogleApiKeyPrefix, isTrue);
@@ -212,6 +235,7 @@ void main() {
     expect(request.authHeaderValueLength, 'AIza-safe-key-tail'.length);
     expect(diagnosticText, isNot(contains('AIza-safe-key-tail')));
     expect(diagnosticText, isNot(contains(apiKey)));
+    expect(diagnosticText, isNot(contains('AIza tail')));
   });
 
   test('successful Gemini action records request and success diagnostics',
@@ -343,8 +367,7 @@ void main() {
       diagnostic.endpointHost,
       diagnostic.modelId,
       diagnostic.modelPath,
-      diagnostic.apiKeyFirst4,
-      diagnostic.apiKeyLast4,
+      diagnostic.apiKeyFingerprint,
       diagnostic.apiKeyLength?.toString(),
       diagnostic.apiKeyContainsWhitespace?.toString(),
       diagnostic.apiKeyWasTrimmed?.toString(),
@@ -375,7 +398,7 @@ void main() {
   });
 
   test('HTTP 4xx diagnostics redact unsafe provider error messages', () async {
-    const apiKey = 'AIza12345678901234567' '890123456789012345';
+    final apiKey = _fakeGoogleKey();
     final errorBody = jsonEncode({
       'error': {
         'status': 'INVALID_ARGUMENT',
@@ -384,13 +407,13 @@ void main() {
       },
     });
     final providerHealth = LocalProviderHealthReporter.fromConfig(
-      const HydrionAiRuntimeConfig(
+      HydrionAiRuntimeConfig(
         provider: HydrionAiProviderSelection.gemini,
         gemini: GeminiProviderConfig(apiKey: apiKey),
       ),
     );
     final provider = GeminiHydrationAiProvider(
-      config: const GeminiProviderConfig(apiKey: apiKey),
+      config: GeminiProviderConfig(apiKey: apiKey),
       client: GeminiHttpContentClient(
         client: MockClient((_) async => http.Response(errorBody, 400)),
       ),
@@ -413,6 +436,57 @@ void main() {
       providerHealth.providerHealth.lastProviderFailure,
       isNot(contains(apiKey)),
     );
+  });
+
+  test('HTTP 4xx diagnostics sanitize auth headers and secret payloads',
+      () async {
+    final fakeBearer = _fakeOpenAiKey();
+    final fakeGoogleKey = _fakeGoogleKey();
+    final errorBody = jsonEncode({
+      'error': {
+        'status': 'PERMISSION_DENIED',
+        'message': 'Provider rejected Authorization: Bearer $fakeBearer for '
+            'https://example.test/provider?key=$fakeGoogleKey with '
+            'x-goog-api-key: $fakeGoogleKey.',
+      },
+    });
+    final providerHealth = LocalProviderHealthReporter.fromConfig(
+      const HydrionAiRuntimeConfig(
+        provider: HydrionAiProviderSelection.gemini,
+        gemini: GeminiProviderConfig(apiKey: 'test-key'),
+      ),
+    );
+    final provider = GeminiHydrationAiProvider(
+      config: const GeminiProviderConfig(apiKey: 'test-key'),
+      client: GeminiHttpContentClient(
+        client: MockClient((_) async => http.Response(errorBody, 403)),
+      ),
+    );
+    final coach = _geminiCoachWith(
+      provider: provider,
+      providerHealth: providerHealth,
+      context: _standaloneContext().copyWithGeminiConfigured(),
+    );
+
+    await coach.getCoachingAdvice(
+      userQuery: 'private user query',
+      digestKey: HydrationCoachDigestKey.weeklyDigest,
+    );
+
+    final diagnostic = providerHealth.providerHealth.diagnostic;
+    final diagnosticText = [
+      providerHealth.providerHealth.fallbackReason,
+      providerHealth.providerHealth.lastProviderFailure,
+      diagnostic.providerErrorStatus,
+      diagnostic.providerErrorMessage,
+    ].whereType<String>().join(' ');
+
+    expect(diagnostic.providerErrorStatus, 'PERMISSION_DENIED');
+    expect(
+        diagnostic.providerErrorMessage, contains('[redacted:authorization]'));
+    expect(diagnostic.providerErrorMessage, contains('[redacted:credential]'));
+    expect(diagnosticText, isNot(contains(fakeBearer)));
+    expect(diagnosticText, isNot(contains(fakeGoogleKey)));
   });
 
   test('timeout diagnostic is stored when Gemini request exceeds timeout',
@@ -814,6 +888,10 @@ Map<String, Object?> _geminiEnvelope(String text) {
     ],
   };
 }
+
+String _fakeGoogleKey() => 'AIza${'A' * 35}';
+
+String _fakeOpenAiKey() => 'sk-${'A' * 36}';
 
 ProviderBackedHydrationCoach _geminiCoachWith({
   required HydrationAiProvider provider,

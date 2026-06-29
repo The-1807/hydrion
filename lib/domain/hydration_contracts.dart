@@ -947,8 +947,7 @@ class ProviderDiagnosticSnapshot {
   final String? modelPath;
   final bool? apiKeyPresent;
   final int? apiKeyLength;
-  final String? apiKeyFirst4;
-  final String? apiKeyLast4;
+  final String? apiKeyFingerprint;
   final bool? apiKeyContainsWhitespace;
   final bool? apiKeyWasTrimmed;
   final bool? apiKeyStartsWithExpectedGooglePrefix;
@@ -977,8 +976,7 @@ class ProviderDiagnosticSnapshot {
     this.modelPath,
     this.apiKeyPresent,
     this.apiKeyLength,
-    this.apiKeyFirst4,
-    this.apiKeyLast4,
+    this.apiKeyFingerprint,
     this.apiKeyContainsWhitespace,
     this.apiKeyWasTrimmed,
     this.apiKeyStartsWithExpectedGooglePrefix,
@@ -1008,8 +1006,7 @@ class ProviderDiagnosticSnapshot {
         modelPath = null,
         apiKeyPresent = null,
         apiKeyLength = null,
-        apiKeyFirst4 = null,
-        apiKeyLast4 = null,
+        apiKeyFingerprint = null,
         apiKeyContainsWhitespace = null,
         apiKeyWasTrimmed = null,
         apiKeyStartsWithExpectedGooglePrefix = null,
@@ -1038,8 +1035,7 @@ class ProviderDiagnosticSnapshot {
     Object? modelPath = _unchanged,
     Object? apiKeyPresent = _unchanged,
     Object? apiKeyLength = _unchanged,
-    Object? apiKeyFirst4 = _unchanged,
-    Object? apiKeyLast4 = _unchanged,
+    Object? apiKeyFingerprint = _unchanged,
     Object? apiKeyContainsWhitespace = _unchanged,
     Object? apiKeyWasTrimmed = _unchanged,
     Object? apiKeyStartsWithExpectedGooglePrefix = _unchanged,
@@ -1077,12 +1073,9 @@ class ProviderDiagnosticSnapshot {
       apiKeyLength: identical(apiKeyLength, _unchanged)
           ? this.apiKeyLength
           : apiKeyLength as int?,
-      apiKeyFirst4: identical(apiKeyFirst4, _unchanged)
-          ? this.apiKeyFirst4
-          : apiKeyFirst4 as String?,
-      apiKeyLast4: identical(apiKeyLast4, _unchanged)
-          ? this.apiKeyLast4
-          : apiKeyLast4 as String?,
+      apiKeyFingerprint: identical(apiKeyFingerprint, _unchanged)
+          ? this.apiKeyFingerprint
+          : apiKeyFingerprint as String?,
       apiKeyContainsWhitespace: identical(apiKeyContainsWhitespace, _unchanged)
           ? this.apiKeyContainsWhitespace
           : apiKeyContainsWhitespace as bool?,

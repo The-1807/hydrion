@@ -352,10 +352,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get providerApiKeyLength => 'API key length';
 
   @override
-  String get providerApiKeyFirst4 => 'API key first 4';
-
-  @override
-  String get providerApiKeyLast4 => 'API key last 4';
+  String get providerApiKeyFingerprint => 'API key fingerprint';
 
   @override
   String get providerApiKeyContainsWhitespace => 'Key has whitespace';

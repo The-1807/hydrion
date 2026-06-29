@@ -210,8 +210,7 @@ class ProviderBackedHydrationCoach
       modelPath: base?.modelPath,
       apiKeyPresent: base?.apiKeyPresent,
       apiKeyLength: base?.apiKeyLength,
-      apiKeyFirst4: base?.apiKeyFirst4,
-      apiKeyLast4: base?.apiKeyLast4,
+      apiKeyFingerprint: base?.apiKeyFingerprint,
       apiKeyContainsWhitespace: base?.apiKeyContainsWhitespace,
       apiKeyWasTrimmed: base?.apiKeyWasTrimmed,
       apiKeyStartsWithExpectedGooglePrefix:
@@ -253,8 +252,7 @@ class ProviderBackedHydrationCoach
       modelPath: base?.modelPath,
       apiKeyPresent: base?.apiKeyPresent,
       apiKeyLength: base?.apiKeyLength,
-      apiKeyFirst4: base?.apiKeyFirst4,
-      apiKeyLast4: base?.apiKeyLast4,
+      apiKeyFingerprint: base?.apiKeyFingerprint,
       apiKeyContainsWhitespace: base?.apiKeyContainsWhitespace,
       apiKeyWasTrimmed: base?.apiKeyWasTrimmed,
       apiKeyStartsWithExpectedGooglePrefix:

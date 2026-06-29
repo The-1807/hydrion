@@ -202,8 +202,8 @@ Current diagnostics:
   request attempted, HTTP status class, response envelope phase, parser code,
   validator code, blocked capabilities, sanitized Google error status/message,
   detail types, fallback reason, and timestamps.
-- New safe key diagnostics track key presence, trimmed length, first 4, last 4,
-  whitespace, trim status, and expected `AIza` prefix status.
+- New safe key diagnostics track key presence, trimmed length, one-way
+  fingerprint, whitespace, trim status, and expected `AIza` prefix status.
 - New safe request diagnostics track endpoint host, model id/path, auth header
   presence, and auth header value length.
 
@@ -258,7 +258,7 @@ Displayed:
 
 - Key present: yes/no.
 - Trimmed key length.
-- First 4 and last 4 characters only.
+- One-way key fingerprint.
 - Whether the original key string contained whitespace.
 - Whether the key was trimmed before sending.
 - Whether the trimmed key starts with the expected Google API key prefix
@@ -283,7 +283,7 @@ Never displayed:
 Safe curl comparison:
 
 - Compare model id/model path and endpoint host exactly.
-- Compare key length, first 4, last 4, whitespace, and trim status.
+- Compare key length, one-way fingerprint, whitespace, and trim status.
 - Compare whether Hydrion says auth header present and whether its value length
   matches the trimmed key used by curl.
 - If curl succeeds but Hydrion still reports invalid key, rebuild/re-run the
@@ -381,7 +381,7 @@ What Settings should show:
 - Model path: `models/gemini-2.5-flash`.
 - API key present: Yes.
 - API key length matching the trimmed key length used by curl.
-- First 4 and last 4 matching the curl key, with no full key shown.
+- Key fingerprint matching the curl key, with no full key or key fragments shown.
 - Key has whitespace: No, unless the Dart define included surrounding
   whitespace.
 - Key was trimmed: No, unless the Dart define included surrounding whitespace.

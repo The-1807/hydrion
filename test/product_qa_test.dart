@@ -232,9 +232,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Endpoint host'), findsOneWidget);
     expect(find.text('generativelanguage.googleapis.com'), findsOneWidget);
-    expect(find.text('API key first 4'), findsOneWidget);
-    expect(find.text('AIza'), findsOneWidget);
-    expect(find.text('tail'), findsOneWidget);
+    expect(find.text('API key fingerprint'), findsOneWidget);
+    expect(find.text('fp:00000000'), findsOneWidget);
+    expect(find.text('AIza'), findsNothing);
+    expect(find.text('tail'), findsNothing);
     expect(find.text(fullKey), findsNothing);
   });
 
@@ -438,8 +439,7 @@ ProviderHealthSnapshot _geminiSuccessHealth() {
       modelPath: 'models/gemini-2.5-flash',
       apiKeyPresent: true,
       apiKeyLength: 'AIza-test-key-tail'.length,
-      apiKeyFirst4: 'AIza',
-      apiKeyLast4: 'tail',
+      apiKeyFingerprint: 'fp:00000000',
       apiKeyContainsWhitespace: false,
       apiKeyWasTrimmed: false,
       apiKeyStartsWithExpectedGooglePrefix: true,

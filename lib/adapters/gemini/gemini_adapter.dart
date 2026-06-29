@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../domain/hydration_contracts.dart';
 import '../../services/ai_provider_config.dart';
+import '../../services/secret_redaction.dart';
 
 abstract class GeminiContentClient {
   Future<String> generateContent({
@@ -341,9 +342,7 @@ class GeminiHttpContentClient implements GeminiContentClient {
   }
 
   static String _redactSecrets(String value) {
-    return value
-        .replaceAll(RegExp(r'AIza[0-9A-Za-z_-]{20,}'), '[redacted]')
-        .replaceAll(RegExp(r'sk-[0-9A-Za-z_-]{20,}'), '[redacted]');
+    return SecretRedactor.sanitize(value);
   }
 }
 

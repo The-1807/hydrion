@@ -698,17 +698,11 @@ abstract class AppLocalizations {
   /// **'API key length'**
   String get providerApiKeyLength;
 
-  /// No description provided for @providerApiKeyFirst4.
+  /// No description provided for @providerApiKeyFingerprint.
   ///
   /// In en, this message translates to:
-  /// **'API key first 4'**
-  String get providerApiKeyFirst4;
-
-  /// No description provided for @providerApiKeyLast4.
-  ///
-  /// In en, this message translates to:
-  /// **'API key last 4'**
-  String get providerApiKeyLast4;
+  /// **'API key fingerprint'**
+  String get providerApiKeyFingerprint;
 
   /// No description provided for @providerApiKeyContainsWhitespace.
   ///
