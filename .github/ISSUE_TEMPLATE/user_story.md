@@ -2,8 +2,9 @@
 name: User Story
 about: Propose a story-specific Hydrion backlog item
 title: 'HYD-US-###: [Short Story Title]'
-labels: 'user-story'
+labels: user-story
 assignees: ''
+
 ---
 
 **Story ID:** HYD-US-###
