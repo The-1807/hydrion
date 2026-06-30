@@ -1,3 +1,5 @@
+import 'secret_redaction.dart';
+
 enum HydrionAiProviderSelection {
   localRules('local_rules'),
   gemini('gemini');
@@ -56,10 +58,7 @@ class GeminiProviderConfig {
     return GeminiKeyDiagnostics(
       present: trimmed.isNotEmpty,
       length: trimmed.length,
-      first4: trimmed.length >= 8 ? trimmed.substring(0, 4) : '[short]',
-      last4: trimmed.length >= 8
-          ? trimmed.substring(trimmed.length - 4)
-          : '[short]',
+      fingerprint: SecretRedactor.fingerprint(trimmed),
       containsWhitespace: RegExp(r'\s').hasMatch(apiKey),
       wasTrimmed: apiKey != trimmed,
       startsWithExpectedGoogleApiKeyPrefix:
@@ -82,8 +81,7 @@ class GeminiProviderConfig {
 class GeminiKeyDiagnostics {
   final bool present;
   final int length;
-  final String first4;
-  final String last4;
+  final String? fingerprint;
   final bool containsWhitespace;
   final bool wasTrimmed;
   final bool startsWithExpectedGoogleApiKeyPrefix;
@@ -91,8 +89,7 @@ class GeminiKeyDiagnostics {
   const GeminiKeyDiagnostics({
     required this.present,
     required this.length,
-    required this.first4,
-    required this.last4,
+    required this.fingerprint,
     required this.containsWhitespace,
     required this.wasTrimmed,
     required this.startsWithExpectedGoogleApiKeyPrefix,

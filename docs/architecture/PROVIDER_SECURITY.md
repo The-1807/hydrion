@@ -57,7 +57,7 @@ For production web and mobile, Dart defines are not a safe place for a shared
 provider key. Treat client bundles as inspectable.
 
 Settings may display safe Gemini diagnostics for troubleshooting: key present,
-key length, first four characters, last four characters, whitespace/trim state,
+key length, one-way key fingerprint, whitespace/trim state,
 endpoint host, model path, auth header presence, auth header length, status
 class, parser/validator codes, and fallback codes. It must never display the
 full key, raw prompts, raw hydration context, or raw successful provider

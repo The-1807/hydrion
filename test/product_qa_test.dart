@@ -34,6 +34,12 @@ void main() {
         gemini: GeminiProviderConfig(apiKey: 'AIza-test-key-tail'),
       ),
     );
+    base.capabilityReporter.updateCapabilities(
+      base.capabilityReporter.capabilities.copyWith(
+        geminiConfigured: true,
+        cloudAi: true,
+      ),
+    );
     final coach = _StaticCoach(response);
     return _withOverrides(
       base,
@@ -232,9 +238,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Endpoint host'), findsOneWidget);
     expect(find.text('generativelanguage.googleapis.com'), findsOneWidget);
-    expect(find.text('API key first 4'), findsOneWidget);
-    expect(find.text('AIza'), findsOneWidget);
-    expect(find.text('tail'), findsOneWidget);
+    expect(find.text('API key fingerprint'), findsOneWidget);
+    expect(find.text('fp:00000000'), findsOneWidget);
+    expect(find.text('AIza'), findsNothing);
+    expect(find.text('tail'), findsNothing);
     expect(find.text(fullKey), findsNothing);
   });
 
@@ -297,6 +304,12 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Estado del proveedor de IA'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
 
     expect(find.text('Estado del proveedor de IA'), findsOneWidget);
     expect(find.text('Gemini configurado'), findsOneWidget);
@@ -314,6 +327,12 @@ void main() {
       services: geminiSuccessServices(),
     );
     await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('fournisseur IA'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('État du fournisseur IA'), findsOneWidget);
@@ -428,7 +447,7 @@ ProviderHealthSnapshot _geminiSuccessHealth() {
     geminiAvailable: true,
     elkaAvailable: false,
     privacyDisclosureRequired: true,
-    privacyConsentRecorded: false,
+    privacyConsentRecorded: true,
     diagnostic: ProviderDiagnosticSnapshot(
       selectedProvider: HydrionAiProviderKind.gemini,
       activeProvider: HydrionAiProviderKind.gemini,
@@ -438,8 +457,7 @@ ProviderHealthSnapshot _geminiSuccessHealth() {
       modelPath: 'models/gemini-2.5-flash',
       apiKeyPresent: true,
       apiKeyLength: 'AIza-test-key-tail'.length,
-      apiKeyFirst4: 'AIza',
-      apiKeyLast4: 'tail',
+      apiKeyFingerprint: 'fp:00000000',
       apiKeyContainsWhitespace: false,
       apiKeyWasTrimmed: false,
       apiKeyStartsWithExpectedGooglePrefix: true,

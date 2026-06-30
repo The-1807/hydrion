@@ -1,0 +1,31 @@
+Title	URL	Assignees	Status	Linked pull requests	Sub-issues progress	Milestone
+HYD-US-038: Design Cloud, Social, BYOK, OpenAI, and Edge Integrations	https://github.com/vebbaybi/hydrion/issues/38		Ice Box			
+HYD-US-035: Add Native BLE, Health, and AR Integrations Later	https://github.com/vebbaybi/hydrion/issues/35		Ice Box			
+HYD-US-034: Keep ELKA as an Optional Adapter Boundary	https://github.com/vebbaybi/hydrion/issues/34		Ice Box			
+HYD-US-026: Gate Voice Capture Until a Real Adapter Exists	https://github.com/vebbaybi/hydrion/issues/26		Ice Box			
+HYD-US-041: Preserve Local-First Privacy Baseline	https://github.com/vebbaybi/hydrion/issues/41		Product Backlog			MVP Stabilization
+HYD-US-042: Protect, Export, and Delete Local Personal Data	https://github.com/vebbaybi/hydrion/issues/42		Product Backlog			MVP Stabilization
+HYD-US-043: Recover Gracefully From Invalid Stored Data	https://github.com/vebbaybi/hydrion/issues/43		Product Backlog			MVP Stabilization
+HYD-US-031: Enforce Capability Gating and Safe Action Validation	https://github.com/vebbaybi/hydrion/issues/31		Product Backlog			MVP AI Provider Safety
+HYD-US-001: Launch Standalone Local Application	https://github.com/vebbaybi/hydrion/issues/1		Product Backlog			MVP Stabilization
+HYD-US-004: Persist Hydration Logs Locally	https://github.com/vebbaybi/hydrion/issues/4		Product Backlog			MVP Stabilization
+HYD-US-003: Log Hydration Manually	https://github.com/vebbaybi/hydrion/issues/3		Product Backlog			MVP Stabilization
+HYD-US-005: View Recent Hydration History	https://github.com/vebbaybi/hydrion/issues/5		Product Backlog			MVP Product UX
+HYD-US-006: Edit Hydration Records	https://github.com/vebbaybi/hydrion/issues/6		Product Backlog			MVP Product UX
+HYD-US-007: Delete Hydration Records	https://github.com/vebbaybi/hydrion/issues/7		Product Backlog			MVP Product UX
+HYD-US-009: Configure Hydration Goals and Units	https://github.com/vebbaybi/hydrion/issues/9		Product Backlog			MVP Product UX
+HYD-US-008: View Daily Summary and Progress Ring	https://github.com/vebbaybi/hydrion/issues/8		Product Backlog			MVP Product UX
+HYD-US-023: Build Typed Hydration Context	https://github.com/vebbaybi/hydrion/issues/23		Product Backlog			MVP AI Provider Safety
+HYD-US-024: Confirm Coach Suggestions Before State Changes	https://github.com/vebbaybi/hydrion/issues/24		Product Backlog			MVP AI Provider Safety
+HYD-US-049: Maintain Adapter Boundary and Testability	https://github.com/vebbaybi/hydrion/issues/49		Product Backlog			MVP AI Provider Safety
+HYD-US-032: Use Optional Gemini Provider With Local Fallback	https://github.com/vebbaybi/hydrion/issues/32		Product Backlog			MVP AI Provider Safety
+HYD-US-033: Display Safe Provider Health Diagnostics	https://github.com/vebbaybi/hydrion/issues/33		Product Backlog			MVP AI Provider Safety
+HYD-US-002: Access Core Product Screens	https://github.com/vebbaybi/hydrion/issues/2		Product Backlog			MVP Product UX
+HYD-US-015: Save Local Reminder Definitions	https://github.com/vebbaybi/hydrion/issues/15		Product Backlog			MVP Product UX
+HYD-US-016: Manage Saved Reminder Definitions	https://github.com/vebbaybi/hydrion/issues/16		Product Backlog			MVP Product UX
+HYD-US-017: Gate OS Notification Scheduling	https://github.com/vebbaybi/hydrion/issues/17		Product Backlog			MVP Product UX
+HYD-US-027: Persist Language Settings	https://github.com/vebbaybi/hydrion/issues/27		Product Backlog			MVP Product UX
+HYD-US-029: Render English, Spanish, and French App Strings	https://github.com/vebbaybi/hydrion/issues/29		Product Backlog			MVP Release Readiness
+HYD-US-030: Handle Future and Unsupported Locales Safely	https://github.com/vebbaybi/hydrion/issues/30		Product Backlog			MVP Release Readiness
+HYD-US-045: Support Accessibility Semantics	https://github.com/vebbaybi/hydrion/issues/45		Product Backlog			MVP Release Readiness
+HYD-US-051: Prevent Secret Leakage and Unsafe Provider Credentials	https://github.com/vebbaybi/hydrion/issues/51	vebbaybi	Ready  / Sprint			MVP Stabilization

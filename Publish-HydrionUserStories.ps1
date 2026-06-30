@@ -60,7 +60,7 @@ $IssueLabelColor = '5319E7'
 $IssueLabelDescription = 'Hydrion product user story'
 $DefaultLabelColor = 'C5DEF5'
 $DefaultLabelDescription = 'Hydrion user-story metadata'
-$ScriptVersion = '2.0.0-clean-story-sync'
+$ScriptVersion = '2.0.1-secret-safe-story-sync'
 $ForbiddenStoryPatterns = @(
     'Story Quality Checklist',
     'INVEST Check',
@@ -80,6 +80,184 @@ $ForbiddenStoryPatterns = @(
     'generic testing',
     'Post-MVP Post-MVP'
 )
+$SecretLikePatterns = @(
+    @{
+        Name = 'Google API key'
+        Pattern = 'AIza[0-9A-Za-z_-]{35}'
+        Group = 0
+        RequireSecretLikeValue = $false
+    },
+    @{
+        Name = 'OpenAI API key'
+        Pattern = 'sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{32,}'
+        Group = 0
+        RequireSecretLikeValue = $false
+    },
+    @{
+        Name = 'Anthropic API key'
+        Pattern = 'sk-ant-[A-Za-z0-9_-]{32,}'
+        Group = 0
+        RequireSecretLikeValue = $false
+    },
+    @{
+        Name = 'Private key block'
+        Pattern = '-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----'
+        Group = 0
+        RequireSecretLikeValue = $false
+    },
+    @{
+        Name = 'Authorization bearer token'
+        Pattern = '(?i)\bAuthorization\s*[:=]\s*Bearer\s+([A-Za-z0-9._~+/\-]+=*)'
+        Group = 1
+        RequireSecretLikeValue = $true
+    },
+    @{
+        Name = 'Provider API key header'
+        Pattern = '(?i)\bx-goog-api-key\s*[:=]\s*[''"]?([^''"\s,;}]+)'
+        Group = 1
+        RequireSecretLikeValue = $true
+    },
+    @{
+        Name = 'Credential assignment'
+        Pattern = '(?i)\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token|password|secret)\s*[:=]\s*[''"]?([^''"\s,;}]+)'
+        Group = 1
+        RequireSecretLikeValue = $true
+    },
+    @{
+        Name = 'Credential URL'
+        Pattern = '://[^/\s:@]+:([^@\s/]+)@'
+        Group = 1
+        RequireSecretLikeValue = $false
+    },
+    @{
+        Name = 'Credential query parameter'
+        Pattern = '(?i)[?&](?:api_key|key|token|access_token|client_secret)=([^&#\s]+)'
+        Group = 1
+        RequireSecretLikeValue = $true
+    }
+)
+
+function Test-DocumentedSecretPlaceholder {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Value)
+
+    $normalized = $Value.Trim().Trim('"', "'")
+
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        return $false
+    }
+
+    if (Test-KnownSecretFormat -Value $normalized) {
+        return $false
+    }
+
+    $upper = $normalized.ToUpperInvariant()
+
+    return (
+        ($upper -match '^(YOUR|EXAMPLE|SAMPLE|PLACEHOLDER)[A-Z0-9_.:-]*$') -or
+        ($upper -match '^\$\{?[A-Z][A-Z0-9_]*(API_KEY|TOKEN|SECRET|PASSWORD|CREDENTIALS?|ORG_ID)\}?$') -or
+        ($upper -match '^\$ENV:[A-Z][A-Z0-9_]*$') -or
+        ($upper.Contains('TEST-KEY')) -or
+        ($upper.Contains('TEST_KEY')) -or
+        ($upper -in @('REPLACE_ME', 'NOT_A_REAL_KEY', 'TEST_PLACEHOLDER_NOT_A_REAL_KEY', '<YOUR_API_KEY>', '<API_KEY>', '...'))
+    )
+}
+
+function Test-KnownSecretFormat {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Value)
+
+    return (
+        ($Value -match 'AIza[0-9A-Za-z_-]{35}') -or
+        ($Value -match 'sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{32,}') -or
+        ($Value -match 'sk-ant-[A-Za-z0-9_-]{32,}') -or
+        ($Value -match '-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----')
+    )
+}
+
+function Test-SecretLikeValue {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Value)
+
+    $normalized = $Value.Trim().Trim('"', "'")
+
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        return $false
+    }
+
+    if (Test-DocumentedSecretPlaceholder -Value $normalized) {
+        return $false
+    }
+
+    if (Test-KnownSecretFormat -Value $normalized) {
+        return $true
+    }
+
+    if ($normalized.Length -lt 16) {
+        return $false
+    }
+
+    if ($normalized -match '^[A-Za-z_][A-Za-z0-9_.]*(?:\([^)]*\))?$') {
+        return $false
+    }
+
+    if ($normalized -match '^[A-Za-z_][A-Za-z0-9_.]*\($') {
+        return $false
+    }
+
+    $hasLetter = $normalized -match '[A-Za-z]'
+    $hasDigit = $normalized -match '\d'
+    $hasTokenSeparator = $normalized -match '[._~+/\-=]'
+
+    return ($hasLetter -and ($hasDigit -or $hasTokenSeparator))
+}
+
+function Assert-NoSecretLikeContent {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Text,
+        [Parameter(Mandatory)][string]$Context
+    )
+
+    foreach ($secretPattern in $SecretLikePatterns) {
+        foreach ($match in [regex]::Matches($Text, $secretPattern.Pattern)) {
+            $value = $match.Value
+
+            if (($secretPattern.Group -gt 0) -and ($match.Groups.Count -gt $secretPattern.Group)) {
+                $value = $match.Groups[$secretPattern.Group].Value
+            }
+
+            if (Test-DocumentedSecretPlaceholder -Value $value) {
+                continue
+            }
+
+            if (($secretPattern.RequireSecretLikeValue) -and (-not (Test-SecretLikeValue -Value $value))) {
+                continue
+            }
+
+            throw "Refusing to send secret-looking content to GitHub: $($secretPattern.Name) in $Context."
+        }
+    }
+}
+
+function Assert-HydrionGithubMutationSafe {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][object]$Story,
+        [Parameter(Mandatory)][string]$Action
+    )
+
+    Assert-NoSecretLikeContent -Text $Story.IssueTitle -Context "$Action title for $($Story.Id)"
+    Assert-NoSecretLikeContent -Text $Story.Body -Context "$Action body for $($Story.Id)"
+    Assert-NoSecretLikeContent -Text (@($Story.Labels) -join ', ') -Context "$Action labels for $($Story.Id)"
+
+    if (-not [string]::IsNullOrWhiteSpace($Story.Milestone)) {
+        Assert-NoSecretLikeContent -Text $Story.Milestone -Context "$Action milestone for $($Story.Id)"
+    }
+
+    Assert-NoSecretLikeContent -Text $Story.ProjectColumn -Context "$Action project column for $($Story.Id)"
+    Assert-NoSecretLikeContent -Text $Story.StorySize -Context "$Action story size for $($Story.Id)"
+}
 
 function Write-Section {
     param([Parameter(Mandatory)][string]$Text)
@@ -472,6 +650,7 @@ function Get-HydrionStories {
 
     $content = [System.IO.File]::ReadAllText($Path)
     $content = $content.Replace("`r`n", "`n").Replace("`r", "`n")
+    Assert-NoSecretLikeContent -Text $content -Context "user-story source '$Path'"
 
     $pattern = '(?ms)^###\s+(HYD-US-(\d{3})):\s+([^\n]+)\n(.*?)(?=^###\s+HYD-US-\d{3}:|\z)'
     $matches = [regex]::Matches($content, $pattern)
@@ -525,6 +704,17 @@ function Get-HydrionStories {
         if ($body.Length -gt 65000) {
             throw "Story $id produces a GitHub issue body longer than the supported safe limit."
         }
+
+        Assert-NoSecretLikeContent -Text $issueTitle -Context "$id issue title"
+        Assert-NoSecretLikeContent -Text $body -Context "$id issue body"
+        Assert-NoSecretLikeContent -Text (@($labels) -join ', ') -Context "$id labels"
+
+        if (-not [string]::IsNullOrWhiteSpace($milestone)) {
+            Assert-NoSecretLikeContent -Text $milestone -Context "$id milestone"
+        }
+
+        Assert-NoSecretLikeContent -Text $projectColumn -Context "$id project column"
+        Assert-NoSecretLikeContent -Text $storySize -Context "$id story size"
 
         $seenIds[$id] = $true
 
@@ -1603,6 +1793,8 @@ function Ensure-HydrionLabels {
     }
 
     foreach ($name in (Get-UniqueStrings -Values $Names)) {
+        Assert-NoSecretLikeContent -Text $name -Context "label '$name'"
+
         $key = $name.ToLowerInvariant()
 
         if ($existingNames.ContainsKey($key)) {
@@ -1662,6 +1854,8 @@ function Ensure-HydrionMilestones {
     }
 
     foreach ($name in (Get-UniqueStrings -Values $Names)) {
+        Assert-NoSecretLikeContent -Text $name -Context "milestone '$name'"
+
         $key = $name.ToLowerInvariant()
 
         if ($milestoneMap.ContainsKey($key)) {
@@ -1711,6 +1905,7 @@ function New-UserStoryIssue {
         [Parameter(Mandatory)][object]$Story
     )
 
+    Assert-HydrionGithubMutationSafe -Story $Story -Action 'create issue'
     $tempBodyPath = [System.IO.Path]::GetTempFileName()
 
     try {
@@ -1850,6 +2045,7 @@ function Sync-UserStoryIssueContent {
         $Issue = Get-GitHubIssue -Repo $Repo -Number ([int]$Issue.number)
     }
 
+    Assert-HydrionGithubMutationSafe -Story $Story -Action 'sync issue content'
     $currentBody = (Get-IssueBody -Issue $Issue)
 
     if (
@@ -1933,6 +2129,8 @@ function Sync-UserStoryIssueMetadata {
         [string]::IsNullOrWhiteSpace($Story.Milestone) -and
         (-not [string]::IsNullOrWhiteSpace($currentMilestone))
     )
+
+    Assert-HydrionGithubMutationSafe -Story $Story -Action 'sync issue metadata'
 
     if (($missingLabels.Count -eq 0) -and ($labelsToRemove.Count -eq 0) -and (-not $shouldSetMilestone) -and (-not $shouldRemoveMilestone)) {
         return $Issue

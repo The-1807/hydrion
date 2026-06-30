@@ -213,6 +213,14 @@ class AppLocalizationsEs extends AppLocalizations {
       'Gemini puede proponer acciones tipadas; Hydrion las valida antes de confiar en ellas.';
 
   @override
+  String get geminiProviderConfiguredLocalDescription =>
+      'Gemini está configurado, pero deshabilitado hasta que se active el consentimiento de privacidad del proveedor.';
+
+  @override
+  String get geminiProviderActiveDescription =>
+      'Gemini puede recibir contexto de hidratación tipado; Hydrion valida la salida del proveedor antes de confiar en ella.';
+
+  @override
   String get language => 'Idioma';
 
   @override
@@ -333,6 +341,21 @@ class AppLocalizationsEs extends AppLocalizations {
       'La IA no local requiere consentimiento explícito del usuario antes de producción.';
 
   @override
+  String get providerConsentStatus => 'Consentimiento del proveedor';
+
+  @override
+  String get providerConsentToggleTitle =>
+      'Permitir procesamiento del proveedor Gemini';
+
+  @override
+  String get providerConsentEnabled =>
+      'Habilitado. El contexto de hidratación tipado puede salir de este dispositivo para solicitudes de Gemini.';
+
+  @override
+  String get providerConsentDisabled =>
+      'Deshabilitado. Hydrion usa local_rules y no envía contexto de hidratación a Gemini.';
+
+  @override
   String get providerGeminiHealth => 'Estado de Gemini';
 
   @override
@@ -357,10 +380,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get providerApiKeyLength => 'Longitud de clave';
 
   @override
-  String get providerApiKeyFirst4 => 'Primeros 4 de clave';
-
-  @override
-  String get providerApiKeyLast4 => 'Últimos 4 de clave';
+  String get providerApiKeyFingerprint => 'Huella de clave API';
 
   @override
   String get providerApiKeyContainsWhitespace => 'Clave con espacios';
@@ -416,6 +436,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get providerDiagnosticNoApiKey =>
       'No hay clave API de Gemini configurada';
+
+  @override
+  String get providerDiagnosticConsentRequired =>
+      'Gemini está configurado, pero el consentimiento de privacidad del proveedor está deshabilitado';
 
   @override
   String get providerDiagnosticHealthy =>
@@ -480,6 +504,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get cloudAiConfiguredDescription =>
       'Gemini está configurado como proveedor opcional; los proveedores no pueden modificar el estado de la app.';
+
+  @override
+  String get cloudAiConsentRequiredDescription =>
+      'Gemini está configurado, pero no activo hasta que se habilite el consentimiento de privacidad del proveedor.';
 
   @override
   String get voiceInput => 'Entrada de voz';
@@ -746,6 +774,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get coachProviderFallbackActive =>
       'Usando respaldo local_rules. La salida del proveedor sigue siendo opcional.';
+
+  @override
+  String get coachProviderConsentRequired =>
+      'Gemini está configurado, pero deshabilitado hasta que se habilite el consentimiento de privacidad del proveedor. El contexto de hidratación permanece en este dispositivo.';
 
   @override
   String get coachLocalProviderReady =>
