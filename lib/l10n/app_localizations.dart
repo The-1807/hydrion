@@ -428,6 +428,18 @@ abstract class AppLocalizations {
   /// **'Gemini can propose typed actions; Hydrion validates them before anything is trusted.'**
   String get geminiProviderConfiguredDescription;
 
+  /// No description provided for @geminiProviderConfiguredLocalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini is configured but disabled until provider privacy consent is enabled.'**
+  String get geminiProviderConfiguredLocalDescription;
+
+  /// No description provided for @geminiProviderActiveDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini may receive typed hydration context; Hydrion validates provider output before anything is trusted.'**
+  String get geminiProviderActiveDescription;
+
   /// No description provided for @language.
   ///
   /// In en, this message translates to:
@@ -650,6 +662,30 @@ abstract class AppLocalizations {
   /// **'Non-local AI requires explicit user consent before production use.'**
   String get providerConsentRequired;
 
+  /// No description provided for @providerConsentStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider consent'**
+  String get providerConsentStatus;
+
+  /// No description provided for @providerConsentToggleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Gemini provider processing'**
+  String get providerConsentToggleTitle;
+
+  /// No description provided for @providerConsentEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled. Typed hydration context may leave this device for Gemini requests.'**
+  String get providerConsentEnabled;
+
+  /// No description provided for @providerConsentDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled. Hydrion uses local_rules and does not send hydration context to Gemini.'**
+  String get providerConsentDisabled;
+
   /// No description provided for @providerGeminiHealth.
   ///
   /// In en, this message translates to:
@@ -812,6 +848,12 @@ abstract class AppLocalizations {
   /// **'No Gemini API key configured'**
   String get providerDiagnosticNoApiKey;
 
+  /// No description provided for @providerDiagnosticConsentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini is configured but provider privacy consent is disabled'**
+  String get providerDiagnosticConsentRequired;
+
   /// No description provided for @providerDiagnosticHealthy.
   ///
   /// In en, this message translates to:
@@ -925,6 +967,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Gemini is configured as an optional provider; providers cannot mutate app state.'**
   String get cloudAiConfiguredDescription;
+
+  /// No description provided for @cloudAiConsentRequiredDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini is configured but not active until provider privacy consent is enabled.'**
+  String get cloudAiConsentRequiredDescription;
 
   /// No description provided for @voiceInput.
   ///
@@ -1316,6 +1364,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Using local_rules fallback. Provider output remains optional.'**
   String get coachProviderFallbackActive;
+
+  /// No description provided for @coachProviderConsentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini is configured but disabled until provider privacy consent is enabled. Hydration context stays on this device.'**
+  String get coachProviderConsentRequired;
 
   /// No description provided for @coachLocalProviderReady.
   ///

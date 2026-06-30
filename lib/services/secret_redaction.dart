@@ -45,7 +45,7 @@ class SecretRedactor {
     ),
     _SecretRedactionPattern(
       RegExp(r'://[^/\s:@]+:[^@\s/]+@'),
-      '://[redacted:credentials]@',
+      '://[redacted-credentials]@',
     ),
   ];
 

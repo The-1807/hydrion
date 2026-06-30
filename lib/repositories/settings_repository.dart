@@ -6,17 +6,29 @@ import '../storage/local_store.dart';
 
 class UserSettings {
   final Locale locale;
+  final bool nonLocalProviderConsentGranted;
 
-  const UserSettings({required this.locale});
+  const UserSettings({
+    required this.locale,
+    this.nonLocalProviderConsentGranted = false,
+  });
 
-  UserSettings copyWith({Locale? locale}) {
-    return UserSettings(locale: locale ?? this.locale);
+  UserSettings copyWith({
+    Locale? locale,
+    bool? nonLocalProviderConsentGranted,
+  }) {
+    return UserSettings(
+      locale: locale ?? this.locale,
+      nonLocalProviderConsentGranted:
+          nonLocalProviderConsentGranted ?? this.nonLocalProviderConsentGranted,
+    );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'languageCode': locale.languageCode,
       'countryCode': locale.countryCode,
+      'nonLocalProviderConsentGranted': nonLocalProviderConsentGranted,
     };
   }
 
@@ -31,6 +43,8 @@ class UserSettings {
         languageCode.trim().isEmpty ? 'en' : languageCode,
         countryCode?.trim().isEmpty ?? true ? null : countryCode,
       ),
+      nonLocalProviderConsentGranted:
+          value['nonLocalProviderConsentGranted'] == true,
     );
   }
 }
@@ -43,8 +57,16 @@ class UserSettingsRepository {
 
   UserSettingsRepository._(this._store, this._settings);
 
-  UserSettingsRepository.memory([Locale locale = const Locale('en', 'US')])
-      : this._(MemoryHydrionStore(), UserSettings(locale: locale));
+  UserSettingsRepository.memory([
+    Locale locale = const Locale('en', 'US'),
+    bool nonLocalProviderConsentGranted = false,
+  ]) : this._(
+          MemoryHydrionStore(),
+          UserSettings(
+            locale: locale,
+            nonLocalProviderConsentGranted: nonLocalProviderConsentGranted,
+          ),
+        );
 
   static Future<UserSettingsRepository> load(HydrionLocalStore store) async {
     final raw = await store.readString(storageKey);
@@ -70,6 +92,11 @@ class UserSettingsRepository {
 
   Future<void> setLocale(Locale locale) async {
     _settings = _settings.copyWith(locale: locale);
+    await _persist();
+  }
+
+  Future<void> setNonLocalProviderConsentGranted(bool value) async {
+    _settings = _settings.copyWith(nonLocalProviderConsentGranted: value);
     await _persist();
   }
 

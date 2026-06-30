@@ -34,6 +34,12 @@ void main() {
         gemini: GeminiProviderConfig(apiKey: 'AIza-test-key-tail'),
       ),
     );
+    base.capabilityReporter.updateCapabilities(
+      base.capabilityReporter.capabilities.copyWith(
+        geminiConfigured: true,
+        cloudAi: true,
+      ),
+    );
     final coach = _StaticCoach(response);
     return _withOverrides(
       base,
@@ -298,6 +304,12 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Estado del proveedor de IA'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
 
     expect(find.text('Estado del proveedor de IA'), findsOneWidget);
     expect(find.text('Gemini configurado'), findsOneWidget);
@@ -315,6 +327,12 @@ void main() {
       services: geminiSuccessServices(),
     );
     await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('fournisseur IA'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('État du fournisseur IA'), findsOneWidget);
@@ -429,7 +447,7 @@ ProviderHealthSnapshot _geminiSuccessHealth() {
     geminiAvailable: true,
     elkaAvailable: false,
     privacyDisclosureRequired: true,
-    privacyConsentRecorded: false,
+    privacyConsentRecorded: true,
     diagnostic: ProviderDiagnosticSnapshot(
       selectedProvider: HydrionAiProviderKind.gemini,
       activeProvider: HydrionAiProviderKind.gemini,

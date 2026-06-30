@@ -61,6 +61,38 @@ enum HydrionAiProviderKind {
   elka,
 }
 
+class ExternalIntegrationActivation {
+  final bool configured;
+  final bool enabledByUser;
+  final bool disclosureVisible;
+  final bool consentGranted;
+  final bool localFallbackAvailable;
+
+  const ExternalIntegrationActivation({
+    required this.configured,
+    required this.enabledByUser,
+    required this.disclosureVisible,
+    required this.consentGranted,
+    this.localFallbackAvailable = true,
+  });
+
+  const ExternalIntegrationActivation.disabled()
+      : configured = false,
+        enabledByUser = false,
+        disclosureVisible = false,
+        consentGranted = false,
+        localFallbackAvailable = true;
+
+  bool get canTransmit =>
+      configured &&
+      enabledByUser &&
+      disclosureVisible &&
+      consentGranted &&
+      localFallbackAvailable;
+
+  bool get canReportActive => canTransmit;
+}
+
 class AppCapabilities {
   final bool localPersistence;
   final bool elkaConfigured;
@@ -814,6 +846,8 @@ abstract class HydrationCommandParser {
 
 abstract class AppCapabilityReporter {
   AppCapabilities get capabilities;
+
+  void updateCapabilities(AppCapabilities capabilities) {}
 }
 
 class ProviderHealthSnapshot {
@@ -897,6 +931,7 @@ class ProviderDiagnosticCodes {
   static const String localRulesActive = 'local_rules_active';
   static const String notAttempted = 'not_attempted';
   static const String noApiKey = 'no_api_key';
+  static const String providerConsentRequired = 'provider_consent_required';
   static const String requestAttempted = 'request_attempted';
   static const String httpFailure = 'http_failure';
   static const String timeout = 'timeout';
@@ -1141,4 +1176,6 @@ class ProviderDiagnosticSnapshot {
 
 abstract class ProviderHealthReporter extends ChangeNotifier {
   ProviderHealthSnapshot get providerHealth;
+
+  void updatePrivacyConsent(bool consentGranted) {}
 }

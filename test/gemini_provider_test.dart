@@ -857,6 +857,64 @@ void main() {
 
     expect(response, contains('local deterministic mode'));
   });
+
+  test('configured Gemini does not receive context until consent is enabled',
+      () async {
+    final context = _standaloneContext().copyWithGeminiConfigured();
+    final primaryProvider = _CountingAiProvider(
+      const [CoachMessageAction(message: 'external provider response')],
+    );
+    final contextProvider = _CountingContextProvider(context);
+    final providerHealth = LocalProviderHealthReporter.fromConfig(
+      const HydrionAiRuntimeConfig(
+        provider: HydrionAiProviderSelection.gemini,
+        gemini: GeminiProviderConfig(apiKey: 'test-key'),
+      ),
+    );
+    final coach = ProviderBackedHydrationCoach(
+      selectedProvider: HydrionAiProviderSelection.gemini,
+      primaryProvider: primaryProvider,
+      localRulesProvider:
+          const _StaticLocalRulesProvider(message: 'local privacy fallback'),
+      contextProvider: contextProvider,
+      providerHealth: providerHealth,
+      nonLocalProviderEnabled: () => false,
+    );
+
+    final response = await coach.getCoachingAdvice(
+      userQuery: 'use configured provider',
+      digestKey: HydrationCoachDigestKey.weeklyDigest,
+    );
+
+    expect(response, 'local privacy fallback');
+    expect(primaryProvider.callCount, 0);
+    expect(contextProvider.callCount, 0);
+    expect(providerHealth.providerHealth.activeProvider,
+        HydrionAiProviderKind.localRules);
+    expect(providerHealth.providerHealth.diagnostic.requestAttempted, isFalse);
+  });
+
+  test('configured Gemini is reported as inactive without provider consent',
+      () {
+    final services = HydrionServices.memory(
+      aiRuntimeConfig: const HydrionAiRuntimeConfig(
+        provider: HydrionAiProviderSelection.gemini,
+        gemini: GeminiProviderConfig(apiKey: 'test-key'),
+      ),
+    );
+    final capabilities = services.capabilityReporter.capabilities;
+    final health = services.providerHealthReporter.providerHealth;
+
+    expect(capabilities.geminiConfigured, isTrue);
+    expect(capabilities.cloudAi, isFalse);
+    expect(health.geminiConfigured, isTrue);
+    expect(health.geminiAvailable, isFalse);
+    expect(health.activeProvider, HydrionAiProviderKind.localRules);
+    expect(health.privacyDisclosureRequired, isTrue);
+    expect(health.privacyConsentRecorded, isFalse);
+    expect(health.diagnostic.responseEnvelopePhase,
+        ProviderDiagnosticCodes.providerConsentRequired);
+  });
 }
 
 HydrationContext _standaloneContext() {
@@ -978,6 +1036,22 @@ class _StaticAiProvider implements HydrationAiProvider {
   }
 }
 
+class _CountingAiProvider implements HydrationAiProvider {
+  final List<HydrationAiAction> actions;
+  int callCount = 0;
+
+  _CountingAiProvider(this.actions);
+
+  @override
+  Future<List<HydrationAiAction>> proposeActions({
+    required HydrationContext context,
+    required String userQuery,
+  }) async {
+    callCount += 1;
+    return actions;
+  }
+}
+
 class _StaticLocalRulesProvider implements HydrationCoach, HydrationAiProvider {
   final String message;
 
@@ -1020,6 +1094,22 @@ class _StaticContextProvider implements HydrationContextProvider {
     DateTime? now,
     HydrationCoachDigestKey digestKey = HydrationCoachDigestKey.weeklyDigest,
   }) async {
+    return context;
+  }
+}
+
+class _CountingContextProvider implements HydrationContextProvider {
+  final HydrationContext context;
+  int callCount = 0;
+
+  _CountingContextProvider(this.context);
+
+  @override
+  Future<HydrationContext> getHydrationContext({
+    DateTime? now,
+    HydrationCoachDigestKey digestKey = HydrationCoachDigestKey.weeklyDigest,
+  }) async {
+    callCount += 1;
     return context;
   }
 }

@@ -7,22 +7,31 @@ class LocalProviderHealthReporter extends ProviderHealthReporter {
   LocalProviderHealthReporter._(this._snapshot);
 
   factory LocalProviderHealthReporter.fromConfig(
-    HydrionAiRuntimeConfig config,
-  ) {
+    HydrionAiRuntimeConfig config, {
+    bool privacyConsentGranted = false,
+  }) {
     final selectedProvider = switch (config.provider) {
       HydrionAiProviderSelection.gemini => HydrionAiProviderKind.gemini,
       HydrionAiProviderSelection.localRules => HydrionAiProviderKind.localRules,
     };
     final geminiConfigured = config.gemini.isConfigured;
-    final geminiActive = config.provider == HydrionAiProviderSelection.gemini &&
-        geminiConfigured;
+    final geminiSelected = config.provider == HydrionAiProviderSelection.gemini;
+    final geminiActivation = ExternalIntegrationActivation(
+      configured: geminiConfigured,
+      enabledByUser: geminiSelected,
+      disclosureVisible: geminiSelected,
+      consentGranted: privacyConsentGranted,
+    );
+    final geminiActive = geminiActivation.canReportActive;
     final keyDiagnostic = config.gemini.keyDiagnostics;
     final requestDiagnostic = config.gemini.requestDiagnostics;
-    final fallbackReason =
-        config.provider == HydrionAiProviderSelection.gemini &&
-                !geminiConfigured
-            ? 'no_api_key: Gemini is selected but no API key is configured. '
-                'Hydrion is using local_rules.'
+    final fallbackReason = geminiSelected && !geminiConfigured
+        ? 'no_api_key: Gemini is selected but no API key is configured. '
+            'Hydrion is using local_rules.'
+        : geminiSelected && !privacyConsentGranted
+            ? 'provider_consent_required: Gemini is configured but disabled '
+                'until provider privacy consent is enabled. Hydrion is using '
+                'local_rules.'
             : null;
     final diagnostic = ProviderDiagnosticSnapshot(
       selectedProvider: selectedProvider,
@@ -30,45 +39,27 @@ class LocalProviderHealthReporter extends ProviderHealthReporter {
           ? HydrionAiProviderKind.gemini
           : HydrionAiProviderKind.localRules,
       configured: geminiConfigured,
-      modelId: config.provider == HydrionAiProviderSelection.gemini
-          ? config.gemini.model
-          : null,
-      endpointHost: config.provider == HydrionAiProviderSelection.gemini
-          ? requestDiagnostic.endpointHost
-          : null,
-      modelPath: config.provider == HydrionAiProviderSelection.gemini
-          ? requestDiagnostic.modelPath
-          : null,
-      apiKeyPresent: config.provider == HydrionAiProviderSelection.gemini
-          ? keyDiagnostic.present
-          : null,
-      apiKeyLength: config.provider == HydrionAiProviderSelection.gemini
-          ? keyDiagnostic.length
-          : null,
-      apiKeyFingerprint: config.provider == HydrionAiProviderSelection.gemini
-          ? keyDiagnostic.fingerprint
-          : null,
+      modelId: geminiSelected ? config.gemini.model : null,
+      endpointHost: geminiSelected ? requestDiagnostic.endpointHost : null,
+      modelPath: geminiSelected ? requestDiagnostic.modelPath : null,
+      apiKeyPresent: geminiSelected ? keyDiagnostic.present : null,
+      apiKeyLength: geminiSelected ? keyDiagnostic.length : null,
+      apiKeyFingerprint: geminiSelected ? keyDiagnostic.fingerprint : null,
       apiKeyContainsWhitespace:
-          config.provider == HydrionAiProviderSelection.gemini
-              ? keyDiagnostic.containsWhitespace
-              : null,
-      apiKeyWasTrimmed: config.provider == HydrionAiProviderSelection.gemini
-          ? keyDiagnostic.wasTrimmed
+          geminiSelected ? keyDiagnostic.containsWhitespace : null,
+      apiKeyWasTrimmed: geminiSelected ? keyDiagnostic.wasTrimmed : null,
+      apiKeyStartsWithExpectedGooglePrefix: geminiSelected
+          ? keyDiagnostic.startsWithExpectedGoogleApiKeyPrefix
           : null,
-      apiKeyStartsWithExpectedGooglePrefix:
-          config.provider == HydrionAiProviderSelection.gemini
-              ? keyDiagnostic.startsWithExpectedGoogleApiKeyPrefix
-              : null,
-      authHeaderPresent: config.provider == HydrionAiProviderSelection.gemini
-          ? requestDiagnostic.authHeaderPresent
-          : null,
+      authHeaderPresent:
+          geminiSelected ? requestDiagnostic.authHeaderPresent : null,
       authHeaderValueLength:
-          config.provider == HydrionAiProviderSelection.gemini
-              ? requestDiagnostic.authHeaderValueLength
-              : null,
+          geminiSelected ? requestDiagnostic.authHeaderValueLength : null,
       responseEnvelopePhase: fallbackReason == null
           ? ProviderDiagnosticCodes.notAttempted
-          : ProviderDiagnosticCodes.noApiKey,
+          : !geminiConfigured
+              ? ProviderDiagnosticCodes.noApiKey
+              : ProviderDiagnosticCodes.providerConsentRequired,
       fallbackReason: fallbackReason,
     );
 
@@ -83,8 +74,8 @@ class LocalProviderHealthReporter extends ProviderHealthReporter {
         geminiAvailable: geminiActive,
         elkaAvailable: false,
         fallbackReason: fallbackReason,
-        privacyDisclosureRequired: geminiActive,
-        privacyConsentRecorded: !geminiActive,
+        privacyDisclosureRequired: geminiSelected && geminiConfigured,
+        privacyConsentRecorded: !geminiSelected || privacyConsentGranted,
         diagnostic: diagnostic,
       ),
     );
@@ -92,6 +83,48 @@ class LocalProviderHealthReporter extends ProviderHealthReporter {
 
   @override
   ProviderHealthSnapshot get providerHealth => _snapshot;
+
+  @override
+  void updatePrivacyConsent(bool consentGranted) {
+    final geminiSelected =
+        _snapshot.selectedProvider == HydrionAiProviderKind.gemini;
+    final geminiActive =
+        geminiSelected && _snapshot.geminiConfigured && consentGranted;
+    final fallbackReason = geminiSelected && !_snapshot.geminiConfigured
+        ? 'no_api_key: Gemini is selected but no API key is configured. '
+            'Hydrion is using local_rules.'
+        : geminiSelected && !consentGranted
+            ? 'provider_consent_required: Gemini is configured but disabled '
+                'until provider privacy consent is enabled. Hydrion is using '
+                'local_rules.'
+            : null;
+    final diagnostic = _snapshot.diagnostic.copyWith(
+      activeProvider: geminiActive
+          ? HydrionAiProviderKind.gemini
+          : HydrionAiProviderKind.localRules,
+      responseEnvelopePhase: fallbackReason == null
+          ? ProviderDiagnosticCodes.notAttempted
+          : !_snapshot.geminiConfigured
+              ? ProviderDiagnosticCodes.noApiKey
+              : ProviderDiagnosticCodes.providerConsentRequired,
+      requestAttempted: false,
+      fallbackReason: fallbackReason,
+      lastSuccessAt: null,
+      lastFailureAt: null,
+    );
+    _snapshot = _snapshot.copyWith(
+      activeProvider: geminiActive
+          ? HydrionAiProviderKind.gemini
+          : HydrionAiProviderKind.localRules,
+      geminiAvailable: geminiActive,
+      lastProviderFailure: null,
+      fallbackReason: fallbackReason,
+      privacyDisclosureRequired: geminiSelected && _snapshot.geminiConfigured,
+      privacyConsentRecorded: !geminiSelected || consentGranted,
+      diagnostic: diagnostic,
+    );
+    notifyListeners();
+  }
 
   void recordProviderAttempt(HydrionAiProviderKind provider) {
     final diagnostic = _snapshot.diagnostic.copyWith(

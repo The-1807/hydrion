@@ -13,6 +13,7 @@ class ProviderBackedHydrationCoach
   final HydrationAiActionValidator actionValidator;
   final LocalProviderHealthReporter? providerHealth;
   final Duration providerTimeout;
+  final bool Function() nonLocalProviderEnabled;
 
   const ProviderBackedHydrationCoach({
     required this.selectedProvider,
@@ -22,6 +23,7 @@ class ProviderBackedHydrationCoach
     this.actionValidator = const HydrationAiActionValidator(),
     this.providerHealth,
     this.providerTimeout = const Duration(seconds: 14),
+    this.nonLocalProviderEnabled = _providerEnabledByDefault,
   });
 
   @override
@@ -31,7 +33,7 @@ class ProviderBackedHydrationCoach
     int? activityMinutes,
     required double temperatureC,
   }) async {
-    if (selectedProvider != HydrionAiProviderSelection.gemini) {
+    if (!_canUsePrimaryProvider) {
       return _localCoachResponse(
         hydrationPercent: hydrationPercent,
         entryCount: entryCount,
@@ -64,7 +66,7 @@ class ProviderBackedHydrationCoach
     required String userQuery,
     required HydrationCoachDigestKey digestKey,
   }) async {
-    if (selectedProvider != HydrionAiProviderSelection.gemini) {
+    if (!_canUsePrimaryProvider) {
       return _localCoachingAdvice(
         userQuery: userQuery,
         digestKey: digestKey,
@@ -94,7 +96,7 @@ class ProviderBackedHydrationCoach
     required HydrationContext context,
     required String userQuery,
   }) async {
-    if (selectedProvider == HydrionAiProviderSelection.gemini) {
+    if (_canUsePrimaryProvider) {
       final primaryActions = await _trustedProviderActions(
         provider: primaryProvider,
         context: context,
@@ -112,6 +114,12 @@ class ProviderBackedHydrationCoach
       fallbackToEmpty: false,
     );
   }
+
+  bool get _canUsePrimaryProvider =>
+      selectedProvider == HydrionAiProviderSelection.gemini &&
+      nonLocalProviderEnabled();
+
+  static bool _providerEnabledByDefault() => true;
 
   Future<List<HydrationAiAction>> _trustedProviderActions({
     required HydrationAiProvider provider,

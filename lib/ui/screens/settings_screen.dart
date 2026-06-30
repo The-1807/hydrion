@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
 import '../../l10n/app_localizations.dart';
+import '../../repositories/settings_repository.dart';
 import '../../utils/i18n_resolver.dart';
 import '../../utils/permissions.dart';
 import '../components/hydrion_logo.dart';
@@ -31,6 +32,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final providerHealth =
         context.watch<ProviderHealthReporter>().providerHealth;
+    final settingsRepository = context.read<UserSettingsRepository>();
+    final nonLocalProviderConsentGranted =
+        settingsRepository.settings.nonLocalProviderConsentGranted;
 
     return Scaffold(
       appBar: AppBar(
@@ -159,7 +163,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          _ProviderHealthCard(health: providerHealth),
+          _ProviderHealthCard(
+            health: providerHealth,
+            nonLocalProviderConsentGranted: nonLocalProviderConsentGranted,
+            onNonLocalProviderConsentChanged:
+                _setNonLocalProviderConsentGranted,
+          ),
           const SizedBox(height: 12),
           _CapabilityStatusCard(capabilities: capabilities),
         ],
@@ -181,6 +190,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'en' || 'es' || 'fr' => l10n.localeCoverageComplete,
       _ => l10n.futureLanguagesNote,
     };
+  }
+
+  Future<void> _setNonLocalProviderConsentGranted(bool value) async {
+    final settingsRepository = context.read<UserSettingsRepository>();
+    final providerHealthReporter = context.read<ProviderHealthReporter>();
+    final capabilityReporter = context.read<AppCapabilityReporter>();
+    final health = providerHealthReporter.providerHealth;
+
+    await settingsRepository.setNonLocalProviderConsentGranted(value);
+    providerHealthReporter.updatePrivacyConsent(value);
+    capabilityReporter.updateCapabilities(
+      capabilityReporter.capabilities.copyWith(
+        cloudAi: health.selectedProvider == HydrionAiProviderKind.gemini &&
+            health.geminiConfigured &&
+            value,
+      ),
+    );
+    if (mounted) {
+      setState(() {});
+    }
   }
 }
 
@@ -222,9 +251,11 @@ class _SettingsHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    capabilities.geminiConfigured
-                        ? l10n.geminiProviderConfiguredDescription
-                        : l10n.localDataNoProviderRuntime,
+                    capabilities.cloudAi
+                        ? l10n.geminiProviderActiveDescription
+                        : capabilities.geminiConfigured
+                            ? l10n.geminiProviderConfiguredLocalDescription
+                            : l10n.localDataNoProviderRuntime,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -239,12 +270,21 @@ class _SettingsHeader extends StatelessWidget {
 
 class _ProviderHealthCard extends StatelessWidget {
   final ProviderHealthSnapshot health;
+  final bool nonLocalProviderConsentGranted;
+  final ValueChanged<bool> onNonLocalProviderConsentChanged;
 
-  const _ProviderHealthCard({required this.health});
+  const _ProviderHealthCard({
+    required this.health,
+    required this.nonLocalProviderConsentGranted,
+    required this.onNonLocalProviderConsentChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final canToggleNonLocalProvider =
+        health.selectedProvider == HydrionAiProviderKind.gemini &&
+            health.geminiConfigured;
 
     return Card(
       key: const Key('provider-health-card'),
@@ -283,6 +323,10 @@ class _ProviderHealthCard extends StatelessWidget {
             _HealthLine(
               label: l10n.providerGeminiHealth,
               value: _diagnosticHealthLabel(health, l10n),
+            ),
+            _HealthLine(
+              label: l10n.providerConsentStatus,
+              value: health.privacyConsentRecorded ? l10n.yes : l10n.no,
             ),
             _HealthLine(
               label: l10n.providerLastDiagnosticPhase,
@@ -443,17 +487,32 @@ class _ProviderHealthCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              health.privacyDisclosureRequired
+              canToggleNonLocalProvider
                   ? l10n.providerPrivacyGeminiDisclosure
                   : l10n.providerPrivacyLocalOnly,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            if (health.privacyDisclosureRequired) ...[
-              const SizedBox(height: 6),
-              Text(
-                l10n.providerConsentRequired,
-                style: Theme.of(context).textTheme.bodySmall,
+            if (canToggleNonLocalProvider) ...[
+              const SizedBox(height: 8),
+              SwitchListTile.adaptive(
+                key: const Key('provider-privacy-consent-switch'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.providerConsentToggleTitle),
+                subtitle: Text(
+                  nonLocalProviderConsentGranted
+                      ? l10n.providerConsentEnabled
+                      : l10n.providerConsentDisabled,
+                ),
+                value: nonLocalProviderConsentGranted,
+                onChanged: onNonLocalProviderConsentChanged,
               ),
+              if (!nonLocalProviderConsentGranted) ...[
+                const SizedBox(height: 6),
+                Text(
+                  l10n.providerConsentRequired,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ],
           ],
         ),
@@ -529,6 +588,10 @@ class _ProviderHealthCard extends StatelessWidget {
     if (!health.geminiConfigured &&
         health.selectedProvider == HydrionAiProviderKind.gemini) {
       return l10n.providerDiagnosticNoApiKey;
+    }
+    if (health.diagnostic.responseEnvelopePhase ==
+        ProviderDiagnosticCodes.providerConsentRequired) {
+      return l10n.providerDiagnosticConsentRequired;
     }
     if (health.diagnostic.lastSuccessAt != null &&
         health.diagnostic.fallbackReason == null) {
@@ -635,7 +698,9 @@ class _CapabilityStatusCard extends StatelessWidget {
             disabledLabel: l10n.disabled,
             description: capabilities.cloudAi
                 ? l10n.cloudAiConfiguredDescription
-                : l10n.cloudAiDescription,
+                : capabilities.geminiConfigured
+                    ? l10n.cloudAiConsentRequiredDescription
+                    : l10n.cloudAiDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(

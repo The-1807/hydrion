@@ -215,10 +215,17 @@ class LocalHydrationCommandParser implements HydrationCommandParser {
 }
 
 class LocalAppCapabilityReporter implements AppCapabilityReporter {
-  @override
-  final AppCapabilities capabilities;
+  AppCapabilities _capabilities;
 
-  const LocalAppCapabilityReporter({
-    this.capabilities = const AppCapabilities.standalone(),
-  });
+  LocalAppCapabilityReporter({
+    AppCapabilities capabilities = const AppCapabilities.standalone(),
+  }) : _capabilities = capabilities;
+
+  @override
+  AppCapabilities get capabilities => _capabilities;
+
+  @override
+  void updateCapabilities(AppCapabilities capabilities) {
+    _capabilities = capabilities;
+  }
 }

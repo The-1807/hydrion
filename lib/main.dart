@@ -234,13 +234,18 @@ class HydrionServices {
     );
     final providerHealthReporter = LocalProviderHealthReporter.fromConfig(
       aiRuntimeConfig,
+      privacyConsentGranted:
+          settingsRepository.settings.nonLocalProviderConsentGranted,
     );
     const challengeGenerator = LocalChallengeGenerator();
     const commandParser = LocalHydrationCommandParser();
     final capabilityReporter = LocalAppCapabilityReporter(
       capabilities: const AppCapabilities.standalone().copyWith(
         geminiConfigured: aiRuntimeConfig.shouldUseGemini,
-        cloudAi: aiRuntimeConfig.shouldUseGemini,
+        cloudAi: _geminiActivation(
+          config: aiRuntimeConfig,
+          settingsRepository: settingsRepository,
+        ).canReportActive,
       ),
     );
     final hydrationSummaryService = LocalHydrationSummaryService(
@@ -278,6 +283,10 @@ class HydrionServices {
       contextProvider: hydrationContextProvider,
       actionValidator: aiActionValidator,
       providerHealth: providerHealthReporter,
+      nonLocalProviderEnabled: () => _geminiActivation(
+        config: aiRuntimeConfig,
+        settingsRepository: settingsRepository,
+      ).canTransmit,
     );
     final aiActionExecutor = LocalHydrationAiActionExecutor(
       hydrationRepository: hydrationRepository,
@@ -325,6 +334,21 @@ class HydrionServices {
       voiceBridge: voiceBridge,
       wearables: wearables,
       ecoTracker: ecoTracker,
+    );
+  }
+
+  static ExternalIntegrationActivation _geminiActivation({
+    required HydrionAiRuntimeConfig config,
+    required UserSettingsRepository settingsRepository,
+  }) {
+    final selected = config.provider == HydrionAiProviderSelection.gemini;
+    final configured = selected && config.gemini.isConfigured;
+    return ExternalIntegrationActivation(
+      configured: configured,
+      enabledByUser: selected,
+      disclosureVisible: configured,
+      consentGranted:
+          settingsRepository.settings.nonLocalProviderConsentGranted,
     );
   }
 }

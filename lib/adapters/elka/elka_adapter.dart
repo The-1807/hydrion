@@ -30,6 +30,9 @@ class ElkaAdapterShell
       );
 
   @override
+  void updateCapabilities(AppCapabilities capabilities) {}
+
+  @override
   Future<HydrationChallenge> createChallenge({
     required String userLevel,
   }) {
