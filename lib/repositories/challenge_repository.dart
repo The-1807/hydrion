@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../storage/local_store.dart';
 import 'hydration_repository.dart';
+import 'storage_recovery.dart';
 
 class JoinedChallenge {
   final String id;
@@ -49,7 +50,11 @@ class JoinedChallenge {
         name.isEmpty ||
         description.isEmpty ||
         targetMl is! num ||
+        !targetMl.isFinite ||
+        targetMl <= 0 ||
         durationDays is! num ||
+        !durationDays.isFinite ||
+        durationDays <= 0 ||
         joinedAt == null) {
       return null;
     }
@@ -84,31 +89,39 @@ class ChallengeProgress {
 
 class ChallengeRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.joined_challenge.v1';
+  static const _category = 'active_challenge';
+  static const _currentSchemaVersion = 1;
 
   final HydrionLocalStore _store;
+  final List<StorageRecoveryEvent> _recoveryEvents;
   JoinedChallenge? _activeChallenge;
 
-  ChallengeRepository._(this._store, this._activeChallenge);
+  ChallengeRepository._(
+    this._store,
+    this._activeChallenge, [
+    List<StorageRecoveryEvent> recoveryEvents = const <StorageRecoveryEvent>[],
+  ]) : _recoveryEvents = List<StorageRecoveryEvent>.unmodifiable(
+          recoveryEvents,
+        );
 
   ChallengeRepository.memory() : this._(MemoryHydrionStore(), null);
 
   static Future<ChallengeRepository> load(HydrionLocalStore store) async {
     final raw = await store.readString(storageKey);
-    if (raw == null || raw.trim().isEmpty) {
-      return ChallengeRepository._(store, null);
+    final result = _decodeChallenge(raw);
+    if (result.shouldClearStorage) {
+      await store.remove(storageKey);
     }
-
-    try {
-      return ChallengeRepository._(
-        store,
-        JoinedChallenge.fromJson(jsonDecode(raw)),
-      );
-    } on FormatException {
-      return ChallengeRepository._(store, null);
-    }
+    return ChallengeRepository._(
+      store,
+      result.challenge,
+      result.recoveryEvents,
+    );
   }
 
   JoinedChallenge? get activeChallenge => _activeChallenge;
+
+  List<StorageRecoveryEvent> get recoveryEvents => _recoveryEvents;
 
   bool isJoined(String challengeId) {
     return _activeChallenge?.id == challengeId;
@@ -177,4 +190,77 @@ class ChallengeRepository extends ChangeNotifier {
       targetMl: challenge.targetMl,
     );
   }
+
+  static _ChallengeDecodeResult _decodeChallenge(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return const _ChallengeDecodeResult();
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      final schemaVersion = storageSchemaVersion(decoded);
+      if (schemaVersion != null && schemaVersion > _currentSchemaVersion) {
+        return _ChallengeDecodeResult(
+          recoveryEvents: <StorageRecoveryEvent>[
+            StorageRecoveryEvent(
+              category: _category,
+              code: StorageRecoveryCodes.unsupportedSchemaVersion,
+              action: StorageRecoveryActions.preserveRawFallback,
+              schemaVersion: schemaVersion,
+            ),
+          ],
+        );
+      }
+      if (decoded is! Map) {
+        return const _ChallengeDecodeResult(
+          shouldClearStorage: true,
+          recoveryEvents: <StorageRecoveryEvent>[
+            StorageRecoveryEvent(
+              category: _category,
+              code: StorageRecoveryCodes.wrongTopLevelType,
+              action: StorageRecoveryActions.clearCategory,
+            ),
+          ],
+        );
+      }
+      final challenge = JoinedChallenge.fromJson(decoded);
+      if (challenge == null) {
+        return const _ChallengeDecodeResult(
+          shouldClearStorage: true,
+          recoveryEvents: <StorageRecoveryEvent>[
+            StorageRecoveryEvent(
+              category: _category,
+              code: StorageRecoveryCodes.invalidValue,
+              action: StorageRecoveryActions.clearCategory,
+            ),
+          ],
+        );
+      }
+      return _ChallengeDecodeResult(challenge: challenge);
+    } on FormatException {
+      return const _ChallengeDecodeResult(
+        shouldClearStorage: true,
+        recoveryEvents: <StorageRecoveryEvent>[
+          StorageRecoveryEvent(
+            category: _category,
+            code: StorageRecoveryCodes.malformedJson,
+            action: StorageRecoveryActions.clearCategory,
+            errorType: 'FormatException',
+          ),
+        ],
+      );
+    }
+  }
+}
+
+class _ChallengeDecodeResult {
+  final JoinedChallenge? challenge;
+  final bool shouldClearStorage;
+  final List<StorageRecoveryEvent> recoveryEvents;
+
+  const _ChallengeDecodeResult({
+    this.challenge,
+    this.shouldClearStorage = false,
+    this.recoveryEvents = const <StorageRecoveryEvent>[],
+  });
 }
