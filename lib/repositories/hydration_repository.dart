@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../storage/local_store.dart';
+import 'storage_recovery.dart';
 
 class HydrationLog {
   final String id;
@@ -34,7 +35,10 @@ class HydrationLog {
     final timestamp = DateTime.tryParse((value['timestamp'] ?? '').toString());
     final source = (value['source'] ?? 'local').toString();
 
-    if (volume is! num || timestamp == null || volume <= 0) {
+    if (volume is! num ||
+        !volume.isFinite ||
+        timestamp == null ||
+        volume <= 0) {
       return null;
     }
 
@@ -51,22 +55,34 @@ class HydrationLog {
 
 class HydrationRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.hydration_logs.v1';
+  static const _category = 'hydration_logs';
+  static const _currentSchemaVersion = 1;
 
   final HydrionLocalStore _store;
   final List<HydrationLog> _logs;
+  final List<StorageRecoveryEvent> _recoveryEvents;
 
-  HydrationRepository._(this._store, List<HydrationLog> logs)
-      : _logs = logs..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+  HydrationRepository._(
+    this._store,
+    List<HydrationLog> logs, [
+    List<StorageRecoveryEvent> recoveryEvents = const <StorageRecoveryEvent>[],
+  ])  : _recoveryEvents = List<StorageRecoveryEvent>.unmodifiable(
+          recoveryEvents,
+        ),
+        _logs = List<HydrationLog>.of(logs)
+          ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
   HydrationRepository.memory() : this._(MemoryHydrionStore(), <HydrationLog>[]);
 
   static Future<HydrationRepository> load(HydrionLocalStore store) async {
     final raw = await store.readString(storageKey);
-    final logs = _decodeLogs(raw);
-    return HydrationRepository._(store, logs);
+    final result = _decodeLogs(raw);
+    return HydrationRepository._(store, result.logs, result.recoveryEvents);
   }
 
   List<HydrationLog> get logs => List<HydrationLog>.unmodifiable(_logs);
+
+  List<StorageRecoveryEvent> get recoveryEvents => _recoveryEvents;
 
   Future<HydrationLog?> addLog({
     required int volumeMl,
@@ -165,22 +181,84 @@ class HydrationRepository extends ChangeNotifier {
     await _store.writeString(storageKey, encoded);
   }
 
-  static List<HydrationLog> _decodeLogs(String? raw) {
+  static _HydrationDecodeResult _decodeLogs(String? raw) {
     if (raw == null || raw.trim().isEmpty) {
-      return <HydrationLog>[];
+      return const _HydrationDecodeResult(<HydrationLog>[]);
     }
 
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! List) {
-        return <HydrationLog>[];
+      final schemaVersion = storageSchemaVersion(decoded);
+      if (schemaVersion != null && schemaVersion > _currentSchemaVersion) {
+        return _HydrationDecodeResult(
+          const <HydrationLog>[],
+          recoveryEvents: <StorageRecoveryEvent>[
+            StorageRecoveryEvent(
+              category: _category,
+              code: StorageRecoveryCodes.unsupportedSchemaVersion,
+              action: StorageRecoveryActions.preserveRawFallback,
+              schemaVersion: schemaVersion,
+            ),
+          ],
+        );
       }
-      return decoded
-          .map(HydrationLog.fromJson)
-          .whereType<HydrationLog>()
-          .toList();
+      if (decoded is! List) {
+        return const _HydrationDecodeResult(
+          <HydrationLog>[],
+          recoveryEvents: <StorageRecoveryEvent>[
+            StorageRecoveryEvent(
+              category: _category,
+              code: StorageRecoveryCodes.wrongTopLevelType,
+              action: StorageRecoveryActions.fallbackEmpty,
+            ),
+          ],
+        );
+      }
+      final logs = <HydrationLog>[];
+      var skippedRecords = 0;
+      for (final record in decoded) {
+        final log = HydrationLog.fromJson(record);
+        if (log == null) {
+          skippedRecords += 1;
+          continue;
+        }
+        logs.add(log);
+      }
+      return _HydrationDecodeResult(
+        logs,
+        recoveryEvents: skippedRecords == 0
+            ? const <StorageRecoveryEvent>[]
+            : <StorageRecoveryEvent>[
+                StorageRecoveryEvent(
+                  category: _category,
+                  code: StorageRecoveryCodes.invalidRecord,
+                  action: StorageRecoveryActions.skipInvalidRecords,
+                  skippedRecords: skippedRecords,
+                ),
+              ],
+      );
     } on FormatException {
-      return <HydrationLog>[];
+      return const _HydrationDecodeResult(
+        <HydrationLog>[],
+        recoveryEvents: <StorageRecoveryEvent>[
+          StorageRecoveryEvent(
+            category: _category,
+            code: StorageRecoveryCodes.malformedJson,
+            action: StorageRecoveryActions.fallbackEmpty,
+            errorType: 'FormatException',
+          ),
+        ],
+      );
     }
   }
+}
+
+class _HydrationDecodeResult {
+  final List<HydrationLog> logs;
+  final List<StorageRecoveryEvent> recoveryEvents;
+
+  const _HydrationDecodeResult(
+    this.logs, {
+    this.recoveryEvents = const <StorageRecoveryEvent>[],
+  });
 }
