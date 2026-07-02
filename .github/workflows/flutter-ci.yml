@@ -15,25 +15,30 @@ permissions:
   contents: read
 
 concurrency:
-  group: hydrion-flutter-ci-${{ github.ref }}
+  group: hydrion-flutter-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: "3.35.6"
+  FLUTTER_VERSION: "3.44.4"
   JAVA_VERSION: "17"
+  CI_ARTIFACTS_DIRECTORY: "ci-artifacts"
 
 jobs:
   quality-gate:
-    name: Analyze and Test
+    name: Analyze, Test, and Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     defaults:
       run:
+        shell: bash
         working-directory: .
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -48,52 +53,389 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Show tool versions
+      - name: Create CI artifact directory
+        run: mkdir -p "${CI_ARTIFACTS_DIRECTORY}"
+
+      - name: Record environment information
         run: |
-          flutter --version
-          dart --version
-          java -version
+          {
+            echo "Hydrion CI environment"
+            echo "======================"
+            echo
+            echo "Repository: ${{ github.repository }}"
+            echo "Event: ${{ github.event_name }}"
+            echo "Ref: ${{ github.ref }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Runner OS: ${{ runner.os }}"
+            echo "Runner architecture: ${{ runner.arch }}"
+            echo
+            echo "Flutter:"
+            flutter --version
+            echo
+            echo "Dart:"
+            dart --version
+            echo
+            echo "Java:"
+            java -version
+            echo
+            echo "Git:"
+            git --version
+          } 2>&1 | tee "${CI_ARTIFACTS_DIRECTORY}/environment.txt"
 
       - name: Validate Flutter project root
         run: |
-          test -f pubspec.yaml
-          test -d lib
+          set -euo pipefail
+
+          test -f pubspec.yaml || {
+            echo "pubspec.yaml was not found at the repository root."
+            exit 1
+          }
+
+          test -d lib || {
+            echo "The lib directory was not found at the repository root."
+            exit 1
+          }
+
+          test -d test || {
+            echo "The test directory was not found at the repository root."
+            exit 1
+          }
 
       - name: Get dependencies
-        run: flutter pub get
+        run: |
+          set -o pipefail
+          flutter pub get 2>&1 |
+            tee "${CI_ARTIFACTS_DIRECTORY}/flutter-pub-get.log"
 
-      - name: Secret hygiene scan
-        run: dart run tool/secret_scan.dart
+      - name: Record dependency state
+        run: |
+          set -o pipefail
+          flutter pub deps 2>&1 |
+            tee "${CI_ARTIFACTS_DIRECTORY}/flutter-pub-deps.log"
 
-      - name: Verify generated package state
-        run: flutter pub deps
+      - name: Check outdated dependencies
+        id: outdated
+        continue-on-error: true
+        run: |
+          set +e
+          set -o pipefail
 
-      - name: Analyze
-        run: flutter analyze
+          flutter pub outdated 2>&1 |
+            tee "${CI_ARTIFACTS_DIRECTORY}/flutter-pub-outdated.log"
 
-      - name: Run tests
-        run: flutter test --coverage
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=${exit_code}" >> "${GITHUB_OUTPUT}"
+          exit "${exit_code}"
+
+      - name: Run secret hygiene scan
+        id: secret_scan
+        continue-on-error: true
+        run: |
+          set +e
+          set -o pipefail
+
+          timeout 10m dart run tool/secret_scan.dart 2>&1 |
+            tee "${CI_ARTIFACTS_DIRECTORY}/secret-scan.log"
+
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=${exit_code}" >> "${GITHUB_OUTPUT}"
+          exit "${exit_code}"
+
+      - name: Run Flutter analyzer
+        id: analyze
+        continue-on-error: true
+        run: |
+          set +e
+          set -o pipefail
+
+          timeout 15m flutter analyze 2>&1 |
+            tee "${CI_ARTIFACTS_DIRECTORY}/flutter-analyze.log"
+
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=${exit_code}" >> "${GITHUB_OUTPUT}"
+          exit "${exit_code}"
+
+      - name: Run complete Flutter test suite
+        id: tests
+        continue-on-error: true
+        run: |
+          set +e
+          set -o pipefail
+
+          timeout 30m flutter test \
+            --coverage \
+            --reporter expanded \
+            --timeout 2m \
+            2>&1 | tee "${CI_ARTIFACTS_DIRECTORY}/flutter-test.log"
+
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=${exit_code}" >> "${GITHUB_OUTPUT}"
+          exit "${exit_code}"
+
+      - name: Extract test failure evidence
+        if: always()
+        run: |
+          set +e
+
+          test_log="${CI_ARTIFACTS_DIRECTORY}/flutter-test.log"
+          evidence_file="${CI_ARTIFACTS_DIRECTORY}/test-failure-evidence.txt"
+
+          if [[ ! -f "${test_log}" ]]; then
+            echo "Flutter test output was not produced." > "${evidence_file}"
+            exit 0
+          fi
+
+          {
+            echo "Hydrion test failure evidence"
+            echo "============================="
+            echo
+            echo "Detected failure, timeout, and exception lines:"
+            echo
+
+            grep -nE \
+              '(\[E\]|FAILED|FAILURE|TimeoutException|timed out|Exception|Error:|Expected:|Actual:|Which:|Some tests failed|Test failed)' \
+              "${test_log}" || true
+
+            echo
+            echo "Final 200 lines of the complete test run:"
+            echo
+
+            tail -n 200 "${test_log}"
+          } > "${evidence_file}"
+
+      - name: Generate bug report
+        if: always()
+        run: |
+          secret_exit="${{ steps.secret_scan.outputs.exit_code }}"
+          analyze_exit="${{ steps.analyze.outputs.exit_code }}"
+          test_exit="${{ steps.tests.outputs.exit_code }}"
+          outdated_exit="${{ steps.outdated.outputs.exit_code }}"
+
+          secret_exit="${secret_exit:-not-run}"
+          analyze_exit="${analyze_exit:-not-run}"
+          test_exit="${test_exit:-not-run}"
+          outdated_exit="${outdated_exit:-not-run}"
+
+          report="${CI_ARTIFACTS_DIRECTORY}/BUG_REPORT.md"
+          test_log="${CI_ARTIFACTS_DIRECTORY}/flutter-test.log"
+          analyze_log="${CI_ARTIFACTS_DIRECTORY}/flutter-analyze.log"
+          secret_log="${CI_ARTIFACTS_DIRECTORY}/secret-scan.log"
+
+          {
+            echo "# Hydrion CI Bug Report"
+            echo
+            echo "## Run information"
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Repository | \`${{ github.repository }}\` |"
+            echo "| Workflow | \`${{ github.workflow }}\` |"
+            echo "| Event | \`${{ github.event_name }}\` |"
+            echo "| Ref | \`${{ github.ref }}\` |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Run number | \`${{ github.run_number }}\` |"
+            echo "| Run attempt | \`${{ github.run_attempt }}\` |"
+            echo "| Runner | \`${{ runner.os }} / ${{ runner.arch }}\` |"
+            echo "| Flutter | \`${{ env.FLUTTER_VERSION }}\` |"
+            echo "| Java | \`${{ env.JAVA_VERSION }}\` |"
+            echo "| Workflow run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |"
+            echo
+            echo "## Quality-gate results"
+            echo
+            echo "| Check | Exit code | Result |"
+            echo "|---|---:|---|"
+
+            if [[ "${secret_exit}" == "0" ]]; then
+              echo "| Secret hygiene scan | 0 | Passed |"
+            else
+              echo "| Secret hygiene scan | ${secret_exit} | Failed or timed out |"
+            fi
+
+            if [[ "${analyze_exit}" == "0" ]]; then
+              echo "| Flutter analyze | 0 | Passed |"
+            else
+              echo "| Flutter analyze | ${analyze_exit} | Failed or timed out |"
+            fi
+
+            if [[ "${test_exit}" == "0" ]]; then
+              echo "| Flutter tests | 0 | Passed |"
+            else
+              echo "| Flutter tests | ${test_exit} | Failed or timed out |"
+            fi
+
+            if [[ "${outdated_exit}" == "0" ]]; then
+              echo "| Dependency audit | 0 | Completed |"
+            else
+              echo "| Dependency audit | ${outdated_exit} | Warning or command failure |"
+            fi
+
+            echo
+            echo "## Initial classification"
+            echo
+
+            if [[ "${test_exit}" != "0" && "${test_exit}" != "not-run" ]]; then
+              if [[ -f "${test_log}" ]] && grep -qiE 'timed out|TimeoutException' "${test_log}"; then
+                echo "- **Test timeout or hanging test detected.**"
+                echo "- This does not automatically prove an application runtime defect."
+                echo "- The failing test must be reproduced independently before being classified as a product bug."
+              else
+                echo "- **One or more test failures were detected.**"
+                echo "- Review assertions and stack traces before creating individual product defects."
+              fi
+            else
+              echo "- No Flutter test-suite failure was detected."
+            fi
+
+            if [[ "${analyze_exit}" != "0" && "${analyze_exit}" != "not-run" ]]; then
+              echo "- Static-analysis violations were detected."
+            fi
+
+            if [[ "${secret_exit}" != "0" && "${secret_exit}" != "not-run" ]]; then
+              echo "- Secret-hygiene validation failed or timed out."
+            fi
+
+            echo
+            echo "## Test failure summary"
+            echo
+            echo '```text'
+
+            if [[ -f "${test_log}" ]]; then
+              grep -nE \
+                '(\[E\]|FAILED|FAILURE|TimeoutException|timed out|Exception|Error:|Expected:|Actual:|Which:|Some tests failed|Test failed)' \
+                "${test_log}" | tail -n 200 || echo "No standard failure markers were detected."
+            else
+              echo "Flutter test output was not produced."
+            fi
+
+            echo '```'
+            echo
+            echo "## Analyzer summary"
+            echo
+            echo '```text'
+
+            if [[ -f "${analyze_log}" ]]; then
+              tail -n 200 "${analyze_log}"
+            else
+              echo "Flutter analyzer output was not produced."
+            fi
+
+            echo '```'
+            echo
+            echo "## Secret-scan summary"
+            echo
+            echo '```text'
+
+            if [[ -f "${secret_log}" ]]; then
+              tail -n 200 "${secret_log}"
+            else
+              echo "Secret-scan output was not produced."
+            fi
+
+            echo '```'
+            echo
+            echo "## Triage requirements"
+            echo
+            echo "Before creating separate GitHub issues:"
+            echo
+            echo "1. Reproduce each failure using the exact commit recorded above."
+            echo "2. Run each failing test independently."
+            echo "3. Separate application defects from test defects, timeouts, tooling failures, and environment failures."
+            echo "4. Create one issue per independently actionable defect."
+            echo "5. Attach this workflow run and the relevant raw log."
+            echo "6. Avoid creating duplicate issues for failures with the same root cause."
+            echo
+            echo "## Attached evidence"
+            echo
+            echo "- \`environment.txt\`"
+            echo "- \`flutter-pub-get.log\`"
+            echo "- \`flutter-pub-deps.log\`"
+            echo "- \`flutter-pub-outdated.log\`"
+            echo "- \`secret-scan.log\`"
+            echo "- \`flutter-analyze.log\`"
+            echo "- \`flutter-test.log\`"
+            echo "- \`test-failure-evidence.txt\`"
+            echo "- \`coverage/lcov.info\`, when coverage was produced"
+          } > "${report}"
+
+      - name: Publish CI job summary
+        if: always()
+        run: |
+          if [[ -f "${CI_ARTIFACTS_DIRECTORY}/BUG_REPORT.md" ]]; then
+            cat "${CI_ARTIFACTS_DIRECTORY}/BUG_REPORT.md" >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "# Hydrion CI Audit" >> "${GITHUB_STEP_SUMMARY}"
+            echo >> "${GITHUB_STEP_SUMMARY}"
+            echo "The CI bug report could not be generated." >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload CI audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hydrion-ci-audit-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            ci-artifacts/
+            coverage/lcov.info
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Upload coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hydrion-coverage
+          name: hydrion-coverage-${{ github.run_number }}-${{ github.run_attempt }}
           path: coverage/lcov.info
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 30
+
+      - name: Enforce quality gate
+        if: always()
+        run: |
+          secret_exit="${{ steps.secret_scan.outputs.exit_code }}"
+          analyze_exit="${{ steps.analyze.outputs.exit_code }}"
+          test_exit="${{ steps.tests.outputs.exit_code }}"
+
+          secret_exit="${secret_exit:-1}"
+          analyze_exit="${analyze_exit:-1}"
+          test_exit="${test_exit:-1}"
+
+          failed=0
+
+          if [[ "${secret_exit}" != "0" ]]; then
+            echo "::error::Secret hygiene scan failed with exit code ${secret_exit}."
+            failed=1
+          fi
+
+          if [[ "${analyze_exit}" != "0" ]]; then
+            echo "::error::Flutter analyze failed with exit code ${analyze_exit}."
+            failed=1
+          fi
+
+          if [[ "${test_exit}" != "0" ]]; then
+            echo "::error::Flutter tests failed with exit code ${test_exit}."
+            failed=1
+          fi
+
+          if [[ "${failed}" -ne 0 ]]; then
+            echo "Hydrion quality gate failed. Download the CI audit artifact and review BUG_REPORT.md."
+            exit 1
+          fi
+
+          echo "Hydrion quality gate passed."
 
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: quality-gate
 
     defaults:
       run:
+        shell: bash
         working-directory: .
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java
@@ -115,10 +457,10 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
-      - name: Upload Android artifact
+      - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: hydrion-android-apk
+          name: hydrion-android-apk-${{ github.run_number }}-${{ github.run_attempt }}
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
@@ -126,14 +468,16 @@ jobs:
   build-web:
     name: Build Web
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: quality-gate
 
     defaults:
       run:
+        shell: bash
         working-directory: .
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Flutter
@@ -149,10 +493,10 @@ jobs:
       - name: Build Flutter web
         run: flutter build web --release
 
-      - name: Upload Web artifact
+      - name: Upload web build
         uses: actions/upload-artifact@v4
         with:
-          name: hydrion-web-build
+          name: hydrion-web-build-${{ github.run_number }}-${{ github.run_attempt }}
           path: build/web
           if-no-files-found: error
           retention-days: 14
