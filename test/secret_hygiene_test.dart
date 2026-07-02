@@ -1,111 +1,151 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrion/services/secret_redaction.dart';
+
+import '../tool/secret_scan.dart' as secret_scan;
 
 void main() {
-  final secretPatterns = <RegExp>[
-    RegExp(r'AIza[0-9A-Za-z_-]{35}'),
-    RegExp(r'sk-[A-Za-z0-9]{32,}'),
-    RegExp(r'sk-ant-[A-Za-z0-9_-]{32,}'),
-    RegExp(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),
-  ];
-
-  test('.gitignore excludes local secret files', () {
+  test('.gitignore excludes local secret files without hiding templates', () {
     final gitignore = File('.gitignore').readAsStringSync();
 
     expect(gitignore, contains('.env'));
     expect(gitignore, contains('.env.*'));
+    expect(gitignore, contains('!.env.example'));
     expect(gitignore, contains('*.secrets.json'));
+    expect(gitignore, contains('*.credentials.json'));
+    expect(gitignore, contains('*.pem'));
+    expect(gitignore, contains('android/key.properties'));
     expect(gitignore, contains('secrets/'));
     expect(gitignore, contains('gitleaks-report.*'));
   });
 
-  test('repo contains no committed API keys or private key blocks', () {
-    final findings = <String>[];
+  test(
+      'repo contains no committed API keys, credentials, or private key blocks',
+      () {
+    final findings = secret_scan.scanRepository();
 
-    for (final entity in Directory.current.listSync(recursive: true)) {
-      if (entity is! File) {
-        continue;
-      }
-      final path = entity.path.replaceAll('\\', '/');
-      if (_shouldSkip(path)) {
-        continue;
-      }
-      final content = _readText(entity);
-      if (content == null) {
-        continue;
-      }
-      for (final pattern in secretPatterns) {
-        for (final match in pattern.allMatches(content)) {
-          final value = match.group(0) ?? '';
-          if (_isPlaceholder(value)) {
-            continue;
-          }
-          findings.add(path);
-        }
-      }
-    }
+    expect(secret_scan.formatFindings(findings), isEmpty);
+  });
+
+  test('realistic fake Google or Gemini API key is detected', () {
+    final fakeKey = _fakeGoogleKey();
+    final findings = secret_scan.scanText(
+      'provider_api_key: $fakeKey',
+      path: 'fixture/provider.yaml',
+    );
+
+    expect(findings.map((finding) => finding.category),
+        contains('Google API key'));
+  });
+
+  test('realistic fake OpenAI API key is detected', () {
+    final fakeKey = _fakeOpenAiKey();
+    final findings = secret_scan.scanText(
+      'OPENAI_API_KEY=$fakeKey',
+      path: 'fixture/provider.env',
+    );
+
+    expect(findings.map((finding) => finding.category),
+        contains('OpenAI API key'));
+  });
+
+  test('private key block is detected', () {
+    final findings = secret_scan.scanText(
+      [
+        'certificate:',
+        _privateKeyBegin(),
+        'not-a-real-private-key-body',
+        _privateKeyEnd(),
+      ].join('\n'),
+      path: 'fixture/key.pem',
+    );
+
+    expect(findings.map((finding) => finding.category),
+        contains('Private key block'));
+  });
+
+  test('credential URL is detected without printing credential material', () {
+    final credentialUrl = _fakeCredentialUrl();
+    final findings = secret_scan.scanText(
+      'provider_url: $credentialUrl',
+      path: 'fixture/provider.env',
+    );
+    final output = secret_scan.formatFindings(findings).join('\n');
+
+    expect(findings.map((finding) => finding.category),
+        contains('Credential URL'));
+    expect(output, contains('fixture/provider.env:1: Credential URL'));
+    expect(output, isNot(contains('hydrion-user')));
+    expect(output, isNot(contains('hydrion-password')));
+    expect(output, isNot(contains(credentialUrl)));
+  });
+
+  test(
+      'credential URL sanitizer removes credentials without re-triggering scan',
+      () {
+    final credentialUrl = _fakeCredentialUrl();
+
+    final sanitized = SecretRedactor.sanitize(credentialUrl);
+    final findings = secret_scan.scanText(
+      sanitized,
+      path: 'fixture/sanitized.txt',
+    );
+
+    expect(sanitized, 'https://[redacted-credentials]@example.invalid/api');
+    expect(sanitized, isNot(contains('hydrion-user')));
+    expect(sanitized, isNot(contains('hydrion-password')));
+    expect(
+      findings.where((finding) => finding.category == 'Credential URL'),
+      isEmpty,
+    );
+  });
+
+  test('documented placeholder values are allowed', () {
+    final findings = secret_scan.scanText(
+      [
+        'api_key: YOUR_WEB_API_KEY',
+        'client_secret: REPLACE_ME',
+        'token: TEST_PLACEHOLDER_NOT_A_REAL_KEY',
+      ].join('\n'),
+      path: 'fixture/example.env',
+    );
 
     expect(findings, isEmpty);
   });
 
-  test('documented placeholder keys are not treated as real secrets', () {
-    final firebaseConfig =
-        File('config/firebase_config.json').readAsStringSync();
-
-    expect(firebaseConfig, contains('YOUR_WEB_API_KEY'));
-    expect(
-      secretPatterns.any((pattern) => pattern.hasMatch('YOUR_WEB_API_KEY')),
-      isFalse,
+  test('realistic-looking credential labeled as placeholder is still rejected',
+      () {
+    final fakeKey = _fakeGoogleKey();
+    final findings = secret_scan.scanText(
+      'placeholder_google_key: PLACEHOLDER_$fakeKey',
+      path: 'fixture/example.md',
     );
+
+    expect(findings.map((finding) => finding.category),
+        contains('Google API key'));
+  });
+
+  test('scanner output omits the complete detected value', () {
+    final fakeKey = _fakeGoogleKey();
+    final findings = secret_scan.scanText(
+      'provider_api_key: $fakeKey',
+      path: 'fixture/provider.yaml',
+    );
+    final output = secret_scan.formatFindings(findings).join('\n');
+
+    expect(output, contains('fixture/provider.yaml:1: Google API key'));
+    expect(output, isNot(contains(fakeKey)));
   });
 }
 
-bool _shouldSkip(String path) {
-  const ignoredDirectories = {
-    '.git',
-    '.dart_tool',
-    '.idea',
-    '.pub-cache',
-    'build',
-    'coverage',
-  };
-  const ignoredExtensions = {
-    '.class',
-    '.ico',
-    '.iml',
-    '.jar',
-    '.jpg',
-    '.jpeg',
-    '.lock',
-    '.png',
-    '.pyc',
-    '.so',
-    '.swp',
-    '.ttf',
-  };
+String _fakeGoogleKey() => 'AIza${'A' * 35}';
 
-  final segments = path.split('/');
-  if (segments.any(ignoredDirectories.contains)) {
-    return true;
-  }
-  final extension = path.contains('.') ? '.${path.split('.').last}' : '';
-  return ignoredExtensions.contains(extension.toLowerCase());
-}
+String _fakeOpenAiKey() => 'sk-${'A' * 36}';
 
-String? _readText(File file) {
-  try {
-    return file.readAsStringSync();
-  } on FileSystemException {
-    return null;
-  } on FormatException {
-    return null;
-  }
-}
+String _fakeCredentialUrl() =>
+    'https://' 'hydrion-user' ':' 'hydrion-password' '@example.invalid/api';
 
-bool _isPlaceholder(String value) {
-  final upper = value.toUpperCase();
-  return upper.contains('YOUR_') ||
-      upper.contains('PLACEHOLDER') ||
-      upper.contains('EXAMPLE');
-}
+String _privateKeyBegin() => '-----BEGIN ' 'PRIVATE KEY-----';
+
+String _privateKeyEnd() => '-----END ' 'PRIVATE KEY-----';

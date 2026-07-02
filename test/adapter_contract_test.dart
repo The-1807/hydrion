@@ -75,7 +75,7 @@ void main() {
   });
 
   test('local capabilities keep standalone mode explicit', () {
-    const reporter = LocalAppCapabilityReporter();
+    final reporter = LocalAppCapabilityReporter();
     final capabilities = reporter.capabilities;
 
     expect(capabilities.localPersistence, isTrue);
@@ -326,4 +326,7 @@ class _FakeCapabilityReporter implements AppCapabilityReporter {
 
   @override
   AppCapabilities get capabilities => const AppCapabilities.standalone();
+
+  @override
+  void updateCapabilities(AppCapabilities capabilities) {}
 }

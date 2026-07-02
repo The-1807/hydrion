@@ -296,6 +296,10 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
     required ProviderHealthSnapshot health,
     required AppLocalizations l10n,
   }) {
+    if (health.diagnostic.responseEnvelopePhase ==
+        ProviderDiagnosticCodes.providerConsentRequired) {
+      return l10n.coachProviderConsentRequired;
+    }
     if (health.fallbackReason != null) {
       return l10n.coachProviderFallbackActive;
     }

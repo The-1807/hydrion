@@ -1466,6 +1466,20 @@ Privacy is a core product promise and a differentiator. It must be protected acr
 - [ ] Privacy copy remains visible wherever provider mode or capability status is surfaced.
 - [ ] Future external integrations cannot be marked active without privacy disclosure and consent behavior.
 
+## Implementation Evidence
+
+- Local storage remains repository-backed through `HydrionLocalStore`, `HydrationRepository`, `ReminderRepository`, `ChallengeRepository`, and `UserSettingsRepository`.
+- `UserSettings.nonLocalProviderConsentGranted` defaults to `false` and persists locally under `hydrion.user_settings.v1`.
+- `ExternalIntegrationActivation` separates provider configuration from activation, requiring user enablement, visible disclosure, consent, and local fallback before transmission can be reported active.
+- `ProviderBackedHydrationCoach` gates Gemini calls behind `nonLocalProviderEnabled`, so configured providers cannot receive hydration context until consent is enabled.
+- Settings shows provider disclosure, consent status, and an explicit Gemini processing switch; Coach status shows when provider consent is required.
+- Capability reporting keeps `cloudAi` disabled until provider consent is enabled, while still reporting that Gemini is configured.
+
+## Verification
+
+- `test/gemini_provider_test.dart` covers configured Gemini remaining inactive without consent and verifies the provider is not called and hydration context is not requested while consent is disabled.
+- `test/secret_hygiene_test.dart` covers credential URL scanning, redacted credential URL safety, full repository secret scanning, and non-disclosure of detected credential values.
+
 ### HYD-US-042: Protect, Export, and Delete Local Personal Data
 
 **Story ID:** HYD-US-042  
@@ -1543,6 +1557,19 @@ Local storage corruption can happen through old versions, manual tampering, or p
 ## Edge Cases
 
 Recovery should not silently rewrite unknown future schema data unless a migration decision exists.
+
+## Recovery Policy
+
+- Hydration logs: malformed top-level storage falls back to an empty in-memory list; mixed lists retain valid records and skip invalid records without rewriting storage.
+- Reminders: malformed top-level storage falls back to an empty in-memory list; mixed lists retain valid reminder definitions and skip invalid records without scheduling platform notifications.
+- Active challenge: malformed or invalid current-schema active challenge state is cleared only from the challenge key to avoid repeated recovery loops.
+- User settings: malformed or invalid settings fall back to Hydrion's supported default locale while preserving valid unrelated settings when possible.
+- Future schema markers: unsupported future schema payloads are reported through safe local recovery diagnostics and left untouched for a future migration decision.
+
+## Validation Notes
+
+- Repository-level recovery coverage is in `test/storage_recovery_test.dart`.
+- Existing persistence and localization regressions remain covered by `test/persistence_test.dart` and `test/localization_test.dart`.
 
 ### HYD-US-044: Provide Reliable Error Handling and Fallback UX
 

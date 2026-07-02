@@ -20,7 +20,7 @@ void main() {
       hydrationRepository: hydrationRepository,
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
-      capabilityReporter: const LocalAppCapabilityReporter(),
+      capabilityReporter: LocalAppCapabilityReporter(),
     );
   });
 

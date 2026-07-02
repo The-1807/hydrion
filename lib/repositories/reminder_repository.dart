@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../storage/local_store.dart';
+import 'storage_recovery.dart';
 
 class ScheduledReminder {
   final String id;
@@ -35,7 +36,10 @@ class ScheduledReminder {
     final message = (value['message'] ?? '').toString().trim();
     final priority = value['priority'];
 
-    if (triggerTime == null || message.isEmpty || priority is! num) {
+    if (triggerTime == null ||
+        message.isEmpty ||
+        priority is! num ||
+        !priority.isFinite) {
       return null;
     }
 
@@ -50,12 +54,21 @@ class ScheduledReminder {
 
 class ReminderRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.reminders.v1';
+  static const _category = 'reminders';
+  static const _currentSchemaVersion = 1;
 
   final HydrionLocalStore _store;
   final List<ScheduledReminder> _reminders;
+  final List<StorageRecoveryEvent> _recoveryEvents;
 
-  ReminderRepository._(this._store, List<ScheduledReminder> reminders)
-      : _reminders = reminders
+  ReminderRepository._(
+    this._store,
+    List<ScheduledReminder> reminders, [
+    List<StorageRecoveryEvent> recoveryEvents = const <StorageRecoveryEvent>[],
+  ])  : _recoveryEvents = List<StorageRecoveryEvent>.unmodifiable(
+          recoveryEvents,
+        ),
+        _reminders = List<ScheduledReminder>.of(reminders)
           ..sort((a, b) => a.triggerTime.compareTo(b.triggerTime));
 
   ReminderRepository.memory()
@@ -63,12 +76,18 @@ class ReminderRepository extends ChangeNotifier {
 
   static Future<ReminderRepository> load(HydrionLocalStore store) async {
     final raw = await store.readString(storageKey);
-    final reminders = _decodeReminders(raw);
-    return ReminderRepository._(store, reminders);
+    final result = _decodeReminders(raw);
+    return ReminderRepository._(
+      store,
+      result.reminders,
+      result.recoveryEvents,
+    );
   }
 
   List<ScheduledReminder> get reminders =>
       List<ScheduledReminder>.unmodifiable(_reminders);
+
+  List<StorageRecoveryEvent> get recoveryEvents => _recoveryEvents;
 
   Future<ScheduledReminder> save({
     required DateTime triggerTime,
@@ -112,22 +131,84 @@ class ReminderRepository extends ChangeNotifier {
     );
   }
 
-  static List<ScheduledReminder> _decodeReminders(String? raw) {
+  static _ReminderDecodeResult _decodeReminders(String? raw) {
     if (raw == null || raw.trim().isEmpty) {
-      return <ScheduledReminder>[];
+      return const _ReminderDecodeResult(<ScheduledReminder>[]);
     }
 
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! List) {
-        return <ScheduledReminder>[];
+      final schemaVersion = storageSchemaVersion(decoded);
+      if (schemaVersion != null && schemaVersion > _currentSchemaVersion) {
+        return _ReminderDecodeResult(
+          const <ScheduledReminder>[],
+          recoveryEvents: <StorageRecoveryEvent>[
+            StorageRecoveryEvent(
+              category: _category,
+              code: StorageRecoveryCodes.unsupportedSchemaVersion,
+              action: StorageRecoveryActions.preserveRawFallback,
+              schemaVersion: schemaVersion,
+            ),
+          ],
+        );
       }
-      return decoded
-          .map(ScheduledReminder.fromJson)
-          .whereType<ScheduledReminder>()
-          .toList();
+      if (decoded is! List) {
+        return const _ReminderDecodeResult(
+          <ScheduledReminder>[],
+          recoveryEvents: <StorageRecoveryEvent>[
+            StorageRecoveryEvent(
+              category: _category,
+              code: StorageRecoveryCodes.wrongTopLevelType,
+              action: StorageRecoveryActions.fallbackEmpty,
+            ),
+          ],
+        );
+      }
+      final reminders = <ScheduledReminder>[];
+      var skippedRecords = 0;
+      for (final record in decoded) {
+        final reminder = ScheduledReminder.fromJson(record);
+        if (reminder == null) {
+          skippedRecords += 1;
+          continue;
+        }
+        reminders.add(reminder);
+      }
+      return _ReminderDecodeResult(
+        reminders,
+        recoveryEvents: skippedRecords == 0
+            ? const <StorageRecoveryEvent>[]
+            : <StorageRecoveryEvent>[
+                StorageRecoveryEvent(
+                  category: _category,
+                  code: StorageRecoveryCodes.invalidRecord,
+                  action: StorageRecoveryActions.skipInvalidRecords,
+                  skippedRecords: skippedRecords,
+                ),
+              ],
+      );
     } on FormatException {
-      return <ScheduledReminder>[];
+      return const _ReminderDecodeResult(
+        <ScheduledReminder>[],
+        recoveryEvents: <StorageRecoveryEvent>[
+          StorageRecoveryEvent(
+            category: _category,
+            code: StorageRecoveryCodes.malformedJson,
+            action: StorageRecoveryActions.fallbackEmpty,
+            errorType: 'FormatException',
+          ),
+        ],
+      );
     }
   }
+}
+
+class _ReminderDecodeResult {
+  final List<ScheduledReminder> reminders;
+  final List<StorageRecoveryEvent> recoveryEvents;
+
+  const _ReminderDecodeResult(
+    this.reminders, {
+    this.recoveryEvents = const <StorageRecoveryEvent>[],
+  });
 }

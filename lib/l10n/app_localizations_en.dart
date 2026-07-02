@@ -209,6 +209,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Gemini can propose typed actions; Hydrion validates them before anything is trusted.';
 
   @override
+  String get geminiProviderConfiguredLocalDescription =>
+      'Gemini is configured but disabled until provider privacy consent is enabled.';
+
+  @override
+  String get geminiProviderActiveDescription =>
+      'Gemini may receive typed hydration context; Hydrion validates provider output before anything is trusted.';
+
+  @override
   String get language => 'Language';
 
   @override
@@ -328,6 +336,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Non-local AI requires explicit user consent before production use.';
 
   @override
+  String get providerConsentStatus => 'Provider consent';
+
+  @override
+  String get providerConsentToggleTitle => 'Allow Gemini provider processing';
+
+  @override
+  String get providerConsentEnabled =>
+      'Enabled. Typed hydration context may leave this device for Gemini requests.';
+
+  @override
+  String get providerConsentDisabled =>
+      'Disabled. Hydrion uses local_rules and does not send hydration context to Gemini.';
+
+  @override
   String get providerGeminiHealth => 'Gemini health';
 
   @override
@@ -352,10 +374,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get providerApiKeyLength => 'API key length';
 
   @override
-  String get providerApiKeyFirst4 => 'API key first 4';
-
-  @override
-  String get providerApiKeyLast4 => 'API key last 4';
+  String get providerApiKeyFingerprint => 'API key fingerprint';
 
   @override
   String get providerApiKeyContainsWhitespace => 'Key has whitespace';
@@ -410,6 +429,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get providerDiagnosticNoApiKey => 'No Gemini API key configured';
+
+  @override
+  String get providerDiagnosticConsentRequired =>
+      'Gemini is configured but provider privacy consent is disabled';
 
   @override
   String get providerDiagnosticHealthy =>
@@ -474,6 +497,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cloudAiConfiguredDescription =>
       'Gemini is configured as an optional provider; providers cannot mutate app state.';
+
+  @override
+  String get cloudAiConsentRequiredDescription =>
+      'Gemini is configured but not active until provider privacy consent is enabled.';
 
   @override
   String get voiceInput => 'Voice input';
@@ -737,6 +764,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachProviderFallbackActive =>
       'Using local_rules fallback. Provider output remains optional.';
+
+  @override
+  String get coachProviderConsentRequired =>
+      'Gemini is configured but disabled until provider privacy consent is enabled. Hydration context stays on this device.';
 
   @override
   String get coachLocalProviderReady =>
