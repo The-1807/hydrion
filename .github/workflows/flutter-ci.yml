@@ -160,212 +160,377 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          set -o pipefail
 
           timeout 30m flutter test \
             --coverage \
-            --reporter expanded \
+            --machine \
             --timeout 2m \
-            2>&1 | tee "${CI_ARTIFACTS_DIRECTORY}/flutter-test.log"
+            > "${CI_ARTIFACTS_DIRECTORY}/flutter-test-machine.jsonl" \
+            2> "${CI_ARTIFACTS_DIRECTORY}/flutter-test-stderr.log"
 
-          exit_code=${PIPESTATUS[0]}
+          exit_code=$?
           echo "exit_code=${exit_code}" >> "${GITHUB_OUTPUT}"
           exit "${exit_code}"
 
-      - name: Extract test failure evidence
+      - name: Generate complete Flutter test report
         if: always()
+        env:
+          TEST_EXIT_CODE: ${{ steps.tests.outputs.exit_code }}
         run: |
-          set +e
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
 
-          test_log="${CI_ARTIFACTS_DIRECTORY}/flutter-test.log"
-          evidence_file="${CI_ARTIFACTS_DIRECTORY}/test-failure-evidence.txt"
+          artifacts = Path(os.environ["CI_ARTIFACTS_DIRECTORY"])
+          machine_path = artifacts / "flutter-test-machine.jsonl"
+          stderr_path = artifacts / "flutter-test-stderr.log"
+          report_path = artifacts / "BUG_REPORT.md"
+          readable_path = artifacts / "flutter-test-readable.log"
 
-          if [[ ! -f "${test_log}" ]]; then
-            echo "Flutter test output was not produced." > "${evidence_file}"
-            exit 0
-          fi
+          tests = {}
+          failures = []
+          errors_by_test = {}
+          stacks_by_test = {}
+          global_errors = []
+          suite_errors = []
+          malformed_lines = []
+          all_output = []
 
-          {
-            echo "Hydrion test failure evidence"
-            echo "============================="
-            echo
-            echo "Detected failure, timeout, and exception lines:"
-            echo
+          if machine_path.exists():
+              with machine_path.open("r", encoding="utf-8", errors="replace") as stream:
+                  for line_number, raw_line in enumerate(stream, start=1):
+                      line = raw_line.strip()
+                      if not line:
+                          continue
 
-            grep -nE \
-              '(\[E\]|FAILED|FAILURE|TimeoutException|timed out|Exception|Error:|Expected:|Actual:|Which:|Some tests failed|Test failed)' \
-              "${test_log}" || true
+                      try:
+                          event = json.loads(line)
+                      except json.JSONDecodeError:
+                          malformed_lines.append(
+                              f"Line {line_number}: {line}"
+                          )
+                          continue
 
-            echo
-            echo "Final 200 lines of the complete test run:"
-            echo
+                      event_type = event.get("type")
 
-            tail -n 200 "${test_log}"
-          } > "${evidence_file}"
+                      if event_type == "suite":
+                          suite = event.get("suite", {})
+                          all_output.append(
+                              f"SUITE: {suite.get('path', suite.get('url', 'unknown'))}"
+                          )
 
-      - name: Generate bug report
+                      elif event_type == "testStart":
+                          test = event.get("test", {})
+                          test_id = test.get("id")
+                          if test_id is not None:
+                              tests[test_id] = {
+                                  "name": test.get("name", "Unknown test"),
+                                  "url": test.get("url", "Unknown file"),
+                                  "line": test.get("line"),
+                                  "column": test.get("column"),
+                              }
+                              all_output.append(
+                                  f"START: {tests[test_id]['name']} "
+                                  f"({tests[test_id]['url']})"
+                              )
+
+                      elif event_type == "print":
+                          message = event.get("message", "")
+                          test_id = event.get("testID")
+                          prefix = "PRINT"
+                          if test_id in tests:
+                              prefix = f"PRINT [{tests[test_id]['name']}]"
+                          all_output.append(f"{prefix}: {message}")
+
+                      elif event_type == "error":
+                          test_id = event.get("testID")
+                          error = event.get("error", "Unknown test error")
+                          stack = event.get("stackTrace", "")
+                          is_failure = event.get("isFailure", False)
+
+                          if test_id is None:
+                              global_errors.append(
+                                  {
+                                      "error": error,
+                                      "stack": stack,
+                                      "is_failure": is_failure,
+                                  }
+                              )
+                              all_output.append(f"GLOBAL ERROR: {error}")
+                              if stack:
+                                  all_output.append(stack)
+                          else:
+                              errors_by_test.setdefault(test_id, []).append(error)
+                              if stack:
+                                  stacks_by_test.setdefault(test_id, []).append(stack)
+                              test_name = tests.get(test_id, {}).get(
+                                  "name", f"Unknown test {test_id}"
+                              )
+                              all_output.append(f"ERROR [{test_name}]: {error}")
+                              if stack:
+                                  all_output.append(stack)
+
+                      elif event_type == "testDone":
+                          test_id = event.get("testID")
+                          result = event.get("result", "unknown")
+                          hidden = event.get("hidden", False)
+                          skipped = event.get("skipped", False)
+                          test = tests.get(
+                              test_id,
+                              {
+                                  "name": f"Unknown test ID {test_id}",
+                                  "url": "Unknown file",
+                                  "line": None,
+                                  "column": None,
+                              },
+                          )
+
+                          all_output.append(
+                              f"DONE: {test['name']} -> {result}"
+                          )
+
+                          if result == "failure":
+                              failures.append(
+                                  {
+                                      "id": test_id,
+                                      "name": test["name"],
+                                      "url": test["url"],
+                                      "line": test["line"],
+                                      "column": test["column"],
+                                      "errors": errors_by_test.get(test_id, []),
+                                      "stacks": stacks_by_test.get(test_id, []),
+                                      "hidden": hidden,
+                                      "skipped": skipped,
+                                  }
+                              )
+
+                      elif event_type == "done":
+                          all_output.append(
+                              f"COMPLETE: success={event.get('success')}"
+                          )
+
+                      elif event_type == "debug":
+                          message = event.get("message", "")
+                          all_output.append(f"DEBUG: {message}")
+
+                      elif event_type == "group":
+                          group = event.get("group", {})
+                          all_output.append(
+                              f"GROUP: {group.get('name', 'unknown')}"
+                          )
+
+                      elif event_type == "allSuites":
+                          all_output.append(
+                              f"ALL SUITES: count={event.get('count', 'unknown')}"
+                          )
+
+                      elif event_type == "suiteDone":
+                          if event.get("error"):
+                              suite_errors.append(
+                                  {
+                                      "suite_id": event.get("suiteID"),
+                                      "error": event.get("error"),
+                                      "stack": event.get("stackTrace", ""),
+                                  }
+                              )
+
+          stderr_text = ""
+          if stderr_path.exists():
+              stderr_text = stderr_path.read_text(
+                  encoding="utf-8",
+                  errors="replace",
+              )
+
+          readable_path.write_text(
+              "\n".join(all_output)
+              + ("\n\nSTDERR\n======\n" + stderr_text if stderr_text else ""),
+              encoding="utf-8",
+          )
+
+          test_exit = os.environ.get("TEST_EXIT_CODE", "not-run")
+          timeout_detected = any(
+              "timeout" in error.lower()
+              for failure in failures
+              for error in failure["errors"]
+          ) or "timeout" in stderr_text.lower()
+
+          with report_path.open("w", encoding="utf-8") as report:
+              report.write("# Hydrion Flutter Test Bug Report\n\n")
+
+              report.write("## Run information\n\n")
+              report.write("| Field | Value |\n")
+              report.write("|---|---|\n")
+              report.write(
+                  f"| Repository | `{os.environ.get('GITHUB_REPOSITORY', 'unknown')}` |\n"
+              )
+              report.write(
+                  f"| Commit | `{os.environ.get('GITHUB_SHA', 'unknown')}` |\n"
+              )
+              report.write(
+                  f"| Ref | `{os.environ.get('GITHUB_REF', 'unknown')}` |\n"
+              )
+              report.write(
+                  f"| Workflow run | `{os.environ.get('GITHUB_RUN_ID', 'unknown')}` |\n"
+              )
+              report.write(f"| Test exit code | `{test_exit}` |\n")
+              report.write(f"| Failed tests | `{len(failures)}` |\n")
+              report.write(
+                  f"| Timeout detected | `{'yes' if timeout_detected else 'no'}` |\n"
+              )
+              report.write("\n")
+
+              report.write("## Classification\n\n")
+              if failures:
+                  if timeout_detected:
+                      report.write(
+                          "- One or more tests failed with a timeout or hanging-test signal.\n"
+                      )
+                  report.write(
+                      "- Each failed test below requires triage before being converted into a GitHub issue.\n"
+                  )
+              elif test_exit != "0":
+                  report.write(
+                      "- The test command failed, but no structured failed-test event was found.\n"
+                  )
+                  report.write(
+                      "- Review the global errors, suite errors, stderr, and malformed machine output sections.\n"
+                  )
+              else:
+                  report.write("- The complete Flutter test suite passed.\n")
+              report.write("\n")
+
+              report.write("## Failed tests\n\n")
+              if not failures:
+                  report.write("No failed test events were detected.\n\n")
+              else:
+                  for index, failure in enumerate(failures, start=1):
+                      report.write(f"### {index}. {failure['name']}\n\n")
+                      report.write(f"- File: `{failure['url']}`\n")
+                      if failure["line"] is not None:
+                          report.write(f"- Line: `{failure['line']}`\n")
+                      if failure["column"] is not None:
+                          report.write(f"- Column: `{failure['column']}`\n")
+                      report.write("\n")
+
+                      report.write("#### Errors\n\n")
+                      if failure["errors"]:
+                          for error in failure["errors"]:
+                              report.write("```text\n")
+                              report.write(error.rstrip())
+                              report.write("\n```\n\n")
+                      else:
+                          report.write(
+                              "No structured error message was emitted for this failed test.\n\n"
+                          )
+
+                      report.write("#### Stack traces\n\n")
+                      if failure["stacks"]:
+                          for stack in failure["stacks"]:
+                              report.write("```text\n")
+                              report.write(stack.rstrip())
+                              report.write("\n```\n\n")
+                      else:
+                          report.write(
+                              "No structured stack trace was emitted for this failed test.\n\n"
+                          )
+
+              if global_errors:
+                  report.write("## Global test runner errors\n\n")
+                  for item in global_errors:
+                      report.write("```text\n")
+                      report.write(item["error"].rstrip())
+                      if item["stack"]:
+                          report.write("\n\n")
+                          report.write(item["stack"].rstrip())
+                      report.write("\n```\n\n")
+
+              if suite_errors:
+                  report.write("## Test suite errors\n\n")
+                  for item in suite_errors:
+                      report.write("```text\n")
+                      report.write(str(item["error"]).rstrip())
+                      if item["stack"]:
+                          report.write("\n\n")
+                          report.write(str(item["stack"]).rstrip())
+                      report.write("\n```\n\n")
+
+              if malformed_lines:
+                  report.write("## Malformed machine-output lines\n\n")
+                  report.write("```text\n")
+                  report.write("\n".join(malformed_lines))
+                  report.write("\n```\n\n")
+
+              report.write("## Test runner stderr\n\n")
+              report.write("```text\n")
+              report.write(stderr_text or "No stderr output was produced.")
+              report.write("\n```\n\n")
+
+              report.write("## Evidence files\n\n")
+              report.write("- `flutter-test-machine.jsonl`\n")
+              report.write("- `flutter-test-readable.log`\n")
+              report.write("- `flutter-test-stderr.log`\n")
+              report.write("- `flutter-analyze.log`\n")
+              report.write("- `secret-scan.log`\n")
+              report.write("- `environment.txt`\n")
+              report.write("- `coverage/lcov.info`, when generated\n")
+
+          print(
+              f"Generated {report_path} with {len(failures)} structured failures."
+          )
+          PY
+
+      - name: Generate CI quality summary
         if: always()
+        env:
+          SECRET_EXIT: ${{ steps.secret_scan.outputs.exit_code }}
+          ANALYZE_EXIT: ${{ steps.analyze.outputs.exit_code }}
+          TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
+          OUTDATED_EXIT: ${{ steps.outdated.outputs.exit_code }}
         run: |
-          secret_exit="${{ steps.secret_scan.outputs.exit_code }}"
-          analyze_exit="${{ steps.analyze.outputs.exit_code }}"
-          test_exit="${{ steps.tests.outputs.exit_code }}"
-          outdated_exit="${{ steps.outdated.outputs.exit_code }}"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
 
-          secret_exit="${secret_exit:-not-run}"
-          analyze_exit="${analyze_exit:-not-run}"
-          test_exit="${test_exit:-not-run}"
-          outdated_exit="${outdated_exit:-not-run}"
+          artifacts = Path(os.environ["CI_ARTIFACTS_DIRECTORY"])
+          summary_path = artifacts / "CI_SUMMARY.md"
 
-          report="${CI_ARTIFACTS_DIRECTORY}/BUG_REPORT.md"
-          test_log="${CI_ARTIFACTS_DIRECTORY}/flutter-test.log"
-          analyze_log="${CI_ARTIFACTS_DIRECTORY}/flutter-analyze.log"
-          secret_log="${CI_ARTIFACTS_DIRECTORY}/secret-scan.log"
+          checks = [
+              ("Secret hygiene scan", os.environ.get("SECRET_EXIT") or "not-run"),
+              ("Flutter analyze", os.environ.get("ANALYZE_EXIT") or "not-run"),
+              ("Flutter tests", os.environ.get("TEST_EXIT") or "not-run"),
+              ("Dependency audit", os.environ.get("OUTDATED_EXIT") or "not-run"),
+          ]
 
-          {
-            echo "# Hydrion CI Bug Report"
-            echo
-            echo "## Run information"
-            echo
-            echo "| Field | Value |"
-            echo "|---|---|"
-            echo "| Repository | \`${{ github.repository }}\` |"
-            echo "| Workflow | \`${{ github.workflow }}\` |"
-            echo "| Event | \`${{ github.event_name }}\` |"
-            echo "| Ref | \`${{ github.ref }}\` |"
-            echo "| Commit | \`${{ github.sha }}\` |"
-            echo "| Run number | \`${{ github.run_number }}\` |"
-            echo "| Run attempt | \`${{ github.run_attempt }}\` |"
-            echo "| Runner | \`${{ runner.os }} / ${{ runner.arch }}\` |"
-            echo "| Flutter | \`${{ env.FLUTTER_VERSION }}\` |"
-            echo "| Java | \`${{ env.JAVA_VERSION }}\` |"
-            echo "| Workflow run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |"
-            echo
-            echo "## Quality-gate results"
-            echo
-            echo "| Check | Exit code | Result |"
-            echo "|---|---:|---|"
+          with summary_path.open("w", encoding="utf-8") as summary:
+              summary.write("# Hydrion CI Audit\n\n")
+              summary.write("| Check | Exit code | Result |\n")
+              summary.write("|---|---:|---|\n")
 
-            if [[ "${secret_exit}" == "0" ]]; then
-              echo "| Secret hygiene scan | 0 | Passed |"
-            else
-              echo "| Secret hygiene scan | ${secret_exit} | Failed or timed out |"
-            fi
+              for name, exit_code in checks:
+                  result = "Passed" if exit_code == "0" else "Failed or not completed"
+                  summary.write(f"| {name} | `{exit_code}` | {result} |\n")
 
-            if [[ "${analyze_exit}" == "0" ]]; then
-              echo "| Flutter analyze | 0 | Passed |"
-            else
-              echo "| Flutter analyze | ${analyze_exit} | Failed or timed out |"
-            fi
+              summary.write("\n")
+              summary.write(
+                  f"Workflow run: {os.environ.get('GITHUB_SERVER_URL')}/"
+                  f"{os.environ.get('GITHUB_REPOSITORY')}/actions/runs/"
+                  f"{os.environ.get('GITHUB_RUN_ID')}\n"
+              )
 
-            if [[ "${test_exit}" == "0" ]]; then
-              echo "| Flutter tests | 0 | Passed |"
-            else
-              echo "| Flutter tests | ${test_exit} | Failed or timed out |"
-            fi
-
-            if [[ "${outdated_exit}" == "0" ]]; then
-              echo "| Dependency audit | 0 | Completed |"
-            else
-              echo "| Dependency audit | ${outdated_exit} | Warning or command failure |"
-            fi
-
-            echo
-            echo "## Initial classification"
-            echo
-
-            if [[ "${test_exit}" != "0" && "${test_exit}" != "not-run" ]]; then
-              if [[ -f "${test_log}" ]] && grep -qiE 'timed out|TimeoutException' "${test_log}"; then
-                echo "- **Test timeout or hanging test detected.**"
-                echo "- This does not automatically prove an application runtime defect."
-                echo "- The failing test must be reproduced independently before being classified as a product bug."
-              else
-                echo "- **One or more test failures were detected.**"
-                echo "- Review assertions and stack traces before creating individual product defects."
-              fi
-            else
-              echo "- No Flutter test-suite failure was detected."
-            fi
-
-            if [[ "${analyze_exit}" != "0" && "${analyze_exit}" != "not-run" ]]; then
-              echo "- Static-analysis violations were detected."
-            fi
-
-            if [[ "${secret_exit}" != "0" && "${secret_exit}" != "not-run" ]]; then
-              echo "- Secret-hygiene validation failed or timed out."
-            fi
-
-            echo
-            echo "## Test failure summary"
-            echo
-            echo '```text'
-
-            if [[ -f "${test_log}" ]]; then
-              grep -nE \
-                '(\[E\]|FAILED|FAILURE|TimeoutException|timed out|Exception|Error:|Expected:|Actual:|Which:|Some tests failed|Test failed)' \
-                "${test_log}" | tail -n 200 || echo "No standard failure markers were detected."
-            else
-              echo "Flutter test output was not produced."
-            fi
-
-            echo '```'
-            echo
-            echo "## Analyzer summary"
-            echo
-            echo '```text'
-
-            if [[ -f "${analyze_log}" ]]; then
-              tail -n 200 "${analyze_log}"
-            else
-              echo "Flutter analyzer output was not produced."
-            fi
-
-            echo '```'
-            echo
-            echo "## Secret-scan summary"
-            echo
-            echo '```text'
-
-            if [[ -f "${secret_log}" ]]; then
-              tail -n 200 "${secret_log}"
-            else
-              echo "Secret-scan output was not produced."
-            fi
-
-            echo '```'
-            echo
-            echo "## Triage requirements"
-            echo
-            echo "Before creating separate GitHub issues:"
-            echo
-            echo "1. Reproduce each failure using the exact commit recorded above."
-            echo "2. Run each failing test independently."
-            echo "3. Separate application defects from test defects, timeouts, tooling failures, and environment failures."
-            echo "4. Create one issue per independently actionable defect."
-            echo "5. Attach this workflow run and the relevant raw log."
-            echo "6. Avoid creating duplicate issues for failures with the same root cause."
-            echo
-            echo "## Attached evidence"
-            echo
-            echo "- \`environment.txt\`"
-            echo "- \`flutter-pub-get.log\`"
-            echo "- \`flutter-pub-deps.log\`"
-            echo "- \`flutter-pub-outdated.log\`"
-            echo "- \`secret-scan.log\`"
-            echo "- \`flutter-analyze.log\`"
-            echo "- \`flutter-test.log\`"
-            echo "- \`test-failure-evidence.txt\`"
-            echo "- \`coverage/lcov.info\`, when coverage was produced"
-          } > "${report}"
+          print(f"Generated {summary_path}.")
+          PY
 
       - name: Publish CI job summary
         if: always()
         run: |
+          if [[ -f "${CI_ARTIFACTS_DIRECTORY}/CI_SUMMARY.md" ]]; then
+            cat "${CI_ARTIFACTS_DIRECTORY}/CI_SUMMARY.md" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
           if [[ -f "${CI_ARTIFACTS_DIRECTORY}/BUG_REPORT.md" ]]; then
-            cat "${CI_ARTIFACTS_DIRECTORY}/BUG_REPORT.md" >> "${GITHUB_STEP_SUMMARY}"
-          else
-            echo "# Hydrion CI Audit" >> "${GITHUB_STEP_SUMMARY}"
             echo >> "${GITHUB_STEP_SUMMARY}"
-            echo "The CI bug report could not be generated." >> "${GITHUB_STEP_SUMMARY}"
+            cat "${CI_ARTIFACTS_DIRECTORY}/BUG_REPORT.md" >> "${GITHUB_STEP_SUMMARY}"
           fi
 
       - name: Upload CI audit artifacts
@@ -390,14 +555,14 @@ jobs:
 
       - name: Enforce quality gate
         if: always()
+        env:
+          SECRET_EXIT: ${{ steps.secret_scan.outputs.exit_code }}
+          ANALYZE_EXIT: ${{ steps.analyze.outputs.exit_code }}
+          TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
         run: |
-          secret_exit="${{ steps.secret_scan.outputs.exit_code }}"
-          analyze_exit="${{ steps.analyze.outputs.exit_code }}"
-          test_exit="${{ steps.tests.outputs.exit_code }}"
-
-          secret_exit="${secret_exit:-1}"
-          analyze_exit="${analyze_exit:-1}"
-          test_exit="${test_exit:-1}"
+          secret_exit="${SECRET_EXIT:-1}"
+          analyze_exit="${ANALYZE_EXIT:-1}"
+          test_exit="${TEST_EXIT:-1}"
 
           failed=0
 
