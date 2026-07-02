@@ -162,6 +162,7 @@ jobs:
           set +e
 
           timeout 30m flutter test \
+            --no-pub \
             --coverage \
             --machine \
             --timeout 2m \
@@ -209,6 +210,18 @@ jobs:
                       except json.JSONDecodeError:
                           malformed_lines.append(
                               f"Line {line_number}: {line}"
+                          )
+                          continue
+
+                      if isinstance(event, list):
+                          all_output.append(
+                              f"PROTOCOL EVENT: {json.dumps(event, ensure_ascii=False)}"
+                          )
+                          continue
+
+                      if not isinstance(event, dict):
+                          malformed_lines.append(
+                              f"Line {line_number}: unsupported JSON value: {event!r}"
                           )
                           continue
 
