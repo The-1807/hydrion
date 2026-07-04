@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/hydration_repository.dart';
+import '../../repositories/settings_repository.dart';
 import '../components/hydrion_logo.dart';
 import '../components/intake_ring.dart';
 import '../components/llm_advice_card.dart';
@@ -42,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
+    context.watch<UserSettingsRepository>();
     context.watch<HydrationRepository>();
     final syncStatus = [
       if (!capabilities.bleSync) 'BLE',
@@ -178,16 +180,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              Card(
-                child: ReminderTile(
-                  shortfallMl: (summary.targetMl - summary.consumedMl)
-                      .clamp(0, summary.targetMl),
-                  lastDrinkHoursAgo: 1.5,
-                  hydrationPercent: summary.hydrationPercent,
-                  isActiveTime: true,
+              if (capabilities.osNotifications) ...[
+                const SizedBox(height: 12),
+                Card(
+                  child: ReminderTile(
+                    shortfallMl: (summary.targetMl - summary.consumedMl)
+                        .clamp(0, summary.targetMl),
+                    lastDrinkHoursAgo: 1.5,
+                    hydrationPercent: summary.hydrationPercent,
+                    isActiveTime: true,
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -209,30 +213,32 @@ class _HomeScreenState extends State<HomeScreen> {
                       labelKey: _RouteLabel.challenges,
                       icon: Icons.emoji_events,
                       route: '/challenges'),
-                  const _RouteButton(
-                      labelKey: _RouteLabel.reminders,
-                      icon: Icons.notifications_none,
-                      route: '/reminders'),
-                  _RouteButton(
-                      labelKey: capabilities.arVisualization
-                          ? _RouteLabel.arUnavailable
-                          : _RouteLabel.arDisabled,
-                      icon: Icons.view_in_ar,
-                      route: '/ar'),
+                  if (capabilities.osNotifications)
+                    const _RouteButton(
+                        labelKey: _RouteLabel.reminders,
+                        icon: Icons.notifications_none,
+                        route: '/reminders'),
+                  if (capabilities.arVisualization)
+                    const _RouteButton(
+                        labelKey: _RouteLabel.arUnavailable,
+                        icon: Icons.view_in_ar,
+                        route: '/ar'),
                 ],
               ),
             ],
           );
         },
       ),
-      floatingActionButton: VoiceInputWidget(
-        onCommandParsed: (command) {
-          final intent = command['intent'] ?? 'unknown_command';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.voiceIntent(intent: intent))),
-          );
-        },
-      ),
+      floatingActionButton: capabilities.voiceInput
+          ? VoiceInputWidget(
+              onCommandParsed: (command) {
+                final intent = command['intent'] ?? 'unknown_command';
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.voiceIntent(intent: intent))),
+                );
+              },
+            )
+          : null,
     );
   }
 }
@@ -243,7 +249,6 @@ enum _RouteLabel {
   coach,
   challenges,
   reminders,
-  arDisabled,
   arUnavailable,
 }
 
@@ -267,7 +272,6 @@ class _RouteButton extends StatelessWidget {
       _RouteLabel.coach => l10n.coachRoute,
       _RouteLabel.challenges => l10n.challengesRoute,
       _RouteLabel.reminders => l10n.remindersRoute,
-      _RouteLabel.arDisabled => l10n.arDisabledRoute,
       _RouteLabel.arUnavailable => l10n.arUnavailableRoute,
     };
 

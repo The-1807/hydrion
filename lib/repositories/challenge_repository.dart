@@ -154,7 +154,10 @@ class ChallengeRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  ChallengeProgress progressFor(HydrationRepository hydrationRepository) {
+  ChallengeProgress progressFor(
+    HydrationRepository hydrationRepository, {
+    int? targetMlOverride,
+  }) {
     final challenge = _activeChallenge;
     if (challenge == null) {
       return const ChallengeProgress(
@@ -167,6 +170,7 @@ class ChallengeRepository extends ChangeNotifier {
 
     final today = DateTime.now();
     final todayMl = hydrationRepository.totalForDay(today);
+    final targetMl = targetMlOverride ?? challenge.targetMl;
     var completedDays = 0;
 
     for (var offset = 0; offset < challenge.durationDays; offset += 1) {
@@ -178,7 +182,7 @@ class ChallengeRepository extends ChangeNotifier {
       if (day.isAfter(today)) {
         break;
       }
-      if (hydrationRepository.totalForDay(day) >= challenge.targetMl) {
+      if (hydrationRepository.totalForDay(day) >= targetMl) {
         completedDays += 1;
       }
     }
@@ -187,7 +191,7 @@ class ChallengeRepository extends ChangeNotifier {
       completedDays: completedDays,
       durationDays: challenge.durationDays,
       todayMl: todayMl,
-      targetMl: challenge.targetMl,
+      targetMl: targetMl,
     );
   }
 

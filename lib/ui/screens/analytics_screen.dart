@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../repositories/hydration_repository.dart';
+import '../../repositories/settings_repository.dart';
+import '../../services/achievement_service.dart';
 import '../../services/eco_tracker.dart';
 import '../components/achievement_badge.dart';
 import '../components/hydration_score_card.dart';
@@ -14,9 +16,10 @@ class AnalyticsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final hydrationRepository = context.watch<HydrationRepository>();
+    final settings = context.watch<UserSettingsRepository>().settings;
     final ecoTracker = context.read<EcoTracker>();
     final today = DateTime.now();
-    const targetMl = 2200;
+    final targetMl = settings.dailyGoalMl;
     final todayMl = hydrationRepository.totalForDay(today);
     final lifetimeMl = hydrationRepository.totalMl;
     final eventCount = hydrationRepository.eventCount;
@@ -25,7 +28,11 @@ class AnalyticsScreen extends StatelessWidget {
       DateTime(today.year, today.month, today.day + 1),
     );
     final hydrationPercent = (todayMl / targetMl * 100).clamp(0.0, 100.0);
-    final streakDays = _streakDays(hydrationRepository, targetMl);
+    final achievements = const AchievementService().evaluate(
+      hydrationRepository: hydrationRepository,
+      now: today,
+      activeGoalMl: targetMl,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -94,16 +101,16 @@ class AnalyticsScreen extends StatelessWidget {
             runSpacing: 10,
             children: [
               AchievementBadge(
-                badgeName: l10n.badgeTwoLiterDay,
-                isUnlocked: todayMl >= 2000,
+                badgeName: l10n.badgeDailyGoal,
+                isUnlocked: achievements.dailyGoal.unlocked,
               ),
               AchievementBadge(
                 badgeName: l10n.badgeThreeLogsToday,
-                isUnlocked: todayLogs.length >= 3,
+                isUnlocked: achievements.threeLogsToday.unlocked,
               ),
               AchievementBadge(
                 badgeName: l10n.badgeSevenDayStreak,
-                isUnlocked: streakDays >= 7,
+                isUnlocked: achievements.sevenDayStreak.unlocked,
               ),
             ],
           ),
@@ -123,12 +130,14 @@ class AnalyticsScreen extends StatelessWidget {
               return Card(
                 child: ListTile(
                   leading: const Icon(Icons.eco),
-                  title: Text(l10n.plasticSavedTitle(value: value)),
+                  title: Text(l10n.plasticEstimateTitle(value: value)),
                   subtitle: Text(
-                    l10n.localEstimateFromLogs(
-                      lifetimeMl: lifetimeMl,
-                      eventCount: eventCount,
-                    ),
+                    settings.reusableContainerEnabled
+                        ? l10n.reusableContainerEstimateFromLogs(
+                            lifetimeMl: lifetimeMl,
+                            eventCount: eventCount,
+                          )
+                        : l10n.reusableContainerEstimateDisabled,
                   ),
                 ),
               );
@@ -137,21 +146,5 @@ class AnalyticsScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  int _streakDays(HydrationRepository repository, int targetMl) {
-    var streak = 0;
-    final today = DateTime.now();
-
-    for (var offset = 0; offset < 30; offset += 1) {
-      final day = DateTime(today.year, today.month, today.day - offset);
-      if (repository.totalForDay(day) >= targetMl) {
-        streak += 1;
-      } else {
-        break;
-      }
-    }
-
-    return streak;
   }
 }

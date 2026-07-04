@@ -5,6 +5,7 @@ import '../../domain/hydration_contracts.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
+import '../../repositories/settings_repository.dart';
 
 class SocialChallengesScreen extends StatefulWidget {
   const SocialChallengesScreen({super.key});
@@ -33,6 +34,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
     final l10n = AppLocalizations.of(context);
     final challengeRepository = context.watch<ChallengeRepository>();
     final hydrationRepository = context.watch<HydrationRepository>();
+    final settings = context.watch<UserSettingsRepository>().settings;
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
 
     return Scaffold(
@@ -70,9 +72,12 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
               challenge,
               l10n,
             );
+            final targetMl = settings.dailyGoalMl;
             final joined = challengeRepository.isJoined(challenge.id);
-            final progress =
-                challengeRepository.progressFor(hydrationRepository);
+            final progress = challengeRepository.progressFor(
+              hydrationRepository,
+              targetMlOverride: targetMl,
+            );
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -117,7 +122,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                         Text(
                           l10n.challengeDetails(
                             description: challengeDescription,
-                            targetMl: challenge.targetMl,
+                            targetMl: targetMl,
                             durationDays: challenge.durationDays,
                           ),
                           style: Theme.of(context).textTheme.bodyMedium,
@@ -144,7 +149,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                           children: [
                             Chip(
                               label: Text(l10n.challengeTargetPerDay(
-                                targetMl: challenge.targetMl,
+                                targetMl: targetMl,
                               )),
                               avatar: const Icon(Icons.water_drop, size: 18),
                             ),
@@ -165,7 +170,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                                         id: challenge.id,
                                         name: challengeName,
                                         description: challengeDescription,
-                                        targetMl: challenge.targetMl,
+                                        targetMl: targetMl,
                                         durationDays: challenge.durationDays,
                                       );
                                       if (!mounted) {

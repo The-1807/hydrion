@@ -79,7 +79,8 @@ class RemindersScreen extends StatelessWidget {
                   title: Text(reminder.message),
                   subtitle: Text(
                     l10n.reminderSubtitle(
-                      timestamp: _formatTimestamp(reminder.triggerTime),
+                      timestamp:
+                          _formatTimestamp(context, reminder.triggerTime),
                       priority: reminder.priority,
                     ),
                   ),
@@ -108,11 +109,22 @@ class RemindersScreen extends StatelessWidget {
     );
   }
 
-  static String _formatTimestamp(DateTime time) {
-    final date =
-        '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')}';
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$date $hour:$minute';
+  static String _formatTimestamp(BuildContext context, DateTime time) {
+    final local = time.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(local.year, local.month, local.day);
+    final l10n = AppLocalizations.of(context);
+    final material = MaterialLocalizations.of(context);
+    final dayLabel = day == today
+        ? l10n.today
+        : day == today.subtract(const Duration(days: 1))
+            ? l10n.yesterday
+            : material.formatMediumDate(local);
+    final timeLabel = material.formatTimeOfDay(
+      TimeOfDay.fromDateTime(local),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+    );
+    return l10n.relativeDateTime(date: dayLabel, time: timeLabel);
   }
 }

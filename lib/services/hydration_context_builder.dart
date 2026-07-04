@@ -2,25 +2,26 @@ import '../domain/hydration_contracts.dart';
 import '../repositories/challenge_repository.dart';
 import '../repositories/hydration_repository.dart';
 import '../repositories/reminder_repository.dart';
+import '../repositories/settings_repository.dart';
 
 class LocalHydrationContextProvider implements HydrationContextProvider {
   final HydrationRepository _hydrationRepository;
   final ReminderRepository _reminderRepository;
   final ChallengeRepository _challengeRepository;
   final AppCapabilityReporter _capabilityReporter;
-  final int _targetMl;
+  final UserSettingsRepository _settingsRepository;
 
   const LocalHydrationContextProvider({
     required HydrationRepository hydrationRepository,
     required ReminderRepository reminderRepository,
     required ChallengeRepository challengeRepository,
     required AppCapabilityReporter capabilityReporter,
-    int targetMl = 2200,
+    required UserSettingsRepository settingsRepository,
   })  : _hydrationRepository = hydrationRepository,
         _reminderRepository = reminderRepository,
         _challengeRepository = challengeRepository,
         _capabilityReporter = capabilityReporter,
-        _targetMl = targetMl;
+        _settingsRepository = settingsRepository;
 
   @override
   Future<HydrationContext> getHydrationContext({
@@ -36,13 +37,17 @@ class LocalHydrationContextProvider implements HydrationContextProvider {
     );
     final reminders = _reminderRepository.reminders;
     final activeChallenge = _challengeRepository.activeChallenge;
-    final progress = _challengeRepository.progressFor(_hydrationRepository);
+    final activeGoalMl = _settingsRepository.settings.dailyGoalMl;
+    final progress = _challengeRepository.progressFor(
+      _hydrationRepository,
+      targetMlOverride: activeGoalMl,
+    );
 
     return HydrationContext(
       dailySummary: DailyHydrationSummary(
         date: dayStart,
         consumedMl: _hydrationRepository.totalForDay(current),
-        targetMl: _targetMl,
+        targetMl: activeGoalMl,
         entryCount: todayLogs.length,
       ),
       lifetimeMl: _hydrationRepository.totalMl,

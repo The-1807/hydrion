@@ -30,6 +30,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('500 / 2200 ml'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
 
     await scrollToHomeItem(tester, find.byKey(const Key('route-/log')));
     await tester.tap(find.byKey(const Key('route-/log')));
@@ -44,8 +46,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('500 / 2200 ml today'), findsOneWidget);
-    expect(find.text('Local estimate from 500 ml across 1 saved log.'),
-        findsOneWidget);
+    expect(
+      find.text(
+        'Enable reusable-container tracking in Settings before Hydrion '
+        'estimates avoided disposable plastic.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('persisted log entries can be edited and deleted',
@@ -79,11 +86,21 @@ void main() {
     expect(services.hydrationRepository.logs.single.volumeMl, 650);
     expect(find.text('650 ml'), findsOneWidget);
 
-    await tester.tap(find.byKey(Key('delete-log-$logId')));
+    await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(Key('delete-log-$logId')));
+    await tester.pump(const Duration(milliseconds: 750));
 
     expect(services.hydrationRepository.logs, isEmpty);
     expect(find.text('No hydration logs found'), findsOneWidget);
+
+    expect(find.text('Undo'), findsOneWidget);
+    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed();
+    await tester.pumpAndSettle();
+
+    expect(services.hydrationRepository.logs.single.id, logId);
+    expect(services.hydrationRepository.logs.single.volumeMl, 650);
+    expect(find.text('650 ml'), findsOneWidget);
   });
 
   testWidgets('empty states explain local runtime behavior', (tester) async {
@@ -106,14 +123,9 @@ void main() {
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/reminders')));
-    await tester.tap(find.byKey(const Key('route-/reminders')));
-    await tester.pumpAndSettle();
-    expect(find.text('No local reminders saved'), findsOneWidget);
-    expect(find.text('OS notifications disabled'), findsOneWidget);
+    expect(find.byKey(const Key('route-/reminders')), findsNothing);
+    expect(find.byKey(const Key('route-/ar')), findsNothing);
 
-    await tester.pageBack();
-    await tester.pumpAndSettle();
     await scrollToHomeItem(tester, find.byKey(const Key('route-/challenges')));
     await tester.tap(find.byKey(const Key('route-/challenges')));
     await tester.pumpAndSettle();
@@ -126,23 +138,11 @@ void main() {
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
 
-    expect(
-      find.byTooltip('Voice input disabled by app capabilities'),
-      findsOneWidget,
-    );
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/ar')));
-    expect(find.text('AR disabled'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Save local reminder definition'));
-    await tester.pumpAndSettle();
-
-    expect(services.reminderRepository.reminders, hasLength(1));
-    expect(
-      find.text(
-        'Local reminder definition saved. OS notifications are disabled.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.byTooltip('Voice input disabled by app capabilities'),
+        findsNothing);
+    expect(find.byKey(const Key('route-/ar')), findsNothing);
+    expect(find.byKey(const Key('route-/reminders')), findsNothing);
+    expect(services.reminderRepository.reminders, isEmpty);
   });
 
   testWidgets('settings distinguish local controls from unavailable adapters',
@@ -158,6 +158,14 @@ void main() {
     expect(find.byKey(const Key('settings-logo')), findsOneWidget);
     expect(find.text('Standalone local mode'), findsOneWidget);
     expect(find.text('Language choice is saved locally.'), findsOneWidget);
+    expect(find.text('Daily hydration goal'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Reusable container'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Reusable container'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('settings-permissions-check')));
     await tester.pumpAndSettle();
@@ -168,6 +176,12 @@ void main() {
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('settings-locale-picker')),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings-locale-picker')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Spanish').last);
@@ -177,18 +191,15 @@ void main() {
     expect(services.i18n.locale.languageCode, 'es');
 
     await tester.scrollUntilVisible(
-      find.text('Persistencia local'),
+      find.text('Privacidad local'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Estado de funciones en ejecución'), findsOneWidget);
-    expect(find.text('En dispositivo'), findsOneWidget);
-    expect(find.text('Adaptador ELKA'), findsOneWidget);
-    expect(find.text('Sin configurar'), findsOneWidget);
-    expect(find.text('Entrada de voz'), findsOneWidget);
-    expect(find.text('Desactivado'), findsWidgets);
+    expect(find.text('Privacidad local'), findsOneWidget);
+    expect(find.text('Estado de funciones en ejecución'), findsNothing);
+    expect(find.text('Adaptador ELKA'), findsNothing);
   });
 
   testWidgets('local challenge join state is persisted in app services',

@@ -4,6 +4,7 @@ import 'package:hydrion/adapters/local/local_hydrion_adapters.dart';
 import 'package:hydrion/domain/hydration_contracts.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
+import 'package:hydrion/repositories/settings_repository.dart';
 
 void main() {
   test('local summary adapter derives today summary from hydration logs',
@@ -17,6 +18,7 @@ void main() {
     );
     final summaryService = LocalHydrationSummaryService(
       hydrationRepository: repository,
+      settingsRepository: UserSettingsRepository.memory(),
     );
 
     final summary = await summaryService.getHydrationSummary();
@@ -45,7 +47,7 @@ void main() {
     expect(context.dailySummary.consumedMl, 600);
     expect(context.lifetimeMl, 600);
     expect(context.eventCount, 1);
-    expect(response, contains('local deterministic mode'));
+    expect(response, contains('on-device guidance'));
     expect(response, contains('Today: 600 ml'));
     expect(response, contains('across 1 saved log'));
   });
@@ -59,7 +61,7 @@ void main() {
     );
 
     expect(challenge.id, 'steady-sip-7-day-intermediate');
-    expect(challenge.targetMl, 2300);
+    expect(challenge.targetMl, 2200);
     expect(challenge.durationDays, 7);
   });
 

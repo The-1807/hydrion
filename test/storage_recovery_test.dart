@@ -260,6 +260,24 @@ void main() {
         contains(missingRepository.settings.locale.languageCode));
   });
 
+  test('invalid persisted daily goal falls back to the supported default',
+      () async {
+    final store = MemoryHydrionStore({
+      UserSettingsRepository.storageKey: jsonEncode({
+        'languageCode': 'en',
+        'dailyGoalMl': 25000,
+        'reusableContainerEnabled': true,
+      }),
+    });
+
+    final repository = await UserSettingsRepository.load(store);
+
+    expect(repository.settings.dailyGoalMl, UserSettings.defaultDailyGoalMl);
+    expect(repository.settings.reusableContainerEnabled, isTrue);
+    expect(repository.recoveryEvents.single.code,
+        StorageRecoveryCodes.invalidValue);
+  });
+
   test('invalid settings do not affect hydration logs', () async {
     final hydration = _hydrationJson(
       id: 'settings-safe-log',

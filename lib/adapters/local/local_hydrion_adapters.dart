@@ -1,5 +1,6 @@
 import '../../domain/hydration_contracts.dart';
 import '../../repositories/hydration_repository.dart';
+import '../../repositories/settings_repository.dart';
 
 typedef LocalHydrationAdviceBuilder = String Function({
   required double hydrationPercent,
@@ -9,10 +10,13 @@ typedef LocalHydrationAdviceBuilder = String Function({
 
 class LocalHydrationSummaryService implements HydrationSummaryService {
   final HydrationRepository _hydrationRepository;
+  final UserSettingsRepository _settingsRepository;
 
   LocalHydrationSummaryService({
     required HydrationRepository hydrationRepository,
-  }) : _hydrationRepository = hydrationRepository;
+    required UserSettingsRepository settingsRepository,
+  })  : _hydrationRepository = hydrationRepository,
+        _settingsRepository = settingsRepository;
 
   @override
   Future<HydrationSummary> getHydrationSummary() async {
@@ -22,7 +26,7 @@ class LocalHydrationSummaryService implements HydrationSummaryService {
       DateTime(today.year, today.month, today.day),
       DateTime(today.year, today.month, today.day + 1),
     );
-    const targetMl = 2200;
+    final targetMl = _settingsRepository.settings.dailyGoalMl;
     final hydrationPercent = (consumedMl / targetMl * 100).clamp(0.0, 100.0);
 
     return HydrationSummary(
@@ -41,17 +45,11 @@ class LocalChallengeGenerator implements ChallengeGenerator {
   Future<HydrationChallenge> createChallenge({
     required String userLevel,
   }) async {
-    final targetMl = switch (userLevel.toLowerCase()) {
-      'advanced' => 2600,
-      'intermediate' => 2300,
-      _ => 2000,
-    };
-
     return HydrationChallenge(
       id: 'steady-sip-7-day-${userLevel.toLowerCase()}',
       name: 'Seven Day Steady Sip',
       description: 'Reach your daily hydration goal for one week.',
-      targetMl: targetMl,
+      targetMl: UserSettings.defaultDailyGoalMl,
       durationDays: 7,
     );
   }
@@ -164,7 +162,7 @@ class LocalHydrationCoach implements HydrationCoach, HydrationAiProvider {
     return [
       CoachMessageAction(
         message: _normalize(
-          'Hydrion is running in local deterministic mode. $contextText$suffix',
+          'Hydrion is using on-device guidance. $contextText$suffix',
         ),
       ),
     ];

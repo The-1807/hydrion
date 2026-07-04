@@ -145,6 +145,17 @@ class HydrationRepository extends ChangeNotifier {
     return true;
   }
 
+  Future<bool> restoreLog(HydrationLog log) async {
+    if (_logs.any((existing) => existing.id == log.id) || log.volumeMl <= 0) {
+      return false;
+    }
+    _logs.add(log);
+    _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    await _persist();
+    notifyListeners();
+    return true;
+  }
+
   List<HydrationLog> fetch(DateTime start, DateTime end) {
     return _logs.where((log) {
       return !log.timestamp.isBefore(start) && !log.timestamp.isAfter(end);

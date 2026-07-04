@@ -56,6 +56,7 @@
   "homeAdviceStrong": "You are on a strong hydration pace. Keep taking small sips through the day.",
   "homeAdviceClose": "You are close to target. Add a glass of water in the next hour to stay steady.",
   "homeAdviceStart": "Start with 300 to 500 ml now, then check in again after your next drink.",
+  "homeAdviceGoalReached": "You reached today's goal. Hydration needs vary, so keep the rest of the day steady and drink to thirst.",
   "homeAdviceHeat": "Warm conditions raise your fluid needs.",
   "homeAdviceReliableEntries": "You have {count} local entries today, which makes the trend more reliable.",
   "@homeAdviceReliableEntries": {
@@ -103,7 +104,7 @@
   "standaloneLocalMode": "Standalone local mode",
   "elkaAdapterConfiguredMode": "ELKA adapter configured",
   "geminiProviderConfiguredMode": "Gemini provider configured",
-  "localDataNoProviderRuntime": "Local data, local rules, no provider runtime.",
+  "localDataNoProviderRuntime": "Private on-device hydration tracking.",
   "geminiProviderConfiguredDescription": "Gemini can propose typed actions; Hydrion validates them before anything is trusted.",
   "geminiProviderConfiguredLocalDescription": "Gemini is configured but disabled until provider privacy consent is enabled.",
   "geminiProviderActiveDescription": "Gemini may receive typed hydration context; Hydrion validates provider output before anything is trusted.",
@@ -113,7 +114,7 @@
   "languageChoiceSaved": "Language choice is saved locally.",
   "localeCoverageComplete": "Hydrion strings are available for this locale.",
   "localeCoveragePartial": "Hydrion strings are available; untranslated platform text falls back safely.",
-  "futureLanguagesNote": "Future languages will appear after real ARB files are added.",
+  "futureLanguagesNote": "Additional languages will appear only after complete translations are available.",
   "localeNameEnglish": "English",
   "localeNameSpanish": "Spanish",
   "localeNameFrench": "French",
@@ -121,11 +122,34 @@
   "standalonePermissionsExplanation": "Standalone mode does not request Bluetooth, Health, microphone, camera, or notification permissions.",
   "check": "Check",
   "noPlatformPermissionsRequested": "No platform permissions requested in standalone mode",
+  "dailyGoalTitle": "Daily hydration goal",
+  "dailyGoalDescription": "Set the target Hydrion uses across Home, Analytics, Coach, and local challenges. Hydration needs vary by person and day.",
+  "dailyGoalFieldLabel": "Goal in ml",
+  "dailyGoalRange": "{minMl}-{maxMl} ml",
+  "@dailyGoalRange": {
+    "placeholders": {
+      "minMl": {
+        "type": "int"
+      },
+      "maxMl": {
+        "type": "int"
+      }
+    }
+  },
+  "dailyGoalUpdated": "Daily goal updated",
+  "dailyGoalInvalid": "Enter a goal between 500 and 5000 ml",
+  "reusableContainerTitle": "Reusable container",
+  "reusableContainerDescription": "Estimate avoided disposable plastic only when logged drinks usually come from a reusable bottle or cup.",
+  "localFirstPrivacyTitle": "Local-first privacy",
+  "localFirstPrivacyDescription": "Hydrion works offline and keeps hydration logs, goals, language, and challenge progress on this device.",
+  "optionalProviderConsumerDescription": "Optional provider features stay off until you choose to enable them. Hydrion remains usable offline.",
+  "debugDiagnosticsTitle": "Debug diagnostics",
+  "debugDiagnosticsDescription": "Developer-only runtime details are available in debug builds.",
   "runtimeFeatureStatus": "Runtime feature status",
   "providerHealthTitle": "AI provider status",
   "selectedProvider": "Selected provider",
   "activeProvider": "Active provider",
-  "localRulesProvider": "local_rules",
+  "localRulesProvider": "On-device guidance",
   "geminiProvider": "Gemini",
   "elkaProvider": "ELKA",
   "providerAvailable": "Available",
@@ -133,21 +157,21 @@
   "providerConfigured": "Configured",
   "providerUnconfigured": "Unconfigured",
   "providerFallbackState": "Fallback state",
-  "providerFallbackReady": "local_rules fallback is available",
-  "providerFallbackInUse": "Using local_rules fallback",
+  "providerFallbackReady": "On-device guidance is available",
+  "providerFallbackInUse": "Using on-device guidance",
   "providerFallbackCode": "Fallback code",
   "providerFallbackReason": "Fallback reason",
   "providerNoFallback": "No fallback needed",
   "providerLastFailure": "Last provider failure",
   "providerNoFailure": "None",
   "providerPrivacyTitle": "Provider privacy",
-  "providerPrivacyLocalOnly": "local_rules keeps hydration context on this device.",
+  "providerPrivacyLocalOnly": "On-device guidance keeps hydration context on this device.",
   "providerPrivacyGeminiDisclosure": "When Gemini is configured, Hydrion may send typed hydration context to Gemini. Do not ship a shared Gemini API key in web or mobile client artifacts.",
   "providerConsentRequired": "Non-local AI requires explicit user consent before production use.",
   "providerConsentStatus": "Provider consent",
   "providerConsentToggleTitle": "Allow Gemini provider processing",
   "providerConsentEnabled": "Enabled. Typed hydration context may leave this device for Gemini requests.",
-  "providerConsentDisabled": "Disabled. Hydrion uses local_rules and does not send hydration context to Gemini.",
+  "providerConsentDisabled": "Disabled. Hydrion uses on-device guidance and does not send hydration context to Gemini.",
   "providerGeminiHealth": "Gemini health",
   "providerGeminiModel": "Gemini model",
   "providerGeminiConfigured": "Gemini configured",
@@ -177,9 +201,9 @@
   "providerDiagnosticNoApiKey": "No Gemini API key configured",
   "providerDiagnosticConsentRequired": "Gemini is configured but provider privacy consent is disabled",
   "providerDiagnosticHealthy": "Gemini is healthy; last response passed validation",
-  "providerDiagnosticFallbackActive": "local_rules fallback is active",
+  "providerDiagnosticFallbackActive": "On-device guidance is active",
   "providerDiagnosticNotProven": "Gemini configured but not yet proven healthy",
-  "providerDiagnosticLocalRules": "local_rules is active",
+  "providerDiagnosticLocalRules": "On-device guidance is active",
   "yes": "Yes",
   "no": "No",
   "localPersistence": "Local persistence",
@@ -213,6 +237,8 @@
   "socialSyncDescription": "Challenges are local-only; no backend state is shared.",
   "hydrationLogUpdated": "Hydration log updated",
   "hydrationLogDeleted": "Hydration log deleted",
+  "hydrationLogRestored": "Hydration log restored",
+  "undo": "Undo",
   "logNotFound": "Log not found",
   "noLogs": "No hydration logs found",
   "logEmptyDescription": "Use Home to add a local hydration entry. Logs are saved on this device.",
@@ -228,6 +254,15 @@
     "placeholders": {
       "source": {},
       "timestamp": {}
+    }
+  },
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "relativeDateTime": "{date}, {time}",
+  "@relativeDateTime": {
+    "placeholders": {
+      "date": {},
+      "time": {}
     }
   },
   "noAnalyticsYet": "No analytics yet",
@@ -251,17 +286,17 @@
       }
     }
   },
-  "badgeTwoLiterDay": "2L day",
+  "badgeDailyGoal": "Daily goal",
   "badgeThreeLogsToday": "3 logs today",
   "badgeSevenDayStreak": "7 day streak",
-  "plasticSavedTitle": "Plastic saved: {value} kg",
-  "@plasticSavedTitle": {
+  "plasticEstimateTitle": "Plastic-saving estimate: {value} kg",
+  "@plasticEstimateTitle": {
     "placeholders": {
       "value": {}
     }
   },
-  "localEstimateFromLogs": "Local estimate from {lifetimeMl} ml across {eventCount, plural, =1{1 saved log} other{{eventCount} saved logs}}.",
-  "@localEstimateFromLogs": {
+  "reusableContainerEstimateFromLogs": "Estimate assumes logged drinks used your reusable container: {lifetimeMl} ml across {eventCount, plural, =1{1 saved log} other{{eventCount} saved logs}}.",
+  "@reusableContainerEstimateFromLogs": {
     "placeholders": {
       "lifetimeMl": {
         "type": "int"
@@ -271,6 +306,7 @@
       }
     }
   },
+  "reusableContainerEstimateDisabled": "Enable reusable-container tracking in Settings before Hydrion estimates avoided disposable plastic.",
   "hydrationScoreTitle": "Hydration Score",
   "hydrationScoreSemantics": "Hydration score",
   "scoreOutOf100": "{score} out of 100",
@@ -288,9 +324,9 @@
       }
     }
   },
-  "hydrationTipExcellent": "Excellent hydration rhythm. Keep the streak alive.",
-  "hydrationTipGreat": "Great pace. Maintain consistent sips through the afternoon.",
-  "hydrationTipClose": "You are close. Add a bottle in the next hour to push over the top.",
+  "hydrationTipExcellent": "Goal reached. Needs vary, so keep the rest of the day steady.",
+  "hydrationTipGreat": "Great pace. Maintain comfortable, consistent sips.",
+  "hydrationTipClose": "You are close. A modest drink can help you reach your target.",
   "hydrationTipStart": "Start with 300 to 500 ml now and set a reminder.",
   "achievementStatusUnlocked": "unlocked",
   "achievementStatusLocked": "locked",
@@ -326,7 +362,7 @@
   "arCapabilityNoSession": "Hydrion still will not start a camera or native AR session until an adapter is configured.",
   "arNoPluginActive": "No AR plugin, camera permission, or native AR session is active.",
   "chatError": "Could not fetch coach reply",
-  "localFallbackCoach": "Local fallback coach",
+  "localFallbackCoach": "On-device coach",
   "providerCoachTitle": "Provider coach",
   "coachUserMessageLabel": "You",
   "coachReplyMessageLabel": "Coach",
@@ -351,9 +387,9 @@
       "activeProvider": {}
     }
   },
-  "coachProviderFallbackActive": "Using local_rules fallback. Provider output remains optional.",
+  "coachProviderFallbackActive": "Using on-device guidance. Provider output remains optional.",
   "coachProviderConsentRequired": "Gemini is configured but disabled until provider privacy consent is enabled. Hydration context stays on this device.",
-  "coachLocalProviderReady": "local_rules is active. Hydration context stays on this device.",
+  "coachLocalProviderReady": "On-device guidance is active. Hydration context stays on this device.",
   "coachContextBanner": "{mode}. Using saved on-device hydration data. Today: {todayMl} ml. Lifetime: {lifetimeMl} ml across {eventCount, plural, =1{1 log} other{{eventCount} logs}}. No cloud AI or ELKA is connected.",
   "providerCoachContextBanner": "{mode}. Using saved on-device hydration data. Today: {todayMl} ml. Lifetime: {lifetimeMl} ml across {eventCount, plural, =1{1 log} other{{eventCount} logs}}. Provider output is validated before Hydrion trusts it.",
   "@coachContextBanner": {
@@ -387,7 +423,7 @@
   "askCoachEmpty": "Ask for a hydration suggestion. Replies are deterministic local guidance based on saved logs.",
   "chatHint": "Ask your coach...",
   "coachFallbackNoticeLabel": "Fallback",
-  "coachFallbackNotice": "local_rules fallback handled this reply.",
+  "coachFallbackNotice": "On-device guidance handled this reply.",
   "suggestionHydrationLogTitle": "Hydration log suggestion",
   "suggestionReminderTitle": "Reminder suggestion",
   "suggestionChallengeTitle": "Challenge suggestion",

@@ -6,6 +6,7 @@ import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/reminder_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
+import 'package:hydrion/services/achievement_service.dart';
 import 'package:hydrion/services/ble_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -57,13 +58,22 @@ void main() {
     var reloaded = await HydrationRepository.load(
       await SharedPreferencesHydrionStore.create(),
     );
-    expect(reloaded.logs.single.volumeMl, 500);
+    final updatedLog = reloaded.logs.single;
+    expect(updatedLog.volumeMl, 500);
 
     expect(await reloaded.deleteLog(log.id), isTrue);
     reloaded = await HydrationRepository.load(
       await SharedPreferencesHydrionStore.create(),
     );
     expect(reloaded.logs, isEmpty);
+
+    expect(await reloaded.restoreLog(updatedLog), isTrue);
+    reloaded = await HydrationRepository.load(
+      await SharedPreferencesHydrionStore.create(),
+    );
+    expect(reloaded.logs.single.id, log.id);
+    expect(reloaded.logs.single.volumeMl, 500);
+    expect(reloaded.logs.single.timestamp, timestamp);
   });
 
   test('user locale persists across repository reloads', () async {
@@ -76,6 +86,21 @@ void main() {
     final secondRepository = await UserSettingsRepository.load(secondStore);
 
     expect(secondRepository.settings.locale, const Locale('fr', 'FR'));
+  });
+
+  test('user hydration preferences persist across repository reloads',
+      () async {
+    final firstStore = await SharedPreferencesHydrionStore.create();
+    final firstRepository = await UserSettingsRepository.load(firstStore);
+
+    expect(await firstRepository.setDailyGoalMl(1850), isTrue);
+    await firstRepository.setReusableContainerEnabled(true);
+
+    final secondStore = await SharedPreferencesHydrionStore.create();
+    final secondRepository = await UserSettingsRepository.load(secondStore);
+
+    expect(secondRepository.settings.dailyGoalMl, 1850);
+    expect(secondRepository.settings.reusableContainerEnabled, isTrue);
   });
 
   test('reminder definitions persist as app data', () async {
@@ -122,6 +147,7 @@ void main() {
     final services = await HydrionServices.fromStore(MemoryHydrionStore());
     final timestamp = DateTime.now();
 
+    expect(await services.settingsRepository.setDailyGoalMl(1800), isTrue);
     await services.wearables.syncHydration(500, timestamp);
 
     final logs = await services.wearables.fetchHydrationData(
@@ -136,10 +162,68 @@ void main() {
 
     expect(logs.single.volumeMl, 500);
     expect(summary.consumedMl, 500);
+    expect(summary.targetMl, 1800);
     expect(summary.entryCount, 1);
-    expect(plasticSavedKg, closeTo(0.01, 0.0001));
+    expect(plasticSavedKg, 0);
     expect(context.dailySummary.consumedMl, 500);
+    expect(context.dailySummary.targetMl, 1800);
     expect(context.eventCount, 1);
+
+    await services.settingsRepository.setReusableContainerEnabled(true);
+    expect(
+      await services.ecoTracker.getTotalPlasticSavedKg(),
+      closeTo(0.01, 0.0001),
+    );
+  });
+
+  test('achievements recalculate from current saved logs', () async {
+    final repository = HydrationRepository.memory();
+    const achievementService = AchievementService();
+    final now = DateTime(2026, 5, 23, 12);
+
+    final first = (await repository.addLog(
+      volumeMl: 600,
+      timestamp: now.subtract(const Duration(hours: 2)),
+      source: 'test',
+    ))!;
+    final second = (await repository.addLog(
+      volumeMl: 700,
+      timestamp: now.subtract(const Duration(hours: 1)),
+      source: 'test',
+    ))!;
+    final third = (await repository.addLog(
+      volumeMl: 900,
+      timestamp: now,
+      source: 'test',
+    ))!;
+
+    var achievements = achievementService.evaluate(
+      hydrationRepository: repository,
+      now: now,
+      activeGoalMl: 2200,
+    );
+    expect(achievements.dailyGoal.unlocked, isTrue);
+    expect(achievements.threeLogsToday.unlocked, isTrue);
+
+    expect(await repository.deleteLog(third.id), isTrue);
+    achievements = achievementService.evaluate(
+      hydrationRepository: repository,
+      now: now,
+      activeGoalMl: 2200,
+    );
+    expect(achievements.dailyGoal.unlocked, isFalse);
+    expect(achievements.threeLogsToday.unlocked, isFalse);
+
+    expect(await repository.restoreLog(third), isTrue);
+    achievements = achievementService.evaluate(
+      hydrationRepository: repository,
+      now: now,
+      activeGoalMl: 2200,
+    );
+    expect(repository.logs.map((log) => log.id), contains(first.id));
+    expect(repository.logs.map((log) => log.id), contains(second.id));
+    expect(achievements.dailyGoal.unlocked, isTrue);
+    expect(achievements.threeLogsToday.unlocked, isTrue);
   });
 
   test('coach and platform services report honest local fallback status',
@@ -158,7 +242,7 @@ void main() {
       digestKey: HydrationCoachDigestKey.weeklyDigest,
     );
 
-    expect(response, contains('local deterministic mode'));
+    expect(response, contains('on-device guidance'));
     expect(response, contains('Today: 750 ml'));
     expect(response, contains('across 1 saved log'));
     expect(services.notificationService.supportsOsNotifications, isFalse);

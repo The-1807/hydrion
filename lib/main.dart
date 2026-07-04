@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -53,7 +54,7 @@ class HydrionApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: services.hydrationRepository),
-        Provider.value(value: services.settingsRepository),
+        ChangeNotifierProvider.value(value: services.settingsRepository),
         ChangeNotifierProvider.value(value: services.reminderRepository),
         ChangeNotifierProvider.value(value: services.challengeRepository),
         Provider.value(value: services.coreBridge),
@@ -110,10 +111,14 @@ class HydrionApp extends StatelessWidget {
               '/analytics': (_) => const AnalyticsScreen(),
               '/chat': (_) => const ChatCoachScreen(),
               '/log': (_) => const LogScreen(),
-              '/reminders': (_) => const RemindersScreen(),
+              if (services.capabilityReporter.capabilities.osNotifications)
+                '/reminders': (_) => const RemindersScreen(),
               '/settings': (_) => const SettingsScreen(),
               '/challenges': (_) => const SocialChallengesScreen(),
-              '/ar': (_) => const ArVisualizationScreen(),
+              if (services.capabilityReporter.capabilities.arVisualization)
+                '/ar': (_) => const ArVisualizationScreen(),
+              if (kDebugMode)
+                '/debug-diagnostics': (_) => const DebugDiagnosticsScreen(),
             },
           );
         },
@@ -250,12 +255,14 @@ class HydrionServices {
     );
     final hydrationSummaryService = LocalHydrationSummaryService(
       hydrationRepository: hydrationRepository,
+      settingsRepository: settingsRepository,
     );
     final hydrationContextProvider = LocalHydrationContextProvider(
       hydrationRepository: hydrationRepository,
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
       capabilityReporter: capabilityReporter,
+      settingsRepository: settingsRepository,
     );
     const aiActionValidator = HydrationAiActionValidator();
     final localHydrationCoach = LocalHydrationCoach(
@@ -306,7 +313,11 @@ class HydrionServices {
     final voiceBridge = VoiceLLMBridge(commandParser: commandParser);
     final voice = VoiceService(voiceLLMBridge: voiceBridge);
     final wearables = WearableService(hydrationRepository: hydrationRepository);
-    final ecoTracker = EcoTracker(coreBridge: coreBridge);
+    final ecoTracker = EcoTracker(
+      coreBridge: coreBridge,
+      hydrationRepository: hydrationRepository,
+      settingsRepository: settingsRepository,
+    );
 
     return HydrionServices(
       aiRuntimeConfig: aiRuntimeConfig,
@@ -367,6 +378,7 @@ String _localizedHomeAdvice({
 }) {
   final hydration = hydrationPercent.clamp(0.0, 100.0);
   final advice = switch (hydration) {
+    >= 100.0 => l10n.homeAdviceGoalReached,
     >= 85.0 => l10n.homeAdviceStrong,
     >= 65.0 => l10n.homeAdviceClose,
     _ => l10n.homeAdviceStart,
