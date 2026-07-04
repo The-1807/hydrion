@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - apk-stabilization
   pull_request:
     branches:
       - main
@@ -174,14 +175,19 @@ jobs:
           exit "${exit_code}"
 
       - name: Generate complete Flutter test report
+        id: test_report
         if: always()
+        continue-on-error: true
         env:
           TEST_EXIT_CODE: ${{ steps.tests.outputs.exit_code }}
         run: |
+          set +e
+
           python3 - <<'PY'
           import json
           import os
           from pathlib import Path
+          from typing import Any, Iterator
 
           artifacts = Path(os.environ["CI_ARTIFACTS_DIRECTORY"])
           machine_path = artifacts / "flutter-test-machine.jsonl"
@@ -189,14 +195,36 @@ jobs:
           report_path = artifacts / "BUG_REPORT.md"
           readable_path = artifacts / "flutter-test-readable.log"
 
-          tests = {}
-          failures = []
-          errors_by_test = {}
-          stacks_by_test = {}
-          global_errors = []
-          suite_errors = []
-          malformed_lines = []
-          all_output = []
+          tests: dict[Any, dict[str, Any]] = {}
+          failures: list[dict[str, Any]] = []
+          errors_by_test: dict[Any, list[str]] = {}
+          stacks_by_test: dict[Any, list[str]] = {}
+          global_errors: list[dict[str, Any]] = []
+          suite_errors: list[dict[str, Any]] = []
+          malformed_lines: list[str] = []
+          unsupported_values: list[str] = []
+          all_output: list[str] = []
+
+          def as_mapping(value: Any) -> dict[str, Any]:
+              return value if isinstance(value, dict) else {}
+
+          def flatten_events(value: Any, origin: str) -> Iterator[dict[str, Any]]:
+              if isinstance(value, dict):
+                  yield value
+                  return
+
+              if isinstance(value, list):
+                  if not value:
+                      unsupported_values.append(f"{origin}: empty list")
+                      return
+
+                  for index, item in enumerate(value):
+                      yield from flatten_events(item, f"{origin}[{index}]")
+                  return
+
+              unsupported_values.append(
+                  f"{origin}: unsupported {type(value).__name__}: {value!r}"
+              )
 
           if machine_path.exists():
               with machine_path.open("r", encoding="utf-8", errors="replace") as stream:
@@ -206,37 +234,42 @@ jobs:
                           continue
 
                       try:
-                          event = json.loads(line)
-                      except json.JSONDecodeError:
+                          decoded = json.loads(line)
+                      except json.JSONDecodeError as error:
                           malformed_lines.append(
-                              f"Line {line_number}: {line}"
+                              f"Line {line_number}: {error.msg}: {line}"
                           )
                           continue
 
-                      if isinstance(event, list):
-                          all_output.append(
-                              f"PROTOCOL EVENT: {json.dumps(event, ensure_ascii=False)}"
-                          )
-                          continue
+                      for event in flatten_events(decoded, f"Line {line_number}"):
+                          event_type = event.get("type")
 
-                      if not isinstance(event, dict):
-                          malformed_lines.append(
-                              f"Line {line_number}: unsupported JSON value: {event!r}"
-                          )
-                          continue
+                          if not isinstance(event_type, str):
+                              unsupported_values.append(
+                                  f"Line {line_number}: event without string type: "
+                                  f"{json.dumps(event, ensure_ascii=False)}"
+                              )
+                              continue
 
-                      event_type = event.get("type")
+                          if event_type == "suite":
+                              suite = as_mapping(event.get("suite"))
+                              suite_path = suite.get(
+                                  "path",
+                                  suite.get("url", "unknown"),
+                              )
+                              all_output.append(f"SUITE: {suite_path}")
 
-                      if event_type == "suite":
-                          suite = event.get("suite", {})
-                          all_output.append(
-                              f"SUITE: {suite.get('path', suite.get('url', 'unknown'))}"
-                          )
+                          elif event_type == "testStart":
+                              test = as_mapping(event.get("test"))
+                              test_id = test.get("id")
 
-                      elif event_type == "testStart":
-                          test = event.get("test", {})
-                          test_id = test.get("id")
-                          if test_id is not None:
+                              if test_id is None:
+                                  unsupported_values.append(
+                                      f"Line {line_number}: testStart without test id: "
+                                      f"{json.dumps(event, ensure_ascii=False)}"
+                                  )
+                                  continue
+
                               tests[test_id] = {
                                   "name": test.get("name", "Unknown test"),
                                   "url": test.get("url", "Unknown file"),
@@ -248,105 +281,131 @@ jobs:
                                   f"({tests[test_id]['url']})"
                               )
 
-                      elif event_type == "print":
-                          message = event.get("message", "")
-                          test_id = event.get("testID")
-                          prefix = "PRINT"
-                          if test_id in tests:
-                              prefix = f"PRINT [{tests[test_id]['name']}]"
-                          all_output.append(f"{prefix}: {message}")
+                          elif event_type == "print":
+                              message = event.get("message", "")
+                              test_id = event.get("testID")
+                              prefix = "PRINT"
 
-                      elif event_type == "error":
-                          test_id = event.get("testID")
-                          error = event.get("error", "Unknown test error")
-                          stack = event.get("stackTrace", "")
-                          is_failure = event.get("isFailure", False)
+                              if test_id in tests:
+                                  prefix = f"PRINT [{tests[test_id]['name']}]"
 
-                          if test_id is None:
-                              global_errors.append(
-                                  {
-                                      "error": error,
-                                      "stack": stack,
-                                      "is_failure": is_failure,
-                                  }
+                              all_output.append(f"{prefix}: {message}")
+
+                          elif event_type == "error":
+                              test_id = event.get("testID")
+                              error_text = str(
+                                  event.get("error", "Unknown test error")
                               )
-                              all_output.append(f"GLOBAL ERROR: {error}")
-                              if stack:
-                                  all_output.append(stack)
+                              stack = str(event.get("stackTrace", "") or "")
+                              is_failure = bool(event.get("isFailure", False))
+
+                              if test_id is None:
+                                  global_errors.append(
+                                      {
+                                          "error": error_text,
+                                          "stack": stack,
+                                          "is_failure": is_failure,
+                                      }
+                                  )
+                                  all_output.append(f"GLOBAL ERROR: {error_text}")
+                                  if stack:
+                                      all_output.append(stack)
+                              else:
+                                  errors_by_test.setdefault(test_id, []).append(
+                                      error_text
+                                  )
+                                  if stack:
+                                      stacks_by_test.setdefault(test_id, []).append(
+                                          stack
+                                      )
+
+                                  test_name = tests.get(test_id, {}).get(
+                                      "name",
+                                      f"Unknown test {test_id}",
+                                  )
+                                  all_output.append(
+                                      f"ERROR [{test_name}]: {error_text}"
+                                  )
+                                  if stack:
+                                      all_output.append(stack)
+
+                          elif event_type == "testDone":
+                              test_id = event.get("testID")
+                              result = event.get("result", "unknown")
+                              hidden = bool(event.get("hidden", False))
+                              skipped = bool(event.get("skipped", False))
+                              test = tests.get(
+                                  test_id,
+                                  {
+                                      "name": f"Unknown test ID {test_id}",
+                                      "url": "Unknown file",
+                                      "line": None,
+                                      "column": None,
+                                  },
+                              )
+
+                              all_output.append(
+                                  f"DONE: {test['name']} -> {result}"
+                              )
+
+                              if result == "failure":
+                                  failures.append(
+                                      {
+                                          "id": test_id,
+                                          "name": test["name"],
+                                          "url": test["url"],
+                                          "line": test["line"],
+                                          "column": test["column"],
+                                          "errors": errors_by_test.get(test_id, []),
+                                          "stacks": stacks_by_test.get(test_id, []),
+                                          "hidden": hidden,
+                                          "skipped": skipped,
+                                      }
+                                  )
+
+                          elif event_type == "done":
+                              all_output.append(
+                                  f"COMPLETE: success={event.get('success')}"
+                              )
+
+                          elif event_type == "debug":
+                              all_output.append(
+                                  f"DEBUG: {event.get('message', '')}"
+                              )
+
+                          elif event_type == "group":
+                              group = as_mapping(event.get("group"))
+                              all_output.append(
+                                  f"GROUP: {group.get('name', 'unknown')}"
+                              )
+
+                          elif event_type == "allSuites":
+                              all_output.append(
+                                  f"ALL SUITES: count={event.get('count', 'unknown')}"
+                              )
+
+                          elif event_type == "suiteDone":
+                              suite_error = event.get("error")
+                              if suite_error:
+                                  suite_errors.append(
+                                      {
+                                          "suite_id": event.get("suiteID"),
+                                          "error": str(suite_error),
+                                          "stack": str(
+                                              event.get("stackTrace", "") or ""
+                                          ),
+                                      }
+                                  )
+
                           else:
-                              errors_by_test.setdefault(test_id, []).append(error)
-                              if stack:
-                                  stacks_by_test.setdefault(test_id, []).append(stack)
-                              test_name = tests.get(test_id, {}).get(
-                                  "name", f"Unknown test {test_id}"
+                              all_output.append(
+                                  f"EVENT [{event_type}]: "
+                                  f"{json.dumps(event, ensure_ascii=False)}"
                               )
-                              all_output.append(f"ERROR [{test_name}]: {error}")
-                              if stack:
-                                  all_output.append(stack)
-
-                      elif event_type == "testDone":
-                          test_id = event.get("testID")
-                          result = event.get("result", "unknown")
-                          hidden = event.get("hidden", False)
-                          skipped = event.get("skipped", False)
-                          test = tests.get(
-                              test_id,
-                              {
-                                  "name": f"Unknown test ID {test_id}",
-                                  "url": "Unknown file",
-                                  "line": None,
-                                  "column": None,
-                              },
-                          )
-
-                          all_output.append(
-                              f"DONE: {test['name']} -> {result}"
-                          )
-
-                          if result == "failure":
-                              failures.append(
-                                  {
-                                      "id": test_id,
-                                      "name": test["name"],
-                                      "url": test["url"],
-                                      "line": test["line"],
-                                      "column": test["column"],
-                                      "errors": errors_by_test.get(test_id, []),
-                                      "stacks": stacks_by_test.get(test_id, []),
-                                      "hidden": hidden,
-                                      "skipped": skipped,
-                                  }
-                              )
-
-                      elif event_type == "done":
-                          all_output.append(
-                              f"COMPLETE: success={event.get('success')}"
-                          )
-
-                      elif event_type == "debug":
-                          message = event.get("message", "")
-                          all_output.append(f"DEBUG: {message}")
-
-                      elif event_type == "group":
-                          group = event.get("group", {})
-                          all_output.append(
-                              f"GROUP: {group.get('name', 'unknown')}"
-                          )
-
-                      elif event_type == "allSuites":
-                          all_output.append(
-                              f"ALL SUITES: count={event.get('count', 'unknown')}"
-                          )
-
-                      elif event_type == "suiteDone":
-                          if event.get("error"):
-                              suite_errors.append(
-                                  {
-                                      "suite_id": event.get("suiteID"),
-                                      "error": event.get("error"),
-                                      "stack": event.get("stackTrace", ""),
-                                  }
-                              )
+          else:
+              unsupported_values.append(
+                  f"Machine-output file does not exist: {machine_path}"
+              )
 
           stderr_text = ""
           if stderr_path.exists():
@@ -355,18 +414,47 @@ jobs:
                   errors="replace",
               )
 
+          readable_sections = ["\n".join(all_output)]
+
+          if unsupported_values:
+              readable_sections.append(
+                  "UNSUPPORTED OR INCOMPLETE PROTOCOL VALUES\n"
+                  "=========================================\n"
+                  + "\n".join(unsupported_values)
+              )
+
+          if malformed_lines:
+              readable_sections.append(
+                  "MALFORMED JSON LINES\n"
+                  "====================\n"
+                  + "\n".join(malformed_lines)
+              )
+
+          if stderr_text:
+              readable_sections.append(
+                  "STDERR\n"
+                  "======\n"
+                  + stderr_text
+              )
+
           readable_path.write_text(
-              "\n".join(all_output)
-              + ("\n\nSTDERR\n======\n" + stderr_text if stderr_text else ""),
+              "\n\n".join(section for section in readable_sections if section),
               encoding="utf-8",
           )
 
-          test_exit = os.environ.get("TEST_EXIT_CODE", "not-run")
-          timeout_detected = any(
-              "timeout" in error.lower()
-              for failure in failures
-              for error in failure["errors"]
-          ) or "timeout" in stderr_text.lower()
+          test_exit = os.environ.get("TEST_EXIT_CODE") or "not-run"
+          timeout_detected = (
+              any(
+                  "timeout" in error.casefold()
+                  for failure in failures
+                  for error in failure["errors"]
+              )
+              or any(
+                  "timeout" in item["error"].casefold()
+                  for item in global_errors
+              )
+              or "timeout" in stderr_text.casefold()
+          )
 
           with report_path.open("w", encoding="utf-8") as report:
               report.write("# Hydrion Flutter Test Bug Report\n\n")
@@ -389,6 +477,18 @@ jobs:
               report.write(f"| Test exit code | `{test_exit}` |\n")
               report.write(f"| Failed tests | `{len(failures)}` |\n")
               report.write(
+                  f"| Global errors | `{len(global_errors)}` |\n"
+              )
+              report.write(
+                  f"| Suite errors | `{len(suite_errors)}` |\n"
+              )
+              report.write(
+                  f"| Malformed lines | `{len(malformed_lines)}` |\n"
+              )
+              report.write(
+                  f"| Unsupported values | `{len(unsupported_values)}` |\n"
+              )
+              report.write(
                   f"| Timeout detected | `{'yes' if timeout_detected else 'no'}` |\n"
               )
               report.write("\n")
@@ -400,17 +500,25 @@ jobs:
                           "- One or more tests failed with a timeout or hanging-test signal.\n"
                       )
                   report.write(
-                      "- Each failed test below requires triage before being converted into a GitHub issue.\n"
+                      "- Structured failed-test events were detected and require triage.\n"
                   )
               elif test_exit != "0":
                   report.write(
                       "- The test command failed, but no structured failed-test event was found.\n"
                   )
                   report.write(
-                      "- Review the global errors, suite errors, stderr, and malformed machine output sections.\n"
+                      "- Review global errors, suite errors, stderr, malformed lines, "
+                      "and unsupported protocol values.\n"
                   )
               else:
                   report.write("- The complete Flutter test suite passed.\n")
+
+              if malformed_lines or unsupported_values:
+                  report.write(
+                      "- The machine-output stream also contained malformed, empty, "
+                      "unsupported, or incomplete values retained as evidence.\n"
+                  )
+
               report.write("\n")
 
               report.write("## Failed tests\n\n")
@@ -428,9 +536,9 @@ jobs:
 
                       report.write("#### Errors\n\n")
                       if failure["errors"]:
-                          for error in failure["errors"]:
+                          for error_text in failure["errors"]:
                               report.write("```text\n")
-                              report.write(error.rstrip())
+                              report.write(error_text.rstrip())
                               report.write("\n```\n\n")
                       else:
                           report.write(
@@ -462,16 +570,22 @@ jobs:
                   report.write("## Test suite errors\n\n")
                   for item in suite_errors:
                       report.write("```text\n")
-                      report.write(str(item["error"]).rstrip())
+                      report.write(item["error"].rstrip())
                       if item["stack"]:
                           report.write("\n\n")
-                          report.write(str(item["stack"]).rstrip())
+                          report.write(item["stack"].rstrip())
                       report.write("\n```\n\n")
 
               if malformed_lines:
                   report.write("## Malformed machine-output lines\n\n")
                   report.write("```text\n")
                   report.write("\n".join(malformed_lines))
+                  report.write("\n```\n\n")
+
+              if unsupported_values:
+                  report.write("## Unsupported or incomplete protocol values\n\n")
+                  report.write("```text\n")
+                  report.write("\n".join(unsupported_values))
                   report.write("\n```\n\n")
 
               report.write("## Test runner stderr\n\n")
@@ -489,9 +603,16 @@ jobs:
               report.write("- `coverage/lcov.info`, when generated\n")
 
           print(
-              f"Generated {report_path} with {len(failures)} structured failures."
+              f"Generated {report_path} with "
+              f"{len(failures)} structured failures, "
+              f"{len(malformed_lines)} malformed lines, and "
+              f"{len(unsupported_values)} unsupported values."
           )
           PY
+
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> "${GITHUB_OUTPUT}"
+          exit "${exit_code}"
 
       - name: Generate CI quality summary
         if: always()
@@ -500,6 +621,7 @@ jobs:
           ANALYZE_EXIT: ${{ steps.analyze.outputs.exit_code }}
           TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
           OUTDATED_EXIT: ${{ steps.outdated.outputs.exit_code }}
+          REPORT_EXIT: ${{ steps.test_report.outputs.exit_code }}
         run: |
           python3 - <<'PY'
           import os
@@ -509,20 +631,24 @@ jobs:
           summary_path = artifacts / "CI_SUMMARY.md"
 
           checks = [
-              ("Secret hygiene scan", os.environ.get("SECRET_EXIT") or "not-run"),
-              ("Flutter analyze", os.environ.get("ANALYZE_EXIT") or "not-run"),
-              ("Flutter tests", os.environ.get("TEST_EXIT") or "not-run"),
-              ("Dependency audit", os.environ.get("OUTDATED_EXIT") or "not-run"),
+              ("Secret hygiene scan", os.environ.get("SECRET_EXIT") or "not-run", True),
+              ("Flutter analyze", os.environ.get("ANALYZE_EXIT") or "not-run", True),
+              ("Flutter tests", os.environ.get("TEST_EXIT") or "not-run", True),
+              ("Dependency audit", os.environ.get("OUTDATED_EXIT") or "not-run", False),
+              ("Test report generation", os.environ.get("REPORT_EXIT") or "not-run", False),
           ]
 
           with summary_path.open("w", encoding="utf-8") as summary:
               summary.write("# Hydrion CI Audit\n\n")
-              summary.write("| Check | Exit code | Result |\n")
-              summary.write("|---|---:|---|\n")
+              summary.write("| Check | Exit code | Result | Gate |\n")
+              summary.write("|---|---:|---|---|\n")
 
-              for name, exit_code in checks:
+              for name, exit_code, blocking in checks:
                   result = "Passed" if exit_code == "0" else "Failed or not completed"
-                  summary.write(f"| {name} | `{exit_code}` | {result} |\n")
+                  gate = "Blocking" if blocking else "Diagnostic"
+                  summary.write(
+                      f"| {name} | `{exit_code}` | {result} | {gate} |\n"
+                  )
 
               summary.write("\n")
               summary.write(
