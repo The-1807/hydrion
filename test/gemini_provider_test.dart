@@ -75,7 +75,7 @@ void main() {
     );
     final health = services.providerHealthReporter.providerHealth;
 
-    expect(response, contains('local deterministic mode'));
+    expect(response, contains('on-device guidance'));
     expect(health.activeProvider, HydrionAiProviderKind.localRules);
     expect(health.diagnostic.responseEnvelopePhase,
         ProviderDiagnosticCodes.noApiKey);
@@ -834,7 +834,7 @@ void main() {
       digestKey: HydrationCoachDigestKey.weeklyDigest,
     );
 
-    expect(response, contains('local deterministic mode'));
+    expect(response, contains('on-device guidance'));
   });
 
   test('selecting Gemini without configuration still falls back locally',
@@ -855,7 +855,7 @@ void main() {
       digestKey: HydrationCoachDigestKey.weeklyDigest,
     );
 
-    expect(response, contains('local deterministic mode'));
+    expect(response, contains('on-device guidance'));
   });
 
   test('configured Gemini does not receive context until consent is enabled',

@@ -12,6 +12,8 @@ class LogScreen extends StatefulWidget {
 }
 
 class _LogScreenState extends State<LogScreen> {
+  final Set<String> _deletingLogIds = <String>{};
+
   Future<void> _editLog(HydrationLog log) async {
     final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
@@ -41,6 +43,12 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   Future<void> _deleteLog(HydrationLog log) async {
+    if (_deletingLogIds.contains(log.id)) {
+      return;
+    }
+    setState(() {
+      _deletingLogIds.add(log.id);
+    });
     final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
@@ -48,9 +56,30 @@ class _LogScreenState extends State<LogScreen> {
     if (!mounted) {
       return;
     }
+    setState(() {
+      _deletingLogIds.remove(log.id);
+    });
     messenger.showSnackBar(
       SnackBar(
         content: Text(deleted ? l10n.hydrationLogDeleted : l10n.logNotFound),
+        action: deleted
+            ? SnackBarAction(
+                label: l10n.undo,
+                onPressed: () async {
+                  final restored = await repository.restoreLog(log);
+                  if (!mounted) {
+                    return;
+                  }
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        restored ? l10n.hydrationLogRestored : l10n.logNotFound,
+                      ),
+                    ),
+                  );
+                },
+              )
+            : null,
       ),
     );
   }
@@ -102,7 +131,8 @@ class _LogScreenState extends State<LogScreen> {
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final log = data[index];
-                  final timestamp = _formatTimestamp(log.timestamp);
+                  final timestamp = _formatTimestamp(context, log.timestamp);
+                  final deleting = _deletingLogIds.contains(log.id);
 
                   return ListTile(
                     leading: const Icon(Icons.local_drink),
@@ -130,7 +160,7 @@ class _LogScreenState extends State<LogScreen> {
                           key: Key('delete-log-${log.id}'),
                           icon: const Icon(Icons.delete_outline),
                           tooltip: l10n.deleteLogTooltip,
-                          onPressed: () => _deleteLog(log),
+                          onPressed: deleting ? null : () => _deleteLog(log),
                         ),
                       ],
                     ),
@@ -141,12 +171,23 @@ class _LogScreenState extends State<LogScreen> {
     );
   }
 
-  String _formatTimestamp(DateTime time) {
-    final date =
-        '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')}';
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$date $hour:$minute';
+  String _formatTimestamp(BuildContext context, DateTime time) {
+    final local = time.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(local.year, local.month, local.day);
+    final l10n = AppLocalizations.of(context);
+    final material = MaterialLocalizations.of(context);
+    final dayLabel = day == today
+        ? l10n.today
+        : day == today.subtract(const Duration(days: 1))
+            ? l10n.yesterday
+            : material.formatMediumDate(local);
+    final timeLabel = material.formatTimeOfDay(
+      TimeOfDay.fromDateTime(local),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+    );
+    return l10n.relativeDateTime(date: dayLabel, time: timeLabel);
   }
 
   String _sourceLabel(String source, AppLocalizations l10n) {

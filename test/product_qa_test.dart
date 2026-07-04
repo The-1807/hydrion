@@ -25,6 +25,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> openDebugDiagnostics(WidgetTester tester) async {
+    await tester.scrollUntilVisible(
+      find.text('Debug diagnostics'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Debug diagnostics'));
+    await tester.pumpAndSettle();
+  }
+
   HydrionServices geminiSuccessServices({
     String response = 'Gemini says: take a few steady sips.',
   }) {
@@ -114,23 +125,34 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Standalone local mode'), findsOneWidget);
-    expect(find.text('AI provider status'), findsOneWidget);
-    expect(find.text('Provider privacy'), findsOneWidget);
-    expect(find.text('local_rules'), findsWidgets);
-    expect(
-      find.text('local_rules keeps hydration context on this device.'),
-      findsOneWidget,
-    );
+    expect(find.text('Language choice is saved locally.'), findsOneWidget);
+    expect(find.text('Daily hydration goal'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('Runtime feature status'),
+      find.text('Reusable container'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
+    expect(find.text('Reusable container'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Local-first privacy'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Local-first privacy'), findsOneWidget);
+    expect(find.text('AI provider status'), findsNothing);
+    expect(find.text('Provider privacy'), findsNothing);
+    expect(find.text('local_rules'), findsNothing);
+
+    await openDebugDiagnostics(tester);
+
+    expect(find.text('AI provider status'), findsOneWidget);
+    expect(find.text('On-device guidance'), findsWidgets);
     expect(find.text('Runtime feature status'), findsOneWidget);
     expect(find.text('Local persistence'), findsOneWidget);
     expect(find.text('ELKA adapter'), findsOneWidget);
-    expect(find.text('Unconfigured'), findsOneWidget);
+    expect(find.text('Unconfigured'), findsWidgets);
     expect(find.text('Cloud AI'), findsOneWidget);
     expect(find.text('Voice input'), findsOneWidget);
     expect(find.text('Disabled'), findsWidgets);
@@ -151,10 +173,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Gemini provider configured'), findsOneWidget);
-    expect(find.text('AI provider status'), findsOneWidget);
-    expect(find.text('Gemini'), findsWidgets);
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
-    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Gemini is configured but disabled until provider privacy consent is enabled.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('AI provider status'), findsNothing);
+    expect(find.text('Endpoint host'), findsNothing);
+
+    await openDebugDiagnostics(tester);
+
     expect(find.text('Gemini health'), findsOneWidget);
     expect(find.text('Gemini configured'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -194,10 +223,12 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
 
-    expect(find.text('AI provider status'), findsOneWidget);
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
-    await tester.pumpAndSettle();
-    expect(find.text('Using local_rules fallback'), findsOneWidget);
+    expect(find.text('AI provider status'), findsNothing);
+    expect(find.textContaining('no_api_key'), findsNothing);
+
+    await openDebugDiagnostics(tester);
+
+    expect(find.text('Using on-device guidance'), findsOneWidget);
     await tester.tap(find.text('Gemini diagnostics'));
     await tester.pumpAndSettle();
     expect(find.textContaining('no_api_key'), findsWidgets);
@@ -216,7 +247,16 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
 
-    expect(find.text('AI provider status'), findsOneWidget);
+    expect(find.text('AI provider status'), findsNothing);
+    expect(find.text('Selected provider'), findsNothing);
+    expect(find.text('Active provider'), findsNothing);
+    expect(find.text('Gemini provider configured'), findsOneWidget);
+    expect(find.text('Endpoint host'), findsNothing);
+    expect(find.text('API key fingerprint'), findsNothing);
+    expect(find.text(fullKey), findsNothing);
+
+    await openDebugDiagnostics(tester);
+
     expect(find.text('Selected provider'), findsOneWidget);
     expect(find.text('Active provider'), findsOneWidget);
     expect(find.text('Gemini configured'), findsOneWidget);
@@ -225,15 +265,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('success'), findsOneWidget);
-    expect(find.text('local_rules fallback is available'), findsOneWidget);
-    expect(find.text(fullKey), findsNothing);
+    expect(find.text('On-device guidance is available'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('Gemini diagnostics'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Gemini diagnostics'));
     await tester.pumpAndSettle();
     expect(find.text('Endpoint host'), findsOneWidget);
@@ -290,9 +323,16 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
 
-    expect(find.text('AI provider status'), findsOneWidget);
-    expect(find.text('Gemini configured'), findsOneWidget);
-    expect(find.text('local_rules fallback is available'), findsOneWidget);
+    expect(find.text('Gemini provider configured'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Local-first privacy'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Local-first privacy'), findsOneWidget);
+    expect(find.text('AI provider status'), findsNothing);
+    expect(find.text('local_rules'), findsNothing);
   });
 
   testWidgets('product QA: Spanish provider status strings render',
@@ -304,18 +344,11 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Estado del proveedor de IA'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
 
-    expect(find.text('Estado del proveedor de IA'), findsOneWidget);
-    expect(find.text('Gemini configurado'), findsOneWidget);
+    expect(find.textContaining('Proveedor Gemini'), findsWidgets);
     expect(
-      find.text('El respaldo local_rules está disponible'),
-      findsOneWidget,
+      find.text('local_rules'),
+      findsNothing,
     );
   });
 
@@ -328,19 +361,8 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.textContaining('fournisseur IA'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('État du fournisseur IA'), findsOneWidget);
-    expect(find.text('Gemini configuré'), findsOneWidget);
-    expect(
-      find.text('Le repli local_rules est disponible'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Fournisseur Gemini'), findsWidgets);
+    expect(find.text('local_rules'), findsNothing);
   });
 
   testWidgets('product QA: empty states are reachable and explicit',
@@ -361,13 +383,9 @@ void main() {
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/reminders')));
-    await tester.tap(find.byKey(const Key('route-/reminders')));
-    await tester.pumpAndSettle();
-    expect(find.text('No local reminders saved'), findsOneWidget);
+    expect(find.byKey(const Key('route-/reminders')), findsNothing);
+    expect(find.byKey(const Key('route-/ar')), findsNothing);
 
-    await tester.pageBack();
-    await tester.pumpAndSettle();
     await scrollToHomeItem(tester, find.byKey(const Key('route-/challenges')));
     await tester.tap(find.byKey(const Key('route-/challenges')));
     await tester.pumpAndSettle();
@@ -381,9 +399,9 @@ void main() {
     await tester.tap(find.byKey(const Key('route-/chat')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Local fallback coach'), findsOneWidget);
+    expect(find.text('On-device coach'), findsOneWidget);
     expect(
-      find.textContaining('local_rules is active'),
+      find.textContaining('On-device guidance is active'),
       findsOneWidget,
     );
 
@@ -395,7 +413,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('Hydrion is running in local deterministic mode'),
+      find.textContaining('Hydrion is using on-device guidance'),
       findsOneWidget,
     );
   });

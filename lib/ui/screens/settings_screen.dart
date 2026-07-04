@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -30,11 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l10n = AppLocalizations.of(context);
     final permissions = context.read<Permissions>();
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
-    final providerHealth =
-        context.watch<ProviderHealthReporter>().providerHealth;
-    final settingsRepository = context.read<UserSettingsRepository>();
-    final nonLocalProviderConsentGranted =
-        settingsRepository.settings.nonLocalProviderConsentGranted;
+    final settings = context.watch<UserSettingsRepository>().settings;
 
     return Scaffold(
       appBar: AppBar(
@@ -114,6 +111,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
+          _DailyGoalCard(settings: settings),
+          const SizedBox(height: 12),
+          _ReusableContainerCard(settings: settings),
+          const SizedBox(height: 12),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -163,14 +164,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          _ProviderHealthCard(
-            health: providerHealth,
-            nonLocalProviderConsentGranted: nonLocalProviderConsentGranted,
-            onNonLocalProviderConsentChanged:
-                _setNonLocalProviderConsentGranted,
-          ),
-          const SizedBox(height: 12),
-          _CapabilityStatusCard(capabilities: capabilities),
+          _LocalFirstPrivacyCard(capabilities: capabilities),
+          if (kDebugMode) ...[
+            const SizedBox(height: 12),
+            const _DebugDiagnosticsCard(),
+          ],
         ],
       ),
     );
@@ -191,7 +189,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _ => l10n.futureLanguagesNote,
     };
   }
+}
 
+class DebugDiagnosticsScreen extends StatefulWidget {
+  const DebugDiagnosticsScreen({super.key});
+
+  @override
+  State<DebugDiagnosticsScreen> createState() => _DebugDiagnosticsScreenState();
+}
+
+class _DebugDiagnosticsScreenState extends State<DebugDiagnosticsScreen> {
   Future<void> _setNonLocalProviderConsentGranted(bool value) async {
     final settingsRepository = context.read<UserSettingsRepository>();
     final providerHealthReporter = context.read<ProviderHealthReporter>();
@@ -210,6 +217,243 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final capabilities = context.watch<AppCapabilityReporter>().capabilities;
+    final providerHealth =
+        context.watch<ProviderHealthReporter>().providerHealth;
+    final settings = context.watch<UserSettingsRepository>().settings;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.debugDiagnosticsTitle),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _ProviderHealthCard(
+            health: providerHealth,
+            nonLocalProviderConsentGranted:
+                settings.nonLocalProviderConsentGranted,
+            onNonLocalProviderConsentChanged:
+                _setNonLocalProviderConsentGranted,
+          ),
+          const SizedBox(height: 12),
+          _CapabilityStatusCard(capabilities: capabilities),
+        ],
+      ),
+    );
+  }
+}
+
+class _DailyGoalCard extends StatefulWidget {
+  final UserSettings settings;
+
+  const _DailyGoalCard({required this.settings});
+
+  @override
+  State<_DailyGoalCard> createState() => _DailyGoalCardState();
+}
+
+class _DailyGoalCardState extends State<_DailyGoalCard> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.settings.dailyGoalMl.toString(),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _DailyGoalCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final current = widget.settings.dailyGoalMl.toString();
+    if (_controller.text != current) {
+      _controller.text = current;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final parsed = int.tryParse(_controller.text.trim());
+    if (parsed == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.dailyGoalInvalid)),
+      );
+      return;
+    }
+    final saved =
+        await context.read<UserSettingsRepository>().setDailyGoalMl(parsed);
+    if (!mounted) {
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(saved ? l10n.dailyGoalUpdated : l10n.dailyGoalInvalid),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.flag_outlined),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.dailyGoalTitle,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.dailyGoalDescription,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const Key('settings-daily-goal-field'),
+                    controller: _controller,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: l10n.dailyGoalFieldLabel,
+                      helperText: l10n.dailyGoalRange(
+                        minMl: UserSettings.minDailyGoalMl,
+                        maxMl: UserSettings.maxDailyGoalMl,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 56,
+                  child: FilledButton(
+                    key: const Key('settings-daily-goal-save'),
+                    onPressed: _save,
+                    child: Text(l10n.save),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReusableContainerCard extends StatelessWidget {
+  final UserSettings settings;
+
+  const _ReusableContainerCard({required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Card(
+      child: SwitchListTile.adaptive(
+        key: const Key('settings-reusable-container-switch'),
+        secondary: const Icon(Icons.eco_outlined),
+        title: Text(l10n.reusableContainerTitle),
+        subtitle: Text(l10n.reusableContainerDescription),
+        value: settings.reusableContainerEnabled,
+        onChanged: (value) async {
+          await context
+              .read<UserSettingsRepository>()
+              .setReusableContainerEnabled(value);
+        },
+      ),
+    );
+  }
+}
+
+class _LocalFirstPrivacyCard extends StatelessWidget {
+  final AppCapabilities capabilities;
+
+  const _LocalFirstPrivacyCard({required this.capabilities});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.lock_outline),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.localFirstPrivacyTitle,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    capabilities.cloudAi
+                        ? l10n.optionalProviderConsumerDescription
+                        : l10n.localFirstPrivacyDescription,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DebugDiagnosticsCard extends StatelessWidget {
+  const _DebugDiagnosticsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.bug_report_outlined),
+        title: Text(l10n.debugDiagnosticsTitle),
+        subtitle: Text(l10n.debugDiagnosticsDescription),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).pushNamed('/debug-diagnostics'),
+      ),
+    );
   }
 }
 

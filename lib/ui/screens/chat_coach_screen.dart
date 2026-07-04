@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/hydration_repository.dart';
+import '../../repositories/settings_repository.dart';
 
 class ChatCoachScreen extends StatefulWidget {
   const ChatCoachScreen({super.key});
@@ -129,6 +130,7 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final hydrationRepository = context.watch<HydrationRepository>();
+    context.watch<UserSettingsRepository>();
     final todayMl = hydrationRepository.totalForDay(DateTime.now());
     final eventCount = hydrationRepository.eventCount;
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;

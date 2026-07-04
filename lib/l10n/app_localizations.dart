@@ -287,6 +287,12 @@ abstract class AppLocalizations {
   /// **'Start with 300 to 500 ml now, then check in again after your next drink.'**
   String get homeAdviceStart;
 
+  /// No description provided for @homeAdviceGoalReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You reached today\'s goal. Hydration needs vary, so keep the rest of the day steady and drink to thirst.'**
+  String get homeAdviceGoalReached;
+
   /// No description provided for @homeAdviceHeat.
   ///
   /// In en, this message translates to:
@@ -419,7 +425,7 @@ abstract class AppLocalizations {
   /// No description provided for @localDataNoProviderRuntime.
   ///
   /// In en, this message translates to:
-  /// **'Local data, local rules, no provider runtime.'**
+  /// **'Private on-device hydration tracking.'**
   String get localDataNoProviderRuntime;
 
   /// No description provided for @geminiProviderConfiguredDescription.
@@ -479,7 +485,7 @@ abstract class AppLocalizations {
   /// No description provided for @futureLanguagesNote.
   ///
   /// In en, this message translates to:
-  /// **'Future languages will appear after real ARB files are added.'**
+  /// **'Additional languages will appear only after complete translations are available.'**
   String get futureLanguagesNote;
 
   /// No description provided for @localeNameEnglish.
@@ -524,6 +530,84 @@ abstract class AppLocalizations {
   /// **'No platform permissions requested in standalone mode'**
   String get noPlatformPermissionsRequested;
 
+  /// No description provided for @dailyGoalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily hydration goal'**
+  String get dailyGoalTitle;
+
+  /// No description provided for @dailyGoalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the target Hydrion uses across Home, Analytics, Coach, and local challenges. Hydration needs vary by person and day.'**
+  String get dailyGoalDescription;
+
+  /// No description provided for @dailyGoalFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal in ml'**
+  String get dailyGoalFieldLabel;
+
+  /// No description provided for @dailyGoalRange.
+  ///
+  /// In en, this message translates to:
+  /// **'{minMl}-{maxMl} ml'**
+  String dailyGoalRange({required int minMl, required int maxMl});
+
+  /// No description provided for @dailyGoalUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily goal updated'**
+  String get dailyGoalUpdated;
+
+  /// No description provided for @dailyGoalInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a goal between 500 and 5000 ml'**
+  String get dailyGoalInvalid;
+
+  /// No description provided for @reusableContainerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reusable container'**
+  String get reusableContainerTitle;
+
+  /// No description provided for @reusableContainerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimate avoided disposable plastic only when logged drinks usually come from a reusable bottle or cup.'**
+  String get reusableContainerDescription;
+
+  /// No description provided for @localFirstPrivacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Local-first privacy'**
+  String get localFirstPrivacyTitle;
+
+  /// No description provided for @localFirstPrivacyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion works offline and keeps hydration logs, goals, language, and challenge progress on this device.'**
+  String get localFirstPrivacyDescription;
+
+  /// No description provided for @optionalProviderConsumerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional provider features stay off until you choose to enable them. Hydrion remains usable offline.'**
+  String get optionalProviderConsumerDescription;
+
+  /// No description provided for @debugDiagnosticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug diagnostics'**
+  String get debugDiagnosticsTitle;
+
+  /// No description provided for @debugDiagnosticsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer-only runtime details are available in debug builds.'**
+  String get debugDiagnosticsDescription;
+
   /// No description provided for @runtimeFeatureStatus.
   ///
   /// In en, this message translates to:
@@ -551,7 +635,7 @@ abstract class AppLocalizations {
   /// No description provided for @localRulesProvider.
   ///
   /// In en, this message translates to:
-  /// **'local_rules'**
+  /// **'On-device guidance'**
   String get localRulesProvider;
 
   /// No description provided for @geminiProvider.
@@ -599,13 +683,13 @@ abstract class AppLocalizations {
   /// No description provided for @providerFallbackReady.
   ///
   /// In en, this message translates to:
-  /// **'local_rules fallback is available'**
+  /// **'On-device guidance is available'**
   String get providerFallbackReady;
 
   /// No description provided for @providerFallbackInUse.
   ///
   /// In en, this message translates to:
-  /// **'Using local_rules fallback'**
+  /// **'Using on-device guidance'**
   String get providerFallbackInUse;
 
   /// No description provided for @providerFallbackCode.
@@ -647,7 +731,7 @@ abstract class AppLocalizations {
   /// No description provided for @providerPrivacyLocalOnly.
   ///
   /// In en, this message translates to:
-  /// **'local_rules keeps hydration context on this device.'**
+  /// **'On-device guidance keeps hydration context on this device.'**
   String get providerPrivacyLocalOnly;
 
   /// No description provided for @providerPrivacyGeminiDisclosure.
@@ -683,7 +767,7 @@ abstract class AppLocalizations {
   /// No description provided for @providerConsentDisabled.
   ///
   /// In en, this message translates to:
-  /// **'Disabled. Hydrion uses local_rules and does not send hydration context to Gemini.'**
+  /// **'Disabled. Hydrion uses on-device guidance and does not send hydration context to Gemini.'**
   String get providerConsentDisabled;
 
   /// No description provided for @providerGeminiHealth.
@@ -863,7 +947,7 @@ abstract class AppLocalizations {
   /// No description provided for @providerDiagnosticFallbackActive.
   ///
   /// In en, this message translates to:
-  /// **'local_rules fallback is active'**
+  /// **'On-device guidance is active'**
   String get providerDiagnosticFallbackActive;
 
   /// No description provided for @providerDiagnosticNotProven.
@@ -875,7 +959,7 @@ abstract class AppLocalizations {
   /// No description provided for @providerDiagnosticLocalRules.
   ///
   /// In en, this message translates to:
-  /// **'local_rules is active'**
+  /// **'On-device guidance is active'**
   String get providerDiagnosticLocalRules;
 
   /// No description provided for @yes.
@@ -1076,6 +1160,18 @@ abstract class AppLocalizations {
   /// **'Hydration log deleted'**
   String get hydrationLogDeleted;
 
+  /// No description provided for @hydrationLogRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration log restored'**
+  String get hydrationLogRestored;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
   /// No description provided for @logNotFound.
   ///
   /// In en, this message translates to:
@@ -1143,6 +1239,24 @@ abstract class AppLocalizations {
   String logSourceTimestamp(
       {required Object source, required Object timestamp});
 
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @relativeDateTime.
+  ///
+  /// In en, this message translates to:
+  /// **'{date}, {time}'**
+  String relativeDateTime({required Object date, required Object time});
+
   /// No description provided for @noAnalyticsYet.
   ///
   /// In en, this message translates to:
@@ -1167,11 +1281,11 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 local entry today. Data stays on this device.} other{{count} local entries today. Data stays on this device.}}'**
   String localEntriesToday({required int count});
 
-  /// No description provided for @badgeTwoLiterDay.
+  /// No description provided for @badgeDailyGoal.
   ///
   /// In en, this message translates to:
-  /// **'2L day'**
-  String get badgeTwoLiterDay;
+  /// **'Daily goal'**
+  String get badgeDailyGoal;
 
   /// No description provided for @badgeThreeLogsToday.
   ///
@@ -1185,18 +1299,24 @@ abstract class AppLocalizations {
   /// **'7 day streak'**
   String get badgeSevenDayStreak;
 
-  /// No description provided for @plasticSavedTitle.
+  /// No description provided for @plasticEstimateTitle.
   ///
   /// In en, this message translates to:
-  /// **'Plastic saved: {value} kg'**
-  String plasticSavedTitle({required Object value});
+  /// **'Plastic-saving estimate: {value} kg'**
+  String plasticEstimateTitle({required Object value});
 
-  /// No description provided for @localEstimateFromLogs.
+  /// No description provided for @reusableContainerEstimateFromLogs.
   ///
   /// In en, this message translates to:
-  /// **'Local estimate from {lifetimeMl} ml across {eventCount, plural, =1{1 saved log} other{{eventCount} saved logs}}.'**
-  String localEstimateFromLogs(
+  /// **'Estimate assumes logged drinks used your reusable container: {lifetimeMl} ml across {eventCount, plural, =1{1 saved log} other{{eventCount} saved logs}}.'**
+  String reusableContainerEstimateFromLogs(
       {required int lifetimeMl, required int eventCount});
+
+  /// No description provided for @reusableContainerEstimateDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable reusable-container tracking in Settings before Hydrion estimates avoided disposable plastic.'**
+  String get reusableContainerEstimateDisabled;
 
   /// No description provided for @hydrationScoreTitle.
   ///
@@ -1231,19 +1351,19 @@ abstract class AppLocalizations {
   /// No description provided for @hydrationTipExcellent.
   ///
   /// In en, this message translates to:
-  /// **'Excellent hydration rhythm. Keep the streak alive.'**
+  /// **'Goal reached. Needs vary, so keep the rest of the day steady.'**
   String get hydrationTipExcellent;
 
   /// No description provided for @hydrationTipGreat.
   ///
   /// In en, this message translates to:
-  /// **'Great pace. Maintain consistent sips through the afternoon.'**
+  /// **'Great pace. Maintain comfortable, consistent sips.'**
   String get hydrationTipGreat;
 
   /// No description provided for @hydrationTipClose.
   ///
   /// In en, this message translates to:
-  /// **'You are close. Add a bottle in the next hour to push over the top.'**
+  /// **'You are close. A modest drink can help you reach your target.'**
   String get hydrationTipClose;
 
   /// No description provided for @hydrationTipStart.
@@ -1322,7 +1442,7 @@ abstract class AppLocalizations {
   /// No description provided for @localFallbackCoach.
   ///
   /// In en, this message translates to:
-  /// **'Local fallback coach'**
+  /// **'On-device coach'**
   String get localFallbackCoach;
 
   /// No description provided for @providerCoachTitle.
@@ -1362,7 +1482,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachProviderFallbackActive.
   ///
   /// In en, this message translates to:
-  /// **'Using local_rules fallback. Provider output remains optional.'**
+  /// **'Using on-device guidance. Provider output remains optional.'**
   String get coachProviderFallbackActive;
 
   /// No description provided for @coachProviderConsentRequired.
@@ -1374,7 +1494,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachLocalProviderReady.
   ///
   /// In en, this message translates to:
-  /// **'local_rules is active. Hydration context stays on this device.'**
+  /// **'On-device guidance is active. Hydration context stays on this device.'**
   String get coachLocalProviderReady;
 
   /// No description provided for @coachContextBanner.
@@ -1418,7 +1538,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachFallbackNotice.
   ///
   /// In en, this message translates to:
-  /// **'local_rules fallback handled this reply.'**
+  /// **'On-device guidance handled this reply.'**
   String get coachFallbackNotice;
 
   /// No description provided for @suggestionHydrationLogTitle.

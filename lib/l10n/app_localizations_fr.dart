@@ -114,6 +114,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Commencez avec 300 à 500 ml maintenant, puis vérifiez après votre prochaine boisson.';
 
   @override
+  String get homeAdviceGoalReached =>
+      'Vous avez atteint l\'objectif du jour. Les besoins d\'hydratation varient, alors gardez un rythme confortable et buvez selon votre soif.';
+
+  @override
   String get homeAdviceHeat =>
       'La chaleur augmente vos besoins en hydratation.';
 
@@ -204,8 +208,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get geminiProviderConfiguredMode => 'Fournisseur Gemini configuré';
 
   @override
-  String get localDataNoProviderRuntime =>
-      'Données locales, règles locales, aucun runtime fournisseur.';
+  String get localDataNoProviderRuntime => 'Suivi privé sur cet appareil.';
 
   @override
   String get geminiProviderConfiguredDescription =>
@@ -242,7 +245,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get futureLanguagesNote =>
-      'Les futures langues apparaîtront après ajout de vrais fichiers ARB.';
+      'Les langues supplémentaires apparaîtront seulement quand les traductions seront complètes.';
 
   @override
   String get localeNameEnglish => 'Anglais';
@@ -268,6 +271,52 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucune autorisation plateforme demandée en mode autonome';
 
   @override
+  String get dailyGoalTitle => 'Objectif quotidien d\'hydratation';
+
+  @override
+  String get dailyGoalDescription =>
+      'Définissez l\'objectif utilisé par Hydrion dans Accueil, Analyses, Coach et défis locaux. Les besoins d\'hydratation varient selon la personne et le jour.';
+
+  @override
+  String get dailyGoalFieldLabel => 'Objectif en ml';
+
+  @override
+  String dailyGoalRange({required int minMl, required int maxMl}) {
+    return '$minMl-$maxMl ml';
+  }
+
+  @override
+  String get dailyGoalUpdated => 'Objectif quotidien mis à jour';
+
+  @override
+  String get dailyGoalInvalid => 'Saisissez un objectif entre 500 et 5000 ml';
+
+  @override
+  String get reusableContainerTitle => 'Contenant réutilisable';
+
+  @override
+  String get reusableContainerDescription =>
+      'Estimez le plastique jetable évité seulement quand les boissons enregistrées viennent habituellement d\'une bouteille ou tasse réutilisable.';
+
+  @override
+  String get localFirstPrivacyTitle => 'Confidentialité locale';
+
+  @override
+  String get localFirstPrivacyDescription =>
+      'Hydrion fonctionne hors ligne et garde les journaux, objectifs, langue et progression des défis sur cet appareil.';
+
+  @override
+  String get optionalProviderConsumerDescription =>
+      'Les fonctions optionnelles avec fournisseur restent désactivées jusqu\'à ce que vous les activiez. Hydrion reste utilisable hors ligne.';
+
+  @override
+  String get debugDiagnosticsTitle => 'Diagnostics de débogage';
+
+  @override
+  String get debugDiagnosticsDescription =>
+      'Les détails techniques de développement sont disponibles seulement dans les versions de débogage.';
+
+  @override
   String get runtimeFeatureStatus => 'État des fonctions runtime';
 
   @override
@@ -280,7 +329,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get activeProvider => 'Fournisseur actif';
 
   @override
-  String get localRulesProvider => 'local_rules';
+  String get localRulesProvider => 'Guide sur l\'appareil';
 
   @override
   String get geminiProvider => 'Gemini';
@@ -304,10 +353,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get providerFallbackState => 'État du repli';
 
   @override
-  String get providerFallbackReady => 'Le repli local_rules est disponible';
+  String get providerFallbackReady => 'Le guide sur l\'appareil est disponible';
 
   @override
-  String get providerFallbackInUse => 'Repli local_rules utilisé';
+  String get providerFallbackInUse => 'Guide sur l\'appareil utilisé';
 
   @override
   String get providerFallbackCode => 'Code de repli';
@@ -329,7 +378,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get providerPrivacyLocalOnly =>
-      'local_rules garde le contexte d\'hydratation sur cet appareil.';
+      'Le guide sur l\'appareil garde le contexte d\'hydratation sur cet appareil.';
 
   @override
   String get providerPrivacyGeminiDisclosure =>
@@ -352,7 +401,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get providerConsentDisabled =>
-      'Désactivé. Hydrion utilise local_rules et n\'envoie pas de contexte d\'hydratation à Gemini.';
+      'Désactivé. Hydrion utilise le guide sur l\'appareil et n\'envoie pas de contexte d\'hydratation à Gemini.';
 
   @override
   String get providerGeminiHealth => 'État Gemini';
@@ -445,14 +494,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get providerDiagnosticFallbackActive =>
-      'Le repli local_rules est actif';
+      'Le guide sur l\'appareil est actif';
 
   @override
   String get providerDiagnosticNotProven =>
       'Gemini est configuré, mais pas encore prouvé sain';
 
   @override
-  String get providerDiagnosticLocalRules => 'local_rules est actif';
+  String get providerDiagnosticLocalRules =>
+      'Le guide sur l\'appareil est actif';
 
   @override
   String get yes => 'Oui';
@@ -566,6 +616,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get hydrationLogDeleted => 'Journal hydratation supprimé';
 
   @override
+  String get hydrationLogRestored => 'Journal hydratation restauré';
+
+  @override
+  String get undo => 'Annuler';
+
+  @override
   String get logNotFound => 'Journal introuvable';
 
   @override
@@ -603,6 +659,17 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get today => 'Aujourd\'hui';
+
+  @override
+  String get yesterday => 'Hier';
+
+  @override
+  String relativeDateTime({required Object date, required Object time}) {
+    return '$date, $time';
+  }
+
+  @override
   String get noAnalyticsYet => 'Aucune analyse pour le moment';
 
   @override
@@ -628,7 +695,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get badgeTwoLiterDay => 'Jour 2 L';
+  String get badgeDailyGoal => 'Objectif quotidien';
 
   @override
   String get badgeThreeLogsToday => '3 journaux aujourd\'hui';
@@ -637,12 +704,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get badgeSevenDayStreak => 'Série 7 jours';
 
   @override
-  String plasticSavedTitle({required Object value}) {
-    return 'Plastique économisé : $value kg';
+  String plasticEstimateTitle({required Object value}) {
+    return 'Estimation de plastique évité : $value kg';
   }
 
   @override
-  String localEstimateFromLogs(
+  String reusableContainerEstimateFromLogs(
       {required int lifetimeMl, required int eventCount}) {
     String _temp0 = intl.Intl.pluralLogic(
       eventCount,
@@ -650,8 +717,12 @@ class AppLocalizationsFr extends AppLocalizations {
       other: '$eventCount journaux enregistrés',
       one: '1 journal enregistré',
     );
-    return 'Estimation locale à partir de $lifetimeMl ml sur $_temp0.';
+    return 'L\'estimation suppose que les boissons enregistrées utilisaient votre contenant réutilisable : $lifetimeMl ml sur $_temp0.';
   }
+
+  @override
+  String get reusableContainerEstimateDisabled =>
+      'Activez le suivi du contenant réutilisable dans Paramètres avant d\'estimer le plastique jetable évité.';
 
   @override
   String get hydrationScoreTitle => 'Score hydratation';
@@ -680,15 +751,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get hydrationTipExcellent =>
-      'Excellent rythme hydratation. Gardez la série active.';
+      'Objectif atteint. Les besoins varient ; gardez le reste de la journée stable.';
 
   @override
   String get hydrationTipGreat =>
-      'Très bon rythme. Gardez des gorgées régulières pendant l\'après-midi.';
+      'Très bon rythme. Gardez des gorgées confortables et régulières.';
 
   @override
   String get hydrationTipClose =>
-      'Vous êtes proche. Ajoutez une bouteille dans la prochaine heure pour dépasser l\'objectif.';
+      'Vous êtes proche. Une boisson modérée peut aider à atteindre l\'objectif.';
 
   @override
   String get hydrationTipStart =>
@@ -739,7 +810,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get chatError => 'Impossible d\'obtenir la réponse du coach';
 
   @override
-  String get localFallbackCoach => 'Coach local de secours';
+  String get localFallbackCoach => 'Coach sur l\'appareil';
 
   @override
   String get providerCoachTitle => 'Coach fournisseur';
@@ -772,7 +843,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get coachProviderFallbackActive =>
-      'Repli local_rules utilisé. La sortie du fournisseur reste optionnelle.';
+      'Guide sur l\'appareil utilisé. La sortie du fournisseur reste optionnelle.';
 
   @override
   String get coachProviderConsentRequired =>
@@ -780,7 +851,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get coachLocalProviderReady =>
-      'local_rules est actif. Le contexte hydratation reste sur cet appareil.';
+      'Le guide sur l\'appareil est actif. Le contexte hydratation reste sur cet appareil.';
 
   @override
   String coachContextBanner(
@@ -824,7 +895,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get coachFallbackNotice =>
-      'Le repli local_rules a traité cette réponse.';
+      'Le guide sur l\'appareil a traité cette réponse.';
 
   @override
   String get suggestionHydrationLogTitle => 'Suggestion de journal hydratation';

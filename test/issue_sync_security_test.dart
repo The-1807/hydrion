@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -29,16 +30,8 @@ void main() {
   test(
     'normal user-story metadata validates for issue sync',
     () async {
-      final result = await Process.run(
-        'powershell',
-        <String>[
-          '-NoProfile',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-File',
-          'Publish-HydrionUserStories.ps1',
-          '-ValidateOnly',
-        ],
+      final result = await _runIssueSyncValidation(
+        const <String>['-ValidateOnly'],
       );
 
       expect(
@@ -66,14 +59,8 @@ void main() {
       final unsafePath = '${tempDir.path}${Platform.pathSeparator}stories.md';
       File(unsafePath).writeAsStringSync(unsafeSource);
 
-      final result = await Process.run(
-        'powershell',
+      final result = await _runIssueSyncValidation(
         <String>[
-          '-NoProfile',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-File',
-          'Publish-HydrionUserStories.ps1',
           '-ValidateOnly',
           '-MarkdownPath',
           unsafePath,
@@ -87,6 +74,70 @@ void main() {
       expect(output, isNot(contains(fakeKey)));
     },
     skip: !Platform.isWindows,
+  );
+}
+
+class _IssueSyncResult {
+  final int exitCode;
+  final String stdout;
+  final String stderr;
+
+  const _IssueSyncResult({
+    required this.exitCode,
+    required this.stdout,
+    required this.stderr,
+  });
+}
+
+Future<_IssueSyncResult> _runIssueSyncValidation(List<String> arguments) async {
+  final tempDir = Directory.systemTemp.createTempSync('hydrion-gh-sentinel-');
+  addTearDown(() {
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
+  });
+
+  final sentinel = File('${tempDir.path}${Platform.pathSeparator}gh.cmd');
+  sentinel.writeAsStringSync(
+    '@echo off\r\n'
+    'echo gh must not be called during validation-only tests 1>&2\r\n'
+    'exit /b 97\r\n',
+  );
+
+  final path = Platform.environment['PATH'] ?? '';
+  final process = await Process.start(
+    'powershell.exe',
+    <String>[
+      '-NoLogo',
+      '-NoProfile',
+      '-NonInteractive',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-File',
+      'Publish-HydrionUserStories.ps1',
+      ...arguments,
+    ],
+    environment: <String, String>{
+      'PATH': '${tempDir.path}${Platform.pathSeparator}$path',
+    },
+  );
+  await process.stdin.close();
+
+  final stdoutFuture = process.stdout.transform(systemEncoding.decoder).join();
+  final stderrFuture = process.stderr.transform(systemEncoding.decoder).join();
+  final exitCodeFuture = process.exitCode.timeout(
+    const Duration(seconds: 25),
+    onTimeout: () {
+      process.kill();
+      throw TimeoutException('issue-sync validation did not terminate');
+    },
+  );
+
+  final exitCode = await exitCodeFuture;
+  return _IssueSyncResult(
+    exitCode: exitCode,
+    stdout: await stdoutFuture,
+    stderr: await stderrFuture,
   );
 }
 

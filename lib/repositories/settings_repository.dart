@@ -8,23 +8,35 @@ import 'storage_recovery.dart';
 class UserSettings {
   static const fallbackLocale = Locale('en');
   static const supportedLanguageCodes = <String>{'en', 'es', 'fr'};
+  static const defaultDailyGoalMl = 2200;
+  static const minDailyGoalMl = 500;
+  static const maxDailyGoalMl = 5000;
 
   final Locale locale;
   final bool nonLocalProviderConsentGranted;
+  final int dailyGoalMl;
+  final bool reusableContainerEnabled;
 
   const UserSettings({
     required this.locale,
     this.nonLocalProviderConsentGranted = false,
+    this.dailyGoalMl = defaultDailyGoalMl,
+    this.reusableContainerEnabled = false,
   });
 
   UserSettings copyWith({
     Locale? locale,
     bool? nonLocalProviderConsentGranted,
+    int? dailyGoalMl,
+    bool? reusableContainerEnabled,
   }) {
     return UserSettings(
       locale: locale ?? this.locale,
       nonLocalProviderConsentGranted:
           nonLocalProviderConsentGranted ?? this.nonLocalProviderConsentGranted,
+      dailyGoalMl: dailyGoalMl ?? this.dailyGoalMl,
+      reusableContainerEnabled:
+          reusableContainerEnabled ?? this.reusableContainerEnabled,
     );
   }
 
@@ -33,6 +45,8 @@ class UserSettings {
       'languageCode': locale.languageCode,
       'countryCode': locale.countryCode,
       'nonLocalProviderConsentGranted': nonLocalProviderConsentGranted,
+      'dailyGoalMl': dailyGoalMl,
+      'reusableContainerEnabled': reusableContainerEnabled,
     };
   }
 
@@ -46,6 +60,8 @@ class UserSettings {
         locale: fallbackLocale,
         nonLocalProviderConsentGranted:
             value['nonLocalProviderConsentGranted'] == true,
+        dailyGoalMl: _safeDailyGoal(value['dailyGoalMl']),
+        reusableContainerEnabled: value['reusableContainerEnabled'] == true,
       );
     }
     final countryCode = _countryCode(value['countryCode']);
@@ -53,6 +69,8 @@ class UserSettings {
       locale: Locale(languageCode, countryCode),
       nonLocalProviderConsentGranted:
           value['nonLocalProviderConsentGranted'] == true,
+      dailyGoalMl: _safeDailyGoal(value['dailyGoalMl']),
+      reusableContainerEnabled: value['reusableContainerEnabled'] == true,
     );
   }
 
@@ -74,9 +92,20 @@ class UserSettings {
     final countryCode = value.trim().toUpperCase();
     return countryCode.isEmpty ? null : countryCode;
   }
+
+  static int _safeDailyGoal(Object? value) {
+    if (value is! num || !value.isFinite) {
+      return defaultDailyGoalMl;
+    }
+    final goal = value.round();
+    if (goal < minDailyGoalMl || goal > maxDailyGoalMl) {
+      return defaultDailyGoalMl;
+    }
+    return goal;
+  }
 }
 
-class UserSettingsRepository {
+class UserSettingsRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.user_settings.v1';
   static const _category = 'user_settings';
   static const _currentSchemaVersion = 1;
@@ -96,11 +125,15 @@ class UserSettingsRepository {
   UserSettingsRepository.memory([
     Locale locale = UserSettings.fallbackLocale,
     bool nonLocalProviderConsentGranted = false,
+    int dailyGoalMl = UserSettings.defaultDailyGoalMl,
+    bool reusableContainerEnabled = false,
   ]) : this._(
           MemoryHydrionStore(),
           UserSettings(
             locale: locale,
             nonLocalProviderConsentGranted: nonLocalProviderConsentGranted,
+            dailyGoalMl: dailyGoalMl,
+            reusableContainerEnabled: reusableContainerEnabled,
           ),
         );
 
@@ -121,11 +154,30 @@ class UserSettingsRepository {
   Future<void> setLocale(Locale locale) async {
     _settings = _settings.copyWith(locale: locale);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> setNonLocalProviderConsentGranted(bool value) async {
     _settings = _settings.copyWith(nonLocalProviderConsentGranted: value);
     await _persist();
+    notifyListeners();
+  }
+
+  Future<bool> setDailyGoalMl(int value) async {
+    if (value < UserSettings.minDailyGoalMl ||
+        value > UserSettings.maxDailyGoalMl) {
+      return false;
+    }
+    _settings = _settings.copyWith(dailyGoalMl: value);
+    await _persist();
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> setReusableContainerEnabled(bool value) async {
+    _settings = _settings.copyWith(reusableContainerEnabled: value);
+    await _persist();
+    notifyListeners();
   }
 
   Future<void> _persist() async {
@@ -187,19 +239,36 @@ class UserSettingsRepository {
   }
 
   static List<StorageRecoveryEvent> _settingsRecoveryEvents(Map value) {
+    final events = <StorageRecoveryEvent>[];
     final languageCode = value['languageCode'];
-    if (languageCode is String &&
-        UserSettings.supportedLanguageCodes
+    if (languageCode is! String ||
+        !UserSettings.supportedLanguageCodes
             .contains(languageCode.trim().toLowerCase())) {
-      return const <StorageRecoveryEvent>[];
+      events.add(
+        const StorageRecoveryEvent(
+          category: _category,
+          code: StorageRecoveryCodes.invalidValue,
+          action: StorageRecoveryActions.fallbackDefaults,
+        ),
+      );
     }
-    return const <StorageRecoveryEvent>[
-      StorageRecoveryEvent(
-        category: _category,
-        code: StorageRecoveryCodes.invalidValue,
-        action: StorageRecoveryActions.fallbackDefaults,
-      ),
-    ];
+    final dailyGoal = value['dailyGoalMl'];
+    if (dailyGoal is num &&
+        dailyGoal.isFinite &&
+        dailyGoal.round() >= UserSettings.minDailyGoalMl &&
+        dailyGoal.round() <= UserSettings.maxDailyGoalMl) {
+      return events;
+    }
+    if (value.containsKey('dailyGoalMl')) {
+      events.add(
+        const StorageRecoveryEvent(
+          category: _category,
+          code: StorageRecoveryCodes.invalidValue,
+          action: StorageRecoveryActions.fallbackDefaults,
+        ),
+      );
+    }
+    return events;
   }
 }
 
