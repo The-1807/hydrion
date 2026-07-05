@@ -27,6 +27,7 @@ class LegalAboutScreen extends StatelessWidget {
                 'Version ${HydrionReleaseMetadata.flutterVersionName}',
               ),
               Text(HydrionReleaseMetadata.releaseDateLabel),
+              Text('Metadata status: ${HydrionReleaseMetadata.metadataStatus}'),
             ],
           ),
           SizedBox(height: 12),
@@ -48,15 +49,19 @@ class LegalAboutScreen extends StatelessWidget {
             title: 'Privacy',
             children: [
               Text(
-                'Hydrion stores hydration logs, settings, reminders, profile choices, avatar selection, and challenge state locally on this device.',
+                'Hydrion stores hydration logs, daily goal settings, reminder definitions and scheduling state, nickname, age, sex option, avatar selection, unit preference, container size, legal acknowledgement, and challenge state locally on this device.',
               ),
               SizedBox(height: 8),
               Text(
-                'Optional provider features must be configured and explicitly enabled before typed hydration context can leave the device.',
+                'Weather-informed goals request foreground location only after an explanation. Coordinates are used for the selected forecast provider lookup and are not kept as a location-history trail.',
               ),
               SizedBox(height: 8),
               Text(
-                'Hydrion does not store precise location history in this build.',
+                'Open-Meteo forecast requests may receive approximate latitude and longitude, and Hydrion caches only the daily forecast summary needed for the current local day.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Hydrion does not sell user data, does not sign users up for newsletters automatically, and does not send optional community links unless the user opens them.',
               ),
             ],
           ),
@@ -72,6 +77,10 @@ class LegalAboutScreen extends StatelessWidget {
               Text(
                 'Hydration needs vary. Stop or adjust a challenge if you feel unwell, and do not force fluids beyond your normal needs or professional health guidance.',
               ),
+              SizedBox(height: 8),
+              Text(
+                'Status: ${HydrionReleaseMetadata.healthSafetyStatus}',
+              ),
             ],
           ),
           SizedBox(height: 12),
@@ -86,6 +95,9 @@ class LegalAboutScreen extends StatelessWidget {
               Text(
                 'Use Hydrion responsibly, keep your own device secure, and review data before deleting local app storage.',
               ),
+              SizedBox(height: 8),
+              Text('Status: ${HydrionReleaseMetadata.termsStatus}'),
+              Text('Privacy status: ${HydrionReleaseMetadata.privacyStatus}'),
             ],
           ),
           SizedBox(height: 12),

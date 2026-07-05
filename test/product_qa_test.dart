@@ -389,7 +389,7 @@ void main() {
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('route-/reminders')), findsNothing);
+    expect(find.byKey(const Key('route-/reminders')), findsOneWidget);
     expect(find.byKey(const Key('route-/ar')), findsNothing);
 
     await scrollToHomeItem(tester, find.byKey(const Key('route-/challenges')));
@@ -442,6 +442,9 @@ HydrionServices _withOverrides(
     permissions: base.permissions,
     i18n: base.i18n,
     notificationService: base.notificationService,
+    locationService: base.locationService,
+    weatherForecastService: base.weatherForecastService,
+    dailyWeatherGoalCoordinator: base.dailyWeatherGoalCoordinator,
     hydrationSummaryService: base.hydrationSummaryService,
     hydrationContextProvider: base.hydrationContextProvider,
     aiActionValidator: base.aiActionValidator,

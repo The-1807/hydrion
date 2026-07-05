@@ -45,17 +45,16 @@ class _ReminderTileState extends State<ReminderTile> {
         return;
       }
       final capabilities = context.read<AppCapabilityReporter>().capabilities;
-      final notificationStatus = capabilities.osNotifications
-          ? l10n.osNotificationsAvailableSentence
-          : l10n.osNotificationsDisabledSentence;
+      final notificationStatus = reminder?.scheduleState.name ??
+          (capabilities.osNotifications
+              ? 'available'
+              : l10n.osNotificationsDisabledSentence);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             reminder == null
                 ? l10n.noLocalReminderNeeded
-                : l10n.localReminderSaved(
-                    notificationStatus: notificationStatus,
-                  ),
+                : 'Reminder saved; scheduling state: $notificationStatus.',
           ),
         ),
       );
@@ -81,27 +80,25 @@ class _ReminderTileState extends State<ReminderTile> {
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final nextReminder = reminders.isEmpty ? null : reminders.first;
     final scheduledAt = nextReminder?.triggerTime;
-    final notificationStatus = capabilities.osNotifications
-        ? l10n.osNotificationsAvailableSentence
-        : l10n.osNotificationsDisabledSentence;
+    final notificationStatus = nextReminder == null
+        ? (capabilities.osNotifications
+            ? 'Local notifications can be scheduled after permission.'
+            : l10n.osNotificationsDisabledSentence)
+        : 'Scheduling: ${nextReminder.scheduleState.name}.';
 
     return ListTile(
       leading: Icon(Icons.notifications, color: scheme.primary),
       title: Text(
-        l10n.localReminderDefinition,
+        'Hydration reminder',
         style: Theme.of(context).textTheme.titleMedium,
       ),
       subtitle: Text(
         scheduledAt == null
-            ? l10n.reminderTileNoSaved(
-                notificationStatus: notificationStatus,
-              )
-            : l10n.reminderTileSaved(
-                count: reminders.length,
-                time:
-                    '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
-                notificationStatus: notificationStatus,
-              ),
+            ? 'No reminders saved. $notificationStatus'
+            : '${reminders.length} saved. Next: '
+                '${scheduledAt.hour.toString().padLeft(2, '0')}:'
+                '${scheduledAt.minute.toString().padLeft(2, '0')}. '
+                '$notificationStatus',
         style: Theme.of(context)
             .textTheme
             .bodyMedium

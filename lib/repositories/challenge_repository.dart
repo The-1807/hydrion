@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
+import '../domain/challenge_catalog.dart';
+import '../domain/hydration_contracts.dart';
 import '../storage/local_store.dart';
 import 'hydration_repository.dart';
 import 'storage_recovery.dart';
@@ -169,7 +171,13 @@ class ChallengeRepository extends ChangeNotifier {
     }
 
     final today = DateTime.now();
-    final todayMl = hydrationRepository.totalForDay(today);
+    final catalogChallenge = HydrionChallengeCatalog.byId(challenge.id);
+    final objectiveType = catalogChallenge.objectiveType;
+    final todayMl = _objectiveTodayValue(
+      hydrationRepository,
+      today,
+      objectiveType,
+    );
     final targetMl = targetMlOverride ?? challenge.targetMl;
     var completedDays = 0;
 
@@ -182,7 +190,12 @@ class ChallengeRepository extends ChangeNotifier {
       if (day.isAfter(today)) {
         break;
       }
-      if (hydrationRepository.totalForDay(day) >= targetMl) {
+      if (_objectiveCompleteForDay(
+        hydrationRepository,
+        day,
+        objectiveType,
+        targetMl,
+      )) {
         completedDays += 1;
       }
     }
@@ -193,6 +206,44 @@ class ChallengeRepository extends ChangeNotifier {
       todayMl: todayMl,
       targetMl: targetMl,
     );
+  }
+
+  bool _objectiveCompleteForDay(
+    HydrationRepository hydrationRepository,
+    DateTime day,
+    ChallengeObjectiveType objectiveType,
+    int targetMl,
+  ) {
+    return switch (objectiveType) {
+      ChallengeObjectiveType.dailyGoalFromLogs =>
+        hydrationRepository.totalForDay(day) >= targetMl,
+      ChallengeObjectiveType.loggedWaterBeforeLunch =>
+        _waterBeforeLunchMl(hydrationRepository, day) > 0,
+      ChallengeObjectiveType.manualCheckIn => false,
+    };
+  }
+
+  int _objectiveTodayValue(
+    HydrationRepository hydrationRepository,
+    DateTime day,
+    ChallengeObjectiveType objectiveType,
+  ) {
+    return switch (objectiveType) {
+      ChallengeObjectiveType.loggedWaterBeforeLunch =>
+        _waterBeforeLunchMl(hydrationRepository, day),
+      ChallengeObjectiveType.dailyGoalFromLogs ||
+      ChallengeObjectiveType.manualCheckIn =>
+        hydrationRepository.totalForDay(day),
+    };
+  }
+
+  int _waterBeforeLunchMl(
+    HydrationRepository hydrationRepository,
+    DateTime day,
+  ) {
+    final start = DateTime(day.year, day.month, day.day);
+    final lunch = DateTime(day.year, day.month, day.day, 12);
+    return hydrationRepository.totalBetween(start, lunch);
   }
 
   static _ChallengeDecodeResult _decodeChallenge(String? raw) {

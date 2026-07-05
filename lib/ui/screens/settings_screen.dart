@@ -7,6 +7,8 @@ import '../../domain/hydration_contracts.dart';
 import '../../domain/release_metadata.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/settings_repository.dart';
+import '../../services/location_service.dart';
+import '../../services/notifications.dart';
 import '../../utils/i18n_resolver.dart';
 import '../../utils/permissions.dart';
 import '../components/hydrion_logo.dart';
@@ -117,6 +119,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           _DailyGoalCard(settings: settings),
           const SizedBox(height: 12),
+          _WeatherGoalSettingsCard(settings: settings),
+          const SizedBox(height: 12),
           _ReusableContainerCard(settings: settings),
           const SizedBox(height: 12),
           Card(
@@ -137,7 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          l10n.standalonePermissionsExplanation,
+                          'Hydrion asks for location and notification permission only after you use a feature that needs it. No permission prompt is shown on cold launch.',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],
@@ -444,6 +448,158 @@ class _DailyGoalCardState extends State<_DailyGoalCard> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _WeatherGoalSettingsCard extends StatelessWidget {
+  final UserSettings settings;
+
+  const _WeatherGoalSettingsCard({required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    final repository = context.read<UserSettingsRepository>();
+    final weatherEnabled = settings.goalMode == HydrionGoalMode.weatherInformed;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.wb_sunny_outlined),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Weather-informed goals',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Hydrion can use a one-time approximate location lookup and a daily forecast to suggest a conservative adjustment to your approved baseline. Coordinates are not stored as history.',
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<HydrionGoalMode>(
+              key: const Key('settings-goal-mode-selector'),
+              segments: const [
+                ButtonSegment(
+                  value: HydrionGoalMode.manual,
+                  icon: Icon(Icons.tune),
+                  label: Text('Manual'),
+                ),
+                ButtonSegment(
+                  value: HydrionGoalMode.weatherInformed,
+                  icon: Icon(Icons.wb_sunny_outlined),
+                  label: Text('Weather'),
+                ),
+              ],
+              selected: {settings.goalMode},
+              onSelectionChanged: (selection) async {
+                await repository.setGoalMode(selection.single);
+              },
+            ),
+            const SizedBox(height: 8),
+            Text(
+              weatherEnabled
+                  ? 'Current baseline: ${settings.baselineDailyGoalMl} ml. Current displayed goal: ${settings.dailyGoalMl} ml.'
+                  : 'Manual mode is active. Your baseline remains ${settings.baselineDailyGoalMl} ml.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: settings.weatherGoalDailyConfirmationEnabled,
+              onChanged: weatherEnabled
+                  ? (value) async {
+                      await repository
+                          .setWeatherGoalDailyConfirmationEnabled(value);
+                    }
+                  : null,
+              title: const Text('Confirm each daily recommendation'),
+              subtitle: Text(
+                settings.weatherGoalDailyConfirmationEnabled
+                    ? 'Hydrion will ask before applying a weather-adjusted goal.'
+                    : 'Eligible daily recommendations may auto-apply; restore confirmation any time.',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  key: const Key('settings-request-location'),
+                  onPressed: weatherEnabled
+                      ? () => _requestLocationPermission(context)
+                      : null,
+                  icon: const Icon(Icons.location_on_outlined),
+                  label: const Text('Allow location'),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('settings-request-notifications'),
+                  onPressed: weatherEnabled
+                      ? () => _requestNotificationPermission(context)
+                      : null,
+                  icon: const Icon(Icons.notifications_none),
+                  label: const Text('Allow notifications'),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('settings-open-app-settings'),
+                  onPressed: () async {
+                    await context
+                        .read<HydrionLocationService>()
+                        .openAppSettings();
+                  },
+                  icon: const Icon(Icons.settings_applications_outlined),
+                  label: const Text('App settings'),
+                ),
+              ],
+            ),
+            if (settings.lastWeatherGoalExplanation != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Last weather decision: ${settings.lastWeatherGoalExplanation}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _requestLocationPermission(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repository = context.read<UserSettingsRepository>();
+    final locationService = context.read<HydrionLocationService>();
+    await repository.recordLocationPermissionPrompt(DateTime.now());
+    final result = await locationService.requestPermission();
+    if (!context.mounted) {
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(content: Text('Location permission status: ${result.name}')),
+    );
+  }
+
+  Future<void> _requestNotificationPermission(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repository = context.read<UserSettingsRepository>();
+    final notificationService = context.read<NotificationService>();
+    await repository.recordNotificationPermissionPrompt(DateTime.now());
+    final result = await notificationService.requestPermission();
+    if (!context.mounted) {
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Notification permission status: ${result.name}'),
       ),
     );
   }
@@ -1079,7 +1235,9 @@ class _CapabilityStatusCard extends StatelessWidget {
             enabled: capabilities.osNotifications,
             enabledLabel: l10n.available,
             disabledLabel: l10n.disabled,
-            description: l10n.osNotificationsDescription,
+            description: capabilities.osNotifications
+                ? 'Android local reminders can be scheduled after notification permission is granted.'
+                : l10n.osNotificationsDescription,
           ),
           const Divider(height: 1),
           _CapabilityTile(

@@ -5,6 +5,7 @@ import '../../domain/hydration_contracts.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
+import '../../services/weather_goal_service.dart';
 import '../components/hydrion_logo.dart';
 import '../components/intake_ring.dart';
 import '../components/llm_advice_card.dart';
@@ -20,6 +21,21 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedVolumeMl = 250;
+  bool _weatherGoalChecked = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_weatherGoalChecked) {
+      return;
+    }
+    _weatherGoalChecked = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _maybeShowWeatherGoalPrompt();
+      }
+    });
+  }
 
   Future<void> _logWater(int volumeMl) async {
     final repository = context.read<HydrationRepository>();
@@ -39,11 +55,122 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _maybeShowWeatherGoalPrompt() async {
+    final coordinator = context.read<DailyWeatherGoalCoordinator>();
+    final result = await coordinator.evaluate();
+    if (!mounted) {
+      return;
+    }
+    if (result.status == DailyWeatherGoalStatus.autoApplied &&
+        result.decision != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Weather-adjusted goal applied: '
+            '${result.decision!.recommendedGoalMl} ml.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (result.status != DailyWeatherGoalStatus.promptReady ||
+        result.decision == null ||
+        result.forecast == null) {
+      return;
+    }
+
+    var doNotAskEachDay = false;
+    final decision = result.decision!;
+    final forecast = result.forecast!;
+    final action = await showDialog<_WeatherGoalAction>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Today\'s weather goal'),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Recommended goal: '
+                        '${decision.recommendedGoalMl} ml'),
+                    const SizedBox(height: 8),
+                    Text('Baseline: ${decision.baselineGoalMl} ml'),
+                    Text('Weather adjustment: '
+                        '${decision.weatherAdjustmentMl >= 0 ? '+' : ''}'
+                        '${decision.weatherAdjustmentMl} ml'),
+                    Text('Weather: ${forecast.condition}, '
+                        '${forecast.temperatureC.round()} C'
+                        '${forecast.humidityPercent == null ? '' : ', ${forecast.humidityPercent!.round()}% humidity'}'),
+                    const SizedBox(height: 8),
+                    Text(decision.explanation),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Hydrion is not medical advice. Drink comfortably, stop if you feel unwell, and adjust the goal any time.',
+                    ),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: doNotAskEachDay,
+                      onChanged: (value) {
+                        setDialogState(
+                          () => doNotAskEachDay = value == true,
+                        );
+                      },
+                      title: const Text('Do not ask me each day'),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () =>
+                      Navigator.of(dialogContext).pop(_WeatherGoalAction.keep),
+                  child: const Text('Keep previous goal'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext)
+                      .pop(_WeatherGoalAction.adjust),
+                  child: const Text('Adjust'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext)
+                      .pop(_WeatherGoalAction.useRecommendation),
+                  child: const Text('Use recommendation'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (!mounted || action == null) {
+      return;
+    }
+    switch (action) {
+      case _WeatherGoalAction.useRecommendation:
+        await coordinator.acceptRecommendation(
+          decision: decision,
+          doNotAskEachDay: doNotAskEachDay,
+        );
+        break;
+      case _WeatherGoalAction.adjust:
+        await Navigator.of(context).pushNamed('/settings');
+        break;
+      case _WeatherGoalAction.keep:
+        await coordinator.keepPreviousGoal(
+          explanation: 'User kept the previous goal for today.',
+        );
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
-    context.watch<UserSettingsRepository>();
+    final settings = context.watch<UserSettingsRepository>().settings;
     context.watch<HydrationRepository>();
     final syncStatus = [
       if (!capabilities.bleSync) 'BLE',
@@ -98,6 +225,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 entryCount: summary.entryCount,
                 temperatureC: 24,
               ),
+              if (settings.weatherAdjustedGoalActive &&
+                  settings.lastWeatherGoalExplanation != null) ...[
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.wb_sunny_outlined),
+                    title: const Text('Weather-adjusted'),
+                    subtitle: Text(settings.lastWeatherGoalExplanation!),
+                    trailing: Text('${settings.dailyGoalMl} ml'),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Card(
                 child: Padding(
@@ -241,6 +380,12 @@ class _HomeScreenState extends State<HomeScreen> {
           : null,
     );
   }
+}
+
+enum _WeatherGoalAction {
+  useRecommendation,
+  adjust,
+  keep,
 }
 
 enum _RouteLabel {

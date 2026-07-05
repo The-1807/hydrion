@@ -5,6 +5,11 @@ class HydrionReleaseMetadata {
   static const flutterVersionName = '$publicVersion+$buildNumber';
   static const releaseDateLabel = 'Release date pending';
   static const nextPlannedVersion = '1.1.0';
+  static const metadataStatus = 'Draft';
+  static const termsStatus = 'Owner review required';
+  static const privacyStatus = 'Owner review required';
+  static const healthSafetyStatus = 'Owner review required';
+  static const androidApplicationIdStatus = 'Owner approval required';
 
   static const communityName = 'HydrionSharks';
   static const communityHandle = '@HydrionSharks';
@@ -12,16 +17,17 @@ class HydrionReleaseMetadata {
   static const releaseLettersSubject = 'Join HydrionSharks release letters';
 
   static const knownLimitations = <String>[
-    'OS notification delivery is not connected in this build.',
-    'Weather-informed goals are deterministic and require a configured forecast provider before use.',
+    'Android local notification scheduling is implemented, but delivery still requires real-device permission, reboot, timezone, and battery-policy validation.',
+    'Weather-informed goals use Open-Meteo forecasts when location and notification permissions are granted; real-device validation is still required.',
     'Social challenge sync is not connected; challenges are local-only.',
-    'Android signing and store release metadata still require owner approval.',
+    'Android application id, signing, store release metadata, legal approval, and release date still require owner approval.',
   ];
 
   static const releaseChecklist = <String>[
     'Approve public release date.',
     'Approve Terms, Privacy, and Health/Safety copy with the product owner.',
-    'Configure production Android application id and signing before store upload.',
-    'Verify notification and location permissions only after native adapters are connected.',
+    'Approve the final Android application id before changing package identity.',
+    'Configure production Android signing credentials before store upload.',
+    'Validate location, forecast, notification delivery, reminders, migration, and accessibility on real devices.',
   ];
 }

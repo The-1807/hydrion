@@ -73,7 +73,8 @@ class HydrionChallengeCatalog {
       targetMl: 2200,
       durationDays: 7,
       category: 'Variety',
-      dailyTask: 'Pick one safe prompt and track progress locally.',
+      dailyTask: 'Logged water before lunch.',
+      objectiveType: ChallengeObjectiveType.loggedWaterBeforeLunch,
     ),
   ];
 

@@ -13,8 +13,14 @@ state on the device through `shared_preferences`.
 - Adapter boundary for AI providers.
 - `local_rules` default coach/provider mode.
 - Optional Gemini provider for local development only.
-- ELKA, cloud sync, AR, BLE, Health, voice capture, and OS notifications remain
-  disabled or unconfigured unless future adapters are added.
+- Android local notifications are wired for user-created reminders, subject to
+  runtime permission, OS delivery policy, reboot/timezone handling, and
+  real-device validation.
+- Weather-informed goals use a one-shot foreground approximate location lookup
+  and Open-Meteo daily forecast data when the user enables weather mode and
+  grants required permissions.
+- ELKA, cloud sync, AR, BLE, Health, and voice capture remain disabled or
+  unconfigured unless future adapters are added.
 
 ## Setup
 
@@ -45,6 +51,14 @@ flutter build apk --release
 
 Local APK builds require an Android SDK and `ANDROID_HOME` or
 `ANDROID_SDK_ROOT` to be configured.
+
+Android release signing uses `android/key.properties` when the owner provides
+local credentials. Release builds no longer fall back to the debug key. Do not
+commit keystores, passwords, or `key.properties`.
+
+See `docs/V1_RELEASE_READINESS.md` for weather setup, privacy behavior,
+notification limitations, signing setup, application-id status, build commands,
+known limitations, owner decisions, and manual device validation.
 
 ## Optional Gemini For Local Development
 

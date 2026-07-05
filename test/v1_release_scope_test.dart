@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/avatar_manifest.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/domain/release_metadata.dart';
+import 'package:hydrion/repositories/challenge_repository.dart';
+import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
@@ -157,6 +159,45 @@ void main() {
       expect(challenge.description.toLowerCase(), isNot(contains('urine')));
       expect(challenge.description.toLowerCase(), isNot(contains('force')));
     }
+    final bottleBingo = HydrionChallengeCatalog.byId('bottle-bingo');
+    expect(bottleBingo.dailyTask, 'Logged water before lunch.');
+    expect(
+        bottleBingo.description.toLowerCase(), isNot(contains('peed clear')));
+    expect(bottleBingo.description.toLowerCase(), isNot(contains('wager')));
+  });
+
+  test('Bottle Bingo progress comes from water logged before lunch', () async {
+    final hydrationRepository = HydrationRepository.memory();
+    final challengeRepository = ChallengeRepository.memory();
+    final bottleBingo = HydrionChallengeCatalog.byId('bottle-bingo');
+    final today = DateTime.now();
+
+    await challengeRepository.join(
+      id: bottleBingo.id,
+      name: bottleBingo.name,
+      description: bottleBingo.description,
+      targetMl: bottleBingo.targetMl,
+      durationDays: bottleBingo.durationDays,
+      joinedAt: DateTime(today.year, today.month, today.day),
+    );
+    await hydrationRepository.addLog(
+      volumeMl: 250,
+      timestamp: DateTime(today.year, today.month, today.day, 13),
+    );
+
+    expect(
+      challengeRepository.progressFor(hydrationRepository).completedDays,
+      0,
+    );
+
+    await hydrationRepository.addLog(
+      volumeMl: 150,
+      timestamp: DateTime(today.year, today.month, today.day, 9),
+    );
+
+    final progress = challengeRepository.progressFor(hydrationRepository);
+    expect(progress.completedDays, 1);
+    expect(progress.todayMl, 150);
   });
 
   test('release metadata keeps v1 identity and pending release date explicit',

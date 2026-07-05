@@ -27,6 +27,7 @@ class HydrationChallenge {
   final String category;
   final String dailyTask;
   final String safetyNote;
+  final ChallengeObjectiveType objectiveType;
 
   const HydrationChallenge({
     required this.id,
@@ -38,7 +39,14 @@ class HydrationChallenge {
     this.dailyTask = 'Track your hydration honestly.',
     this.safetyNote =
         'Hydration needs vary. Stop or adjust a challenge if you feel unwell, and do not force fluids beyond your normal needs or professional health guidance.',
+    this.objectiveType = ChallengeObjectiveType.dailyGoalFromLogs,
   });
+}
+
+enum ChallengeObjectiveType {
+  dailyGoalFromLogs,
+  loggedWaterBeforeLunch,
+  manualCheckIn,
 }
 
 enum HydrionCapability {

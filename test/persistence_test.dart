@@ -245,7 +245,7 @@ void main() {
     expect(response, contains('on-device guidance'));
     expect(response, contains('Today: 750 ml'));
     expect(response, contains('across 1 saved log'));
-    expect(services.notificationService.supportsOsNotifications, isFalse);
+    expect(services.notificationService.supportsOsNotifications, isTrue);
     expect(services.voice.isAvailable, isFalse);
     expect(await services.voice.initialize(), isFalse);
     expect(services.wearables.supportsBleSync, isFalse);

@@ -19,12 +19,14 @@ import 'services/coach_suggestion_service.dart';
 import 'services/hydration_ai_action_executor.dart';
 import 'services/hydration_ai_orchestrator.dart';
 import 'services/hydration_context_builder.dart';
+import 'services/location_service.dart';
 import 'services/notifications.dart';
 import 'services/policy_service.dart';
 import 'services/provider_health.dart';
 import 'services/voice_client.dart';
 import 'services/voice_llm_bridge.dart';
 import 'services/wearable_service.dart';
+import 'services/weather_goal_service.dart';
 import 'ui/screens/analytics_screen.dart';
 import 'ui/screens/ar_visualization_screen.dart';
 import 'ui/screens/chat_coach_screen.dart';
@@ -64,6 +66,9 @@ class HydrionApp extends StatelessWidget {
         Provider.value(value: services.permissions),
         ChangeNotifierProvider.value(value: services.i18n),
         Provider.value(value: services.notificationService),
+        Provider.value(value: services.locationService),
+        Provider.value(value: services.weatherForecastService),
+        Provider.value(value: services.dailyWeatherGoalCoordinator),
         Provider<HydrationSummaryService>.value(
           value: services.hydrationSummaryService,
         ),
@@ -153,6 +158,9 @@ class HydrionServices {
   final Permissions permissions;
   final I18nResolver i18n;
   final NotificationService notificationService;
+  final HydrionLocationService locationService;
+  final WeatherForecastService weatherForecastService;
+  final DailyWeatherGoalCoordinator dailyWeatherGoalCoordinator;
   final HydrationSummaryService hydrationSummaryService;
   final HydrationContextProvider hydrationContextProvider;
   final HydrationAiActionValidator aiActionValidator;
@@ -180,6 +188,9 @@ class HydrionServices {
     required this.permissions,
     required this.i18n,
     required this.notificationService,
+    required this.locationService,
+    required this.weatherForecastService,
+    required this.dailyWeatherGoalCoordinator,
     required this.hydrationSummaryService,
     required this.hydrationContextProvider,
     required this.aiActionValidator,
@@ -199,15 +210,21 @@ class HydrionServices {
 
   static Future<HydrionServices> local() async {
     final store = await SharedPreferencesHydrionStore.create();
-    return fromStore(
+    final services = await fromStore(
       store,
       aiRuntimeConfig: HydrionAiRuntimeConfig.fromEnvironment(),
     );
+    await services.notificationService.initialize();
+    await services.notificationService.reconcileSchedules();
+    return services;
   }
 
   static Future<HydrionServices> fromStore(
     HydrionLocalStore store, {
     HydrionAiRuntimeConfig aiRuntimeConfig = const HydrionAiRuntimeConfig(),
+    HydrionLocationService? locationService,
+    HydrionNotificationAdapter? notificationAdapter,
+    DailyWeatherProvider? weatherProvider,
   }) async {
     final hydrationRepository = await HydrationRepository.load(store);
     final settingsRepository = await UserSettingsRepository.load(store);
@@ -220,19 +237,32 @@ class HydrionServices {
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
       aiRuntimeConfig: aiRuntimeConfig,
+      locationService: locationService,
+      notificationAdapter: notificationAdapter,
+      weatherProvider: weatherProvider,
     );
   }
 
   factory HydrionServices.memory({
     HydrionAiRuntimeConfig aiRuntimeConfig = const HydrionAiRuntimeConfig(),
+    HydrionLocationService? locationService,
+    HydrionNotificationAdapter? notificationAdapter,
+    DailyWeatherProvider? weatherProvider,
   }) {
+    final store = MemoryHydrionStore();
     return _build(
-      store: MemoryHydrionStore(),
+      store: store,
       hydrationRepository: HydrationRepository.memory(),
       settingsRepository: UserSettingsRepository.memory(),
       reminderRepository: ReminderRepository.memory(),
       challengeRepository: ChallengeRepository.memory(),
       aiRuntimeConfig: aiRuntimeConfig,
+      locationService: locationService ?? FakeHydrionLocationService(),
+      notificationAdapter: notificationAdapter ??
+          FakeHydrionNotificationAdapter(
+            permission: HydrionNotificationPermissionState.granted,
+          ),
+      weatherProvider: weatherProvider ?? _FakeDailyWeatherProvider(),
     );
   }
 
@@ -243,14 +273,30 @@ class HydrionServices {
     required ReminderRepository reminderRepository,
     required ChallengeRepository challengeRepository,
     required HydrionAiRuntimeConfig aiRuntimeConfig,
+    HydrionLocationService? locationService,
+    HydrionNotificationAdapter? notificationAdapter,
+    DailyWeatherProvider? weatherProvider,
   }) {
     final coreBridge = CoreBridge(hydrationRepository: hydrationRepository);
     final permissions = Permissions();
+    final location =
+        locationService ?? const GeolocatorHydrionLocationService();
     final i18n = I18nResolver(settingsRepository: settingsRepository);
     final policy = ReminderPolicy();
     final notificationService = NotificationService(
       reminderPolicy: policy,
       reminderRepository: reminderRepository,
+      adapter: notificationAdapter,
+    );
+    final weatherForecastService = WeatherForecastService(
+      provider: weatherProvider ?? OpenMeteoWeatherProvider(),
+      cache: WeatherForecastCacheRepository(store),
+    );
+    final dailyWeatherGoalCoordinator = DailyWeatherGoalCoordinator(
+      settingsRepository: settingsRepository,
+      locationService: location,
+      weatherService: weatherForecastService,
+      notificationService: notificationService,
     );
     final providerHealthReporter = LocalProviderHealthReporter.fromConfig(
       aiRuntimeConfig,
@@ -262,6 +308,7 @@ class HydrionServices {
     final capabilityReporter = LocalAppCapabilityReporter(
       capabilities: const AppCapabilities.standalone().copyWith(
         geminiConfigured: aiRuntimeConfig.shouldUseGemini,
+        osNotifications: notificationService.supportsOsNotifications,
         cloudAi: _geminiActivation(
           config: aiRuntimeConfig,
           settingsRepository: settingsRepository,
@@ -345,6 +392,9 @@ class HydrionServices {
       permissions: permissions,
       i18n: i18n,
       notificationService: notificationService,
+      locationService: location,
+      weatherForecastService: weatherForecastService,
+      dailyWeatherGoalCoordinator: dailyWeatherGoalCoordinator,
       hydrationSummaryService: hydrationSummaryService,
       hydrationContextProvider: hydrationContextProvider,
       aiActionValidator: aiActionValidator,
@@ -403,4 +453,29 @@ String _localizedHomeAdvice({
       ? ' ${l10n.homeAdviceReliableEntries(count: entryCount)}'
       : ' ${l10n.homeAdviceAddEntries}';
   return '$advice$heat$entryNote';
+}
+
+class _FakeDailyWeatherProvider implements DailyWeatherProvider {
+  @override
+  String get providerId => 'fake-test-weather';
+
+  @override
+  bool get isConfigured => true;
+
+  @override
+  Future<WeatherSnapshot> fetchDailyForecast(
+    HydrionCoordinates coordinates, {
+    DateTime? now,
+  }) async {
+    final currentTime = now ?? DateTime.now();
+    return WeatherSnapshot(
+      temperatureC: 24,
+      humidityPercent: 45,
+      uvIndex: 0,
+      observedAt: currentTime,
+      retrievedAt: currentTime,
+      condition: 'Test clear',
+      providerId: providerId,
+    );
+  }
 }

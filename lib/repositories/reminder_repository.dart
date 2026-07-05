@@ -5,18 +5,63 @@ import 'package:flutter/foundation.dart';
 import '../storage/local_store.dart';
 import 'storage_recovery.dart';
 
+enum ReminderScheduleState {
+  pending,
+  scheduled,
+  disabled,
+  permissionDenied,
+  permanentlyDenied,
+  unsupported,
+  failed,
+}
+
 class ScheduledReminder {
   final String id;
   final DateTime triggerTime;
   final String message;
   final int priority;
+  final bool enabled;
+  final ReminderScheduleState scheduleState;
+  final String? scheduleError;
+  final DateTime? lastScheduledAt;
 
   const ScheduledReminder({
     required this.id,
     required this.triggerTime,
     required this.message,
     required this.priority,
+    this.enabled = true,
+    this.scheduleState = ReminderScheduleState.pending,
+    this.scheduleError,
+    this.lastScheduledAt,
   });
+
+  int get platformNotificationId => id.hashCode & 0x7fffffff;
+
+  ScheduledReminder copyWith({
+    DateTime? triggerTime,
+    String? message,
+    int? priority,
+    bool? enabled,
+    ReminderScheduleState? scheduleState,
+    String? scheduleError,
+    bool clearScheduleError = false,
+    DateTime? lastScheduledAt,
+    bool clearLastScheduledAt = false,
+  }) {
+    return ScheduledReminder(
+      id: id,
+      triggerTime: triggerTime ?? this.triggerTime,
+      message: message ?? this.message,
+      priority: priority ?? this.priority,
+      enabled: enabled ?? this.enabled,
+      scheduleState: scheduleState ?? this.scheduleState,
+      scheduleError:
+          clearScheduleError ? null : scheduleError ?? this.scheduleError,
+      lastScheduledAt:
+          clearLastScheduledAt ? null : lastScheduledAt ?? this.lastScheduledAt,
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -24,6 +69,10 @@ class ScheduledReminder {
       'triggerTime': triggerTime.toIso8601String(),
       'message': message,
       'priority': priority,
+      'enabled': enabled,
+      'scheduleState': scheduleState.name,
+      'scheduleError': scheduleError,
+      'lastScheduledAt': lastScheduledAt?.toIso8601String(),
     };
   }
 
@@ -48,7 +97,34 @@ class ScheduledReminder {
       triggerTime: triggerTime,
       message: message,
       priority: priority.round(),
+      enabled: value['enabled'] != false,
+      scheduleState: _safeScheduleState(value['scheduleState']),
+      scheduleError: _safeShortText(value['scheduleError']),
+      lastScheduledAt:
+          DateTime.tryParse((value['lastScheduledAt'] ?? '').toString()),
     );
+  }
+
+  static ReminderScheduleState _safeScheduleState(Object? value) {
+    if (value is String) {
+      for (final state in ReminderScheduleState.values) {
+        if (state.name == value) {
+          return state;
+        }
+      }
+    }
+    return ReminderScheduleState.pending;
+  }
+
+  static String? _safeShortText(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    final text = value.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (text.isEmpty || text.length > 220) {
+      return null;
+    }
+    return text;
   }
 }
 
@@ -89,22 +165,91 @@ class ReminderRepository extends ChangeNotifier {
 
   List<StorageRecoveryEvent> get recoveryEvents => _recoveryEvents;
 
+  ScheduledReminder? byId(String id) {
+    for (final reminder in _reminders) {
+      if (reminder.id == id) {
+        return reminder;
+      }
+    }
+    return null;
+  }
+
   Future<ScheduledReminder> save({
     required DateTime triggerTime,
     required String message,
     required int priority,
+    bool enabled = true,
   }) async {
     final reminder = ScheduledReminder(
       id: 'reminder-${triggerTime.microsecondsSinceEpoch}',
       triggerTime: triggerTime,
       message: message,
       priority: priority,
+      enabled: enabled,
     );
     _reminders.add(reminder);
     _reminders.sort((a, b) => a.triggerTime.compareTo(b.triggerTime));
     await _persist();
     notifyListeners();
     return reminder;
+  }
+
+  Future<ScheduledReminder?> update({
+    required String id,
+    DateTime? triggerTime,
+    String? message,
+    int? priority,
+    bool? enabled,
+    ReminderScheduleState? scheduleState,
+    String? scheduleError,
+    bool clearScheduleError = false,
+    DateTime? lastScheduledAt,
+    bool clearLastScheduledAt = false,
+  }) async {
+    final index = _reminders.indexWhere((reminder) => reminder.id == id);
+    if (index == -1) {
+      return null;
+    }
+    final nextMessage = message?.trim();
+    if (nextMessage != null && nextMessage.isEmpty) {
+      return null;
+    }
+    final nextPriority = priority ?? _reminders[index].priority;
+    if (nextPriority < 0) {
+      return null;
+    }
+    _reminders[index] = _reminders[index].copyWith(
+      triggerTime: triggerTime,
+      message: nextMessage,
+      priority: nextPriority,
+      enabled: enabled,
+      scheduleState: scheduleState,
+      scheduleError: scheduleError,
+      clearScheduleError: clearScheduleError,
+      lastScheduledAt: lastScheduledAt,
+      clearLastScheduledAt: clearLastScheduledAt,
+    );
+    _reminders.sort((a, b) => a.triggerTime.compareTo(b.triggerTime));
+    await _persist();
+    notifyListeners();
+    return byId(id);
+  }
+
+  Future<ScheduledReminder?> setScheduleState({
+    required String id,
+    required ReminderScheduleState state,
+    String? error,
+    DateTime? scheduledAt,
+  }) {
+    return update(
+      id: id,
+      scheduleState: state,
+      scheduleError: error,
+      clearScheduleError: error == null,
+      lastScheduledAt: scheduledAt,
+      clearLastScheduledAt:
+          scheduledAt == null && state != ReminderScheduleState.scheduled,
+    );
   }
 
   Future<bool> delete(String id) async {

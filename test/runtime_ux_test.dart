@@ -123,7 +123,7 @@ void main() {
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('route-/reminders')), findsNothing);
+    expect(find.byKey(const Key('route-/reminders')), findsOneWidget);
     expect(find.byKey(const Key('route-/ar')), findsNothing);
 
     await scrollToHomeItem(tester, find.byKey(const Key('route-/challenges')));
@@ -141,7 +141,8 @@ void main() {
     expect(find.byTooltip('Voice input disabled by app capabilities'),
         findsNothing);
     expect(find.byKey(const Key('route-/ar')), findsNothing);
-    expect(find.byKey(const Key('route-/reminders')), findsNothing);
+    await scrollToHomeItem(tester, find.byKey(const Key('route-/reminders')));
+    expect(find.byKey(const Key('route-/reminders')), findsOneWidget);
     expect(services.reminderRepository.reminders, isEmpty);
   });
 

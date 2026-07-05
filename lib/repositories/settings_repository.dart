@@ -49,6 +49,14 @@ class UserSettings {
   final bool legalAndHealthAcknowledged;
   final bool weatherGoalAutoApplyEnabled;
   final DateTime? lastWeatherGoalDecisionAt;
+  final int baselineDailyGoalMl;
+  final String? lastWeatherGoalLocalDate;
+  final String? lastWeatherGoalExplanation;
+  final bool weatherGoalDailyConfirmationEnabled;
+  final bool weatherAdjustedGoalActive;
+  final DateTime? lastManualGoalEditAt;
+  final DateTime? locationPermissionPromptedAt;
+  final DateTime? notificationPermissionPromptedAt;
 
   const UserSettings({
     required this.locale,
@@ -66,6 +74,14 @@ class UserSettings {
     this.legalAndHealthAcknowledged = false,
     this.weatherGoalAutoApplyEnabled = false,
     this.lastWeatherGoalDecisionAt,
+    this.baselineDailyGoalMl = defaultDailyGoalMl,
+    this.lastWeatherGoalLocalDate,
+    this.lastWeatherGoalExplanation,
+    this.weatherGoalDailyConfirmationEnabled = true,
+    this.weatherAdjustedGoalActive = false,
+    this.lastManualGoalEditAt,
+    this.locationPermissionPromptedAt,
+    this.notificationPermissionPromptedAt,
   });
 
   UserSettings copyWith({
@@ -88,6 +104,19 @@ class UserSettings {
     bool? weatherGoalAutoApplyEnabled,
     DateTime? lastWeatherGoalDecisionAt,
     bool clearLastWeatherGoalDecisionAt = false,
+    int? baselineDailyGoalMl,
+    String? lastWeatherGoalLocalDate,
+    bool clearLastWeatherGoalLocalDate = false,
+    String? lastWeatherGoalExplanation,
+    bool clearLastWeatherGoalExplanation = false,
+    bool? weatherGoalDailyConfirmationEnabled,
+    bool? weatherAdjustedGoalActive,
+    DateTime? lastManualGoalEditAt,
+    bool clearLastManualGoalEditAt = false,
+    DateTime? locationPermissionPromptedAt,
+    bool clearLocationPermissionPromptedAt = false,
+    DateTime? notificationPermissionPromptedAt,
+    bool clearNotificationPermissionPromptedAt = false,
   }) {
     return UserSettings(
       locale: locale ?? this.locale,
@@ -111,6 +140,28 @@ class UserSettings {
       lastWeatherGoalDecisionAt: clearLastWeatherGoalDecisionAt
           ? null
           : lastWeatherGoalDecisionAt ?? this.lastWeatherGoalDecisionAt,
+      baselineDailyGoalMl: baselineDailyGoalMl ?? this.baselineDailyGoalMl,
+      lastWeatherGoalLocalDate: clearLastWeatherGoalLocalDate
+          ? null
+          : lastWeatherGoalLocalDate ?? this.lastWeatherGoalLocalDate,
+      lastWeatherGoalExplanation: clearLastWeatherGoalExplanation
+          ? null
+          : lastWeatherGoalExplanation ?? this.lastWeatherGoalExplanation,
+      weatherGoalDailyConfirmationEnabled:
+          weatherGoalDailyConfirmationEnabled ??
+              this.weatherGoalDailyConfirmationEnabled,
+      weatherAdjustedGoalActive:
+          weatherAdjustedGoalActive ?? this.weatherAdjustedGoalActive,
+      lastManualGoalEditAt: clearLastManualGoalEditAt
+          ? null
+          : lastManualGoalEditAt ?? this.lastManualGoalEditAt,
+      locationPermissionPromptedAt: clearLocationPermissionPromptedAt
+          ? null
+          : locationPermissionPromptedAt ?? this.locationPermissionPromptedAt,
+      notificationPermissionPromptedAt: clearNotificationPermissionPromptedAt
+          ? null
+          : notificationPermissionPromptedAt ??
+              this.notificationPermissionPromptedAt,
     );
   }
 
@@ -141,6 +192,17 @@ class UserSettings {
       'legalAndHealthAcknowledged': legalAndHealthAcknowledged,
       'weatherGoalAutoApplyEnabled': weatherGoalAutoApplyEnabled,
       'lastWeatherGoalDecisionAt': lastWeatherGoalDecisionAt?.toIso8601String(),
+      'baselineDailyGoalMl': baselineDailyGoalMl,
+      'lastWeatherGoalLocalDate': lastWeatherGoalLocalDate,
+      'lastWeatherGoalExplanation': lastWeatherGoalExplanation,
+      'weatherGoalDailyConfirmationEnabled':
+          weatherGoalDailyConfirmationEnabled,
+      'weatherAdjustedGoalActive': weatherAdjustedGoalActive,
+      'lastManualGoalEditAt': lastManualGoalEditAt?.toIso8601String(),
+      'locationPermissionPromptedAt':
+          locationPermissionPromptedAt?.toIso8601String(),
+      'notificationPermissionPromptedAt':
+          notificationPermissionPromptedAt?.toIso8601String(),
     };
   }
 
@@ -169,6 +231,19 @@ class UserSettings {
             value['weatherGoalAutoApplyEnabled'] == true,
         lastWeatherGoalDecisionAt:
             _safeDateTime(value['lastWeatherGoalDecisionAt']),
+        baselineDailyGoalMl: _safeBaselineGoal(value),
+        lastWeatherGoalLocalDate:
+            _safeLocalDateKey(value['lastWeatherGoalLocalDate']),
+        lastWeatherGoalExplanation:
+            _safeShortText(value['lastWeatherGoalExplanation'], 360),
+        weatherGoalDailyConfirmationEnabled:
+            value['weatherGoalDailyConfirmationEnabled'] != false,
+        weatherAdjustedGoalActive: value['weatherAdjustedGoalActive'] == true,
+        lastManualGoalEditAt: _safeDateTime(value['lastManualGoalEditAt']),
+        locationPermissionPromptedAt:
+            _safeDateTime(value['locationPermissionPromptedAt']),
+        notificationPermissionPromptedAt:
+            _safeDateTime(value['notificationPermissionPromptedAt']),
       );
     }
     final countryCode = _countryCode(value['countryCode']);
@@ -190,6 +265,19 @@ class UserSettings {
       weatherGoalAutoApplyEnabled: value['weatherGoalAutoApplyEnabled'] == true,
       lastWeatherGoalDecisionAt:
           _safeDateTime(value['lastWeatherGoalDecisionAt']),
+      baselineDailyGoalMl: _safeBaselineGoal(value),
+      lastWeatherGoalLocalDate:
+          _safeLocalDateKey(value['lastWeatherGoalLocalDate']),
+      lastWeatherGoalExplanation:
+          _safeShortText(value['lastWeatherGoalExplanation'], 360),
+      weatherGoalDailyConfirmationEnabled:
+          value['weatherGoalDailyConfirmationEnabled'] != false,
+      weatherAdjustedGoalActive: value['weatherAdjustedGoalActive'] == true,
+      lastManualGoalEditAt: _safeDateTime(value['lastManualGoalEditAt']),
+      locationPermissionPromptedAt:
+          _safeDateTime(value['locationPermissionPromptedAt']),
+      notificationPermissionPromptedAt:
+          _safeDateTime(value['notificationPermissionPromptedAt']),
     );
   }
 
@@ -221,6 +309,35 @@ class UserSettings {
       return defaultDailyGoalMl;
     }
     return goal;
+  }
+
+  static int _safeBaselineGoal(Map value) {
+    if (value.containsKey('baselineDailyGoalMl')) {
+      return _safeDailyGoal(value['baselineDailyGoalMl']);
+    }
+    return _safeDailyGoal(value['dailyGoalMl']);
+  }
+
+  static String? _safeLocalDateKey(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    final trimmed = value.trim();
+    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(trimmed)) {
+      return null;
+    }
+    return trimmed;
+  }
+
+  static String? _safeShortText(Object? value, int maxLength) {
+    if (value is! String) {
+      return null;
+    }
+    final text = value.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (text.isEmpty || text.length > maxLength) {
+      return null;
+    }
+    return text;
   }
 
   static String? _safeNickname(Object? value) {
@@ -332,6 +449,7 @@ class UserSettingsRepository extends ChangeNotifier {
             locale: locale,
             nonLocalProviderConsentGranted: nonLocalProviderConsentGranted,
             dailyGoalMl: dailyGoalMl,
+            baselineDailyGoalMl: dailyGoalMl,
             reusableContainerEnabled: reusableContainerEnabled,
             onboardingCompleted: onboardingCompleted,
             legalAndHealthAcknowledged: onboardingCompleted,
@@ -364,12 +482,25 @@ class UserSettingsRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> setDailyGoalMl(int value) async {
+  Future<bool> setDailyGoalMl(
+    int value, {
+    bool updateBaseline = true,
+    bool markManualEdit = true,
+    DateTime? now,
+  }) async {
     if (value < UserSettings.minDailyGoalMl ||
         value > UserSettings.maxDailyGoalMl) {
       return false;
     }
-    _settings = _settings.copyWith(dailyGoalMl: value);
+    _settings = _settings.copyWith(
+      dailyGoalMl: value,
+      baselineDailyGoalMl:
+          updateBaseline ? value : _settings.baselineDailyGoalMl,
+      weatherAdjustedGoalActive:
+          updateBaseline ? false : _settings.weatherAdjustedGoalActive,
+      lastManualGoalEditAt: markManualEdit ? now ?? DateTime.now() : null,
+      clearLastManualGoalEditAt: !markManualEdit,
+    );
     await _persist();
     notifyListeners();
     return true;
@@ -444,6 +575,67 @@ class UserSettingsRepository extends ChangeNotifier {
 
   Future<void> recordWeatherGoalDecision(DateTime value) async {
     _settings = _settings.copyWith(lastWeatherGoalDecisionAt: value);
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<bool> applyWeatherGoal({
+    required int goalMl,
+    required DateTime decidedAt,
+    required String explanation,
+    required String localDateKey,
+    bool autoApplyEnabled = false,
+  }) async {
+    if (goalMl < UserSettings.minDailyGoalMl ||
+        goalMl > UserSettings.maxDailyGoalMl) {
+      return false;
+    }
+    _settings = _settings.copyWith(
+      dailyGoalMl: goalMl,
+      lastWeatherGoalDecisionAt: decidedAt,
+      lastWeatherGoalLocalDate: localDateKey,
+      lastWeatherGoalExplanation: explanation,
+      weatherAdjustedGoalActive: true,
+      weatherGoalAutoApplyEnabled: autoApplyEnabled,
+      clearLastManualGoalEditAt: true,
+    );
+    await _persist();
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> keepPreviousWeatherGoal({
+    required DateTime decidedAt,
+    required String localDateKey,
+    required String explanation,
+  }) async {
+    _settings = _settings.copyWith(
+      lastWeatherGoalDecisionAt: decidedAt,
+      lastWeatherGoalLocalDate: localDateKey,
+      lastWeatherGoalExplanation: explanation,
+      weatherAdjustedGoalActive: false,
+    );
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<void> setWeatherGoalDailyConfirmationEnabled(bool value) async {
+    _settings = _settings.copyWith(
+      weatherGoalDailyConfirmationEnabled: value,
+      weatherGoalAutoApplyEnabled: !value,
+    );
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<void> recordLocationPermissionPrompt(DateTime value) async {
+    _settings = _settings.copyWith(locationPermissionPromptedAt: value);
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<void> recordNotificationPermissionPrompt(DateTime value) async {
+    _settings = _settings.copyWith(notificationPermissionPromptedAt: value);
     await _persist();
     notifyListeners();
   }

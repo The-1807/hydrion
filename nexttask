@@ -1,0 +1,987 @@
+You are continuing work inside the Hydrion Flutter repository.
+
+Act as a senior Flutter engineer, Android release engineer, mobile QA lead, privacy engineer, notification specialist, API integration engineer, accessibility reviewer, and Agile delivery manager.
+
+This is a continuation pass.
+
+Do not repeat completed work unless inspection proves it is incomplete, broken, misleading, or inconsistent.
+
+The previous implementation pass reportedly completed:
+
+- typed mascot and shark PFP asset manifest
+- asset registration
+- release/community metadata for `1.0.0+1`
+- pending release date handling
+- backward-compatible local profile and onboarding settings
+- nickname, age, sex, avatar, goal mode, unit, container size, legal acknowledgement, onboarding state
+- native Flutter startup animation
+- real startup warmup
+- timeout recovery
+- reduced-motion behavior
+- first-run onboarding
+- returning-user onboarding skip
+- offline Legal & About screen
+- privacy, terms draft, health/safety, release notes, known limitations, contact information
+- deterministic weather-goal service scaffold
+- safe seven-item solo challenge catalogue
+- local persistence and migration work
+- `flutter pub get`
+- formatter validation
+- secret scan
+- `flutter analyze`
+- `143` passing tests
+- successful web release build
+
+The previous pass explicitly did not complete or verify:
+
+- real location permission flow
+- real location retrieval
+- real weather forecast integration
+- real daily weather recommendation flow
+- real local notification scheduling
+- reminder permission handling
+- reminder edit/reschedule/cancel
+- Android debug APK validation
+- Android release APK validation
+- Android App Bundle validation
+- permanent release-signing readiness
+- final application ID approval
+- final legal approval
+- final release date
+- GitHub issue synchronization
+- Hydrion App Kanban synchronization
+- real-device validation
+
+Your task is to inspect the current repository, verify the previous work, and finish all remaining technically implementable v1.0.0 release work without fabricating evidence.
+
+==================================================
+OPERATING RULES
+==================================================
+
+1. Inspect the current repository before editing.
+
+2. Verify the previous implementation directly from source code, tests, configuration, and runtime paths.
+
+3. Do not assume the prior report is correct.
+
+4. Do not redo completed architecture merely to replace it with your preferred style.
+
+5. Preserve existing hydration logs, settings, profile data, achievements, reminders, challenge progress, and migration behavior.
+
+6. Do not stage, commit, push, create branches, merge, create pull requests, or publish a release.
+
+7. You may edit local files, run commands, update tests, update local documentation, and perform GitHub issue/project writes only after verifying repository identity, authentication, project structure, issue conventions, and duplicate state.
+
+8. Before any GitHub write:
+   - verify the remote repository
+   - verify authentication
+   - locate the existing Hydrion App project
+   - inspect existing labels, issue types, milestones, project fields, and statuses
+   - search for duplicate or overlapping issues
+   - reuse existing issues
+   - do not invent project fields or labels
+   - stop GitHub writes if project structure cannot be resolved safely
+
+9. Never move anything directly to Done.
+
+10. Do not mark an acceptance criterion complete without evidence.
+
+11. Do not claim release readiness based only on green tests or builds.
+
+12. Do not implement fake production services, fake weather, fake notification success, fake release URLs, fake legal approval, or fake signing.
+
+13. Do not embed API secrets, signing credentials, private paths, or machine-specific values in source control.
+
+14. Hydrion is a general wellness app, not a medical device.
+
+15. Weather-informed recommendations must remain:
+   - user-controlled
+   - deterministic
+   - explainable
+   - bounded
+   - conservative
+   - non-medical
+   - overridable
+
+==================================================
+PHASE 1: CURRENT-STATE VERIFICATION
+==================================================
+
+Before modifying anything, inspect and report internally:
+
+- current branch
+- current commit
+- working-tree status
+- current Flutter and Dart versions
+- `pubspec.yaml`
+- `pubspec.lock`
+- current version/build number
+- onboarding implementation
+- profile model
+- avatar manifest
+- migration logic
+- startup animation
+- reduced-motion behavior
+- challenge catalogue
+- challenge persistence
+- weather service scaffold
+- reminder model
+- notification implementation
+- Android manifests
+- Android permissions
+- Gradle configuration
+- application ID
+- signing configuration
+- CI workflow
+- tests
+- documentation
+- release metadata
+- legal drafts
+- existing GitHub issues and project items where accessible
+
+Then classify each reported prior feature as:
+
+- verified complete
+- partially complete
+- missing
+- misleading
+- broken
+- not testable in the current environment
+
+Proceed to implementation after inspection unless a genuine blocker requires owner input.
+
+==================================================
+FEATURE 1: REAL LOCATION INTEGRATION
+==================================================
+
+Implement privacy-preserving location support for weather-informed goals.
+
+Requirements:
+
+- use an appropriate maintained Flutter location package only if the repository does not already have one
+- request location permission only after contextual explanation
+- do not request permission automatically on cold app launch
+- support approximate location where Android permits
+- do not request background location
+- do not continuously track location
+- retrieve location only when needed for the daily forecast
+- do not retain a location-history trail
+- do not log coordinates
+- do not transmit coordinates anywhere except the selected weather provider
+- handle denied permission
+- handle permanently denied permission
+- provide a route to app settings where appropriate
+- allow switching back to manual goal mode
+- preserve prior baseline goal if location becomes unavailable
+- handle location service disabled
+- handle location timeout
+- handle no GPS fix
+- handle platform exceptions
+- work safely offline
+
+Add a location abstraction so tests do not depend on real hardware.
+
+Create a fake implementation for tests.
+
+Add tests for:
+
+- permission granted
+- permission denied
+- permanently denied
+- service disabled
+- timeout
+- unavailable coordinates
+- fallback to manual goal
+- no repeated permission prompting
+
+==================================================
+FEATURE 2: REAL WEATHER FORECAST INTEGRATION
+==================================================
+
+Finish the weather provider integration.
+
+Inspect the repository for any existing weather provider, environment configuration, HTTP client, dependency-injection mechanism, or secure configuration pattern.
+
+If no provider exists:
+
+- create a weather provider abstraction
+- implement one real provider suitable for current conditions or daily forecast
+- do not hardcode API keys
+- use secure environment configuration consistent with the repository
+- provide `.env.example` or repository-standard setup documentation
+- do not commit a real secret
+- use a fake provider for tests
+- implement timeout handling
+- implement HTTP error handling
+- implement malformed-response handling
+- implement rate-limit handling
+- implement unavailable-service fallback
+- cache only the minimum daily forecast needed
+- avoid storing coordinates beyond the current lookup
+- avoid unnecessary repeat requests during the same local day
+
+Weather data needed for v1:
+
+- local maximum temperature or representative daily temperature
+- humidity if available
+- broad weather condition
+- forecast retrieval timestamp
+- provider identity
+
+Do not build fake production behavior if no API credential is available.
+
+If a real provider cannot run without an owner-supplied key:
+
+- complete the integration
+- gate it honestly
+- provide configuration instructions
+- use the fake provider only in tests and development test modes
+- do not make the production UI claim weather is active
+
+Add tests for:
+
+- successful forecast
+- missing API key
+- timeout
+- invalid response
+- rate limit
+- no network
+- stale cache
+- same-day cache reuse
+- next-day refresh
+- timezone boundary
+- extreme temperature values
+- extreme humidity values
+- provider failure fallback
+
+==================================================
+FEATURE 3: COMPLETE DAILY WEATHER-GOAL FLOW
+==================================================
+
+Connect the existing deterministic recommendation service to real runtime behavior.
+
+Eligibility requires:
+
+- onboarding completed
+- age provided
+- explicit sex selection other than “Prefer not to say”
+- location permission granted
+- notification permission granted, according to current product decision
+- health/safety acknowledgement accepted
+- weather provider configured
+- forecast retrieved successfully
+
+Do not invent unsupported medical coefficients based on age or sex.
+
+Age and sex are eligibility/profile inputs, not permission to create false medical precision.
+
+Use:
+
+recommended goal =
+user-approved baseline
++ bounded weather adjustment
++ optional explicit user-controlled adjustment
+
+Requirements:
+
+- round to useful increments such as 50 or 100 mL
+- conservative bounds
+- minimum and maximum safety guardrails
+- transparent explanation
+- user override
+- no forced drinking
+- no reward for excessive intake
+- no fake exactness
+
+On the first qualified app opening of a new local day:
+
+Show:
+
+- today’s recommendation
+- current baseline
+- weather summary
+- adjustment amount
+- plain-language explanation
+- safety note
+
+Actions:
+
+- Use recommendation
+- Adjust
+- Keep previous goal
+
+Preference:
+
+- Do not ask me each day
+
+When enabled:
+
+- future eligible daily recommendations may auto-apply
+- dashboard must show `Weather-adjusted`
+- user can inspect why the goal changed
+- user can restore daily confirmation in Settings
+
+Requirements:
+
+- never show repeatedly on the same local day
+- handle app remaining open across midnight
+- handle timezone changes
+- handle forecast unavailable
+- handle eligibility loss
+- preserve baseline goal
+- allow immediate switch to manual mode
+- persist accepted goal and explanation
+- do not silently replace a manually edited same-day goal without confirmation
+
+Add tests for:
+
+- first eligible day
+- same-day reopen
+- next-day prompt
+- auto-apply
+- restore confirmation
+- manual override
+- weather failure
+- permission loss
+- profile eligibility loss
+- timezone change
+- app-open-across-midnight behavior
+- migration from existing users
+- explanation persistence
+- dashboard label
+
+==================================================
+FEATURE 4: REAL LOCAL NOTIFICATIONS
+==================================================
+
+Implement actual local notifications.
+
+Inspect whether a notification package already exists.
+
+Use a maintained package compatible with the project and current Android targets.
+
+Required behavior:
+
+- initialize notification service
+- request Android notification permission contextually
+- handle Android 13+ runtime notification permission
+- schedule actual local notifications
+- support reminder creation
+- support reminder editing
+- cancel prior schedule before rescheduling
+- support reminder deletion
+- cancel deleted reminders
+- prevent duplicate schedules
+- reconcile persisted reminders with scheduled notifications
+- restore where technically required after restart or reboot
+- handle timezone-aware scheduling
+- handle denied permission
+- handle permanently denied permission
+- handle exact-alarm limitations if applicable
+- handle device battery restrictions honestly
+- display real scheduling state
+- do not claim active if scheduling failed
+
+Do not implement remote push notifications.
+
+Do not request notification permission at cold launch without context.
+
+Add notification-service abstraction and fake implementation for tests.
+
+Add tests for:
+
+- initialization
+- permission granted
+- permission denied
+- permanently denied
+- create schedule
+- edit and reschedule
+- delete and cancel
+- duplicate prevention
+- restart reconciliation
+- scheduling failure
+- timezone change
+- day rollover
+- disabled reminder
+- app settings route
+- UI state accuracy
+
+Document platform limitations.
+
+==================================================
+FEATURE 5: ANDROID CONFIGURATION
+==================================================
+
+Inspect and complete Android configuration for:
+
+- notification permission
+- location permission
+- approximate location behavior
+- foreground-only location
+- no background location
+- Android 13+ notification permission
+- exported components
+- boot receiver if genuinely required
+- timezone change behavior if applicable
+- application label
+- launcher icon references
+- adaptive icon
+- round icon
+- monochrome icon
+- minimum SDK
+- compile SDK
+- target SDK
+- Kotlin version
+- Gradle compatibility
+- release build type
+- cleartext traffic policy
+- backup behavior
+- debug flags
+- ProGuard/R8 configuration where needed
+
+Do not add permissions that are not required.
+
+Do not request exact alarms unless technically necessary and justified.
+
+==================================================
+FEATURE 6: RELEASE IDENTITY AND APPLICATION ID
+==================================================
+
+Inspect the current Android application ID.
+
+Do not change it blindly.
+
+Determine:
+
+- current application ID
+- whether it still contains a placeholder or example namespace
+- whether changing it would break current local installs
+- migration/update implications
+- whether a release identifier has already been approved in repository documentation
+
+If the application ID is not approved:
+
+- report the exact current value
+- propose a suitable final value
+- do not change it without clear owner evidence already present in the repository
+
+Likely acceptable patterns might resemble:
+
+- `xyz.the1807.hydrion`
+- `com.the1807.hydrion`
+
+Do not choose one merely by preference if the repository already establishes a convention.
+
+==================================================
+FEATURE 7: RELEASE SIGNING READINESS
+==================================================
+
+Prepare Android release signing safely.
+
+Requirements:
+
+- inspect current signing configuration
+- do not generate or commit a private production keystore without owner direction
+- do not commit passwords
+- do not commit `key.properties`
+- ensure signing secrets are ignored
+- provide secure local setup documentation
+- provide CI secret names or release workflow expectations
+- separate debug signing from release signing
+- fail honestly when release credentials are absent
+- do not silently sign public release builds with the debug key
+
+If local signing credentials are unavailable:
+
+- prepare the configuration
+- verify unsigned or debug build behavior where possible
+- document exact owner steps
+- keep release packaging blocked honestly
+
+==================================================
+FEATURE 8: RELEASE METADATA AND LEGAL STATUS
+==================================================
+
+Verify:
+
+- `version: 1.0.0+1`
+- single source of truth
+- package metadata display
+- release date state
+- release notes
+- known limitations
+- support email
+- HydrionSharks identity
+- legal drafts
+- privacy disclosures
+- health disclaimer
+
+Do not invent a release date.
+
+Do not mark legal text approved.
+
+Add an explicit metadata status such as:
+
+- Draft
+- Owner review required
+- Approved
+
+Legal documents requiring review:
+
+- Terms of Use
+- Privacy Policy
+- Health and Safety Disclaimer
+
+Ensure privacy copy matches:
+
+- local profile storage
+- nickname
+- age
+- sex selection
+- shark avatar
+- hydration records
+- goal settings
+- reminders
+- notification permission
+- location permission
+- forecast provider
+- network calls
+- no location-history retention
+- local deletion/reset
+- no automatic newsletter signup
+- optional external community links
+- no sale of user data only if supported by actual behavior
+
+==================================================
+FEATURE 9: CHALLENGE VERIFICATION
+==================================================
+
+Verify the seven-item challenge catalogue is fully implemented, not merely declared.
+
+Challenges:
+
+1. Around the World Infusion Week
+2. Temperature Roulette
+3. Eat Your Water Day
+4. Front-Loader Challenge
+5. Pomodoro Sip
+6. Plant Twin Challenge
+7. Bottle Bingo
+
+Bottle Bingo must use:
+
+- Logged water before lunch
+
+It must not include:
+
+- urine-color targets
+- “Peed clear by 2 PM”
+- forced-drinking tasks
+- cash wagers
+- punishment mechanics
+
+Verify:
+
+- structured data
+- start flow
+- progress
+- persistence
+- completion
+- cancellation
+- duplicate prevention
+- day rollover
+- safety note
+- objective progress from hydration logs where possible
+- manual completion only where objective verification is not possible
+- no reward for excessive intake
+
+Add missing implementation and tests where necessary.
+
+==================================================
+FEATURE 10: EXISTING-USER MIGRATION
+==================================================
+
+Verify real migration behavior for users who already have Hydrion installed.
+
+Requirements:
+
+- preserve hydration logs
+- preserve daily goal
+- preserve reminders
+- preserve settings
+- preserve achievements
+- preserve streaks
+- preserve challenge state
+- do not force data deletion
+- do not crash on missing new profile fields
+- do not repeatedly show onboarding after successful migration decision
+- allow existing users to complete the new profile later
+- handle corrupted old storage
+- handle partially written new storage
+
+Add migration tests using realistic legacy stored data.
+
+==================================================
+FEATURE 11: ACCESSIBILITY AND UX COMPLETION
+==================================================
+
+Verify and complete:
+
+- reduced-motion startup
+- semantic labels
+- avatar-selection semantics
+- permission explanations
+- error states
+- large-text scaling
+- touch targets
+- contrast
+- keyboard navigation where relevant
+- screen-reader order
+- loading states
+- weather failure states
+- notification failure states
+- offline behavior
+- no dead buttons
+- no false feature claims
+- no developer diagnostics exposed to consumers
+
+==================================================
+FEATURE 12: RELEASE BUILD VALIDATION
+==================================================
+
+Run:
+
+- `flutter pub get`
+- formatting validation
+- secret scan
+- `flutter analyze`
+- complete `flutter test`
+- targeted weather tests
+- targeted notification tests
+- migration tests
+- onboarding tests
+- challenge tests
+- `flutter build web --release`
+- `flutter build apk --debug`
+- `flutter build apk --release`
+- `flutter build appbundle --release`
+
+Before Android builds, resolve the actual Android SDK configuration from the current machine.
+
+Inspect:
+
+- `flutter doctor -v`
+- `android/local.properties`
+- Android Studio SDK location
+- environment variables
+- Gradle wrapper
+- Java version
+
+Do not claim the machine lacks the Android SDK merely because `ANDROID_HOME` is missing if Android Studio has a configured SDK.
+
+Use repository-local or Android Studio SDK discovery safely.
+
+Do not permanently modify global environment variables unless explicitly necessary.
+
+If Android builds fail:
+
+- capture the exact error
+- identify whether it is:
+  - SDK path
+  - Java
+  - Gradle
+  - Kotlin
+  - dependency
+  - manifest
+  - signing
+  - package
+  - code
+  - resource
+- fix only verified causes
+- rerun the relevant build
+
+Do not hide failures with broad cleanup.
+
+Do not run `flutter clean` unless evidence points to cache corruption.
+
+==================================================
+FEATURE 13: MANUAL DEVICE VALIDATION PREPARATION
+==================================================
+
+Prepare a precise real-device checklist.
+
+Include:
+
+- clean install
+- update over previous debug build where possible
+- app launch
+- startup animation
+- reduced-motion behavior
+- first-run onboarding
+- returning-user skip
+- nickname persistence
+- age/sex persistence
+- all ten shark PFPs
+- profile editing
+- manual goal
+- weather goal eligibility
+- location denial
+- notification denial
+- forecast success
+- forecast failure
+- daily prompt
+- auto-apply
+- restore confirmation
+- hydration add/edit/delete/undo
+- restart persistence
+- challenge start/progress/completion
+- reminder scheduling
+- reminder firing
+- reminder edit
+- reminder cancellation
+- language switching
+- dark/light mode
+- offline behavior
+- legal pages
+- version/build display
+- local reset
+- uninstall/reinstall data behavior
+- crash monitoring
+
+Do not mark these manually verified.
+
+==================================================
+GITHUB ISSUE AND KANBAN SYNCHRONIZATION
+==================================================
+
+After implementation and validation, inspect GitHub.
+
+Use existing issues where possible.
+
+Likely relevant existing or required issues include:
+
+- startup animation
+- first-run onboarding
+- shark PFP profile system
+- manual and weather-informed goals
+- location and forecast integration
+- daily recommendation flow
+- local notifications
+- reminder permission UX
+- challenge catalogue
+- challenge progress engine
+- legal and privacy pages
+- release metadata
+- Android packaging
+- release signing
+- real-device smoke testing
+- v1 release checklist
+
+Before writes:
+
+- search duplicates
+- inspect issue bodies
+- inspect acceptance criteria
+- inspect current project status
+- inspect labels and issue type
+
+Update only objectively completed checkboxes.
+
+For each issue updated, add evidence:
+
+- files changed
+- tests added
+- commands run
+- results
+- manual validation still required
+- owner decisions still required
+- environment blockers
+
+Kanban rules:
+
+- active work → In Progress
+- code complete and automated checks passed → Review/QA
+- unresolved verified defect → Bugged
+- owner decision required → Product Backlog, Ready, or existing project convention
+- future work → Product Backlog
+- speculative work → Ice Box
+- never move directly to Done
+
+Do not move Android packaging, signing, legal approval, weather integration, notification delivery, or release smoke-test issues to Review/QA unless their actual acceptance criteria are satisfied.
+
+==================================================
+V1.1.0 AND V2 BOUNDARIES
+==================================================
+
+Do not expand this pass into v1.1.0 or v2.
+
+Keep these out of implementation unless required for a direct v1 prerequisite:
+
+v1.1.0:
+
+- richer mascot reactions
+- additional PFP packs
+- profile themes
+- recommendation history
+- smarter reminders
+- seasonal challenges
+- export/import
+- backup/restore
+- advanced coach behavior
+- richer analytics
+- validated recommendation-model research
+- production mailing-list backend
+
+v2:
+
+- user accounts
+- community profiles
+- community groups
+- user-created challenges
+- shared challenges
+- moderation
+- reporting
+- blocking
+- leaderboards
+- custom challenge review
+- content safety
+- abuse prevention
+- trust and safety operations
+
+==================================================
+DOCUMENTATION
+==================================================
+
+Update documentation for:
+
+- location behavior
+- weather provider setup
+- API-key configuration
+- privacy implications
+- forecast caching
+- recommendation formula
+- safety bounds
+- daily prompt
+- notification scheduling
+- notification limitations
+- Android permissions
+- release signing setup
+- application ID status
+- build commands
+- real-device testing
+- migration behavior
+- known limitations
+- owner decisions required
+- release checklist
+
+Do not claim production readiness.
+
+==================================================
+REQUIRED FINAL REPORT
+==================================================
+
+Return a detailed report using these exact sections:
+
+## Current Repository State
+
+## Previous Work Verified
+
+## Previous Work Found Incomplete
+
+## Location Integration
+
+## Weather Provider Integration
+
+## Daily Goal Recommendation Flow
+
+## Notification Implementation
+
+## Android Configuration
+
+## Application ID Assessment
+
+## Release Signing Assessment
+
+## Challenge Verification
+
+## Migration Verification
+
+## Accessibility and UX Work
+
+## Files Changed
+
+## Tests Added or Updated
+
+## Commands Run
+
+## Test Results
+
+## Web Build Result
+
+## Android Debug APK Result
+
+## Android Release APK Result
+
+## Android App Bundle Result
+
+## Environment Blockers
+
+## Owner Decisions Required
+
+## Legal Approval Required
+
+## Manual Device Validation Required
+
+## GitHub Issues Updated or Created
+
+## Kanban Changes
+
+## Remaining v1.0.0 Blockers
+
+## Release Verdict
+
+For `## Release Verdict`, choose one:
+
+- Not releasable
+- Developer build only
+- Internal alpha candidate
+- Small private test candidate
+- Closed beta candidate
+- Public v1.0.0 candidate
+- Google Play production candidate
+
+Do not choose a higher level without direct evidence.
+
+==================================================
+FINAL RESTRICTIONS
+==================================================
+
+Do not stage.
+
+Do not commit.
+
+Do not push.
+
+Do not create a branch.
+
+Do not create a pull request.
+
+Do not publish a GitHub Release.
+
+Do not deploy.
+
+Do not upload signing credentials.
+
+Do not fabricate weather success.
+
+Do not fabricate notification delivery.
+
+Do not fabricate Android build success.
+
+Do not approve legal documents.
+
+Do not set a release date without owner approval.
+
+Do not move issues to Done.
+
+Complete all technically implementable remaining v1 work, validate honestly, synchronize GitHub and Kanban only where safe, and leave the repository ready for owner review and real-device testing.
