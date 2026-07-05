@@ -126,6 +126,12 @@ void main() {
 
     expect(find.text('Standalone local mode'), findsOneWidget);
     expect(find.text('Language choice is saved locally.'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Daily hydration goal'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Daily hydration goal'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Reusable container'),

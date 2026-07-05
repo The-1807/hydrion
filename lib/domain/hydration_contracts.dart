@@ -24,6 +24,9 @@ class HydrationChallenge {
   final String description;
   final int targetMl;
   final int durationDays;
+  final String category;
+  final String dailyTask;
+  final String safetyNote;
 
   const HydrationChallenge({
     required this.id,
@@ -31,6 +34,10 @@ class HydrationChallenge {
     required this.description,
     required this.targetMl,
     required this.durationDays,
+    this.category = 'Hydration habit',
+    this.dailyTask = 'Track your hydration honestly.',
+    this.safetyNote =
+        'Hydration needs vary. Stop or adjust a challenge if you feel unwell, and do not force fluids beyond your normal needs or professional health guidance.',
   });
 }
 

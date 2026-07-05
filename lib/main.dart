@@ -29,10 +29,13 @@ import 'ui/screens/analytics_screen.dart';
 import 'ui/screens/ar_visualization_screen.dart';
 import 'ui/screens/chat_coach_screen.dart';
 import 'ui/screens/home_screen.dart';
+import 'ui/screens/legal_about_screen.dart';
 import 'ui/screens/log_screen.dart';
+import 'ui/screens/onboarding_screen.dart';
 import 'ui/screens/reminders_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/social_challenges_screen.dart';
+import 'ui/screens/startup_screen.dart';
 import 'storage/local_store.dart';
 import 'utils/i18n_resolver.dart';
 import 'utils/permissions.dart';
@@ -107,13 +110,25 @@ class HydrionApp extends StatelessWidget {
             locale: i18n.locale,
             initialRoute: '/',
             routes: {
-              '/': (_) => const HomeScreen(),
+              '/': (_) => StartupScreen(
+                    warmUp: () async {
+                      await Future.wait([
+                        services.hydrationSummaryService.getHydrationSummary(),
+                        services.hydrationContextProvider.getHydrationContext(),
+                      ]);
+                    },
+                    isOnboardingCompleted: () => services
+                        .settingsRepository.settings.onboardingCompleted,
+                  ),
+              '/home': (_) => const HomeScreen(),
+              '/onboarding': (_) => const OnboardingScreen(),
               '/analytics': (_) => const AnalyticsScreen(),
               '/chat': (_) => const ChatCoachScreen(),
               '/log': (_) => const LogScreen(),
               if (services.capabilityReporter.capabilities.osNotifications)
                 '/reminders': (_) => const RemindersScreen(),
               '/settings': (_) => const SettingsScreen(),
+              '/legal-about': (_) => const LegalAboutScreen(),
               '/challenges': (_) => const SocialChallengesScreen(),
               if (services.capabilityReporter.capabilities.arVisualization)
                 '/ar': (_) => const ArVisualizationScreen(),

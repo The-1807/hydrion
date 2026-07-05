@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/avatar_manifest.dart';
 import '../../domain/hydration_contracts.dart';
+import '../../domain/release_metadata.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/settings_repository.dart';
 import '../../utils/i18n_resolver.dart';
@@ -42,6 +44,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           _SettingsHeader(capabilities: capabilities),
+          const SizedBox(height: 12),
+          _ProfileSummaryCard(settings: settings),
           const SizedBox(height: 12),
           Card(
             child: Padding(
@@ -165,6 +169,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 12),
           _LocalFirstPrivacyCard(capabilities: capabilities),
+          const SizedBox(height: 12),
+          const _LegalAboutCard(),
           if (kDebugMode) ...[
             const SizedBox(height: 12),
             const _DebugDiagnosticsCard(),
@@ -188,6 +194,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'en' || 'es' || 'fr' => l10n.localeCoverageComplete,
       _ => l10n.futureLanguagesNote,
     };
+  }
+}
+
+class _ProfileSummaryCard extends StatelessWidget {
+  final UserSettings settings;
+
+  const _ProfileSummaryCard({required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    final avatar = HydrionAvatarManifest.byId(settings.avatarId);
+    final nickname = settings.nickname?.trim();
+    final goalMode = switch (settings.goalMode) {
+      HydrionGoalMode.manual => 'Manual goal',
+      HydrionGoalMode.weatherInformed => 'Weather-informed goal',
+    };
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                avatar.assetPath,
+                key: const Key('settings-avatar'),
+                width: 72,
+                height: 72,
+                fit: BoxFit.cover,
+                semanticLabel: avatar.displayName,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    nickname == null || nickname.isEmpty
+                        ? 'Local profile'
+                        : nickname,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text('${avatar.displayName} • $goalMode'),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${settings.containerSizeMl} ml container • ${settings.dailyGoalMl} ml/day',
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    key: const Key('settings-reopen-onboarding'),
+                    onPressed: () async {
+                      await context
+                          .read<UserSettingsRepository>()
+                          .reopenOnboarding();
+                      if (!context.mounted) {
+                        return;
+                      }
+                      Navigator.of(context).pushReplacementNamed('/onboarding');
+                    },
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Edit onboarding'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -433,6 +512,26 @@ class _LocalFirstPrivacyCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LegalAboutCard extends StatelessWidget {
+  const _LegalAboutCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        key: const Key('settings-legal-about'),
+        leading: const Icon(Icons.article_outlined),
+        title: const Text('Legal & About'),
+        subtitle: const Text(
+          'Version ${HydrionReleaseMetadata.flutterVersionName} • ${HydrionReleaseMetadata.releaseDateLabel}',
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).pushNamed('/legal-about'),
       ),
     );
   }

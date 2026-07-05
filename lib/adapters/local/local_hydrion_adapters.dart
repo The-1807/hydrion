@@ -1,3 +1,4 @@
+import '../../domain/challenge_catalog.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
@@ -45,13 +46,7 @@ class LocalChallengeGenerator implements ChallengeGenerator {
   Future<HydrationChallenge> createChallenge({
     required String userLevel,
   }) async {
-    return HydrationChallenge(
-      id: 'steady-sip-7-day-${userLevel.toLowerCase()}',
-      name: 'Seven Day Steady Sip',
-      description: 'Reach your daily hydration goal for one week.',
-      targetMl: UserSettings.defaultDailyGoalMl,
-      durationDays: 7,
-    );
+    return HydrionChallengeCatalog.challenges.first;
   }
 }
 

@@ -6,7 +6,8 @@ void main() {
   testWidgets('Hydrion app shell boots from the root package', (tester) async {
     await tester.pumpWidget(HydrionApp());
     await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('home-logo')), findsOneWidget);
     expect(find.text('Hydrion'), findsOneWidget);

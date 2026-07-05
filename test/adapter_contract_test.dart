@@ -60,7 +60,7 @@ void main() {
       userLevel: 'intermediate',
     );
 
-    expect(challenge.id, 'steady-sip-7-day-intermediate');
+    expect(challenge.id, 'around-the-world-infusion-week');
     expect(challenge.targetMl, 2200);
     expect(challenge.durationDays, 7);
   });
@@ -212,7 +212,8 @@ void main() {
 
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
 
     expect(find.text('1234 / 3000 ml'), findsOneWidget);
     expect(find.text('Fake coach adapter response'), findsOneWidget);
