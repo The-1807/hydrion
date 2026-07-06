@@ -56,6 +56,12 @@ Android release signing uses `android/key.properties` when the owner provides
 local credentials. Release builds no longer fall back to the debug key. Do not
 commit keystores, passwords, or `key.properties`.
 
+GitHub Actions uploads a debug-signed APK for ad hoc phone smoke testing. The
+signed release APK artifact is uploaded only when protected repository secrets
+provide `HYDRION_ANDROID_KEYSTORE_BASE64`,
+`HYDRION_ANDROID_KEYSTORE_PASSWORD`, `HYDRION_ANDROID_KEY_ALIAS`, and
+`HYDRION_ANDROID_KEY_PASSWORD`.
+
 See `docs/V1_RELEASE_READINESS.md` for weather setup, privacy behavior,
 notification limitations, signing setup, application-id status, build commands,
 known limitations, owner decisions, and manual device validation.

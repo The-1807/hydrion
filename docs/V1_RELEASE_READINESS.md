@@ -110,9 +110,17 @@ exists locally, Gradle reads:
 - `keyPassword`
 
 Do not commit `key.properties`, keystores, `.jks`, passwords, or CI secrets.
-CI should provide equivalent signing material through protected secrets before a
-store upload workflow is enabled. Without owner credentials, release packaging
-remains blocked or unsigned and must not be treated as production-ready.
+CI uploads a debug-signed APK for ad hoc phone smoke testing. CI uploads a
+signed release APK only when protected repository secrets provide:
+
+- `HYDRION_ANDROID_KEYSTORE_BASE64`
+- `HYDRION_ANDROID_KEYSTORE_PASSWORD`
+- `HYDRION_ANDROID_KEY_ALIAS`
+- `HYDRION_ANDROID_KEY_PASSWORD`
+
+Without those credentials, release packaging remains blocked and must not be
+treated as production-ready. CI must not upload an unsigned release APK as an
+installable phone artifact.
 
 ## Build Commands
 

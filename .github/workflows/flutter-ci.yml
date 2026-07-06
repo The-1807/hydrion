@@ -758,14 +758,94 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build installable test APK
+      - name: Prepare Android signing config
+        id: android-signing
+        env:
+          HYDRION_ANDROID_KEYSTORE_BASE64: ${{ secrets.HYDRION_ANDROID_KEYSTORE_BASE64 }}
+          HYDRION_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.HYDRION_ANDROID_KEYSTORE_PASSWORD }}
+          HYDRION_ANDROID_KEY_ALIAS: ${{ secrets.HYDRION_ANDROID_KEY_ALIAS }}
+          HYDRION_ANDROID_KEY_PASSWORD: ${{ secrets.HYDRION_ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          signing_values=0
+          for value in \
+            "${HYDRION_ANDROID_KEYSTORE_BASE64}" \
+            "${HYDRION_ANDROID_KEYSTORE_PASSWORD}" \
+            "${HYDRION_ANDROID_KEY_ALIAS}" \
+            "${HYDRION_ANDROID_KEY_PASSWORD}"; do
+            if [[ -n "${value}" ]]; then
+              signing_values=$((signing_values + 1))
+            fi
+          done
+
+          if [[ "${signing_values}" -eq 0 ]]; then
+            echo "release_signing_available=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice::Android release signing secrets are not configured. CI will upload a debug-signed APK for ad hoc phone installs and skip the release APK artifact."
+            exit 0
+          fi
+
+          if [[ "${signing_values}" -ne 4 ]]; then
+            echo "Android release signing secrets are partially configured. Set all four HYDRION_ANDROID_* secrets or remove them all."
+            exit 1
+          fi
+
+          echo "::add-mask::${HYDRION_ANDROID_KEYSTORE_PASSWORD}"
+          echo "::add-mask::${HYDRION_ANDROID_KEY_ALIAS}"
+          echo "::add-mask::${HYDRION_ANDROID_KEY_PASSWORD}"
+
+          printf '%s' "${HYDRION_ANDROID_KEYSTORE_BASE64}" |
+            base64 --decode > android/hydrion-release.jks
+
+          cat > android/key.properties <<EOF
+          storeFile=../hydrion-release.jks
+          storePassword=${HYDRION_ANDROID_KEYSTORE_PASSWORD}
+          keyAlias=${HYDRION_ANDROID_KEY_ALIAS}
+          keyPassword=${HYDRION_ANDROID_KEY_PASSWORD}
+          EOF
+
+          echo "release_signing_available=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Build debug APK for device smoke installs
         run: flutter build apk --debug
 
-      - name: Upload Android APK
+      - name: Upload debug Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: hydrion-android-apk-${{ github.run_number }}-${{ github.run_attempt }}
+          name: hydrion-android-debug-apk-${{ github.run_number }}-${{ github.run_attempt }}
           path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Build signed release APK
+        if: steps.android-signing.outputs.release_signing_available == 'true'
+        run: flutter build apk --release
+
+      - name: Verify signed release APK
+        if: steps.android-signing.outputs.release_signing_available == 'true'
+        run: |
+          set -euo pipefail
+
+          apk_path="build/app/outputs/flutter-apk/app-release.apk"
+          test -f "${apk_path}" || {
+            echo "Signed release APK was not produced at ${apk_path}."
+            exit 1
+          }
+
+          apksigner="$(find "${ANDROID_HOME}/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          if [[ -z "${apksigner}" ]]; then
+            echo "apksigner was not found in ${ANDROID_HOME}/build-tools."
+            exit 1
+          fi
+
+          "${apksigner}" verify --verbose --print-certs "${apk_path}"
+
+      - name: Upload signed release Android APK
+        if: steps.android-signing.outputs.release_signing_available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hydrion-android-signed-release-apk-${{ github.run_number }}-${{ github.run_attempt }}
+          path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
 
