@@ -147,6 +147,16 @@ workflows:
             cp build/app/outputs/flutter-apk/app-release.apk \
               "$CI_ARTIFACTS_DIRECTORY/hydrion-android-ci-ephemeral-signed-release.apk"
           fi
+      - name: Build per-ABI release APKs
+        script: |
+          flutter build apk --release --split-per-abi \
+            2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-release-split-per-abi.log"
+          for apk in build/app/outputs/flutter-apk/app-*-release.apk; do
+            [ -f "$apk" ] || continue
+            abi="$(basename "$apk" | sed 's/app-\(.*\)-release.apk/\1/')"
+            cp "$apk" \
+              "$CI_ARTIFACTS_DIRECTORY/hydrion-android-${HYDRION_ANDROID_SIGNING_KIND}-signed-release-${abi}.apk"
+          done
       - name: Build production signed App Bundle
         script: |
           if [ "$HYDRION_ANDROID_SIGNING_KIND" != "production" ]; then
@@ -166,6 +176,12 @@ workflows:
           apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
           "$apksigner" verify --verbose --print-certs "$apk_path" \
             2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/apksigner-release.log"
+      - name: Generate Android size audit
+        script: |
+          dart run tool/android_size_audit.dart \
+            --output "$CI_ARTIFACTS_DIRECTORY/hydrion-android-size-audit.txt" \
+            "$CI_ARTIFACTS_DIRECTORY" \
+            2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/android-size-audit.log"
     artifacts:
       - codemagic-artifacts/android/**
 

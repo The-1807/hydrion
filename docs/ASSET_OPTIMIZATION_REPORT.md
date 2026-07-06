@@ -6,19 +6,19 @@ Status: measured local pass on July 6, 2026.
 
 | Metric | Before | After |
 |---|---:|---:|
-| Runtime asset files under `assets/` | 44 | 43 |
-| Runtime asset bytes under `assets/` | 76,702,320 | 3,413,216 |
-| Runtime byte reduction |  | 73,289,104 bytes |
-| Runtime percentage reduction |  | 95.55% |
+| Runtime asset files under `assets/` | 44 | 21 |
+| Runtime asset bytes under `assets/` | 76,702,320 | 1,790,496 |
+| Runtime byte reduction |  | 74,911,824 bytes |
+| Runtime percentage reduction |  | 97.67% |
 | Source originals preserved |  | `assets_source_original/` |
 
-The before total is the measured pre-optimization `assets/` total from this pass. The after total is the current measured `assets/` tree. Original owner assets were moved to `assets_source_original/assets/...` and are not declared in `pubspec.yaml`.
+The before total is the measured pre-optimization `assets/` total from this pass. The after total is the current runtime-declared asset set, excluding zero-byte `.gitkeep` placeholders. Original owner assets were moved to `assets_source_original/assets/...` and are not declared in `pubspec.yaml`.
 
 ## Build Size Measurements
 
 | Build artifact | Before optimization | After optimization | Notes |
 |---|---:|---:|---|
-| Web release build | Not measured before asset conversion | 83 files, 37,058,566 bytes | Do not infer a before/after web delta from asset bytes alone. |
+| Web release build | Not measured before asset conversion | 64 files, 35,428,770 bytes | Do not infer a before/after web delta from asset bytes alone. |
 | Release APK | Not measured locally | Blocked locally: no Android SDK/`ANDROID_HOME` | Do not claim APK reduction unless a local or CI build is actually observed. |
 
 ## Optimization Actions
@@ -27,8 +27,9 @@ The before total is the measured pre-optimization `assets/` total from this pass
 - Resized `UI_BETA` lifestyle scenes to a maximum long side of 768 px.
 - Resized profile avatars, shark companions, mascot, and app icon to a maximum long side of 640 px.
 - Moved the unused `assets/pfp_mascot/pfp/1000064425.mp4` out of the runtime bundle.
+- Moved generated human profile-avatar JPG derivatives out of the runtime bundle.
 - Updated Dart, tests, docs, and `pubspec.yaml` references from `.png` to `.jpg`.
-- Preserved stable avatar IDs in code so stored user avatar selections continue to resolve.
+- Preserved shark avatar IDs in code; removed human avatar IDs migrate to the default shark.
 
 ## Transparency Check
 
@@ -69,28 +70,28 @@ All original PNG files in `assets_source_original/assets/...` were checked with 
 | `assets/pfp_mascot/pfp/smartty_shark.jpg` | 640x640 | 101,450 |
 | `assets/pfp_mascot/pfp/slicky_shark.jpg` | 640x640 | 101,016 |
 | `assets/pfp_mascot/pfp/scout_shark.jpg` | 640x640 | 100,681 |
-| `assets/pfp_mascot/hpfp/hydrion-human-splash.jpg` | 640x640 | 97,062 |
 | `assets/pfp_mascot/pfp/supercool_shark.jpg` | 640x640 | 96,661 |
 | `assets/UI_BETA/hydrion-lifestyle-app-check.jpg` | 512x768 | 95,011 |
-| `assets/pfp_mascot/hpfp/hydrion-human-silver.jpg` | 640x640 | 93,574 |
-| `assets/pfp_mascot/hpfp/hydrion-human-wave.jpg` | 640x640 | 92,256 |
-| `assets/pfp_mascot/hpfp/hydrion-human-lagoon.jpg` | 640x640 | 91,014 |
-| `assets/pfp_mascot/hpfp/hydrion-human-bluebell.jpg` | 640x640 | 90,636 |
 | `assets/pfp_mascot/pfp/savvy-eco_shark.jpg` | 640x640 | 89,994 |
-| `assets/pfp_mascot/hpfp/hydrion-human-compass.jpg` | 640x640 | 88,708 |
-| `assets/pfp_mascot/hpfp/hydrion-human-sunrise.jpg` | 640x640 | 88,489 |
-| `assets/pfp_mascot/hpfp/hydrion-human-cove.jpg` | 640x640 | 87,330 |
-| `assets/pfp_mascot/hpfp/hydrion-human-mist.jpg` | 640x640 | 86,485 |
-| `assets/pfp_mascot/hpfp/hydrion-human-bloom.jpg` | 640x640 | 85,349 |
-| `assets/pfp_mascot/hpfp/hydrion-human-harbor.jpg` | 640x640 | 85,231 |
+| `assets/pfp_mascot/pfp/sensei_shark.jpg` | 640x640 | 83,795 |
+| `assets/icons/icon1807.jpg` | 640x640 | 81,889 |
+| `assets/UI_BETA/hydrion-lifestyle-bottle-break.jpg` | 512x768 | 81,729 |
+| `assets/pfp_mascot/pfp/superhappy_shark.jpg` | 640x640 | 80,708 |
+| `assets/UI_BETA/hydrion-lifestyle-plan-check.jpg` | 512x768 | 74,375 |
+| `assets/pfp_mascot/pfp/sundown_shark.jpg` | 640x640 | 73,531 |
+| `assets/UI_BETA/hydrion-lifestyle-studio-bottle.jpg` | 512x768 | 71,861 |
+| `assets/UI_BETA/hydrion-lifestyle-blue-kit.jpg` | 768x768 | 69,457 |
+| `assets/UI_BETA/hydrion-lifestyle-sip-break.jpg` | 512x768 | 68,976 |
+| `assets/UI_BETA/hydrion-lifestyle-runner-ready.jpg` | 512x768 | 63,536 |
+| `assets/UI_BETA/hydrion-lifestyle-cooldown.jpg` | 512x768 | 62,288 |
 
 ## Runtime Inventory Notes
 
 - `assets/UI_BETA/*.jpg`: lifestyle scenes used by Home, Progress, Challenges, Profile, onboarding, empty/recommendation/weather surfaces through `HydrionUiAssetManifest` and `HydrionLifestyleArtResolver`.
 - `assets/pfp_mascot/pfp/*.jpg`: selectable shark companion avatars through `HydrionAvatarManifest`.
-- `assets/pfp_mascot/hpfp/*.jpg`: selectable human profile defaults through `HydrionAvatarManifest`.
 - `assets/pfp_mascot/hydrion_mascot.jpg`: startup, onboarding, fallback logo/brand moments.
 - `assets/icons/icon1807.jpg`: Hydrion logo component and app icon source reference.
-- `.gitkeep` files in `assets/ar`, `assets/sounds`, and `assets/ui` are zero-byte placeholders only.
 
-No exact duplicate runtime asset identifiers were found by `test/asset_registry_test.dart`. No `.mp4` or old `.png` runtime asset is declared in `pubspec.yaml`.
+The generated human profile-avatar JPGs are archived under `assets_source_original/removed_runtime_assets/assets/pfp_mascot/hpfp/` and are not declared in `pubspec.yaml`.
+
+No exact duplicate runtime asset identifiers were found by `test/asset_registry_test.dart`. No `.mp4`, old `.png`, or `assets/pfp_mascot/hpfp/` runtime asset is declared in `pubspec.yaml`.

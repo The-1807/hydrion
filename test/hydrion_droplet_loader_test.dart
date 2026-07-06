@@ -66,12 +66,12 @@ void main() {
 
   testWidgets('startup exposes droplet progress and completion handoff',
       (tester) async {
+    final warmUp = Completer<void>();
     await tester.pumpWidget(
       MaterialApp(
         routes: {
           '/': (_) => StartupScreen(
-                minimumDuration: const Duration(milliseconds: 40),
-                warmUp: () async {},
+                warmUp: () => warmUp.future,
                 isOnboardingCompleted: () => true,
               ),
           '/home': (_) => const SizedBox(key: Key('dummy-home')),
@@ -82,8 +82,8 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('startup-droplet-loader')), findsOneWidget);
 
-    await tester.pump(const Duration(milliseconds: 60));
-    expect(find.byKey(const Key('startup-completion-ring')), findsOneWidget);
+    warmUp.complete();
+    await tester.pump();
 
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('dummy-home')), findsOneWidget);
@@ -97,7 +97,6 @@ void main() {
       MaterialApp(
         routes: {
           '/': (_) => StartupScreen(
-                minimumDuration: const Duration(milliseconds: 10),
                 timeout: const Duration(milliseconds: 20),
                 warmUp: () => blocked.future,
                 isOnboardingCompleted: () => true,

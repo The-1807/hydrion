@@ -52,16 +52,22 @@ void main() {
   test('new asset folders are declared and generated filenames are removed',
       () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    final humanAssets =
-        Directory('assets/pfp_mascot/hpfp').listSync().whereType<File>();
+    final humanRuntimeDirectory = Directory('assets/pfp_mascot/hpfp');
+    final humanAssets = humanRuntimeDirectory.existsSync()
+        ? humanRuntimeDirectory.listSync().whereType<File>().toList()
+        : <File>[];
+    final archivedHumanAssets = Directory(
+      'assets_source_original/removed_runtime_assets/assets/pfp_mascot/hpfp',
+    ).listSync().whereType<File>().toList();
     final uiAssets = Directory('assets/UI_BETA').listSync().whereType<File>();
 
     expect(pubspec, contains('assets/UI_BETA/'));
-    expect(pubspec, contains('assets/pfp_mascot/hpfp/'));
+    expect(pubspec, isNot(contains('assets/pfp_mascot/hpfp/')));
     expect(pubspec, contains('docs/Hydrion_Legal_Pack_Markdown/'));
-    expect(humanAssets, hasLength(19));
+    expect(humanAssets, isEmpty);
+    expect(archivedHumanAssets, hasLength(19));
     expect(uiAssets, hasLength(9));
-    for (final file in [...humanAssets, ...uiAssets]) {
+    for (final file in [...archivedHumanAssets, ...uiAssets]) {
       expect(file.path, isNot(contains('ChatGPT Image')));
       expect(file.path, isNot(contains(' ')));
     }
@@ -87,6 +93,8 @@ void main() {
       codemagic,
       contains('hydrion-android-production-signed-release.aab'),
     );
+    expect(codemagic, contains('--split-per-abi'));
+    expect(codemagic, contains('hydrion-android-size-audit.txt'));
     expect(
       codemagic,
       contains('hydrion-ios-simulator-compatibility.app.zip'),

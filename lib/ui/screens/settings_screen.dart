@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/location_service.dart';
 import '../../services/notifications.dart';
+import '../../services/weather_goal_service.dart';
 import '../../utils/i18n_resolver.dart';
 import '../../utils/permissions.dart';
 import '../components/hydrion_logo.dart';
@@ -469,14 +470,24 @@ class _DailyGoalCardState extends State<_DailyGoalCard> {
   }
 }
 
-class _WeatherGoalSettingsCard extends StatelessWidget {
+class _WeatherGoalSettingsCard extends StatefulWidget {
   final UserSettings settings;
 
   const _WeatherGoalSettingsCard({required this.settings});
 
   @override
+  State<_WeatherGoalSettingsCard> createState() =>
+      _WeatherGoalSettingsCardState();
+}
+
+class _WeatherGoalSettingsCardState extends State<_WeatherGoalSettingsCard> {
+  WeatherModeSetupResult? _setupResult;
+  bool _setupInProgress = false;
+
+  @override
   Widget build(BuildContext context) {
     final repository = context.read<UserSettingsRepository>();
+    final settings = widget.settings;
     final weatherEnabled = settings.goalMode == HydrionGoalMode.weatherInformed;
 
     return Card(
@@ -517,16 +528,21 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
                 ),
               ],
               selected: {settings.goalMode},
-              onSelectionChanged: (selection) async {
-                final selected = selection.single;
-                if (selected == HydrionGoalMode.manual) {
-                  await repository.setGoalMode(selected);
-                  return;
-                }
-                if (await _confirmWeatherMode(context)) {
-                  await repository.setGoalMode(selected);
-                }
-              },
+              onSelectionChanged: _setupInProgress
+                  ? null
+                  : (selection) async {
+                      final selected = selection.single;
+                      if (selected == HydrionGoalMode.manual) {
+                        setState(() => _setupResult = null);
+                        await repository.setGoalMode(selected);
+                        return;
+                      }
+                      final confirmed = await _confirmWeatherMode(context);
+                      if (!mounted || !confirmed) {
+                        return;
+                      }
+                      await _prepareWeatherMode();
+                    },
             ),
             const SizedBox(height: 8),
             Text(
@@ -535,6 +551,24 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
                   : 'Manual mode is active. Your baseline remains ${settings.baselineDailyGoalMl} ml.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (_setupInProgress) ...[
+              const SizedBox(height: 12),
+              const LinearProgressIndicator(
+                key: Key('settings-weather-setup-progress'),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Checking location and retrieving today\'s forecast...',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            if (_setupResult != null) ...[
+              const SizedBox(height: 12),
+              _WeatherSetupSummary(
+                result: _setupResult!,
+                volumeUnit: settings.volumeUnit,
+              ),
+            ],
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               value: settings.weatherGoalDailyConfirmationEnabled,
@@ -557,12 +591,16 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  key: const Key('settings-request-location'),
-                  onPressed: weatherEnabled
-                      ? () => _requestLocationPermission(context)
-                      : null,
-                  icon: const Icon(Icons.location_on_outlined),
-                  label: const Text('Allow location'),
+                  key: const Key('settings-weather-setup'),
+                  onPressed: _setupInProgress ? null : _prepareWeatherMode,
+                  icon: Icon(
+                    weatherEnabled ? Icons.refresh : Icons.location_on_outlined,
+                  ),
+                  label: Text(
+                    weatherEnabled
+                        ? 'Refresh current weather'
+                        : 'Retry weather setup',
+                  ),
                 ),
                 OutlinedButton.icon(
                   key: const Key('settings-request-notifications'),
@@ -595,6 +633,38 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
     );
   }
 
+  Future<void> _prepareWeatherMode() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repository = context.read<UserSettingsRepository>();
+    final coordinator = context.read<DailyWeatherGoalCoordinator>();
+    setState(() {
+      _setupInProgress = true;
+      _setupResult = null;
+    });
+    final result = await coordinator.prepareWeatherMode(
+      requestLocationPermission: true,
+      forceRefresh: true,
+    );
+    if (!mounted) {
+      return;
+    }
+    if (result.isReady) {
+      await repository.setGoalMode(HydrionGoalMode.weatherInformed);
+    } else {
+      await repository.setGoalMode(HydrionGoalMode.manual);
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _setupInProgress = false;
+      _setupResult = result;
+    });
+    messenger.showSnackBar(
+      SnackBar(content: Text(_weatherSetupSnackBar(result))),
+    );
+  }
+
   Future<bool> _confirmWeatherMode(BuildContext context) async {
     final proceed = await showDialog<bool>(
       context: context,
@@ -619,42 +689,6 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
       ),
     );
     return proceed == true;
-  }
-
-  Future<void> _requestLocationPermission(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final repository = context.read<UserSettingsRepository>();
-    final locationService = context.read<HydrionLocationService>();
-    final proceed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Use location for weather?'),
-        content: const Text(
-          'Hydrion uses approximate foreground location for this weather lookup. Rounded coordinates are sent to Open-Meteo, and manual goals still work if you decline.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Not now'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Continue'),
-          ),
-        ],
-      ),
-    );
-    if (proceed != true || !context.mounted) {
-      return;
-    }
-    await repository.recordLocationPermissionPrompt(DateTime.now());
-    final result = await locationService.requestPermission();
-    if (!context.mounted) {
-      return;
-    }
-    messenger.showSnackBar(
-      SnackBar(content: Text('Location permission status: ${result.name}')),
-    );
   }
 
   Future<void> _requestNotificationPermission(BuildContext context) async {
@@ -694,6 +728,138 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _WeatherSetupSummary extends StatelessWidget {
+  final WeatherModeSetupResult result;
+  final HydrionVolumeUnit volumeUnit;
+
+  const _WeatherSetupSummary({
+    required this.result,
+    required this.volumeUnit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final forecast = result.forecast;
+    final decision = result.decision;
+    final title =
+        result.isReady ? 'Weather mode ready' : 'Weather mode not enabled';
+
+    return DecoratedBox(
+      key: const Key('settings-weather-summary'),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.55,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  result.isReady
+                      ? Icons.check_circle_outline
+                      : Icons.info_outline,
+                  color: result.isReady
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+              ],
+            ),
+            if (forecast != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _forecastSummary(forecast),
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                result.forecastFromCache
+                    ? 'Using today\'s cached forecast from ${forecast.providerId}.'
+                    : 'Fresh forecast from ${forecast.providerId}.',
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+            if (decision != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                decision.eligible
+                    ? 'Goal adjustment: ${_formatSignedVolume(decision.weatherAdjustmentMl, volumeUnit)}. Recommended goal: ${_formatVolume(decision.recommendedGoalMl, volumeUnit)}.'
+                    : decision.explanation,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+            if (result.message != null &&
+                result.message!.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                result.message!,
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _weatherSetupSnackBar(WeatherModeSetupResult result) {
+  if (result.isReady) {
+    return 'Weather mode enabled with today\'s forecast.';
+  }
+  return switch (result.status) {
+    WeatherModeSetupStatus.profileIncomplete =>
+      'Weather mode needs age and sex in Profile before it can adjust goals.',
+    WeatherModeSetupStatus.locationPermissionRequired =>
+      'Weather mode stayed manual because location permission was not granted.',
+    WeatherModeSetupStatus.locationUnavailable =>
+      'Weather mode stayed manual because current location was unavailable.',
+    WeatherModeSetupStatus.weatherUnavailable =>
+      'Weather mode stayed manual because today\'s forecast was unavailable.',
+    WeatherModeSetupStatus.ready => 'Weather mode enabled.',
+  };
+}
+
+String _forecastSummary(WeatherSnapshot forecast) {
+  final temp = '${forecast.temperatureC.round()} C';
+  final humidity = forecast.humidityPercent == null
+      ? 'humidity unavailable'
+      : '${forecast.humidityPercent!.round()}% humidity';
+  final condition = forecast.condition.trim().isEmpty ||
+          forecast.condition.trim().toLowerCase() == 'unknown'
+      ? 'condition unavailable'
+      : forecast.condition.trim();
+  return '$temp, $humidity, $condition';
+}
+
+String _formatSignedVolume(int ml, HydrionVolumeUnit unit) {
+  if (ml == 0) {
+    return _formatVolume(0, unit);
+  }
+  final sign = ml > 0 ? '+' : '-';
+  return '$sign${_formatVolume(ml.abs(), unit)}';
+}
+
+String _formatVolume(int ml, HydrionVolumeUnit unit) {
+  return switch (unit) {
+    HydrionVolumeUnit.milliliters => '$ml ml',
+    HydrionVolumeUnit.ounces => '${(ml / 29.5735).round()} fl oz',
+  };
 }
 
 class _ReusableContainerCard extends StatelessWidget {
@@ -772,13 +938,13 @@ class _ComingSoonFeaturesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <_ComingSoonFeature>[
-      if (!capabilities.arVisualization)
+      if (!capabilities.bleSync && !capabilities.healthSync)
         const _ComingSoonFeature(
-          key: Key('coming-soon-ar-view'),
-          icon: Icons.view_in_ar_outlined,
-          title: 'AR view',
+          key: Key('coming-soon-connected-devices'),
+          icon: Icons.devices_other_outlined,
+          title: 'Connected devices',
           explanation:
-              'AR hydration visualization is coming soon and is not enabled in this build.',
+              'BLE smart bottle and smartwatch support are planned. This build does not scan for Bluetooth devices, connect to a bottle, or request Health permissions.',
         ),
       if (!capabilities.socialSync)
         const _ComingSoonFeature(
@@ -804,7 +970,7 @@ class _ComingSoonFeaturesCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Roadmap features',
+                    'Coming soon',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -812,7 +978,7 @@ class _ComingSoonFeaturesCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'These designed features are visible for product direction but are not available in this build.',
+              'These product directions are visible for planning, but this build keeps them inactive and permission-free.',
             ),
             const SizedBox(height: 8),
             for (final item in items) item,
@@ -1423,12 +1589,13 @@ class _CapabilityStatusCard extends StatelessWidget {
           ),
           const Divider(height: 1),
           _CapabilityTile(
-            icon: Icons.view_in_ar_outlined,
-            title: l10n.arVisualization,
-            enabled: capabilities.arVisualization,
+            icon: Icons.devices_other_outlined,
+            title: 'Connected devices',
+            enabled: capabilities.bleSync || capabilities.healthSync,
             enabledLabel: l10n.available,
             disabledLabel: l10n.disabled,
-            description: l10n.arVisualizationDescription,
+            description:
+                'Smart bottle and smartwatch support are coming soon. No Bluetooth scan, bottle connection, HealthKit, Google Fit, or wearable read is active in this build.',
           ),
           const Divider(height: 1),
           _CapabilityTile(

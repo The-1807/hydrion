@@ -19,33 +19,14 @@ visual assets are used so they do not become arbitrary decoration.
 | `assets/pfp_mascot/pfp/supercool_shark.jpg` | Supercool | Cool and playful | Selectable shark companion |
 | `assets/pfp_mascot/pfp/superhappy_shark.jpg` | Superhappy | Bright and celebratory | Selectable shark companion |
 
-## Human Default Profile Avatars
+## Archived Human Profile Avatar Derivatives
 
-The files in `assets/pfp_mascot/hpfp/` are profile defaults, not Hydrion
-companions. Home keeps a shark companion even when the user's profile fallback
-avatar is human.
-
-| Asset | Display name | Product use |
-|---|---|---|
-| `assets/pfp_mascot/hpfp/hydrion-human-anchor.jpg` | Anchor | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-bloom.jpg` | Bloom | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-bluebell.jpg` | Bluebell | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-breeze.jpg` | Breeze | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-compass.jpg` | Compass | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-cove.jpg` | Cove | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-current.jpg` | Current | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-drift.jpg` | Drift | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-harbor.jpg` | Harbor | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-lagoon.jpg` | Lagoon | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-mist.jpg` | Mist | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-pearl.jpg` | Pearl | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-reef.jpg` | Reef | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-river.jpg` | River | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-silver.jpg` | Silver | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-splash.jpg` | Splash | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-sunrise.jpg` | Sunrise | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-tide.jpg` | Tide | Default profile avatar |
-| `assets/pfp_mascot/hpfp/hydrion-human-wave.jpg` | Wave | Default profile avatar |
+Generated human profile-avatar JPGs were removed from the runtime bundle and
+are no longer selectable defaults. They are archived under
+`assets_source_original/removed_runtime_assets/assets/pfp_mascot/hpfp/` for
+owner review only. Saved ids matching the removed `hydrion-human-*` set migrate
+to the default `savvy-eco_shark` avatar. Users can still provide a custom
+profile photo through the existing profile-photo flow.
 
 ## UI_BETA Lifestyle Assets
 
@@ -80,7 +61,7 @@ Automatic lifestyle-art selection is centralized in
 Hydrion does not infer sex or gender from nickname, selected profile image,
 selected avatar, device information, location, behavior, or previous artwork.
 This resolver controls automatic lifestyle-art selection only. Users can still
-manually choose any shark companion or human profile avatar.
+manually choose any shark companion or provide a custom profile photo.
 
 Current scene defaults:
 
@@ -108,12 +89,15 @@ originals are preserved outside the bundled app path in
 Measured runtime asset totals:
 
 - Before: 44 files, 76,702,320 bytes.
-- After: 43 files, 3,413,216 bytes.
-- Reduction: 73,289,104 bytes, 95.55%.
+- After removing human default avatar JPGs: 21 runtime-declared files, 1,790,496 bytes.
+- Reduction: 74,911,824 bytes, 97.67%.
 
 The unused `assets/pfp_mascot/pfp/1000064425.mp4` was moved to
 `assets_source_original/assets/pfp_mascot/pfp/1000064425.mp4` and is not
 declared in `pubspec.yaml`.
+The generated `assets/pfp_mascot/hpfp/*.jpg` human defaults were moved to
+`assets_source_original/removed_runtime_assets/assets/pfp_mascot/hpfp/` and are
+not declared in `pubspec.yaml`.
 
 See `docs/ASSET_OPTIMIZATION_REPORT.md` for dimensions, largest-file tables,
 and bundle-size notes.

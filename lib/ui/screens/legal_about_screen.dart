@@ -104,6 +104,7 @@ class LegalDocumentScreen extends StatelessWidget {
                       return const _LegalMissingState();
                     }
                     final data = _stripFrontMatter(snapshot.data!);
+                    final textTheme = Theme.of(context).textTheme;
                     return Markdown(
                       key: Key('legal-document-${document.id}'),
                       data: data,
@@ -112,18 +113,30 @@ class LegalDocumentScreen extends StatelessWidget {
                       styleSheet: MarkdownStyleSheet.fromTheme(
                         Theme.of(context),
                       ).copyWith(
-                        p: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              height: 1.45,
-                            ),
-                        h1: Theme.of(
-                          context,
-                        ).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
-                        h2: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: colorScheme.primary,
-                            ),
+                        p: textTheme.bodyMedium?.copyWith(
+                          fontSize: 15,
+                          height: 1.5,
+                        ),
+                        listBullet: textTheme.bodyMedium?.copyWith(
+                          fontSize: 15,
+                          height: 1.5,
+                        ),
+                        h1: textTheme.titleLarge?.copyWith(
+                          fontSize: 22,
+                          height: 1.18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        h2: textTheme.titleMedium?.copyWith(
+                          fontSize: 18,
+                          height: 1.24,
+                          fontWeight: FontWeight.w800,
+                          color: colorScheme.primary,
+                        ),
+                        h3: textTheme.titleSmall?.copyWith(
+                          fontSize: 16,
+                          height: 1.3,
+                          fontWeight: FontWeight.w700,
+                        ),
                         a: TextStyle(
                           color: colorScheme.primary,
                           decoration: TextDecoration.underline,
@@ -131,6 +144,10 @@ class LegalDocumentScreen extends StatelessWidget {
                         blockquoteDecoration: BoxDecoration(
                           color: colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(8),
+                        ),
+                        blockquotePadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
                       ),
                     );

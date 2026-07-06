@@ -14,7 +14,8 @@ void main() {
       'assets/icons/icon1807.jpg',
     };
 
-    expect(paths, hasLength(40));
+    expect(HydrionAvatarManifest.humanAvatars, isEmpty);
+    expect(paths, hasLength(21));
     for (final path in paths) {
       expect(path, isNot(endsWith('.png')), reason: path);
       expect(path, isNot(contains('assets_source_original')));
@@ -36,6 +37,7 @@ void main() {
 
     final pubspec = File('pubspec.yaml').readAsStringSync();
     expect(pubspec, isNot(contains('assets_source_original')));
+    expect(pubspec, isNot(contains('assets/pfp_mascot/hpfp/')));
     expect(pubspec, isNot(contains('1000064425.mp4')));
     expect(pubspec, isNot(contains('icon1807.png')));
   });

@@ -161,6 +161,9 @@ void main() {
       find.byKey(const Key('legal-document-terms')),
     );
     expect(markdown.noScroll, isFalse);
+    expect(markdown.styleSheet?.p?.fontSize, lessThanOrEqualTo(15));
+    expect(markdown.styleSheet?.h1?.fontSize, lessThanOrEqualTo(22));
+    expect(markdown.styleSheet?.h2?.fontSize, lessThanOrEqualTo(18));
     expect(markdown.data.length, greaterThan(3000));
     expect(markdown.data, contains('## Contact'));
 

@@ -86,7 +86,7 @@ code was changed.
 | Malformed response envelope | Missing JSON, candidates, content, parts, or text throws. | Not specifically visible. | Preserve response-envelope failure phase. |
 | Invalid action JSON | Parser rejects missing `actions`, empty actions, unknown types, wrong fields, invalid ranges, or oversized strings. | Not specifically visible. | Preserve parser rejection reason without raw model text. |
 | Validator blocks all actions | `_allowedActions` returns empty after validation. | Settings can show "Provider returned no safe actions after validation." | Add first safe validator reason and blocked capability list. |
-| Unsafe capability claim | Message claims disabled voice, OS notifications, BLE, Health, AR, social sync, cloud sync, ELKA, or unavailable cloud AI/Gemini is active. | Only broad validation fallback is visible. | Surface blocked capability labels safely. |
+| Unsafe capability claim | Message claims disabled voice, OS notifications, BLE, Health, social sync, cloud sync, ELKA, or unavailable cloud AI/Gemini is active. | Only broad validation fallback is visible. | Surface blocked capability labels safely. |
 | Valid text-only action | First allowed action message is shown. | User sees Gemini response; health success clears fallback. | Keep this path. |
 | State-changing action | Allowed state-changing proposal can be returned by provider, but Hydrion should execute only through the executor with confirmation. | Coach currently displays first action message; auto-apply is not present. | Keep provider output as proposals; add action confirmation UI later. |
 

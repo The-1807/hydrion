@@ -892,12 +892,29 @@ jobs:
 
           "${apksigner}" verify --verbose --print-certs "${apk_path}"
 
+      - name: Generate Android size audit
+        if: steps.android-signing.outputs.release_signing_available == 'true'
+        run: |
+          mkdir -p "${CI_ARTIFACTS_DIRECTORY}"
+          dart run tool/android_size_audit.dart \
+            --output "${CI_ARTIFACTS_DIRECTORY}/hydrion-android-size-audit.txt" \
+            build/app/outputs/flutter-apk
+
       - name: Upload signed release Android APK
         if: steps.android-signing.outputs.release_signing_available == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: hydrion-android-${{ steps.android-signing.outputs.release_signing_kind }}-signed-release-apk-${{ github.run_number }}-${{ github.run_attempt }}
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Android size audit
+        if: steps.android-signing.outputs.release_signing_available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hydrion-android-size-audit-${{ github.run_number }}-${{ github.run_attempt }}
+          path: ${{ env.CI_ARTIFACTS_DIRECTORY }}/hydrion-android-size-audit.txt
           if-no-files-found: error
           retention-days: 14
 

@@ -11,7 +11,6 @@
   "logTitle": "Hydration Log",
   "remindersTitle": "Reminders",
   "settingsTitle": "Settings",
-  "arTitle": "AR Hydration View",
   "loggedVolume": "Logged {volumeMl} ml",
   "@loggedVolume": {
     "placeholders": {
@@ -43,8 +42,6 @@
   "coachRoute": "Coach",
   "challengesRoute": "Challenges",
   "remindersRoute": "Reminders",
-  "arDisabledRoute": "AR disabled",
-  "arUnavailableRoute": "AR unavailable",
   "voiceIntent": "Voice intent: {intent}",
   "@voiceIntent": {
     "placeholders": {
@@ -230,8 +227,6 @@
   "osNotifications": "OS notifications",
   "osNotificationsDisabledTitle": "OS notifications disabled",
   "osNotificationsDescription": "Reminder definitions save locally; no platform notification is scheduled.",
-  "arVisualization": "AR visualization",
-  "arVisualizationDescription": "AR route is a placeholder; no camera or native AR session starts.",
   "socialSync": "Social sync",
   "localOnly": "Local only",
   "socialSyncDescription": "Challenges are local-only; no backend state is shared.",
@@ -357,10 +352,6 @@
       }
     }
   },
-  "arCapabilityReportedNoAdapter": "AR capability is reported, but no AR adapter is wired.",
-  "arDisabledStandalone": "AR is disabled in this standalone build.",
-  "arCapabilityNoSession": "Hydrion still will not start a camera or native AR session until an adapter is configured.",
-  "arNoPluginActive": "No AR plugin, camera permission, or native AR session is active.",
   "chatError": "Could not fetch coach reply",
   "localFallbackCoach": "On-device coach",
   "providerCoachTitle": "Provider coach",

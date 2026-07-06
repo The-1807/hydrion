@@ -42,9 +42,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsTitle => 'Ajustes';
 
   @override
-  String get arTitle => 'Vista AR de hidratación';
-
-  @override
   String loggedVolume({required int volumeMl}) {
     return '$volumeMl ml registrados';
   }
@@ -83,12 +80,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get remindersRoute => 'Recordatorios';
-
-  @override
-  String get arDisabledRoute => 'AR desactivada';
-
-  @override
-  String get arUnavailableRoute => 'AR no disponible';
 
   @override
   String voiceIntent({required Object intent}) {
@@ -597,13 +588,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Las definiciones de recordatorio se guardan localmente; no se programa ninguna notificación de plataforma.';
 
   @override
-  String get arVisualization => 'Visualización AR';
-
-  @override
-  String get arVisualizationDescription =>
-      'La ruta AR es un marcador de posición; no se inicia cámara ni sesión AR nativa.';
-
-  @override
   String get socialSync => 'Sincronización social';
 
   @override
@@ -792,22 +776,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String consumedOfTarget({required int consumedMl, required int targetMl}) {
     return 'Consumidos $consumedMl de $targetMl mililitros';
   }
-
-  @override
-  String get arCapabilityReportedNoAdapter =>
-      'La capacidad AR está informada, pero no hay adaptador AR conectado.';
-
-  @override
-  String get arDisabledStandalone =>
-      'AR está desactivada en esta compilación independiente.';
-
-  @override
-  String get arCapabilityNoSession =>
-      'Hydrion no iniciará una cámara ni una sesión AR nativa hasta que se configure un adaptador.';
-
-  @override
-  String get arNoPluginActive =>
-      'No hay plugin AR, permiso de cámara ni sesión AR nativa activa.';
 
   @override
   String get chatError => 'No se pudo obtener la respuesta del coach';

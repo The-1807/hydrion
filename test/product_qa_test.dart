@@ -398,8 +398,6 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('No reminders yet'), findsOneWidget);
-    expect(find.byKey(const Key('route-/ar')), findsNothing);
-
     await openTab(tester, const Key('nav-challenges'));
     await tester.scrollUntilVisible(
       find.text('No active challenge yet'),

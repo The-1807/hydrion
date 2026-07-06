@@ -773,8 +773,5 @@ String _sexLabel(HydrionSex sex) {
 }
 
 String _avatarRelationshipLabel(HydrionAvatar avatar) {
-  if (avatar.kind == HydrionAvatarKind.human) {
-    return '${avatar.displayName} is your default profile avatar.';
-  }
   return '${avatar.displayName} is your shark companion.';
 }

@@ -135,8 +135,6 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('No reminders yet'), findsOneWidget);
-    expect(find.byKey(const Key('route-/ar')), findsNothing);
-
     await openTab(tester, const Key('nav-challenges'));
     await tester.scrollUntilVisible(
       find.text('No active challenge yet'),
@@ -155,23 +153,23 @@ void main() {
 
     expect(find.byTooltip('Voice input disabled by app capabilities'),
         findsNothing);
-    expect(find.byKey(const Key('route-/ar')), findsNothing);
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
-    final arComingSoon = find.byKey(const Key('coming-soon-ar-view'));
+    final devicesComingSoon =
+        find.byKey(const Key('coming-soon-connected-devices'));
     await tester.scrollUntilVisible(
-      arComingSoon,
+      devicesComingSoon,
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.ensureVisible(arComingSoon);
+    await tester.ensureVisible(devicesComingSoon);
     await tester.pumpAndSettle();
-    expect(arComingSoon, findsOneWidget);
-    await tester.tap(arComingSoon);
+    expect(devicesComingSoon, findsOneWidget);
+    await tester.tap(devicesComingSoon);
     await tester.pumpAndSettle();
     expect(
       find.text(
-        'AR hydration visualization is coming soon and is not enabled in this build.',
+        'BLE smart bottle and smartwatch support are planned. This build does not scan for Bluetooth devices, connect to a bottle, or request Health permissions.',
       ),
       findsWidgets,
     );

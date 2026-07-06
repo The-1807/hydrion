@@ -515,6 +515,9 @@ class UserSettings {
 
   static String _safeAvatarId(Object? value) {
     final id = value is String ? value.trim() : null;
+    if (HydrionAvatarManifest.isRemovedHumanAvatarId(id)) {
+      return HydrionAvatarManifest.defaultAvatarId;
+    }
     return HydrionAvatarManifest.byId(id).id;
   }
 

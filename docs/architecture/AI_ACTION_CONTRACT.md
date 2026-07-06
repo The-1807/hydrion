@@ -23,7 +23,7 @@ Hydrion providers receive typed context instead of stringly JSON.
 | `DailyHydrationSummary` | Today date, consumed ml, target ml, entry count, and derived hydration percent. |
 | `ReminderContext` | Saved reminder count, next local reminder definition, and OS notification availability. |
 | `ChallengeContext` | Active local challenge state, target, duration, completed days, today ml, and derived progress. |
-| `CapabilityContext` | Capability snapshot for local persistence, ELKA, Gemini, cloud AI, cloud sync, voice, BLE, Health, OS notifications, AR, and social sync. |
+| `CapabilityContext` | Capability snapshot for local persistence, ELKA, Gemini, cloud AI, cloud sync, voice, BLE, Health, OS notifications, and social sync. |
 | `HydrationContext` | Complete typed provider context: daily summary, lifetime ml, event count, reminder, challenge, and capabilities. |
 
 `LocalHydrationContextProvider` builds this context from repositories and
@@ -104,7 +104,6 @@ Capabilities that must remain honest unless explicitly enabled:
 - OS notifications
 - BLE bottle sync
 - Health sync
-- AR visualization
 - social sync
 - cloud AI
 - cloud sync

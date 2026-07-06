@@ -85,15 +85,17 @@ void main() {
     }
   });
 
-  test('manual profile avatar selection remains independent', () {
-    final human = HydrionAvatarManifest.byId('hydrion-human-river');
+  test('removed human profile avatar ids fall back to shark companions', () {
+    final removed = HydrionAvatarManifest.byId('hydrion-human-river');
     final shark = HydrionAvatarManifest.byId('superhappy_shark');
 
-    expect(human.kind, HydrionAvatarKind.human);
+    expect(removed.id, HydrionAvatarManifest.defaultAvatarId);
     expect(shark.kind, HydrionAvatarKind.shark);
     expect(
-      HydrionAvatarManifest.companionByProfileAvatarId(human.id).id,
-      'savvy-eco_shark',
+      HydrionAvatarManifest.companionByProfileAvatarId(
+        'hydrion-human-river',
+      ).id,
+      HydrionAvatarManifest.defaultAvatarId,
     );
     expect(
       HydrionAvatarManifest.companionByProfileAvatarId(shark.id).id,

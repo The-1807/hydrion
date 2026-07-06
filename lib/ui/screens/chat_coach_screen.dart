@@ -652,7 +652,6 @@ String _capabilityLabel(
     HydrionCapability.bleSync => l10n.bleBottleSync,
     HydrionCapability.healthSync => l10n.healthSync,
     HydrionCapability.osNotifications => l10n.osNotifications,
-    HydrionCapability.arVisualization => l10n.arVisualization,
     HydrionCapability.socialSync => l10n.socialSync,
   };
 }

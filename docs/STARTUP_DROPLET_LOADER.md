@@ -22,11 +22,11 @@ fine-grained task graph:
 - `0.08`: underwater scene and startup run created.
 - `0.16`: warmup started.
 - `0.72`: app warmup completed.
-- `0.88`: minimum startup scene duration completed.
 - `1.00`: routing handoff is ready.
 
-Warmup still runs concurrently with the startup scene. The loader does not add a
-long blocking wait; it only holds completion briefly for a clean visual handoff.
+Startup does not add a fixed splash delay. The loader remains visible while the
+real warmup future is pending, then waits for the current frame boundary before
+routing so a quick startup does not block on decoration.
 
 ## Droplet Painter
 
@@ -50,7 +50,7 @@ shows the Hydrion mascot, liquid level, and progress semantics.
 At high progress the droplet glow intensifies and a circular ring appears in the
 same visual center. At `1.0`, the droplet scales/fades subtly while the ring
 becomes visible, then startup routes to onboarding or Home according to the
-existing settings decision.
+existing settings decision without an artificial hold.
 
 ## Performance
 

@@ -1,6 +1,5 @@
 enum HydrionAvatarKind {
   shark,
-  human,
 }
 
 class HydrionAvatar {
@@ -18,11 +17,12 @@ class HydrionAvatar {
     this.kind = HydrionAvatarKind.shark,
   });
 
-  bool get isHuman => kind == HydrionAvatarKind.human;
+  bool get isHuman => false;
 }
 
 class HydrionAvatarManifest {
   static const mascotAssetPath = 'assets/pfp_mascot/hydrion_mascot.jpg';
+  static const defaultAvatarId = 'savvy-eco_shark';
 
   static const sharkAvatars = <HydrionAvatar>[
     HydrionAvatar(
@@ -88,146 +88,31 @@ class HydrionAvatarManifest {
     ),
   ];
 
-  static const humanAvatars = <HydrionAvatar>[
-    HydrionAvatar(
-      id: 'hydrion-human-anchor',
-      displayName: 'Anchor',
-      description: 'A grounded default profile portrait.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-anchor.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-bloom',
-      displayName: 'Bloom',
-      description: 'Bright profile energy for steady daily routines.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-bloom.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-bluebell',
-      displayName: 'Bluebell',
-      description: 'A colorful profile portrait with gentle confidence.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-bluebell.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-breeze',
-      displayName: 'Breeze',
-      description: 'A calm profile portrait for easy check-ins.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-breeze.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-compass',
-      displayName: 'Compass',
-      description: 'A polished profile portrait for focused tracking.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-compass.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-cove',
-      displayName: 'Cove',
-      description: 'Warm profile energy for a local-first routine.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-cove.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-current',
-      displayName: 'Current',
-      description: 'Clean profile energy for momentum days.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-current.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-drift',
-      displayName: 'Drift',
-      description: 'A relaxed default portrait for lighter routines.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-drift.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-harbor',
-      displayName: 'Harbor',
-      description: 'Steady profile energy for reliable daily logging.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-harbor.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-lagoon',
-      displayName: 'Lagoon',
-      description: 'Friendly profile energy for hydrated mornings.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-lagoon.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-mist',
-      displayName: 'Mist',
-      description: 'Soft profile energy for quiet consistency.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-mist.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-pearl',
-      displayName: 'Pearl',
-      description: 'A simple, polished default profile portrait.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-pearl.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-reef',
-      displayName: 'Reef',
-      description: 'Confident profile energy for active routines.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-reef.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-river',
-      displayName: 'River',
-      description: 'Friendly profile energy for steady hydration.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-river.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-silver',
-      displayName: 'Silver',
-      description: 'A composed profile portrait for long-term habits.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-silver.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-splash',
-      displayName: 'Splash',
-      description: 'Upbeat profile energy for quick water logs.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-splash.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-sunrise',
-      displayName: 'Sunrise',
-      description: 'Bright profile energy for the first check-in.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-sunrise.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-tide',
-      displayName: 'Tide',
-      description: 'Clean profile energy for daily progress.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-tide.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-    HydrionAvatar(
-      id: 'hydrion-human-wave',
-      displayName: 'Wave',
-      description: 'A lively default portrait for hydration wins.',
-      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-wave.jpg',
-      kind: HydrionAvatarKind.human,
-    ),
-  ];
+  static const removedHumanAvatarIds = <String>{
+    'hydrion-human-anchor',
+    'hydrion-human-bloom',
+    'hydrion-human-bluebell',
+    'hydrion-human-breeze',
+    'hydrion-human-compass',
+    'hydrion-human-cove',
+    'hydrion-human-current',
+    'hydrion-human-drift',
+    'hydrion-human-harbor',
+    'hydrion-human-lagoon',
+    'hydrion-human-mist',
+    'hydrion-human-pearl',
+    'hydrion-human-reef',
+    'hydrion-human-river',
+    'hydrion-human-silver',
+    'hydrion-human-splash',
+    'hydrion-human-sunrise',
+    'hydrion-human-tide',
+    'hydrion-human-wave',
+  };
 
-  static const avatars = <HydrionAvatar>[
-    ...sharkAvatars,
-    ...humanAvatars,
-  ];
+  static const humanAvatars = <HydrionAvatar>[];
+
+  static const avatars = <HydrionAvatar>[...sharkAvatars];
 
   static HydrionAvatar byId(String? id) {
     return avatars.firstWhere(
@@ -236,11 +121,11 @@ class HydrionAvatarManifest {
     );
   }
 
+  static bool isRemovedHumanAvatarId(String? id) {
+    return id != null && removedHumanAvatarIds.contains(id.trim());
+  }
+
   static HydrionAvatar companionByProfileAvatarId(String? id) {
-    final avatar = byId(id);
-    if (avatar.kind == HydrionAvatarKind.shark) {
-      return avatar;
-    }
-    return sharkAvatars.first;
+    return byId(id);
   }
 }

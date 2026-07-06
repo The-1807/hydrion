@@ -217,9 +217,9 @@ choice remains independent.
 Runtime image assets were optimized before this push:
 
 - Before: 44 files, 76,702,320 bytes under `assets/`.
-- After: 43 files, 3,413,216 bytes under `assets/`.
-- Reduction: 73,289,104 bytes, 95.55%.
-- After web release build: 83 files, 37,058,566 bytes under `build/web`.
+- After: 21 runtime-declared files, 1,790,496 bytes under `assets/`.
+- Reduction: 74,911,824 bytes, 97.67%.
+- After web release build: 64 files, 35,428,770 bytes under `build/web`.
 - Original owner assets are preserved under `assets_source_original/assets/...`.
 - The unused MP4 was removed from the runtime bundle.
 
@@ -230,7 +230,7 @@ See `docs/ASSET_OPTIMIZATION_REPORT.md` and `docs/ASSET_MAPPING.md`.
 Visible roadmap features are labeled and non-navigating where capabilities are
 not implemented:
 
-- AR view in Settings when AR capability is unavailable.
+- Connected Devices in Settings when BLE/wearable capabilities are unavailable.
 - Social sync in Settings when social sync capability is unavailable.
 - Social Challenges hero indicates social sync is Coming Soon while local
   challenges remain functional.
@@ -285,8 +285,10 @@ users are not forced to delete data and can complete new profile fields later.
 - Notification delivery and location/weather flows require real-device testing.
 - Open-Meteo availability and network errors must fall back honestly.
 - Social sync is not connected; challenges remain local-only.
-- AR visualization is capability-gated and may remain Coming Soon on builds
-  without the native capability.
+- Connected Devices is a roadmap surface only; BLE smart bottle and smartwatch
+  sync do not request Bluetooth or Health permissions in this build.
+- Android CI publishes `hydrion-android-size-audit.txt` beside release
+  artifacts so APK/AAB size changes can be reviewed before distribution.
 - Before/after web and APK build-size deltas were not measured before the
   asset conversion and must not be claimed retroactively.
 

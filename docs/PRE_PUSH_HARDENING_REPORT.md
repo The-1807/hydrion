@@ -73,17 +73,19 @@ Converted runtime assets:
 - All `assets/UI_BETA/*.png` lifestyle images were converted to optimized `.jpg` derivatives.
 - `assets/icons/icon1807.png` was converted to `assets/icons/icon1807.jpg`.
 - `assets/pfp_mascot/hydrion_mascot.png` was converted to `assets/pfp_mascot/hydrion_mascot.jpg`.
-- All `assets/pfp_mascot/hpfp/*.png` human profile defaults were converted to optimized `.jpg` derivatives.
+- Human profile-avatar JPG derivatives were moved out of runtime to `assets_source_original/removed_runtime_assets/assets/pfp_mascot/hpfp/`.
 - All `assets/pfp_mascot/pfp/*.png` shark profile images were converted to optimized `.jpg` derivatives.
 
 Moved out of runtime bundle:
 
 - Original PNGs and `assets/pfp_mascot/pfp/1000064425.mp4` are preserved under `assets_source_original/assets/...`.
+- Removed human profile-avatar JPG derivatives are preserved under `assets_source_original/removed_runtime_assets/...`.
 
 Removed from runtime declarations:
 
 - Old PNG paths.
 - `assets/pfp_mascot/pfp/1000064425.mp4`.
+- `assets/pfp_mascot/hpfp/`.
 
 ## 3. Character-Selection Mapping Implemented
 
@@ -103,7 +105,7 @@ Home now uses `HydrationProgressGauge`, a Hydrion-native segmented semi-circular
 
 ## 5. Coming Soon Features Discovered
 
-- AR visualization when capability is unavailable.
+- Connected Devices when BLE/wearable capabilities are unavailable.
 - Social sync when capability is unavailable.
 - Social Challenges hero marks social sync Coming Soon while local challenges remain usable.
 
@@ -115,6 +117,7 @@ These controls explain availability and do not navigate into incomplete screens.
 - Location is requested only at point of use.
 - Notification permission is requested from reminder/notification flows.
 - Notification denial does not block weather lookup, in-app recommendation, manual goal mode, or manual logging.
+- Selecting Weather Mode now starts the location and forecast setup flow immediately; failures leave the mode manual and show an explanation.
 
 ## 7. Legal-Opening Gate Behavior
 
@@ -137,6 +140,7 @@ Both are controlled by `HydrionReleaseMetadata`.
 - Startup was made scrollable and constrained for short/landscape screens.
 - Home gauge and quick logging remain reachable on compact screens.
 - Legal viewer/review and settings permission dialogs use safe areas, scrollable content, and readable max widths.
+- Legal document Markdown typography is restrained for mobile reading.
 
 ## 10. Assets Optimized
 
@@ -146,19 +150,20 @@ Runtime image derivatives are JPG because original PNGs were RGB and did not req
 
 - All original PNG runtime files.
 - `assets/pfp_mascot/pfp/1000064425.mp4`.
+- `assets/pfp_mascot/hpfp/*.jpg` generated human profile defaults.
 
 Originals remain in `assets_source_original/assets/...`.
 
 ## 12. Before And After Asset Totals
 
 - Before runtime assets: 44 files, 76,702,320 bytes.
-- After runtime assets: 43 files, 3,413,216 bytes.
-- Reduction: 73,289,104 bytes, 95.55%.
+- After runtime assets: 21 runtime-declared files, 1,790,496 bytes.
+- Reduction: 74,911,824 bytes, 97.67%.
 
 ## 13. Before And After Measured Build Sizes
 
 - Web release before: not measured before asset conversion.
-- Web release after: 83 files, 37,058,566 bytes under `build/web`.
+- Web release after: 64 files, 35,428,770 bytes under `build/web`.
 - Release APK before/after: not measured locally because this machine has no Android SDK.
 
 ## 14. Tests Added Or Updated
@@ -191,6 +196,7 @@ Updated: legal document, startup onboarding, weather/location goal, runtime UX, 
 
 - Web release build succeeded.
 - Android release build did not run locally because no Android SDK is installed.
+- Android CI now runs `tool/android_size_audit.dart` and publishes `hydrion-android-size-audit.txt`.
 
 ## 18. Commands Blocked By Environment
 
@@ -211,5 +217,5 @@ Updated: legal document, startup onboarding, weather/location goal, runtime UX, 
 - Public privacy-policy and support URLs are still owner actions.
 - Production signing secrets are not present locally.
 - Social sync remains local-only/Coming Soon.
-- AR is capability-gated and may remain Coming Soon.
+- Connected Devices remains roadmap-only; no Bluetooth or Health permission is requested.
 - Web/APK before-size deltas must not be claimed retroactively because pre-optimization builds were not measured.

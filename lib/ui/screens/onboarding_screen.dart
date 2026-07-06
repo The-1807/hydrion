@@ -301,9 +301,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         style: Theme.of(context).textTheme.labelLarge,
                       ),
                       Text(
-                        avatar.kind == HydrionAvatarKind.human
-                            ? 'Profile default'
-                            : 'Shark companion',
+                        'Shark companion',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.labelSmall,
                       ),

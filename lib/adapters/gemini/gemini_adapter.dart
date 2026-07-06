@@ -103,7 +103,6 @@ class GeminiRequestBodyBuilder {
                 'bleSync',
                 'healthSync',
                 'osNotifications',
-                'arVisualization',
                 'socialSync',
               ],
             },
@@ -121,7 +120,6 @@ class GeminiRequestBodyBuilder {
                   'bleSync',
                   'healthSync',
                   'osNotifications',
-                  'arVisualization',
                   'socialSync',
                 ],
               },
@@ -446,7 +444,6 @@ class GeminiHydrationAiProvider implements HydrationAiProvider {
         'bleSync': context.capabilities.bleSync,
         'healthSync': context.capabilities.healthSync,
         'osNotifications': context.capabilities.osNotifications,
-        'arVisualization': context.capabilities.arVisualization,
         'socialSync': context.capabilities.socialSync,
       },
     });
@@ -790,7 +787,6 @@ Supported action types and fields:
       'ble' || 'blesync' || 'bluetooth' => HydrionCapability.bleSync,
       'health' || 'healthsync' => HydrionCapability.healthSync,
       'notifications' || 'osnotifications' => HydrionCapability.osNotifications,
-      'ar' || 'arvisualization' => HydrionCapability.arVisualization,
       'social' || 'socialsync' => HydrionCapability.socialSync,
       _ => null,
     };

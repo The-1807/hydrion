@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/legal_document_registry.dart';
@@ -152,14 +154,14 @@ void main() {
   });
 
   testWidgets('startup supports reduced motion rendering', (tester) async {
+    final warmUp = Completer<void>();
     await tester.pumpWidget(
       MaterialApp(
         routes: {
           '/': (_) => MediaQuery(
                 data: const MediaQueryData(disableAnimations: true),
                 child: StartupScreen(
-                  minimumDuration: const Duration(seconds: 1),
-                  warmUp: () async {},
+                  warmUp: () => warmUp.future,
                   isOnboardingCompleted: () => true,
                 ),
               ),
@@ -171,7 +173,8 @@ void main() {
 
     expect(find.byKey(const Key('startup-mascot')), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 1));
+    warmUp.complete();
+    await tester.pump();
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('dummy-home')), findsOneWidget);
   });

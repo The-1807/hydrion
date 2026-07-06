@@ -59,7 +59,6 @@ enum HydrionCapability {
   bleSync,
   healthSync,
   osNotifications,
-  arVisualization,
   socialSync,
 }
 
@@ -118,7 +117,6 @@ class AppCapabilities {
   final bool bleSync;
   final bool healthSync;
   final bool osNotifications;
-  final bool arVisualization;
   final bool socialSync;
 
   const AppCapabilities({
@@ -131,7 +129,6 @@ class AppCapabilities {
     required this.bleSync,
     required this.healthSync,
     required this.osNotifications,
-    required this.arVisualization,
     required this.socialSync,
   });
 
@@ -145,7 +142,6 @@ class AppCapabilities {
         bleSync = false,
         healthSync = false,
         osNotifications = false,
-        arVisualization = false,
         socialSync = false;
 
   AppCapabilities copyWith({
@@ -158,7 +154,6 @@ class AppCapabilities {
     bool? bleSync,
     bool? healthSync,
     bool? osNotifications,
-    bool? arVisualization,
     bool? socialSync,
   }) {
     return AppCapabilities(
@@ -171,7 +166,6 @@ class AppCapabilities {
       bleSync: bleSync ?? this.bleSync,
       healthSync: healthSync ?? this.healthSync,
       osNotifications: osNotifications ?? this.osNotifications,
-      arVisualization: arVisualization ?? this.arVisualization,
       socialSync: socialSync ?? this.socialSync,
     );
   }
@@ -266,7 +260,6 @@ class CapabilityContext {
   final bool bleSync;
   final bool healthSync;
   final bool osNotifications;
-  final bool arVisualization;
   final bool socialSync;
 
   const CapabilityContext({
@@ -279,7 +272,6 @@ class CapabilityContext {
     required this.bleSync,
     required this.healthSync,
     required this.osNotifications,
-    required this.arVisualization,
     required this.socialSync,
   });
 
@@ -293,7 +285,6 @@ class CapabilityContext {
         bleSync = false,
         healthSync = false,
         osNotifications = false,
-        arVisualization = false,
         socialSync = false;
 
   factory CapabilityContext.fromAppCapabilities(AppCapabilities capabilities) {
@@ -307,7 +298,6 @@ class CapabilityContext {
       bleSync: capabilities.bleSync,
       healthSync: capabilities.healthSync,
       osNotifications: capabilities.osNotifications,
-      arVisualization: capabilities.arVisualization,
       socialSync: capabilities.socialSync,
     );
   }
@@ -323,7 +313,6 @@ class CapabilityContext {
       HydrionCapability.bleSync => bleSync,
       HydrionCapability.healthSync => healthSync,
       HydrionCapability.osNotifications => osNotifications,
-      HydrionCapability.arVisualization => arVisualization,
       HydrionCapability.socialSync => socialSync,
     };
   }
@@ -627,7 +616,6 @@ class HydrationAiActionValidator {
       HydrionCapability.osNotifications: ['os notifications', 'notifications'],
       HydrionCapability.bleSync: ['ble', 'bluetooth'],
       HydrionCapability.healthSync: ['health sync', 'healthkit', 'google fit'],
-      HydrionCapability.arVisualization: ['ar ', 'ar visualization'],
       HydrionCapability.socialSync: ['social sync', 'social'],
       HydrionCapability.cloudAi: ['cloud ai', 'cloud model'],
       HydrionCapability.cloudSync: ['cloud sync'],
@@ -693,7 +681,6 @@ class HydrationAiActionValidator {
       HydrionCapability.bleSync => 'BLE sync',
       HydrionCapability.healthSync => 'Health sync',
       HydrionCapability.osNotifications => 'OS notifications',
-      HydrionCapability.arVisualization => 'AR visualization',
       HydrionCapability.socialSync => 'social sync',
     };
   }

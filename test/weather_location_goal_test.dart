@@ -164,6 +164,43 @@ void main() {
       expect(harness.location.lookupCount, 1);
     });
 
+    test('weather mode setup fetches forecast without notification permission',
+        () async {
+      final harness =
+          await _GoalHarness.create(goalMode: HydrionGoalMode.manual);
+
+      final result = await harness.coordinator.prepareWeatherMode(
+        now: DateTime(2026, 7, 5, 8),
+        requestLocationPermission: true,
+      );
+
+      expect(result.status, WeatherModeSetupStatus.ready);
+      expect(result.forecast?.condition, 'Humid');
+      expect(result.decision?.recommendedGoalMl, 2450);
+      expect(harness.weatherProvider.calls, 1);
+      expect(harness.location.lookupCount, 1);
+      expect(harness.notificationAdapter.requestCount, 0);
+      expect(harness.settings.settings.goalMode, HydrionGoalMode.manual);
+    });
+
+    test('weather mode setup stays manual when location is denied', () async {
+      final harness = await _GoalHarness.create(
+        goalMode: HydrionGoalMode.manual,
+        locationPermission: HydrionLocationPermissionState.denied,
+      );
+
+      final result = await harness.coordinator.prepareWeatherMode(
+        now: DateTime(2026, 7, 5, 8),
+        requestLocationPermission: true,
+      );
+
+      expect(result.status, WeatherModeSetupStatus.locationPermissionRequired);
+      expect(harness.location.requestCount, 1);
+      expect(harness.location.lookupCount, 0);
+      expect(harness.weatherProvider.calls, 0);
+      expect(harness.settings.settings.goalMode, HydrionGoalMode.manual);
+    });
+
     test('manual logging is independent from location denial', () async {
       final harness = await _GoalHarness.create(
         locationPermission: HydrionLocationPermissionState.denied,
@@ -357,12 +394,14 @@ class _GoalHarness {
   final UserSettingsRepository settings;
   final FakeHydrionLocationService location;
   final FakeHydrionNotificationAdapter notificationAdapter;
+  final _CountingWeatherProvider weatherProvider;
   final DailyWeatherGoalCoordinator coordinator;
 
   const _GoalHarness({
     required this.settings,
     required this.location,
     required this.notificationAdapter,
+    required this.weatherProvider,
     required this.coordinator,
   });
 
@@ -393,8 +432,9 @@ class _GoalHarness {
       reminderRepository: ReminderRepository.memory(),
       adapter: notificationAdapter,
     );
+    final weatherProvider = _CountingWeatherProvider();
     final weatherService = WeatherForecastService(
-      provider: _CountingWeatherProvider(),
+      provider: weatherProvider,
       cache: WeatherForecastCacheRepository(MemoryHydrionStore()),
     );
     final coordinator = DailyWeatherGoalCoordinator(
@@ -407,6 +447,7 @@ class _GoalHarness {
       settings: settings,
       location: location,
       notificationAdapter: notificationAdapter,
+      weatherProvider: weatherProvider,
       coordinator: coordinator,
     );
   }

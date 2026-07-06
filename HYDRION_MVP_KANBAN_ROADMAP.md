@@ -22,7 +22,7 @@ was not present in this shell. The active Hydrion repository was found at
   persist, summarize, coach locally, localize EN/ES/FR, manage local reminders,
   show local challenges, and build for web/Android without cloud, ELKA, native
   integrations, or production AI secrets.
-- What MVP does not mean: no BLE, HealthKit/Google Fit, AR sessions, voice
+- What MVP does not mean: no BLE, HealthKit/Google Fit, connected devices, voice
   capture, OS notifications, cloud sync, social backend, ELKA runtime, or
   production shared Gemini key in the client.
 - Top blockers:
@@ -57,7 +57,7 @@ was not present in this shell. The active Hydrion repository was found at
 | Local AI default | `local_rules` works without network and remains default/fallback. | `lib/adapters/local/local_hydrion_adapters.dart`; `lib/services/ai_provider_config.dart`; `test/gemini_provider_test.dart`. | Product copy must keep local/default status visible. |
 | Optional Gemini | Gemini is optional, Dart-define based, provider-backed, and falls back to local rules. | `lib/adapters/gemini/gemini_adapter.dart`; `docs/architecture/PROVIDER_SECURITY.md`; `test/gemini_provider_test.dart`. | Client-shipped shared keys are not production-safe. |
 | ELKA boundary | ELKA is compile-safe but unconfigured and non-networked. | `lib/adapters/elka/elka_adapter.dart`; `test/adapter_contract_test.dart`. | No ELKA integration should be started before MVP safety work. |
-| Honest disabled features | AR, BLE, Health, voice, OS notifications, cloud sync, and social sync are labeled disabled/local/future. | `lib/ui/screens/settings_screen.dart`; `lib/ui/screens/ar_visualization_screen.dart`; `test/runtime_ux_test.dart`. | Native work remains post-MVP. |
+| Honest disabled features | Connected devices, BLE, Health, voice, OS notifications, cloud sync, and social sync are labeled disabled/local/future. | `lib/ui/screens/settings_screen.dart`; `docs/CONNECTED_DEVICES_ROADMAP.md`; `test/runtime_ux_test.dart`. | Native work remains post-MVP. |
 | Secret hygiene | Basic repo scanner and tests prevent obvious API keys/private keys. | `tool/secret_scan.dart`; `test/secret_hygiene_test.dart`; CI workflow. | Scanner is lightweight; release process needs stronger guardrails. |
 | Stale scaffold audit | Active, dormant, future, and stale folders are classified. | `docs/architecture/STALE_SCAFFOLD_AUDIT.md`; `docs/architecture/may5th.md`. | Stale config/scripts remain in repo and need clear treatment. |
 
@@ -85,7 +85,7 @@ was not present in this shell. The active Hydrion repository was found at
 - Cloud sync, accounts, authentication, backend storage, or Firebase deploy.
 - BLE/smart bottle sync.
 - HealthKit, Google Fit, or wearable sync.
-- Native AR plugin or camera AR session.
+- Connected-device adapters or fake smart-bottle/watch data.
 - Voice capture, microphone permissions, or speech recognition.
 - OS notification scheduling.
 - Social challenge backend or multiplayer/social graph.
@@ -95,7 +95,7 @@ was not present in this shell. The active Hydrion repository was found at
 
 ### Post-MVP
 
-- Native platform adapters for OS notifications, BLE, Health, voice, and AR.
+- Native platform adapters for OS notifications, BLE, Health/wearables, voice, and connected devices.
 - ELKA as an optional adapter only after the Hydrion boundary is stable.
 - Cloud/social sync with explicit privacy and conflict-resolution design.
 - BYOK or backend-proxy AI strategy if non-local providers become a product
@@ -180,7 +180,7 @@ Required status labels:
 - Post-MVP issues must not be pulled into MVP unless the milestone is changed
   and acceptance criteria are rewritten.
 - Native, cloud, ELKA, and provider work must preserve standalone local mode.
-- No issue may mark BLE, Health, AR, voice, OS notifications, cloud sync, social
+- No issue may mark BLE, Health, connected devices, voice, OS notifications, cloud sync, social
   sync, Gemini production, or ELKA as active unless the implementation, tests,
   permissions, and privacy docs prove it.
 - AI/provider issues must include security/privacy notes.
@@ -372,7 +372,7 @@ Suggested Kanban column:
         marked dormant/template-only.
   - [ ] README and architecture docs state that Settings capability status is
         runtime truth.
-  - [ ] No config file implies BLE, voice, wearable/Health, AR, cloud, or ELKA
+  - [ ] No config file implies BLE, voice, wearable/Health, connected devices, cloud, or ELKA
         is active in MVP.
 - Checklist:
   - [ ] Audit `config/` claims.
@@ -857,7 +857,7 @@ Suggested Kanban column:
   - [ ] Web title, manifest, icons, and PWA metadata are Hydrion-branded.
   - [ ] iOS/macOS bundle identifiers are decided or explicitly deferred.
   - [ ] Desktop platform support is declared honestly.
-  - [ ] No platform claims native AR/BLE/Health/voice/OS notifications are active.
+  - [ ] No platform claims native BLE/Health/voice/OS notifications or connected devices are active.
 - Checklist:
   - [ ] Audit platform metadata.
   - [ ] Update release docs.
@@ -1105,31 +1105,32 @@ Suggested Kanban column:
 - Dependencies/blockers: native plugin choice and MVP-AI-005.
 - Suggested Kanban column: Blocked.
 
-#### POST-NATIVE-005 - Add AR visualization adapter
+#### POST-NATIVE-005 - Add connected-device adapter boundary
 
 - Issue type: `type:user-story`
 - Milestone: `Post-MVP Native Integrations`
 - Priority: `priority:p3`
 - Labels: `area:frontend`, `area:platform`, `type:user-story`, `priority:p3`, `status:blocked`
-- User story: As a user, I want optional AR hydration visualization, so I can
-  see a richer hydration state on supported devices.
-- Problem statement: AR is intentionally disabled and `ar_flutter_plugin` must
-  not be reintroduced just to satisfy a placeholder.
-- Evidence: `lib/ui/screens/ar_visualization_screen.dart`,
-  `docs/architecture/STALE_SCAFFOLD_AUDIT.md`, `pubspec.yaml`.
+- User story: As a user, I want optional smart bottle and smartwatch support, so
+  connected-device hydration context can complement my manual logs when I opt in.
+- Problem statement: connected devices are roadmap-only; Hydrion must not
+  request Bluetooth/Health permissions or emit fake device data before real
+  adapters and privacy copy exist.
+- Evidence: `docs/CONNECTED_DEVICES_ROADMAP.md`,
+  `lib/services/ble_service.dart`, `lib/services/wearable_service.dart`.
 - Acceptance criteria:
-  - [ ] Native AR plugin choice supports current Android Gradle namespace rules.
-  - [ ] Camera permissions and platform gates are implemented.
-  - [ ] AR route remains disabled on unsupported platforms.
-  - [ ] No fake AR session or placeholder plugin code.
+  - [ ] BLE smart bottle adapter boundary is defined and capability-gated.
+  - [ ] Smartwatch/Health adapter boundary is defined and capability-gated.
+  - [ ] Permission copy and source attribution are owner-approved.
+  - [ ] No fake bottle level, watch, or Health data is shown.
 - Checklist:
-  - [ ] Research maintained plugin.
+  - [ ] Research maintained BLE and Health/wearable plugins.
   - [ ] Build adapter boundary.
-  - [ ] Add platform permissions and tests.
-- Test requirements: build tests and manual device tests.
-- Security/privacy: camera permission requires explicit justification.
-- Definition of done: AR is real or remains disabled.
-- Dependencies/blockers: plugin selection and platform testing hardware.
+  - [ ] Add platform permissions, tests, and real-device validation.
+- Test requirements: build tests, adapter contract tests, and manual device tests.
+- Security/privacy: Bluetooth and Health permissions require explicit justification.
+- Definition of done: connected devices are real and opt-in, or remain inactive.
+- Dependencies/blockers: plugin selection, device hardware, and privacy approval.
 - Suggested Kanban column: Blocked.
 
 ### Milestone: Post-MVP ELKA Integration
@@ -1299,7 +1300,7 @@ Sprint goal: make Hydrion's MVP trustworthy before adding new product depth.
 | 6 | MVP-STAB-003 | Makes configs/docs match runtime truth. | Ready |
 | 7 | MVP-STAB-005 | Prevents localization drift as UX changes continue. | Ready |
 
-Sprint 1 explicitly does not include ELKA, cloud sync, BLE, Health, AR, voice,
+Sprint 1 explicitly does not include ELKA, cloud sync, BLE, Health, connected devices, voice,
 OS notifications, or new provider SDKs.
 
 ## Definition Of Done
@@ -1371,7 +1372,7 @@ OS notifications, or new provider SDKs.
 - Do not add ELKA before MVP AI provider safety is complete.
 - Do not add Gemini/OpenAI/BYOK/edge providers as production features before
   consent, key policy, and provider health are complete.
-- Do not re-add `ar_flutter_plugin` or any native plugin for placeholder AR.
+- Do not add connected-device plugins for placeholder UI.
 - Do not add BLE, Health, voice, OS notifications, cloud sync, or social sync
   without adapter interfaces, permissions, privacy copy, and tests.
 - Do not delete `core/`, `packs/`, `models/`, or future asset folders just

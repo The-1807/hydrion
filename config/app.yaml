@@ -15,12 +15,11 @@ theme:
   dark_mode: true          # Default to dark mode
 
 features:
-  ble_enabled: true         # Enable BLE for smart bottles
-  voice_enabled: true       # Enable voice commands
-  ar_enabled: false         # AR visualization (V2)
+  ble_enabled: false        # Connected-device sync is not active
+  voice_enabled: false      # Voice capture is not active
   social_enabled: false     # Social challenges (V2)
   eco_tracking: true        # Plastic savings tracking
-  wearable_sync: true       # Apple Health/Google Fit
+  wearable_sync: false      # Apple Health/Google Fit is not active
 
 api_keys:
   openweather: "YOUR_OPENWEATHER_API_KEY"  # Replace with actual key

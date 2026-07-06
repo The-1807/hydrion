@@ -166,12 +166,6 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
-  /// No description provided for @arTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'AR Hydration View'**
-  String get arTitle;
-
   /// No description provided for @loggedVolume.
   ///
   /// In en, this message translates to:
@@ -238,18 +232,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reminders'**
   String get remindersRoute;
-
-  /// No description provided for @arDisabledRoute.
-  ///
-  /// In en, this message translates to:
-  /// **'AR disabled'**
-  String get arDisabledRoute;
-
-  /// No description provided for @arUnavailableRoute.
-  ///
-  /// In en, this message translates to:
-  /// **'AR unavailable'**
-  String get arUnavailableRoute;
 
   /// No description provided for @voiceIntent.
   ///
@@ -1118,18 +1100,6 @@ abstract class AppLocalizations {
   /// **'Reminder definitions save locally; no platform notification is scheduled.'**
   String get osNotificationsDescription;
 
-  /// No description provided for @arVisualization.
-  ///
-  /// In en, this message translates to:
-  /// **'AR visualization'**
-  String get arVisualization;
-
-  /// No description provided for @arVisualizationDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'AR route is a placeholder; no camera or native AR session starts.'**
-  String get arVisualizationDescription;
-
   /// No description provided for @socialSync.
   ///
   /// In en, this message translates to:
@@ -1408,30 +1378,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Consumed {consumedMl} of {targetMl} milliliters'**
   String consumedOfTarget({required int consumedMl, required int targetMl});
-
-  /// No description provided for @arCapabilityReportedNoAdapter.
-  ///
-  /// In en, this message translates to:
-  /// **'AR capability is reported, but no AR adapter is wired.'**
-  String get arCapabilityReportedNoAdapter;
-
-  /// No description provided for @arDisabledStandalone.
-  ///
-  /// In en, this message translates to:
-  /// **'AR is disabled in this standalone build.'**
-  String get arDisabledStandalone;
-
-  /// No description provided for @arCapabilityNoSession.
-  ///
-  /// In en, this message translates to:
-  /// **'Hydrion still will not start a camera or native AR session until an adapter is configured.'**
-  String get arCapabilityNoSession;
-
-  /// No description provided for @arNoPluginActive.
-  ///
-  /// In en, this message translates to:
-  /// **'No AR plugin, camera permission, or native AR session is active.'**
-  String get arNoPluginActive;
 
   /// No description provided for @chatError.
   ///

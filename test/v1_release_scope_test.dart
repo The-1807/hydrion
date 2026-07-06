@@ -16,8 +16,9 @@ void main() {
     expect(HydrionAvatarManifest.mascotAssetPath,
         'assets/pfp_mascot/hydrion_mascot.jpg');
     expect(HydrionAvatarManifest.sharkAvatars, hasLength(10));
-    expect(HydrionAvatarManifest.humanAvatars, hasLength(19));
-    expect(HydrionAvatarManifest.avatars, hasLength(29));
+    expect(HydrionAvatarManifest.humanAvatars, isEmpty);
+    expect(HydrionAvatarManifest.removedHumanAvatarIds, hasLength(19));
+    expect(HydrionAvatarManifest.avatars, hasLength(10));
     expect(
       HydrionAvatarManifest.sharkAvatars.map((avatar) => avatar.displayName),
       containsAll([
@@ -35,15 +36,10 @@ void main() {
     );
     expect(HydrionAvatarManifest.byId('snss').assetPath,
         'assets/pfp_mascot/pfp/snss.jpg');
-    expect(HydrionAvatarManifest.byId('hydrion-human-river').kind,
-        HydrionAvatarKind.human);
-    expect(HydrionAvatarManifest.byId('hydrion-human-river').assetPath,
-        'assets/pfp_mascot/hpfp/hydrion-human-river.jpg');
-    expect(
-      HydrionAvatarManifest.companionByProfileAvatarId('hydrion-human-river')
-          .id,
-      'savvy-eco_shark',
-    );
+    expect(HydrionAvatarManifest.byId('hydrion-human-river').id,
+        'savvy-eco_shark');
+    expect(HydrionAvatarManifest.isRemovedHumanAvatarId('hydrion-human-river'),
+        isTrue);
     expect(HydrionAvatarManifest.byId('missing').id, 'savvy-eco_shark');
   });
 
@@ -139,6 +135,11 @@ void main() {
     expect(settings.volumeUnit, HydrionVolumeUnit.milliliters);
     expect(settings.containerSizeMl, UserSettings.defaultContainerSizeMl);
     expect(settings.dailyGoalMl, UserSettings.defaultDailyGoalMl);
+
+    final migrated = UserSettings.fromJson({
+      'avatarId': 'hydrion-human-river',
+    });
+    expect(migrated.avatarId, HydrionAvatarManifest.defaultAvatarId);
   });
 
   test('companion state reacts to weather and completed goals', () {

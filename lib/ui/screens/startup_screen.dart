@@ -19,7 +19,7 @@ class StartupScreen extends StatefulWidget {
     required this.warmUp,
     required this.isOnboardingCompleted,
     this.nextRoute,
-    this.minimumDuration = const Duration(milliseconds: 2200),
+    this.minimumDuration = Duration.zero,
     this.timeout = const Duration(seconds: 6),
   });
 
@@ -29,8 +29,6 @@ class StartupScreen extends StatefulWidget {
 
 class _StartupScreenState extends State<StartupScreen>
     with SingleTickerProviderStateMixin {
-  static const _completionHold = Duration(milliseconds: 180);
-
   late final AnimationController _controller;
   final ValueNotifier<double> _startupProgress = ValueNotifier<double>(0);
   String? _recoverableError;
@@ -41,7 +39,7 @@ class _StartupScreenState extends State<StartupScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: widget.minimumDuration,
+      duration: const Duration(milliseconds: 1200),
     );
     unawaited(_start());
   }
@@ -64,21 +62,17 @@ class _StartupScreenState extends State<StartupScreen>
     _controller.forward(from: 0);
     try {
       _setStartupProgress(0.16, run);
-      final sceneReady = Future<void>.delayed(widget.minimumDuration).then((_) {
-        _setStartupProgress(0.88, run);
-      });
-      final warmUpReady = _warmUp().timeout(widget.timeout).then((_) {
+      await _warmUp().timeout(widget.timeout).then((_) {
         _setStartupProgress(0.72, run);
       });
-      await Future.wait([
-        sceneReady,
-        warmUpReady,
-      ]);
       if (!mounted) {
         return;
       }
       _setStartupProgress(1, run);
-      await Future<void>.delayed(_completionHold);
+      await WidgetsBinding.instance.endOfFrame.timeout(
+        const Duration(milliseconds: 120),
+        onTimeout: () {},
+      );
       if (!mounted || _startupRun != run) {
         return;
       }

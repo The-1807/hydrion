@@ -335,7 +335,6 @@ class ProviderBackedHydrationCoach
       HydrionCapability.bleSync => 'BLE sync',
       HydrionCapability.healthSync => 'Health sync',
       HydrionCapability.osNotifications => 'OS notifications',
-      HydrionCapability.arVisualization => 'AR visualization',
       HydrionCapability.socialSync => 'social sync',
     };
   }

@@ -23,7 +23,19 @@ When the user changes Settings to weather-informed goals, Hydrion first shows a 
 - manual goals remain available if location is declined;
 - notification permission is separate and only needed for reminders.
 
-The Settings toggle itself does not immediately request OS location permission. Location is requested only through the contextual weather action or the daily weather flow when `requestLocationPermission` is true.
+After the user confirms, Settings immediately runs weather setup through
+`DailyWeatherGoalCoordinator.prepareWeatherMode`:
+
+- request/check approximate foreground location;
+- retrieve today's Open-Meteo forecast;
+- show temperature, humidity availability, condition, provider/cache source,
+  and the bounded goal adjustment;
+- enable Weather Mode only when location and forecast succeed and profile
+  inputs are eligible;
+- leave the app in Manual Mode when permission is denied, location is
+  unavailable, profile inputs are incomplete, or the provider fails.
+
+Notification permission is not requested by Weather Mode setup.
 
 ## Location Handling
 
@@ -53,6 +65,8 @@ Weather evaluation may optionally request notification permission, but notificat
 
 Covered by `test/weather_location_goal_test.dart` and `test/runtime_ux_test.dart`:
 
+- Weather Mode setup fetches a forecast and does not request notifications;
+- denied location leaves setup manual and skips lookup;
 - no repeated same-day location permission prompt;
 - denied and permanently denied location states block lookup safely;
 - service disabled, timeout, and unavailable coordinates fall back safely;

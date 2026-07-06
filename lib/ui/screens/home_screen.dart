@@ -894,12 +894,12 @@ class _LegacyRouteShortcuts extends StatelessWidget {
             explanation:
                 'Reminder notification setup is coming soon on this platform.',
           ),
-        if (!capabilities.arVisualization)
+        if (!capabilities.bleSync && !capabilities.healthSync)
           const _ComingSoonRouteChip(
-            label: 'AR view',
-            icon: Icons.view_in_ar_outlined,
+            label: 'Connected devices',
+            icon: Icons.devices_other_outlined,
             explanation:
-                'AR hydration visualization is coming soon and is not enabled in this build.',
+                'Smart bottle and smartwatch sync are planned, but this build does not request Bluetooth or Health permissions.',
           ),
       ],
     );

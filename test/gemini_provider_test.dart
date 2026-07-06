@@ -985,7 +985,6 @@ extension on HydrationContext {
         bleSync: capabilities.bleSync,
         healthSync: capabilities.healthSync,
         osNotifications: capabilities.osNotifications,
-        arVisualization: capabilities.arVisualization,
         socialSync: capabilities.socialSync,
       ),
     );

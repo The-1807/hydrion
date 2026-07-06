@@ -90,7 +90,6 @@ void main() {
     expect(capabilities.bleSync, isFalse);
     expect(capabilities.healthSync, isFalse);
     expect(capabilities.osNotifications, isFalse);
-    expect(capabilities.arVisualization, isFalse);
     expect(capabilities.socialSync, isFalse);
     expect(capabilities.modeLabel, 'Standalone local mode');
   });

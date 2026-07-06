@@ -33,8 +33,10 @@ Artifacts:
 - `hydrion-android-debug-smoke.apk`
 - `hydrion-android-ci-ephemeral-signed-release.apk` when production signing secrets are absent
 - `hydrion-android-production-signed-release.apk` when production signing secrets are present
+- `hydrion-android-*-signed-release-arm64-v8a.apk`, `armeabi-v7a.apk`, and `x86_64.apk` split-per-ABI artifacts where Flutter produces them
 - `hydrion-android-production-signed-release.aab` when production signing secrets are present
 - `apksigner-release.log`
+- `hydrion-android-size-audit.txt`
 
 The ephemeral APK is for clean install testing only. It is not suitable for Play Store upload or update-path testing because the key can change.
 
@@ -47,6 +49,10 @@ The workflow verifies the selected release APK with `apksigner` and stores the
 result in `apksigner-release.log`. A downloaded APK should be installable on a
 phone only when it is one of the signed artifacts above; unsigned release APKs
 must not be used as phone-install artifacts.
+
+The workflow also runs `dart run tool/android_size_audit.dart` after APK/AAB
+builds. The report lists runtime asset totals, APK/AAB file sizes, grouped zip
+contents when `unzip` is available, and largest entries for release review.
 
 Protected Android variables required for production signing:
 

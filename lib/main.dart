@@ -30,7 +30,6 @@ import 'services/voice_llm_bridge.dart';
 import 'services/wearable_service.dart';
 import 'services/weather_goal_service.dart';
 import 'ui/screens/analytics_screen.dart';
-import 'ui/screens/ar_visualization_screen.dart';
 import 'ui/screens/chat_coach_screen.dart';
 import 'ui/screens/hydrion_shell.dart';
 import 'ui/screens/legal_about_screen.dart';
@@ -161,8 +160,6 @@ class HydrionApp extends StatelessWidget {
                 document.routeName: (_) =>
                     LegalDocumentScreen(documentId: document.id),
               '/challenges': (_) => const SocialChallengesScreen(),
-              if (services.capabilityReporter.capabilities.arVisualization)
-                '/ar': (_) => const ArVisualizationScreen(),
               if (kDebugMode)
                 '/debug-diagnostics': (_) => const DebugDiagnosticsScreen(),
             },

@@ -25,7 +25,7 @@ more external systems.
 
 | Area | Current state | Maturity |
 |---|---|---|
-| Flutter app shell | Root Flutter app with Home, Log, Analytics, Eco, Coach, Reminders, Settings, Challenges, and AR placeholder routes. | Usable |
+| Flutter app shell | Root Flutter app with Home, Log, Analytics, Eco, Coach, Reminders, Settings, and Challenges routes. | Usable |
 | Persistence | `shared_preferences` via `HydrionLocalStore`; memory store for tests. | Good for local MVP |
 | Hydration data | Persisted logs are the app source of truth. | Strong |
 | Runtime UX | Amount picker, edit/delete logs, empty states, disabled feature labels. | Good |
@@ -34,7 +34,7 @@ more external systems.
 | Local rules mode | Default deterministic provider with no network requirement. | Strong |
 | Gemini | Optional configured provider behind `HydrationAiProvider`; falls back to local rules. | Early integration |
 | ELKA | Compile-safe unconfigured shell only. | Placeholder |
-| Native features | AR, BLE, Health, voice, and OS notifications are explicitly disabled or fallback-only. | Honest but incomplete |
+| Native features | BLE, Health/wearable sync, voice, and OS notifications are explicitly disabled or fallback-only. | Honest but incomplete |
 | CI/CD | GitHub workflow runs pub get, deps, analyze, tests with coverage, web build, APK build. | Solid Flutter baseline |
 | Scripts | Several scripts still assume old `app/`, `cloud/`, Gradle/KMP, logs, or FFI paths. | Stale |
 | Rust/core/packs/models | Aspirational scaffolds exist but are not active Flutter runtime dependencies. | Unsettled |
@@ -75,7 +75,7 @@ more external systems.
 | Rust core | `core/*` | Scaffold only. | Cargo workspace lists hyphenated crates that do not match underscore directories; not integrated with Flutter. |
 | Packs | `packs/*` | Placeholder/experimental. | Pack strategy is unclear; stale BYOK/Gemini pack code can confuse the active adapter boundary. |
 | Models | `models/training/*` | Aspirational ML tooling. | Not wired to product; no model CI; no active asset path in Flutter runtime. |
-| Config | `config/*` | Prompt/config placeholders and app YAML. | `config/app.yaml` claims BLE/voice/wearables enabled while runtime disables them; this can mislead contributors. |
+| Config | `config/*` | Prompt/config placeholders and app YAML. | `config/app.yaml` is dormant and now mirrors disabled BLE/voice/wearable runtime state. |
 
 ## Hardening Priorities
 
@@ -89,7 +89,7 @@ more external systems.
 | P1 | Privacy boundary | Gemini prompt includes typed hydration context; current docs explain the boundary but no runtime consent UX exists. | Add explicit provider enablement screen, context preview, and "data leaves device" copy before non-local provider use. |
 | P1 | Local data protection | Shared preferences is not encrypted. Hydration logs can be health-adjacent personal data. | Decide data classification; consider encrypted local storage before real health/provider integrations. |
 | P1 | Time/date correctness | `DateTime.now()` is spread across repositories/services/screens. | Add clock abstraction for day boundaries, time zones, challenges, reminders, and analytics. |
-| P1 | Config consistency | `config/app.yaml` still says BLE/voice/wearable enabled while UI reports disabled. | Either remove stale runtime claims or document `config/` as dormant templates. |
+| P1 | Config consistency | `config/app.yaml` is not loaded by runtime and should not be treated as product truth. | Keep it documented as a dormant template until a real config loader exists. |
 | P1 | Stale scripts | Scripts still reference missing `app/`, `cloud/`, Gradle/KMP, old logs, and FFI paths. | Update scripts to current root Flutter app or archive them outside active workflow. |
 | P2 | Rust workspace | Workspace members do not match some crate directory names and are not active. | Decide whether Rust is Phase 5+; fix workspace or move to archive/experimental docs. |
 | P2 | Pack strategy | `packs/byok_llm`, `packs/gemini_connector`, and `packs/edge_llm` are not active app integrations. | Document as future packs, delete from active mental model, or define formal adapter contracts. |
@@ -114,7 +114,7 @@ more external systems.
 
 | Feature | Current status | Required before activation |
 |---|---|---|
-| AR visualization | Disabled placeholder route. | Native/plugin adapter, camera permission, assets, capability reporter, and tests. |
+| Connected devices | Roadmap-only settings surface; no Bluetooth scan, bottle connection, HealthKit, Google Fit, or wearable read is active. | Native BLE/Health adapters, permission flow, source attribution, conflict handling, privacy copy, and real-device tests. |
 | BLE bottle sync | Disabled facade returns unavailable/no scan. | Native BLE plugin, device model, reconnection/sync policy, permissions, privacy copy. |
 | Health/wearable sync | Disabled facade except local helper write path. | HealthKit/Google Fit adapter, permission flow, source attribution, conflict handling. |
 | Voice input | Disabled UI and service; typed command parser exists. | Microphone/speech adapter, permission flow, locale handling, privacy copy. |
@@ -128,7 +128,6 @@ more external systems.
 
 | Path | Current role | Audit recommendation |
 |---|---|---|
-| `assets/ar/.gitkeep` | Empty future AR asset folder. | Keep only if AR remains planned; not in `pubspec.yaml`. |
 | `assets/sounds/.gitkeep` | Empty future sound folder. | Keep as future placeholder; not active. |
 | `assets/ui/.gitkeep` | Empty future UI asset folder. | Keep as future placeholder or archive later. |
 | `i18n/.gitkeep` | Old inactive i18n folder. | Safe to archive later; active l10n is `lib/l10n`. |

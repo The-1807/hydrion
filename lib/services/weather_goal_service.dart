@@ -573,6 +573,32 @@ enum DailyWeatherGoalStatus {
   autoApplied,
 }
 
+enum WeatherModeSetupStatus {
+  ready,
+  profileIncomplete,
+  locationPermissionRequired,
+  locationUnavailable,
+  weatherUnavailable,
+}
+
+class WeatherModeSetupResult {
+  final WeatherModeSetupStatus status;
+  final WeatherGoalDecision? decision;
+  final WeatherSnapshot? forecast;
+  final bool forecastFromCache;
+  final String? message;
+
+  const WeatherModeSetupResult({
+    required this.status,
+    this.decision,
+    this.forecast,
+    this.forecastFromCache = false,
+    this.message,
+  });
+
+  bool get isReady => status == WeatherModeSetupStatus.ready;
+}
+
 class DailyWeatherGoalResult {
   final DailyWeatherGoalStatus status;
   final WeatherGoalDecision? decision;
@@ -606,6 +632,75 @@ class DailyWeatherGoalCoordinator {
         _weatherService = weatherService,
         _notificationService = notificationService,
         _goalService = goalService;
+
+  Future<WeatherModeSetupResult> prepareWeatherMode({
+    DateTime? now,
+    bool requestLocationPermission = true,
+    bool forceRefresh = true,
+  }) async {
+    final currentTime = now ?? DateTime.now();
+    var settings = _settingsRepository.settings;
+    final locationPermission = await _ensureLocationPermission(
+      currentTime,
+      requestPermission: requestLocationPermission,
+    );
+    settings = _settingsRepository.settings;
+    if (locationPermission != HydrionLocationPermissionState.granted) {
+      return WeatherModeSetupResult(
+        status: WeatherModeSetupStatus.locationPermissionRequired,
+        message: locationPermission.name,
+      );
+    }
+
+    final location = await _locationService.getCurrentLocation();
+    if (!location.isSuccess || location.coordinates == null) {
+      return WeatherModeSetupResult(
+        status: WeatherModeSetupStatus.locationUnavailable,
+        message: location.status.name,
+      );
+    }
+
+    final forecastResult = await _weatherService.getDailyForecast(
+      coordinates: location.coordinates!,
+      now: currentTime,
+      forceRefresh: forceRefresh,
+    );
+    if (!forecastResult.isSuccess || forecastResult.forecast == null) {
+      return WeatherModeSetupResult(
+        status: WeatherModeSetupStatus.weatherUnavailable,
+        forecast: forecastResult.forecast,
+        forecastFromCache: forecastResult.fromCache,
+        message: forecastResult.message ?? forecastResult.status.name,
+      );
+    }
+
+    final decision = _goalService.recommend(
+      WeatherGoalInputs(
+        baselineGoalMl: settings.baselineDailyGoalMl,
+        age: settings.age,
+        sex: settings.sex,
+        weather: forecastResult.forecast!,
+        locationPermissionGranted: true,
+      ),
+    );
+    if (!decision.eligible) {
+      return WeatherModeSetupResult(
+        status: WeatherModeSetupStatus.profileIncomplete,
+        decision: decision,
+        forecast: forecastResult.forecast,
+        forecastFromCache: forecastResult.fromCache,
+        message:
+            'Complete age and sex in Profile before enabling weather-informed goals.',
+      );
+    }
+
+    return WeatherModeSetupResult(
+      status: WeatherModeSetupStatus.ready,
+      decision: decision,
+      forecast: forecastResult.forecast,
+      forecastFromCache: forecastResult.fromCache,
+    );
+  }
 
   Future<DailyWeatherGoalResult> evaluate({
     DateTime? now,

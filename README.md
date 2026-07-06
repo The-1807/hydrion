@@ -19,8 +19,8 @@ state on the device through `shared_preferences`.
 - Weather-informed goals use a one-shot foreground approximate location lookup
   and Open-Meteo daily forecast data when the user enables weather mode and
   grants required permissions.
-- ELKA, cloud sync, AR, BLE, Health, and voice capture remain disabled or
-  unconfigured unless future adapters are added.
+- ELKA, cloud sync, connected-device sync, Health, and voice capture remain
+  disabled or unconfigured unless future adapters are added.
 
 ## Setup
 

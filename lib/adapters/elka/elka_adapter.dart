@@ -25,7 +25,6 @@ class ElkaAdapterShell
         bleSync: false,
         healthSync: false,
         osNotifications: false,
-        arVisualization: false,
         socialSync: false,
       );
 
