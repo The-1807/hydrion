@@ -15,6 +15,7 @@ Audit date: July 6, 2026.
 - `pubspec.yaml`, `pubspec.lock`
 - `lib/main.dart`
 - `lib/domain/legal_document_registry.dart`
+- `lib/domain/release_metadata.dart`
 - `lib/repositories/settings_repository.dart`
 - `lib/repositories/hydration_repository.dart`
 - `lib/repositories/reminder_repository.dart`
@@ -108,7 +109,23 @@ Internal owner notes and drafting references are not exposed in the user-facing 
 - Privacy Policy is presented as notice, not a contract checkbox.
 - Terms acceptance is separate from Health and Safety acknowledgement.
 - Checkboxes are not preselected.
+- Terms acceptance cannot be checked until the Terms document has been opened
+  through the Hydrion legal viewer.
+- Health acknowledgement cannot be checked until the Health and Safety
+  Disclaimer has been opened through the Hydrion legal viewer.
+- Privacy review cannot be completed until the Privacy Policy has been opened.
+- Alpha and beta builds also require the Alpha and Beta Testing Notice to be
+  opened before completion.
 - Opening a document does not record acceptance.
+- Opening a document does not automatically check any box.
+- Document-opening state is tracked for the active in-app document version
+  during the review session.
+- Attempting to check too early shows an inline live-region error and
+  highlights the required document control instead of showing a blocking
+  full-screen error.
+- Alpha/beta builds use `fahhhhhhh!!! open legal pack` from
+  `HydrionReleaseMetadata`; production builds use
+  `Open the required legal document before continuing.`.
 - Legal acceptance is stored locally with version and timestamp.
 - Existing users with old local storage go to a focused legal review screen.
 - Local hydration data survives legal-state migration.
@@ -146,7 +163,10 @@ See `docs/STORE_COMPLIANCE_MATRIX.md`.
 - Legal hub excludes internal documents.
 - Open Source Licenses access.
 - Terms acceptance not preselected.
-- Opening documents does not record acceptance.
+- Legal checkbox blocked before corresponding document opening.
+- Inline alpha and production legal gate copy.
+- Opening documents does not record acceptance or check boxes.
+- Alpha/beta notice opening required before completion.
 - Existing-user migration preserves hydration logs.
 - Material version change triggers review; same version does not.
 - Health acknowledgement stored separately from Terms acceptance.

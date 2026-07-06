@@ -89,7 +89,7 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const _ProfileLifestyleMoment(),
+          _ProfileLifestyleMoment(settings: settings),
           const SizedBox(height: 16),
           HydrionSurface(
             child: Column(
@@ -279,11 +279,16 @@ class _ProfileHero extends StatelessWidget {
 }
 
 class _ProfileLifestyleMoment extends StatelessWidget {
-  const _ProfileLifestyleMoment();
+  final UserSettings settings;
+
+  const _ProfileLifestyleMoment({required this.settings});
 
   @override
   Widget build(BuildContext context) {
-    final scene = HydrionUiAssetManifest.byId('studio-bottle');
+    final scene = HydrionLifestyleArtResolver.sceneFor(
+      surface: HydrionLifestyleSurface.profile,
+      sex: settings.sex,
+    );
     return HydrionSurface(
       key: const Key('profile-lifestyle-moment'),
       gradient: LinearGradient(

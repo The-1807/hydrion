@@ -88,6 +88,7 @@ class AnalyticsScreen extends StatelessWidget {
           _WeeklyHydrationStrip(
             totals: weeklyTotals,
             targetMl: targetMl,
+            sex: settings.sex,
           ),
           const SizedBox(height: 12),
           Card(
@@ -167,15 +168,20 @@ class AnalyticsScreen extends StatelessWidget {
 class _WeeklyHydrationStrip extends StatelessWidget {
   final List<int> totals;
   final int targetMl;
+  final HydrionSex? sex;
 
   const _WeeklyHydrationStrip({
     required this.totals,
     required this.targetMl,
+    required this.sex,
   });
 
   @override
   Widget build(BuildContext context) {
-    final scene = HydrionUiAssetManifest.byId('cooldown');
+    final scene = HydrionLifestyleArtResolver.sceneFor(
+      surface: HydrionLifestyleSurface.progress,
+      sex: sex,
+    );
     final maxValue = [
       targetMl,
       ...totals,

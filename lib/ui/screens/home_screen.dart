@@ -14,6 +14,7 @@ import '../../repositories/hydration_repository.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/weather_goal_service.dart';
+import '../components/intake_ring.dart';
 import '../components/voice_input_widget.dart';
 import '../theme/hydrion_design.dart';
 
@@ -289,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onHistory: () => Navigator.of(context).pushNamed('/log'),
           ),
           const SizedBox(height: 16),
-          const _HydrionLifestyleRail(),
+          _HydrionLifestyleRail(sex: settings.sex),
           const SizedBox(height: 16),
           _WeatherJourneyPanel(settings: settings),
           const SizedBox(height: 16),
@@ -319,16 +320,13 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HydrionLifestyleRail extends StatelessWidget {
-  const _HydrionLifestyleRail();
+  final HydrionSex? sex;
+
+  const _HydrionLifestyleRail({required this.sex});
 
   @override
   Widget build(BuildContext context) {
-    final scenes = [
-      HydrionUiAssetManifest.byId('sip-break'),
-      HydrionUiAssetManifest.byId('plan-check'),
-      HydrionUiAssetManifest.byId('bottle-break'),
-      HydrionUiAssetManifest.byId('runner-ready'),
-    ];
+    final scenes = HydrionLifestyleArtResolver.homeRailScenes(sex);
 
     return HydrionSurface(
       key: const Key('home-lifestyle-rail'),
@@ -461,6 +459,10 @@ class _HeroHydrationScene extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final percent = (progress * 100).round();
+    final remainingLabel = HydrationVolumeFormatter.format(
+      remainingMl,
+      settings.volumeUnit,
+    );
     return HydrionSurface(
       gradient: HydrionGradients.ocean,
       radius: HydrionRadii.lg,
@@ -499,7 +501,7 @@ class _HeroHydrationScene extends StatelessWidget {
                         runSpacing: 8,
                         children: [
                           _HeroPill('$percent%'),
-                          _HeroPill('$remainingMl ml left'),
+                          _HeroPill('$remainingLabel left'),
                           _HeroPill(
                             settings.weatherAdjustedGoalActive
                                 ? 'Weather-adjusted'
@@ -522,26 +524,21 @@ class _HeroHydrationScene extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(HydrionRadii.pill),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 14,
-                backgroundColor: Colors.white.withValues(alpha: 0.18),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  progress >= 1 ? HydrionColors.sunrise : HydrionColors.glow,
-                ),
+            const SizedBox(height: 18),
+            Center(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = math.min(320.0, constraints.maxWidth);
+                  return HydrationProgressGauge(
+                    consumedMl: consumedMl.toDouble(),
+                    targetMl: targetMl.toDouble(),
+                    volumeUnit: settings.volumeUnit,
+                    width: width,
+                    height: 178,
+                    onDarkBackground: true,
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              '$consumedMl / $targetMl ml',
-              key: const Key('home-progress-text'),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
             ),
           ],
         ),
@@ -660,6 +657,10 @@ class _WeatherJourneyPanel extends StatelessWidget {
     final weatherMode = settings.goalMode == HydrionGoalMode.weatherInformed;
     final active = settings.weatherAdjustedGoalActive;
     final adjustment = settings.dailyGoalMl - settings.baselineDailyGoalMl;
+    final scene = HydrionLifestyleArtResolver.sceneFor(
+      surface: HydrionLifestyleSurface.weather,
+      sex: settings.sex,
+    );
     return HydrionSurface(
       gradient: LinearGradient(
         colors: active
@@ -676,16 +677,34 @@ class _WeatherJourneyPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(active ? Icons.wb_sunny : Icons.cloud_queue),
-              const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  active ? 'Weather changed today\'s route' : 'Weather layer',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
+                child: Row(
+                  children: [
+                    Icon(active ? Icons.wb_sunny : Icons.cloud_queue),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        active
+                            ? 'Weather changed today\'s route'
+                            : 'Weather layer',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
                       ),
+                    ),
+                  ],
                 ),
+              ),
+              const SizedBox(width: 8),
+              Image.asset(
+                scene.assetPath,
+                width: 64,
+                height: 84,
+                fit: BoxFit.contain,
+                semanticLabel: scene.description,
               ),
             ],
           ),
@@ -867,6 +886,20 @@ class _LegacyRouteShortcuts extends StatelessWidget {
             label: 'Reminders',
             icon: Icons.notifications_none,
             route: '/reminders',
+          )
+        else
+          const _ComingSoonRouteChip(
+            label: 'Reminders',
+            icon: Icons.notifications_none,
+            explanation:
+                'Reminder notification setup is coming soon on this platform.',
+          ),
+        if (!capabilities.arVisualization)
+          const _ComingSoonRouteChip(
+            label: 'AR view',
+            icon: Icons.view_in_ar_outlined,
+            explanation:
+                'AR hydration visualization is coming soon and is not enabled in this build.',
           ),
       ],
     );
@@ -891,6 +924,36 @@ class _RouteButton extends StatelessWidget {
       avatar: Icon(icon, size: 18),
       label: Text(label),
       onPressed: () => Navigator.of(context).pushNamed(route),
+    );
+  }
+}
+
+class _ComingSoonRouteChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final String explanation;
+
+  const _ComingSoonRouteChip({
+    required this.label,
+    required this.icon,
+    required this.explanation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '$label. Coming soon. $explanation',
+      child: ActionChip(
+        key: Key('coming-soon-${label.toLowerCase().replaceAll(' ', '-')}'),
+        avatar: Icon(icon, size: 18),
+        label: Text('$label - Coming soon'),
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(explanation)),
+          );
+        },
+      ),
     );
   }
 }

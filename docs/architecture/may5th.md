@@ -52,7 +52,7 @@ more external systems.
 | Coach | `HydrationCoach`, `LocalHydrationCoach`, `ProviderBackedHydrationCoach` | Local coach uses persisted hydration context; Gemini can propose typed actions when explicitly configured. | Add conversation persistence decision; add action confirmation UX and execution pathway. |
 | Settings | `SettingsScreen`, `I18nResolver`, `AppCapabilityReporter` | Locale persists; capability dashboard labels disabled/fallback features. | Make provider health and selected AI mode visible; avoid static capability state where runtime availability can change. |
 | Localization | `lib/l10n/*.arb`, generated localizations, `I18nResolver` | English, Spanish, and French active; unsupported locales safely fall back. | Continue replacing any remaining service-origin user text; add localization lint/key parity checks in CI. |
-| App logo | `assets/icons/icon1807.png`, `HydrionLogo` | Logo is active runtime asset. | Align platform launcher icons/web favicon with brand if not already final. |
+| App logo | `assets/icons/icon1807.jpg`, `HydrionLogo` | Logo is active runtime asset. | Align platform launcher icons/web favicon with brand if not already final. |
 | Optional Gemini | `GeminiHydrationAiProvider`, `HydrionAiRuntimeConfig` | Optional REST provider, no SDK, no boot requirement, local fallback on failure. | See provider/security hardening below before production use. |
 
 ## Layer Audit

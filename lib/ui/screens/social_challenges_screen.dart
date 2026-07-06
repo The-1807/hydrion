@@ -53,6 +53,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
                 : l10n.socialSyncNotConnected,
             activeChallenge: activeChallenge,
             progress: progress,
+            sex: settings.sex,
           ),
           const SizedBox(height: 16),
           _BottleBingoBoard(
@@ -131,18 +132,23 @@ class _ChallengeHero extends StatelessWidget {
   final String localModeBody;
   final JoinedChallenge? activeChallenge;
   final ChallengeProgress progress;
+  final HydrionSex? sex;
 
   const _ChallengeHero({
     required this.localModeLabel,
     required this.localModeBody,
     required this.activeChallenge,
     required this.progress,
+    required this.sex,
   });
 
   @override
   Widget build(BuildContext context) {
     final hasActive = activeChallenge != null;
-    final scene = HydrionUiAssetManifest.byId('runner-ready');
+    final scene = HydrionLifestyleArtResolver.sceneFor(
+      surface: HydrionLifestyleSurface.challenges,
+      sex: sex,
+    );
     return HydrionSurface(
       gradient: HydrionGradients.ocean,
       radius: HydrionRadii.lg,
@@ -208,6 +214,7 @@ class _ChallengeHero extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   _ChallengePill(localModeLabel),
+                  const _ChallengePill('Social sync Coming soon'),
                   const _ChallengePill('No account required'),
                   const _ChallengePill('Local progress'),
                 ],

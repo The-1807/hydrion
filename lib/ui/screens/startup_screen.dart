@@ -136,68 +136,78 @@ class _StartupScreenState extends State<StartupScreen>
       body: _StartupBackdrop(
         reducedMotion: disableAnimations,
         child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ValueListenableBuilder<double>(
-                      valueListenable: _startupProgress,
-                      builder: (context, progress, _) {
-                        return _StartupScene(
-                          controller: _controller,
-                          progress: progress,
-                          reducedMotion: disableAnimations,
-                          hasError: error != null,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      HydrionReleaseMetadata.productName,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    ValueListenableBuilder<double>(
-                      valueListenable: _startupProgress,
-                      builder: (context, progress, _) {
-                        return Text(
-                          error ??
-                              'Preparing local-first hydration tracking '
-                                  '${(progress * 100).round()}%',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    if (error != null)
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          OutlinedButton.icon(
-                            key: const Key('startup-retry'),
-                            onPressed: _retryStartup,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Retry'),
-                          ),
-                          FilledButton.icon(
-                            key: const Key('startup-continue'),
-                            onPressed: _goNext,
-                            icon: const Icon(Icons.arrow_forward),
-                            label: const Text('Continue'),
-                          ),
-                        ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ValueListenableBuilder<double>(
+                              valueListenable: _startupProgress,
+                              builder: (context, progress, _) {
+                                return _StartupScene(
+                                  controller: _controller,
+                                  progress: progress,
+                                  reducedMotion: disableAnimations,
+                                  hasError: error != null,
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              HydrionReleaseMetadata.productName,
+                              style: Theme.of(context).textTheme.headlineMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            ValueListenableBuilder<double>(
+                              valueListenable: _startupProgress,
+                              builder: (context, progress, _) {
+                                return Text(
+                                  error ??
+                                      'Preparing local-first hydration tracking '
+                                          '${(progress * 100).round()}%',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            if (error != null)
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  OutlinedButton.icon(
+                                    key: const Key('startup-retry'),
+                                    onPressed: _retryStartup,
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('Retry'),
+                                  ),
+                                  FilledButton.icon(
+                                    key: const Key('startup-continue'),
+                                    onPressed: _goNext,
+                                    icon: const Icon(Icons.arrow_forward),
+                                    label: const Text('Continue'),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
                       ),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),

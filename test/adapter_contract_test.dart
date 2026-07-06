@@ -220,7 +220,7 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
 
-    expect(find.text('0 / 2200 ml'), findsOneWidget);
+    expect(find.text('0 ml / 2200 ml'), findsOneWidget);
 
     final navigationBar = tester.widget<NavigationBar>(
       find.byKey(const Key('hydrion-bottom-nav')),

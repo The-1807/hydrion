@@ -124,7 +124,7 @@ void main() {
     expect(services.hydrationRepository.totalForDay(DateTime.now()), 350);
     await tester.drag(find.byType(Scrollable).first, const Offset(0, 600));
     await tester.pumpAndSettle();
-    expect(find.text('350 / 2200 ml'), findsOneWidget);
+    expect(find.text('350 ml / 2200 ml'), findsOneWidget);
   });
 
   testWidgets('product QA: Settings capability dashboard is honest',

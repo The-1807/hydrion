@@ -37,6 +37,10 @@ void main() {
     await tester.tap(find.byKey(const Key('onboarding-next')));
     await tester.pumpAndSettle();
 
+    await _openLegalDocument(tester, 'terms');
+    await _openLegalDocument(tester, 'privacy');
+    await _openLegalDocument(tester, 'health');
+    await _openLegalDocument(tester, 'beta');
     tester
         .widget<CheckboxListTile>(
           find.byKey(const Key('onboarding-terms-accept')),
@@ -112,12 +116,11 @@ void main() {
     expect(find.byKey(const Key('onboarding-health-ack')), findsOneWidget);
     expect(services.hydrationRepository.logs.single.volumeMl, 450);
 
-    await tester.tap(find.byKey(const Key('legal-open-terms')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('legal-document-terms')), findsOneWidget);
+    await _openLegalDocument(tester, 'terms');
     expect(services.settingsRepository.settings.acceptedTermsVersion, isNull);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await _openLegalDocument(tester, 'privacy');
+    await _openLegalDocument(tester, 'health');
+    await _openLegalDocument(tester, 'beta');
 
     tester
         .widget<CheckboxListTile>(
@@ -172,4 +175,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('dummy-home')), findsOneWidget);
   });
+}
+
+Future<void> _openLegalDocument(WidgetTester tester, String id) async {
+  final chip = find.byKey(Key('legal-open-$id'));
+  await tester.ensureVisible(chip);
+  await tester.pumpAndSettle();
+  final opener = tester.widget<OutlinedButton>(chip);
+  expect(opener.onPressed, isNotNull);
+  opener.onPressed!();
+  await _pumpUntilFound(tester, find.byKey(Key('legal-document-shell-$id')));
+  expect(find.byKey(Key('legal-document-shell-$id')), findsOneWidget);
+  await tester.pageBack();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
+}
+
+Future<void> _pumpUntilFound(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 5),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (finder.evaluate().isNotEmpty) {
+      return;
+    }
+  }
 }

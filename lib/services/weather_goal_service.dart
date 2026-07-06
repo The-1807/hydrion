@@ -493,7 +493,7 @@ class DeterministicWeatherGoalService {
         userAdjustmentMl: 0,
         recommendedGoalMl: baseline,
         explanation:
-            'Manual goal kept because weather-informed goals require age, an explicit sex option, location permission, notification permission, and a forecast provider.',
+            'Manual goal kept because weather-informed goals require age, an explicit sex option, location permission, and a forecast provider.',
         eligible: false,
       );
     }
@@ -546,8 +546,7 @@ class DeterministicWeatherGoalService {
     return inputs.age != null &&
         inputs.sex != null &&
         inputs.sex != HydrionSex.preferNotToSay &&
-        inputs.locationPermissionGranted &&
-        inputs.notificationPermissionGranted;
+        inputs.locationPermissionGranted;
   }
 
   int _roundToNearest50(int value) {
@@ -666,16 +665,13 @@ class DailyWeatherGoalCoordinator {
       );
     }
 
-    final notificationPermission = await _ensureNotificationPermission(
-      currentTime,
-      requestPermission: requestNotificationPermission,
-    );
-    settings = _settingsRepository.settings;
-    if (notificationPermission != HydrionNotificationPermissionState.granted) {
-      return DailyWeatherGoalResult(
-        status: DailyWeatherGoalStatus.notificationPermissionRequired,
-        message: notificationPermission.name,
+    var notificationPermission = HydrionNotificationPermissionState.unknown;
+    if (requestNotificationPermission) {
+      notificationPermission = await _ensureNotificationPermission(
+        currentTime,
+        requestPermission: true,
       );
+      settings = _settingsRepository.settings;
     }
 
     final location = await _locationService.getCurrentLocation();
@@ -705,7 +701,8 @@ class DailyWeatherGoalCoordinator {
         sex: settings.sex,
         weather: forecastResult.forecast!,
         locationPermissionGranted: true,
-        notificationPermissionGranted: true,
+        notificationPermissionGranted: notificationPermission ==
+            HydrionNotificationPermissionState.granted,
       ),
     );
 

@@ -38,6 +38,16 @@ Artifacts:
 
 The ephemeral APK is for clean install testing only. It is not suitable for Play Store upload or update-path testing because the key can change.
 
+Android release builds have core library desugaring enabled in
+`android/app/build.gradle.kts` with
+`com.android.tools:desugar_jdk_libs:2.1.4`, which is required by
+`flutter_local_notifications` release metadata checks.
+
+The workflow verifies the selected release APK with `apksigner` and stores the
+result in `apksigner-release.log`. A downloaded APK should be installable on a
+phone only when it is one of the signed artifacts above; unsigned release APKs
+must not be used as phone-install artifacts.
+
 Protected Android variables required for production signing:
 
 - `HYDRION_ANDROID_KEYSTORE_BASE64`

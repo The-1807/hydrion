@@ -55,7 +55,6 @@ The daily prompt appears only when eligibility is complete:
 - weather goal mode enabled
 - current Terms acceptance and Health/Safety acknowledgement recorded
 - location permission granted
-- notification permission granted
 - weather provider configured
 - forecast retrieved successfully
 
@@ -66,6 +65,10 @@ confirmation and restore it later in Settings.
 
 Hydrion does not show the prompt repeatedly on the same local day and does not
 silently replace a manually edited same-day goal.
+
+Notification permission is separate. It may be requested from reminder-specific
+or explicitly notification-dependent flows, but denial does not block weather
+lookup, in-app weather recommendations, manual goal mode, or manual logging.
 
 ## Notification Scheduling
 
@@ -177,6 +180,64 @@ Onboarding stores:
 Existing users with old one-boolean legal state receive a focused legal review
 screen without resetting hydration logs or profile data.
 
+The current legal gate also requires each relevant document to be opened in the
+Hydrion legal viewer before its corresponding acceptance or acknowledgement can
+be checked. Opening a document does not record acceptance or check a box. Alpha
+and beta builds also require the Alpha and Beta Testing Notice. Alpha/beta gate
+copy is controlled by `HydrionReleaseMetadata` and production uses restrained
+copy.
+
+## Hydration Gauge
+
+Home now uses a Hydrion-native segmented semi-circular hydration gauge. It
+shows actual intake against the approved daily goal, selected units, percent,
+and a textual status. The visible arc clamps at 100 percent while the numeric
+intake and percent can show over-goal values. Over-goal copy is restrained and
+does not intensify rewards.
+
+The gauge handles zero progress, very small or corrupted goals, 100 percent,
+over-goal intake, millilitres, ounces, light/dark colors, and accessibility
+semantics.
+
+## Profile-Aware Lifestyle Art
+
+Automatic lifestyle scene selection is centralized in
+`HydrionLifestyleArtResolver`.
+
+- Male: male mapped lifestyle scenes.
+- Female: female mapped lifestyle scenes.
+- Intersex, Prefer not to say, and missing selection: neutral/default scenes.
+
+The resolver does not infer sex or gender from nickname, avatar, profile image,
+device information, location, behavior, or previous artwork. Manual avatar
+choice remains independent.
+
+## Runtime Assets
+
+Runtime image assets were optimized before this push:
+
+- Before: 44 files, 76,702,320 bytes under `assets/`.
+- After: 43 files, 3,413,216 bytes under `assets/`.
+- Reduction: 73,289,104 bytes, 95.55%.
+- After web release build: 83 files, 37,058,566 bytes under `build/web`.
+- Original owner assets are preserved under `assets_source_original/assets/...`.
+- The unused MP4 was removed from the runtime bundle.
+
+See `docs/ASSET_OPTIMIZATION_REPORT.md` and `docs/ASSET_MAPPING.md`.
+
+## Coming Soon Gates
+
+Visible roadmap features are labeled and non-navigating where capabilities are
+not implemented:
+
+- AR view in Settings when AR capability is unavailable.
+- Social sync in Settings when social sync capability is unavailable.
+- Social Challenges hero indicates social sync is Coming Soon while local
+  challenges remain functional.
+
+These controls explain the unavailable state and do not request permissions or
+open incomplete screens.
+
 ## Shorebird
 
 Shorebird is not required for Hydrion v1.0.0 builds. `SHOREBIRD_TOKEN`,
@@ -224,6 +285,10 @@ users are not forced to delete data and can complete new profile fields later.
 - Notification delivery and location/weather flows require real-device testing.
 - Open-Meteo availability and network errors must fall back honestly.
 - Social sync is not connected; challenges remain local-only.
+- AR visualization is capability-gated and may remain Coming Soon on builds
+  without the native capability.
+- Before/after web and APK build-size deltas were not measured before the
+  asset conversion and must not be claimed retroactively.
 
 ## Owner Decisions Required
 

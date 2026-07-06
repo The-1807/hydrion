@@ -2,9 +2,326 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../repositories/settings_repository.dart';
 
-class IntakeRing extends StatefulWidget {
+class HydrationVolumeFormatter {
+  static const double _mlPerOunce = 29.5735295625;
+
+  const HydrationVolumeFormatter._();
+
+  static String format(num volumeMl, HydrionVolumeUnit unit) {
+    final safeMl = volumeMl.isFinite ? math.max(0, volumeMl.toDouble()) : 0.0;
+    return switch (unit) {
+      HydrionVolumeUnit.milliliters => '${safeMl.round()} ml',
+      HydrionVolumeUnit.ounces => '${_formatOunces(safeMl / _mlPerOunce)} oz',
+    };
+  }
+
+  static String _formatOunces(double value) {
+    if (value >= 10 || value == value.roundToDouble()) {
+      return value.round().toString();
+    }
+    return value.toStringAsFixed(1);
+  }
+}
+
+class HydrationProgressGauge extends StatefulWidget {
+  final double consumedMl;
+  final double targetMl;
+  final HydrionVolumeUnit volumeUnit;
+  final double width;
+  final double height;
+  final double stroke;
+  final int segments;
+  final bool onDarkBackground;
+  final Duration animate;
+
+  const HydrationProgressGauge({
+    super.key,
+    required this.consumedMl,
+    required this.targetMl,
+    required this.volumeUnit,
+    this.width = 280,
+    this.height = 172,
+    this.stroke = 14,
+    this.segments = 18,
+    this.onDarkBackground = false,
+    this.animate = const Duration(milliseconds: 520),
+  });
+
+  @override
+  State<HydrationProgressGauge> createState() => _HydrationProgressGaugeState();
+}
+
+class _HydrationProgressGaugeState extends State<HydrationProgressGauge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _progress;
+  double _lastVisibleProgress = 0.0;
+
+  double get _visibleProgress => _safeRatio.clamp(0.0, 1.0);
+
+  double get _safeRatio {
+    final consumed = _safeConsumed;
+    final target = _safeTarget;
+    if (target <= 0) {
+      return 0.0;
+    }
+    final ratio = consumed / target;
+    if (!ratio.isFinite || ratio.isNaN) {
+      return 0.0;
+    }
+    return ratio;
+  }
+
+  double get _safeConsumed {
+    return widget.consumedMl.isFinite ? math.max(0, widget.consumedMl) : 0.0;
+  }
+
+  double get _safeTarget {
+    return widget.targetMl.isFinite ? math.max(0, widget.targetMl) : 0.0;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.animate);
+    _lastVisibleProgress = _visibleProgress;
+    _progress = Tween<double>(begin: 0, end: _visibleProgress).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant HydrationProgressGauge oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final next = _visibleProgress;
+    _progress = Tween<double>(
+      begin: _lastVisibleProgress,
+      end: next,
+    ).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    _controller
+      ..duration = widget.animate
+      ..forward(from: 0);
+    _lastVisibleProgress = next;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final percent = (_visibleProgress * 100).round();
+    final actualPercent = (_safeRatio * 100).round();
+    final consumedLabel = HydrationVolumeFormatter.format(
+      _safeConsumed,
+      widget.volumeUnit,
+    );
+    final goalLabel = HydrationVolumeFormatter.format(
+      _safeTarget,
+      widget.volumeUnit,
+    );
+    final overGoal = _safeTarget > 0 && _safeConsumed > _safeTarget;
+    final invalidGoal = _safeTarget <= 0;
+    final foreground =
+        widget.onDarkBackground ? Colors.white : scheme.onSurface;
+    final muted = widget.onDarkBackground
+        ? Colors.white.withValues(alpha: 0.76)
+        : scheme.onSurfaceVariant;
+    final track = widget.onDarkBackground
+        ? Colors.white.withValues(alpha: 0.18)
+        : scheme.surfaceContainerHighest;
+    final fill = overGoal
+        ? scheme.tertiary
+        : widget.onDarkBackground
+            ? Colors.white
+            : scheme.primary;
+    final segmentMarker = widget.onDarkBackground
+        ? Colors.white.withValues(alpha: 0.68)
+        : scheme.secondary;
+    final status = invalidGoal
+        ? 'Set a daily goal'
+        : overGoal
+            ? 'Over goal, ease up'
+            : percent >= 100
+                ? 'Goal reached'
+                : 'Daily progress';
+    final semanticsLabel = 'Hydration progress gauge, $actualPercent percent. '
+        '$consumedLabel consumed of $goalLabel daily goal. $status.';
+
+    return Semantics(
+      key: const Key('hydration-progress-gauge-semantics'),
+      label: semanticsLabel,
+      value: '$actualPercent percent',
+      child: SizedBox(
+        key: const Key('hydration-progress-gauge'),
+        width: widget.width,
+        height: widget.height,
+        child: Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _progress,
+                builder: (_, __) {
+                  return CustomPaint(
+                    painter: _SegmentedGaugePainter(
+                      progress: _progress.value,
+                      stroke: widget.stroke,
+                      segments: widget.segments,
+                      trackColor: track,
+                      fillColor: fill,
+                      markerColor: segmentMarker,
+                    ),
+                  );
+                },
+              ),
+            ),
+            Positioned(
+              top: widget.height * 0.34,
+              left: 24,
+              right: 24,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$actualPercent%',
+                    key: const Key('hydration-gauge-percent'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          color: foreground,
+                          fontWeight: FontWeight.w900,
+                          height: 0.96,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '$consumedLabel / $goalLabel',
+                    key: const Key('home-progress-text'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: foreground,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    status,
+                    key: const Key('hydration-gauge-status'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: muted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SegmentedGaugePainter extends CustomPainter {
+  final double progress;
+  final double stroke;
+  final int segments;
+  final Color trackColor;
+  final Color fillColor;
+  final Color markerColor;
+
+  const _SegmentedGaugePainter({
+    required this.progress,
+    required this.stroke,
+    required this.segments,
+    required this.trackColor,
+    required this.fillColor,
+    required this.markerColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final safeSegments = math.max(6, segments);
+    final radius = math.min(
+      (size.width - stroke) / 2,
+      size.height - stroke,
+    );
+    final center = Offset(size.width / 2, size.height - stroke / 2);
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    const startAngle = math.pi;
+    const totalSweep = math.pi;
+    final segmentSpan = totalSweep / safeSegments;
+    final segmentSweep = segmentSpan * 0.68;
+    final normalized = progress.clamp(0.0, 1.0);
+    final filledSegments = normalized * safeSegments;
+
+    final trackPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..color = trackColor;
+
+    final fillPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..color = fillColor;
+
+    final markerPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(2, stroke * 0.16)
+      ..strokeCap = StrokeCap.round
+      ..color = markerColor;
+
+    for (var index = 0; index < safeSegments; index += 1) {
+      final start = startAngle + index * segmentSpan;
+      canvas.drawArc(rect, start, segmentSweep, false, trackPaint);
+      final segmentProgress = (filledSegments - index).clamp(0.0, 1.0);
+      if (segmentProgress > 0) {
+        canvas.drawArc(
+          rect,
+          start,
+          segmentSweep * segmentProgress,
+          false,
+          fillPaint,
+        );
+      }
+      if (index % 3 == 0) {
+        final tickAngle = start + segmentSweep + segmentSpan * 0.12;
+        final outer = Offset(
+          center.dx + math.cos(tickAngle) * (radius + stroke * 0.24),
+          center.dy + math.sin(tickAngle) * (radius + stroke * 0.24),
+        );
+        final inner = Offset(
+          center.dx + math.cos(tickAngle) * (radius - stroke * 0.24),
+          center.dy + math.sin(tickAngle) * (radius - stroke * 0.24),
+        );
+        canvas.drawLine(inner, outer, markerPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SegmentedGaugePainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.stroke != stroke ||
+        oldDelegate.segments != segments ||
+        oldDelegate.trackColor != trackColor ||
+        oldDelegate.fillColor != fillColor ||
+        oldDelegate.markerColor != markerColor;
+  }
+}
+
+class IntakeRing extends StatelessWidget {
   final double consumedMl;
   final double targetMl;
   final double size;
@@ -17,163 +334,19 @@ class IntakeRing extends StatefulWidget {
     required this.targetMl,
     this.size = 160,
     this.stroke = 12,
-    this.animate = const Duration(milliseconds: 700),
+    this.animate = const Duration(milliseconds: 520),
   });
-
-  @override
-  State<IntakeRing> createState() => _IntakeRingState();
-}
-
-class _IntakeRingState extends State<IntakeRing>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _progress;
-  double _lastPercent = 0.0;
-
-  double get _percent {
-    final target =
-        widget.targetMl <= 0 ? 0.0 : widget.consumedMl / widget.targetMl;
-    if (target.isNaN || !target.isFinite) {
-      return 0.0;
-    }
-    return target.clamp(0.0, 1.0);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: widget.animate);
-    _progress = Tween<double>(begin: 0, end: _percent).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _lastPercent = _percent;
-    _controller.forward();
-  }
-
-  @override
-  void didUpdateWidget(covariant IntakeRing oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final next = _percent;
-    _progress = Tween<double>(begin: _lastPercent, end: next).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _controller
-      ..duration = widget.animate
-      ..forward(from: 0);
-    _lastPercent = next;
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final consumed = widget.consumedMl.isFinite ? widget.consumedMl : 0.0;
-    final target = widget.targetMl > 0 ? widget.targetMl : 0.0;
-    final scheme = Theme.of(context).colorScheme;
-
-    return Semantics(
-      label: l10n.hydrationProgressRing,
-      value: l10n.percentValue(percent: (_percent * 100).round()),
-      hint: l10n.consumedOfTarget(
-        consumedMl: consumed.toInt(),
-        targetMl: target.toInt(),
-      ),
-      child: SizedBox(
-        width: widget.size,
-        height: widget.size + 24,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            AnimatedBuilder(
-              animation: _progress,
-              builder: (_, __) => CustomPaint(
-                size: Size.square(widget.size),
-                painter: _RingPainter(
-                  progress: _progress.value,
-                  stroke: widget.stroke,
-                  trackColor: scheme.surfaceContainerHighest,
-                  color: scheme.primary,
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Center(
-                child: Text(
-                  '${(_percent * 100).round()}%',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: scheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              child: Text(
-                '${consumed.toInt()} / ${target.toInt()} ml',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return HydrationProgressGauge(
+      consumedMl: consumedMl,
+      targetMl: targetMl,
+      volumeUnit: HydrionVolumeUnit.milliliters,
+      width: size,
+      height: size * 0.64,
+      stroke: stroke,
+      animate: animate,
     );
-  }
-}
-
-class _RingPainter extends CustomPainter {
-  final double progress;
-  final double stroke;
-  final Color trackColor;
-  final Color color;
-
-  _RingPainter({
-    required this.progress,
-    required this.stroke,
-    required this.trackColor,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.shortestSide - stroke) / 2;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    final track = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round
-      ..color = trackColor;
-
-    final arc = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round
-      ..color = color;
-
-    canvas.drawArc(rect, -math.pi / 2, 2 * math.pi, false, track);
-
-    final sweep = (2 * math.pi) * progress.clamp(0.0, 1.0);
-    if (sweep > 0) {
-      canvas.drawArc(rect, -math.pi / 2, sweep, false, arc);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _RingPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.stroke != stroke ||
-        oldDelegate.trackColor != trackColor ||
-        oldDelegate.color != color;
   }
 }

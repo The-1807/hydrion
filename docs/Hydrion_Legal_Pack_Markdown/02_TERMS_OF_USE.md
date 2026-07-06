@@ -55,12 +55,16 @@ Hydrion cannot restore local-only information that was never transmitted to Hydr
 
 Some features require your choice or platform permission:
 
-- Weather-informed goals may request foreground location and send rounded coordinates to Open-Meteo for a weather lookup.
-- Local reminders may request notification permission.
+- Weather-informed goals may request foreground location only after you choose to continue with live weather lookup, and may send rounded coordinates to Open-Meteo for that weather request.
+- Local reminders may request notification permission separately from weather lookup.
 - Profile photo selection may request photo-library access.
 - Optional non-local AI provider features remain disabled unless configured and the user grants provider privacy consent.
 
 Declining a permission does not stop manual hydration tracking.
+
+## Legal Review Flow
+
+Hydrion may require you to open the current Terms of Use, Privacy Policy, Health and Safety Disclaimer, and, during alpha or beta releases, the Alpha and Beta Testing Notice before completing onboarding or a legal migration screen. Opening a document is a prerequisite to the related checkbox or review step, but opening a document does not automatically check a box, does not record acceptance by itself, and does not prove that you read or understood every word. Acceptance or acknowledgement is recorded only when you take the corresponding completion action in the app.
 
 ## Acceptable Use
 

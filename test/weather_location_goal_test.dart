@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/reminder_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/location_service.dart';
@@ -146,6 +147,45 @@ void main() {
       );
 
       expect(harness.location.requestCount, 1);
+    });
+
+    test('notification denial does not block weather recommendation', () async {
+      final harness = await _GoalHarness.create(
+        notificationPermission: HydrionNotificationPermissionState.denied,
+      );
+
+      final result = await harness.coordinator.evaluate(
+        now: DateTime(2026, 7, 5, 8),
+      );
+
+      expect(result.status, DailyWeatherGoalStatus.promptReady);
+      expect(result.decision?.eligible, isTrue);
+      expect(harness.notificationAdapter.requestCount, 0);
+      expect(harness.location.lookupCount, 1);
+    });
+
+    test('manual logging is independent from location denial', () async {
+      final harness = await _GoalHarness.create(
+        locationPermission: HydrionLocationPermissionState.denied,
+      );
+      final hydration = HydrationRepository.memory();
+
+      expect(harness.settings.settings.dailyGoalMl, 2200);
+      final log = await hydration.addLog(
+        volumeMl: 300,
+        timestamp: DateTime(2026, 7, 5, 8),
+      );
+
+      expect(log, isNotNull);
+      expect(hydration.totalForDay(DateTime(2026, 7, 5, 8)), 300);
+      final weatherResult = await harness.coordinator.evaluate(
+        now: DateTime(2026, 7, 5, 8),
+      );
+      expect(
+        weatherResult.status,
+        DailyWeatherGoalStatus.locationPermissionRequired,
+      );
+      expect(hydration.totalForDay(DateTime(2026, 7, 5, 8)), 300);
     });
   });
 
@@ -316,11 +356,13 @@ final _toronto = HydrionCoordinates(
 class _GoalHarness {
   final UserSettingsRepository settings;
   final FakeHydrionLocationService location;
+  final FakeHydrionNotificationAdapter notificationAdapter;
   final DailyWeatherGoalCoordinator coordinator;
 
   const _GoalHarness({
     required this.settings,
     required this.location,
+    required this.notificationAdapter,
     required this.coordinator,
   });
 
@@ -328,6 +370,8 @@ class _GoalHarness {
     HydrionGoalMode goalMode = HydrionGoalMode.weatherInformed,
     HydrionLocationPermissionState locationPermission =
         HydrionLocationPermissionState.granted,
+    HydrionNotificationPermissionState notificationPermission =
+        HydrionNotificationPermissionState.granted,
     HydrionLocationLookupResult? locationResult,
   }) async {
     final settings = UserSettingsRepository.memory();
@@ -341,10 +385,13 @@ class _GoalHarness {
       permission: locationPermission,
       lookupResult: locationResult,
     );
+    final notificationAdapter = FakeHydrionNotificationAdapter(
+      permission: notificationPermission,
+    );
     final notifications = NotificationService(
       reminderPolicy: ReminderPolicy(),
       reminderRepository: ReminderRepository.memory(),
-      adapter: FakeHydrionNotificationAdapter(),
+      adapter: notificationAdapter,
     );
     final weatherService = WeatherForecastService(
       provider: _CountingWeatherProvider(),
@@ -359,6 +406,7 @@ class _GoalHarness {
     return _GoalHarness(
       settings: settings,
       location: location,
+      notificationAdapter: notificationAdapter,
       coordinator: coordinator,
     );
   }

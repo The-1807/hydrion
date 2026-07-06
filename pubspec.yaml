@@ -32,9 +32,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/icons/icon1807.png
+    - assets/icons/icon1807.jpg
     - assets/UI_BETA/
-    - assets/pfp_mascot/hydrion_mascot.png
+    - assets/pfp_mascot/hydrion_mascot.jpg
     - assets/pfp_mascot/hpfp/
     - assets/pfp_mascot/pfp/
     - config/

@@ -29,7 +29,7 @@ void main() {
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
 
-    expect(find.text('0 / 2200 ml'), findsOneWidget);
+    expect(find.text('0 ml / 2200 ml'), findsOneWidget);
 
     tester
         .widget<ChoiceChip>(find.byKey(const Key('quick-volume-500')))
@@ -42,7 +42,7 @@ void main() {
     logButton.onPressed();
     await tester.pumpAndSettle();
 
-    expect(find.text('500 / 2200 ml'), findsOneWidget);
+    expect(find.text('500 ml / 2200 ml'), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
 
@@ -156,6 +156,27 @@ void main() {
     expect(find.byTooltip('Voice input disabled by app capabilities'),
         findsNothing);
     expect(find.byKey(const Key('route-/ar')), findsNothing);
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    final arComingSoon = find.byKey(const Key('coming-soon-ar-view'));
+    await tester.scrollUntilVisible(
+      arComingSoon,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(arComingSoon);
+    await tester.pumpAndSettle();
+    expect(arComingSoon, findsOneWidget);
+    await tester.tap(arComingSoon);
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'AR hydration visualization is coming soon and is not enabled in this build.',
+      ),
+      findsWidgets,
+    );
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await openTab(tester, const Key('nav-profile'));
     expect(find.byKey(const Key('profile-reminders-action')), findsOneWidget);
     await tester.scrollUntilVisible(

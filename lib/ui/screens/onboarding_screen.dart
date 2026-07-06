@@ -29,6 +29,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _reusable = false;
   bool _termsAccepted = false;
   bool _healthAcknowledged = false;
+  bool _legalReviewReady = false;
+  int _legalValidationAttempt = 0;
 
   @override
   void didChangeDependencies() {
@@ -62,11 +64,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       return;
     }
-    if (_step == 6 && (!_termsAccepted || !_healthAcknowledged)) {
+    if (_step == 6 && !_legalReviewReady) {
+      setState(() => _legalValidationAttempt += 1);
       messenger.showSnackBar(
         const SnackBar(
           content: Text(
-            'Accept the Terms and acknowledge the health disclaimer.',
+            'Open the required legal documents, accept the Terms, and acknowledge the health disclaimer.',
           ),
         ),
       );
@@ -348,7 +351,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Text(
               _goalMode == HydrionGoalMode.manual
                   ? 'You choose the daily target.'
-                  : 'Requires age, an explicit sex option, location permission, notification permission, and a configured forecast provider. Hydrion uses a bounded formula, not medical advice.',
+                  : 'Requires age, an explicit sex option, location permission for live lookup, and a configured forecast provider. Notification permission is separate for reminders. Hydrion uses a bounded formula, not medical advice.',
             ),
             if (_goalMode == HydrionGoalMode.weatherInformed) ...[
               const SizedBox(height: 8),
@@ -428,11 +431,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: LegalAcceptancePanel(
           termsAccepted: _termsAccepted,
           healthAcknowledged: _healthAcknowledged,
+          validationAttempt: _legalValidationAttempt,
           onTermsChanged: (value) {
             setState(() => _termsAccepted = value);
           },
           onHealthChanged: (value) {
             setState(() => _healthAcknowledged = value);
+          },
+          onReviewReadinessChanged: (value) {
+            if (_legalReviewReady != value) {
+              setState(() => _legalReviewReady = value);
+            }
           },
         ),
       ),

@@ -10,7 +10,7 @@ Hydrion is standalone-first. Gemini is available as an optional configured provi
 | Active locales | English, Spanish, and French only. |
 | Future locales | Arabic, German, Portuguese, and Chinese remain future candidates until real ARB files exist. |
 | Runtime i18n assets | The old `/i18n` folder is not restored as a runtime asset. |
-| `assets/icons/.gitkeep` | Not tracked in the current checkpoint; `assets/icons/icon1807.png` is the active icon asset. |
+| `assets/icons/.gitkeep` | Not tracked in the current checkpoint; `assets/icons/icon1807.jpg` is the active icon asset. |
 | `web/favicon.png` | Tracked and intentional as the current web favicon. It was not changed in Phase 3.3. |
 | `flutter_01.png` | Tracked but not a Flutter runtime asset in `pubspec.yaml`. It was left untouched for later asset review. |
 

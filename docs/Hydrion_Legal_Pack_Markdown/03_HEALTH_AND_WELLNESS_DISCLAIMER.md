@@ -49,7 +49,7 @@ This list is not complete. When in doubt, ask a qualified professional.
 
 Hydrion weather adjustments are general and conservative. They use a bounded product formula and a daily forecast. They are not a medical calculation of your exact fluid needs.
 
-Weather data can be unavailable, delayed, incomplete, or wrong. Location permission, notification permission, network access, forecast provider availability, and operating system behavior can affect the feature.
+Weather data can be unavailable, delayed, incomplete, or wrong. Location permission, network access, forecast provider availability, and operating system behavior can affect the feature. Notification permission is separate and affects reminder delivery, not whether you can view an in-app weather recommendation.
 
 You remain responsible for deciding whether to accept, adjust, or ignore any recommendation.
 

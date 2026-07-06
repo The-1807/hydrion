@@ -174,6 +174,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           _LocalFirstPrivacyCard(capabilities: capabilities),
           const SizedBox(height: 12),
+          _ComingSoonFeaturesCard(capabilities: capabilities),
+          const SizedBox(height: 12),
           const _LegalAboutCard(),
           if (kDebugMode) ...[
             const SizedBox(height: 12),
@@ -244,10 +246,10 @@ class _ProfileSummaryCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 4),
-                  Text('${avatar.displayName} • $goalMode'),
+                  Text('${avatar.displayName} - $goalMode'),
                   const SizedBox(height: 4),
                   Text(
-                    '${settings.containerSizeMl} ml container • ${settings.dailyGoalMl} ml/day',
+                    '${settings.containerSizeMl} ml container - ${settings.dailyGoalMl} ml/day',
                   ),
                   const SizedBox(height: 12),
                   Wrap(
@@ -497,7 +499,7 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Hydrion can use approximate foreground location and a daily forecast to suggest a conservative adjustment to your baseline. Coordinates are sent to Open-Meteo for the request and are not stored as location history.',
+              'Hydrion can use approximate foreground location and a daily forecast to suggest a conservative adjustment to your baseline. Coordinates are sent to Open-Meteo only for the weather request, background location is not used, and manual goals remain available if you decline.',
             ),
             const SizedBox(height: 12),
             SegmentedButton<HydrionGoalMode>(
@@ -516,7 +518,14 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
               ],
               selected: {settings.goalMode},
               onSelectionChanged: (selection) async {
-                await repository.setGoalMode(selection.single);
+                final selected = selection.single;
+                if (selected == HydrionGoalMode.manual) {
+                  await repository.setGoalMode(selected);
+                  return;
+                }
+                if (await _confirmWeatherMode(context)) {
+                  await repository.setGoalMode(selected);
+                }
               },
             ),
             const SizedBox(height: 8),
@@ -557,11 +566,9 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
                 ),
                 OutlinedButton.icon(
                   key: const Key('settings-request-notifications'),
-                  onPressed: weatherEnabled
-                      ? () => _requestNotificationPermission(context)
-                      : null,
+                  onPressed: () => _requestNotificationPermission(context),
                   icon: const Icon(Icons.notifications_none),
-                  label: const Text('Allow notifications'),
+                  label: const Text('Reminder notifications'),
                 ),
                 OutlinedButton.icon(
                   key: const Key('settings-open-app-settings'),
@@ -586,6 +593,32 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<bool> _confirmWeatherMode(BuildContext context) async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Turn on weather-informed goals?'),
+        content: const SingleChildScrollView(
+          child: Text(
+            'Hydrion can use the day\'s forecast to explain a conservative goal adjustment. If you later choose live weather lookup, Hydrion asks for approximate foreground location so it can request weather from Open-Meteo. Rounded coordinates are sent to Open-Meteo for that request, Hydrion does not intend to retain coordinates, and background location is not used. Manual goals remain available if location is declined. Notification permission is separate and only needed for reminder delivery.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep manual'),
+          ),
+          FilledButton(
+            key: const Key('settings-weather-explainer-continue'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    return proceed == true;
   }
 
   Future<void> _requestLocationPermission(BuildContext context) async {
@@ -731,6 +764,97 @@ class _LocalFirstPrivacyCard extends StatelessWidget {
   }
 }
 
+class _ComingSoonFeaturesCard extends StatelessWidget {
+  final AppCapabilities capabilities;
+
+  const _ComingSoonFeaturesCard({required this.capabilities});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <_ComingSoonFeature>[
+      if (!capabilities.arVisualization)
+        const _ComingSoonFeature(
+          key: Key('coming-soon-ar-view'),
+          icon: Icons.view_in_ar_outlined,
+          title: 'AR view',
+          explanation:
+              'AR hydration visualization is coming soon and is not enabled in this build.',
+        ),
+      if (!capabilities.socialSync)
+        const _ComingSoonFeature(
+          key: Key('coming-soon-social-sync'),
+          icon: Icons.groups_outlined,
+          title: 'Social sync',
+          explanation:
+              'Social challenge sync is coming soon. Current challenges are local-only.',
+        ),
+    ];
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.upcoming_outlined),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Roadmap features',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'These designed features are visible for product direction but are not available in this build.',
+            ),
+            const SizedBox(height: 8),
+            for (final item in items) item,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ComingSoonFeature extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String explanation;
+
+  const _ComingSoonFeature({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.explanation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '$title. Coming soon. $explanation',
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon),
+        title: Text('$title - Coming soon'),
+        subtitle: Text(explanation),
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(explanation)),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _LegalAboutCard extends StatelessWidget {
   const _LegalAboutCard();
 
@@ -742,7 +866,7 @@ class _LegalAboutCard extends StatelessWidget {
         leading: const Icon(Icons.article_outlined),
         title: const Text('Legal & About'),
         subtitle: const Text(
-          'Version ${HydrionReleaseMetadata.flutterVersionName} • ${HydrionReleaseMetadata.releaseDateLabel}',
+          'Version ${HydrionReleaseMetadata.flutterVersionName} - ${HydrionReleaseMetadata.releaseDateLabel}',
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => Navigator.of(context).pushNamed('/legal-about'),

@@ -78,6 +78,7 @@ class LegalDocumentScreen extends StatelessWidget {
     }
 
     return Scaffold(
+      key: Key('legal-document-shell-${document.id}'),
       appBar: AppBar(
         title: Text(document.title),
       ),
@@ -164,13 +165,16 @@ class LegalReviewScreen extends StatefulWidget {
 class _LegalReviewScreenState extends State<LegalReviewScreen> {
   bool _termsAccepted = false;
   bool _healthAcknowledged = false;
+  bool _legalReviewReady = false;
+  int _validationAttempt = 0;
 
   Future<void> _continue() async {
-    if (!_termsAccepted || !_healthAcknowledged) {
+    if (!_legalReviewReady) {
+      setState(() => _validationAttempt += 1);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Please accept the Terms and acknowledge the health disclaimer.',
+            'Open the required legal documents, accept the Terms, and acknowledge the health disclaimer.',
           ),
         ),
       );
@@ -216,11 +220,17 @@ class _LegalReviewScreenState extends State<LegalReviewScreen> {
                 LegalAcceptancePanel(
                   termsAccepted: _termsAccepted,
                   healthAcknowledged: _healthAcknowledged,
+                  validationAttempt: _validationAttempt,
                   onTermsChanged: (value) {
                     setState(() => _termsAccepted = value);
                   },
                   onHealthChanged: (value) {
                     setState(() => _healthAcknowledged = value);
+                  },
+                  onReviewReadinessChanged: (value) {
+                    if (_legalReviewReady != value) {
+                      setState(() => _legalReviewReady = value);
+                    }
                   },
                 ),
               ],
@@ -244,22 +254,53 @@ class _LegalReviewScreenState extends State<LegalReviewScreen> {
   }
 }
 
-class LegalAcceptancePanel extends StatelessWidget {
+class LegalAcceptancePanel extends StatefulWidget {
   final bool termsAccepted;
   final bool healthAcknowledged;
+  final int validationAttempt;
+  final HydrionBuildStage? buildStage;
   final ValueChanged<bool> onTermsChanged;
   final ValueChanged<bool> onHealthChanged;
+  final ValueChanged<bool>? onReviewReadinessChanged;
 
   const LegalAcceptancePanel({
     super.key,
     required this.termsAccepted,
     required this.healthAcknowledged,
+    this.validationAttempt = 0,
+    this.buildStage,
     required this.onTermsChanged,
     required this.onHealthChanged,
+    this.onReviewReadinessChanged,
   });
 
   @override
+  State<LegalAcceptancePanel> createState() => _LegalAcceptancePanelState();
+}
+
+class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
+  final Set<String> _openedDocumentVersions = <String>{};
+  final Map<String, String> _inlineErrors = <String, String>{};
+  String? _highlightedDocumentId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _emitReadiness());
+  }
+
+  @override
+  void didUpdateWidget(covariant LegalAcceptancePanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.validationAttempt != widget.validationAttempt) {
+      _validateAllRequiredDocuments();
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _emitReadiness());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final requiredDocuments = _requiredDocuments;
     return HydrionSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,28 +328,38 @@ class LegalAcceptancePanel extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _DocumentChip(document: HydrionLegalDocumentRegistry.terms),
-              _DocumentChip(document: HydrionLegalDocumentRegistry.privacy),
-              _DocumentChip(document: HydrionLegalDocumentRegistry.health),
+              for (final document in requiredDocuments)
+                _DocumentChip(
+                  document: document,
+                  opened: _hasOpened(document),
+                  highlighted: _highlightedDocumentId == document.id,
+                  onOpen: () => _openDocument(document),
+                ),
             ],
           ),
+          if (_inlineErrors['review'] != null) ...[
+            const SizedBox(height: 8),
+            _InlineLegalError(message: _inlineErrors['review']!),
+          ],
           const SizedBox(height: 12),
           CheckboxListTile(
             key: const Key('onboarding-terms-accept'),
             contentPadding: EdgeInsets.zero,
-            value: termsAccepted,
-            onChanged: (value) => onTermsChanged(value == true),
+            value: widget.termsAccepted,
+            onChanged: (value) => _setTermsAccepted(value == true),
             title: const Text('I accept the Hydrion Terms of Use.'),
             subtitle: Text(
               'Version ${HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion}',
             ),
             controlAffinity: ListTileControlAffinity.leading,
           ),
+          if (_inlineErrors['terms'] != null)
+            _InlineLegalError(message: _inlineErrors['terms']!),
           CheckboxListTile(
             key: const Key('onboarding-health-ack'),
             contentPadding: EdgeInsets.zero,
-            value: healthAcknowledged,
-            onChanged: (value) => onHealthChanged(value == true),
+            value: widget.healthAcknowledged,
+            onChanged: (value) => _setHealthAcknowledged(value == true),
             title: const Text(
               'I acknowledge the Health and Safety Disclaimer.',
             ),
@@ -317,7 +368,151 @@ class LegalAcceptancePanel extends StatelessWidget {
             ),
             controlAffinity: ListTileControlAffinity.leading,
           ),
+          if (_inlineErrors['health'] != null)
+            _InlineLegalError(message: _inlineErrors['health']!),
         ],
+      ),
+    );
+  }
+
+  List<HydrionLegalDocument> get _requiredDocuments {
+    return [
+      HydrionLegalDocumentRegistry.terms,
+      HydrionLegalDocumentRegistry.privacy,
+      HydrionLegalDocumentRegistry.health,
+      if (_buildStage == HydrionBuildStage.alpha ||
+          _buildStage == HydrionBuildStage.beta)
+        HydrionLegalDocumentRegistry.beta,
+    ];
+  }
+
+  HydrionBuildStage get _buildStage =>
+      widget.buildStage ?? HydrionReleaseMetadata.buildStage;
+
+  Future<void> _openDocument(HydrionLegalDocument document) async {
+    await Navigator.of(context, rootNavigator: true).push<void>(
+      MaterialPageRoute(
+        builder: (_) => LegalDocumentScreen(documentId: document.id),
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _openedDocumentVersions.add(_versionKey(document));
+      _highlightedDocumentId = null;
+      _inlineErrors.remove(document.id);
+      if (document.id == HydrionLegalDocumentRegistry.terms.id) {
+        _inlineErrors.remove('terms');
+      }
+      if (document.id == HydrionLegalDocumentRegistry.health.id) {
+        _inlineErrors.remove('health');
+      }
+      if (_requiredDocuments.every(_hasOpened)) {
+        _inlineErrors.remove('review');
+      }
+    });
+    _emitReadiness();
+  }
+
+  void _setTermsAccepted(bool value) {
+    if (value && !_hasOpened(HydrionLegalDocumentRegistry.terms)) {
+      _blockDocument(
+        HydrionLegalDocumentRegistry.terms,
+        errorKey: 'terms',
+      );
+      return;
+    }
+    setState(() {
+      _inlineErrors.remove('terms');
+    });
+    widget.onTermsChanged(value);
+    _emitReadiness(termsAccepted: value);
+  }
+
+  void _setHealthAcknowledged(bool value) {
+    if (value && !_hasOpened(HydrionLegalDocumentRegistry.health)) {
+      _blockDocument(
+        HydrionLegalDocumentRegistry.health,
+        errorKey: 'health',
+      );
+      return;
+    }
+    setState(() {
+      _inlineErrors.remove('health');
+    });
+    widget.onHealthChanged(value);
+    _emitReadiness(healthAcknowledged: value);
+  }
+
+  void _blockDocument(
+    HydrionLegalDocument document, {
+    required String errorKey,
+  }) {
+    HapticFeedback.selectionClick();
+    final message = HydrionReleaseMetadata.legalDocumentOpenRequiredMessageFor(
+      _buildStage,
+    );
+    setState(() {
+      _highlightedDocumentId = document.id;
+      _inlineErrors[errorKey] = message;
+    });
+  }
+
+  void _validateAllRequiredDocuments() {
+    final missing = _requiredDocuments
+        .where((document) => !_hasOpened(document))
+        .map((document) => document.title)
+        .toList();
+    final message = HydrionReleaseMetadata.legalDocumentOpenRequiredMessageFor(
+      _buildStage,
+    );
+    setState(() {
+      if (missing.isNotEmpty) {
+        _highlightedDocumentId = _requiredDocuments
+            .firstWhere((document) => !_hasOpened(document))
+            .id;
+        _inlineErrors['review'] = '$message (${missing.join(', ')})';
+      } else {
+        _inlineErrors.remove('review');
+      }
+      if (!widget.termsAccepted) {
+        _inlineErrors.putIfAbsent('terms', () => message);
+      }
+      if (!widget.healthAcknowledged) {
+        _inlineErrors.putIfAbsent('health', () => message);
+      }
+    });
+  }
+
+  bool _hasOpened(HydrionLegalDocument document) {
+    return _openedDocumentVersions.contains(_versionKey(document));
+  }
+
+  String _versionKey(HydrionLegalDocument document) {
+    return '${document.id}:${document.version}';
+  }
+
+  bool _canComplete({
+    bool? termsAccepted,
+    bool? healthAcknowledged,
+  }) {
+    return (termsAccepted ?? widget.termsAccepted) &&
+        (healthAcknowledged ?? widget.healthAcknowledged) &&
+        _requiredDocuments.every(_hasOpened);
+  }
+
+  void _emitReadiness({
+    bool? termsAccepted,
+    bool? healthAcknowledged,
+  }) {
+    if (!mounted) {
+      return;
+    }
+    widget.onReviewReadinessChanged?.call(
+      _canComplete(
+        termsAccepted: termsAccepted,
+        healthAcknowledged: healthAcknowledged,
       ),
     );
   }
@@ -395,17 +590,68 @@ class _LegalDocumentTile extends StatelessWidget {
 
 class _DocumentChip extends StatelessWidget {
   final HydrionLegalDocument document;
+  final bool opened;
+  final bool highlighted;
+  final VoidCallback onOpen;
 
-  const _DocumentChip({required this.document});
+  const _DocumentChip({
+    required this.document,
+    required this.opened,
+    required this.highlighted,
+    required this.onOpen,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ActionChip(
-      key: Key('legal-open-${document.id}'),
-      avatar: Icon(_iconFor(document.id), size: 18),
-      label: Text(document.title),
-      tooltip: document.accessibilityLabel,
-      onPressed: () => Navigator.of(context).pushNamed(document.routeName),
+    final scheme = Theme.of(context).colorScheme;
+    final foregroundColor =
+        highlighted ? scheme.onErrorContainer : scheme.primary;
+    return Tooltip(
+      message: opened
+          ? '${document.accessibilityLabel}. Opened for version ${document.version}.'
+          : document.accessibilityLabel,
+      child: OutlinedButton.icon(
+        key: Key('legal-open-${document.id}'),
+        onPressed: onOpen,
+        icon: Icon(
+          opened ? Icons.check_circle : _iconFor(document.id),
+          size: 18,
+        ),
+        label: Text(opened ? '${document.title} opened' : document.title),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: foregroundColor,
+          backgroundColor: highlighted ? scheme.errorContainer : null,
+          side: highlighted ? BorderSide(color: scheme.error) : null,
+          minimumSize: const Size(0, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          tapTargetSize: MaterialTapTargetSize.padded,
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineLegalError extends StatelessWidget {
+  final String message;
+
+  const _InlineLegalError({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      liveRegion: true,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 8, bottom: 8),
+        child: Text(
+          message,
+          key: const Key('legal-inline-error'),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: scheme.error,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+      ),
     );
   }
 }

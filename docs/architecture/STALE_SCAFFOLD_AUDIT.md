@@ -10,7 +10,7 @@ Flutter runtime.
 | `lib/` | Active | Root Flutter app runtime. | Treat as product code. |
 | `test/` | Active | Flutter widget, service, boundary, localization, provider, and QA tests. | Keep in CI. |
 | `.github/workflows/flutter-ci.yml` | Active | Flutter CI for pub get, secret scan, analyze, tests, APK, and web. | Keep green. |
-| `assets/icons/icon1807.png` | Active | Runtime logo asset. | Keep in `pubspec.yaml`. |
+| `assets/icons/icon1807.jpg` | Active | Runtime logo asset. | Keep in `pubspec.yaml`. |
 | `config/prompt_templates.yaml` | Dormant | Prompt builder can load it, but active Gemini/local coach does not use it. | Mark as template only until a prompt pipeline is implemented. |
 | `config/app.yaml` | Dormant | Claims BLE, voice, and wearable sync enabled, which does not match runtime capability state. | Do not use as runtime truth; update or archive before release. |
 | `config/open_ai_config.yaml` | Future | Placeholder OpenAI/BYOK config. | Keep out of active runtime; archive unless BYOK/OpenAI becomes a phase. |

@@ -23,8 +23,8 @@ For privacy questions, support, or product-owner review, contact: hydrionsharks@
 ## Summary
 
 - Hydrion stores the main app experience on your device.
-- Hydration logs, profile preferences, reminders, challenges, streaks, achievements, language, units, goals, local profile photo, and legal acknowledgement state are stored locally.
-- Weather-informed goals are optional. If you use them, approximate foreground location coordinates may be sent to Open-Meteo for that weather request.
+- Hydration logs, profile preferences, default avatar choice, reminders, challenges, streaks, achievements, language, units, goals, local profile photo, and legal acknowledgement state are stored locally.
+- Weather-informed goals are optional. If you use live weather lookup, approximate foreground location coordinates may be sent to Open-Meteo for that weather request after you choose to continue.
 - Hydrion does not store a location history. It may store a weather forecast summary for the local day.
 - Hydrion does not sell personal information or use it for advertising.
 - Optional non-local AI features are disabled unless configured and the user grants the app-level provider consent shown in the app.
@@ -35,7 +35,7 @@ For privacy questions, support, or product-owner review, contact: hydrionsharks@
 Hydrion may store the following information on your device when you use the app:
 
 - nickname and profile preferences;
-- optional age and sex selection used by product logic such as weather-goal eligibility;
+- optional age and sex selection used by product logic such as weather-goal eligibility and default lifestyle-art presentation;
 - selected default avatar or companion;
 - locally selected profile photo, saved as app-local data;
 - hydration log entries, including intake amount, timestamp, and source label;
@@ -52,7 +52,7 @@ This information is used to run Hydrion features, restore your app state, person
 
 ## Weather and Location
 
-Weather-informed goals are optional. If you enable weather mode and request a forecast:
+Weather-informed goals are optional. Enabling weather mode shows an explanation first and does not by itself request location. If you continue to live weather lookup:
 
 - Hydrion may request foreground location permission through the operating system.
 - The app asks for low-accuracy current location.
@@ -60,6 +60,7 @@ Weather-informed goals are optional. If you enable weather mode and request a fo
 - The coordinates are sent to Open-Meteo so Hydrion can retrieve the current daily forecast.
 - Hydrion does not intend to retain coordinates or build a location-history trail.
 - Hydrion may cache the resulting forecast summary for the local day, including temperature, humidity, condition, provider identifier, and retrieval time.
+- Notification permission is separate. It is not required to view an in-app weather recommendation.
 
 If location permission is denied, unavailable, or unsupported, Hydrion keeps manual goal behavior available.
 
@@ -70,6 +71,8 @@ Open-Meteo is an independent third-party weather provider. Your connection to Op
 If you choose a profile photo from your photo library, Hydrion stores the selected image locally for your profile display. The current app does not upload profile photos to a Hydrion server. You can remove the local profile photo in the profile editor by returning to the default avatar.
 
 Hydrion requests photo-library access only when you choose the photo feature. The operating system may provide its own limited-photo or permission controls.
+
+Hydrion also includes bundled default profile avatars and lifestyle artwork. Your selected profile avatar remains your manual choice. The optional sex selection may choose a default male, female, or neutral lifestyle-art presentation for app surfaces, but Hydrion does not infer sex or gender from your nickname, avatar, photo, device, location, or behavior.
 
 ## Reminders and Notifications
 

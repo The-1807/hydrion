@@ -18,7 +18,7 @@ class HydrionLogo extends StatelessWidget {
       image: true,
       label: semanticLabel,
       child: Image.asset(
-        'assets/icons/icon1807.png',
+        'assets/icons/icon1807.jpg',
         key: imageKey,
         width: size,
         height: size,

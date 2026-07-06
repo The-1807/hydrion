@@ -14,7 +14,7 @@ import 'package:hydrion/storage/local_store.dart';
 void main() {
   test('avatar manifest preserves supplied shark identities and assets', () {
     expect(HydrionAvatarManifest.mascotAssetPath,
-        'assets/pfp_mascot/hydrion_mascot.png');
+        'assets/pfp_mascot/hydrion_mascot.jpg');
     expect(HydrionAvatarManifest.sharkAvatars, hasLength(10));
     expect(HydrionAvatarManifest.humanAvatars, hasLength(19));
     expect(HydrionAvatarManifest.avatars, hasLength(29));
@@ -34,11 +34,11 @@ void main() {
       ]),
     );
     expect(HydrionAvatarManifest.byId('snss').assetPath,
-        'assets/pfp_mascot/pfp/snss.png');
+        'assets/pfp_mascot/pfp/snss.jpg');
     expect(HydrionAvatarManifest.byId('hydrion-human-river').kind,
         HydrionAvatarKind.human);
     expect(HydrionAvatarManifest.byId('hydrion-human-river').assetPath,
-        'assets/pfp_mascot/hpfp/hydrion-human-river.png');
+        'assets/pfp_mascot/hpfp/hydrion-human-river.jpg');
     expect(
       HydrionAvatarManifest.companionByProfileAvatarId('hydrion-human-river')
           .id,
@@ -50,7 +50,7 @@ void main() {
   test('UI asset manifest separates lifestyle scenes from profile avatars', () {
     expect(HydrionUiAssetManifest.lifestyleScenes, hasLength(9));
     expect(HydrionUiAssetManifest.byId('sip-break').assetPath,
-        'assets/UI_BETA/hydrion-lifestyle-sip-break.png');
+        'assets/UI_BETA/hydrion-lifestyle-sip-break.jpg');
     expect(
       HydrionUiAssetManifest.lifestyleScenes.map((scene) => scene.assetPath),
       everyElement(
@@ -196,6 +196,23 @@ void main() {
     expect(decision.userAdjustmentMl, 80);
     expect(decision.recommendedGoalMl, 2800);
     expect(decision.explanation, contains('Baseline 2200 ml'));
+
+    final notificationDeniedDecision = service.recommend(
+      WeatherGoalInputs(
+        baselineGoalMl: 2200,
+        age: 31,
+        sex: HydrionSex.female,
+        locationPermissionGranted: true,
+        notificationPermissionGranted: false,
+        weather: WeatherSnapshot(
+          temperatureC: 27,
+          humidityPercent: 50,
+          uvIndex: 0,
+          observedAt: DateTime(2026, 7, 5, 12),
+        ),
+      ),
+    );
+    expect(notificationDeniedDecision.eligible, isTrue);
 
     final ineligible = service.recommend(
       WeatherGoalInputs(

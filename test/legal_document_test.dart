@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:hydrion/domain/legal_document_registry.dart';
+import 'package:hydrion/domain/release_metadata.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/location_service.dart';
@@ -201,6 +202,95 @@ void main() {
     expect(find.text('Document unavailable'), findsOneWidget);
   });
 
+  testWidgets('legal checkbox is blocked until document version is opened',
+      (tester) async {
+    await _pumpLegalPanel(tester);
+
+    tester
+        .widget<CheckboxListTile>(
+          find.byKey(const Key('onboarding-terms-accept')),
+        )
+        .onChanged
+        ?.call(true);
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const Key('onboarding-terms-accept')),
+          )
+          .value,
+      isFalse,
+    );
+    expect(find.text('fahhhhhhh!!! open legal pack'), findsOneWidget);
+    expect(find.text('Terms of Use opened'), findsNothing);
+  });
+
+  testWidgets('opening a legal document does not check acceptance',
+      (tester) async {
+    await _pumpLegalPanel(tester);
+
+    final termsOpener = tester
+        .widget<OutlinedButton>(find.byKey(const Key('legal-open-terms')));
+    expect(termsOpener.onPressed, isNotNull);
+    termsOpener.onPressed!();
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const Key('legal-document-shell-terms')),
+    );
+    expect(find.byKey(const Key('legal-document-shell-terms')), findsOneWidget);
+    await tester.pageBack();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Terms of Use opened'), findsOneWidget);
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const Key('onboarding-terms-accept')),
+          )
+          .value,
+      isFalse,
+    );
+
+    tester
+        .widget<CheckboxListTile>(
+          find.byKey(const Key('onboarding-terms-accept')),
+        )
+        .onChanged
+        ?.call(true);
+    await tester.pump();
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const Key('onboarding-terms-accept')),
+          )
+          .value,
+      isTrue,
+    );
+  });
+
+  testWidgets('production legal gate uses restrained copy', (tester) async {
+    await _pumpLegalPanel(
+      tester,
+      buildStage: HydrionBuildStage.production,
+    );
+
+    tester
+        .widget<CheckboxListTile>(
+          find.byKey(const Key('onboarding-health-ack')),
+        )
+        .onChanged
+        ?.call(true);
+    await tester.pump();
+
+    expect(
+      find.text('Open the required legal document before continuing.'),
+      findsOneWidget,
+    );
+    expect(find.text('fahhhhhhh!!! open legal pack'), findsNothing);
+  });
+
   testWidgets('legal review never requests platform permissions',
       (tester) async {
     final store = MemoryHydrionStore();
@@ -266,6 +356,73 @@ Future<void> _pumpLegalApp(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+Future<void> _pumpLegalPanel(
+  WidgetTester tester, {
+  HydrionBuildStage buildStage = HydrionBuildStage.alpha,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      routes: {
+        for (final document in HydrionLegalDocumentRegistry.userFacingDocuments)
+          document.routeName: (_) =>
+              LegalDocumentScreen(documentId: document.id),
+      },
+      home: _LegalPanelHarness(buildStage: buildStage),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pumpUntilFound(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 5),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (finder.evaluate().isNotEmpty) {
+      return;
+    }
+  }
+}
+
+class _LegalPanelHarness extends StatefulWidget {
+  final HydrionBuildStage buildStage;
+
+  const _LegalPanelHarness({required this.buildStage});
+
+  @override
+  State<_LegalPanelHarness> createState() => _LegalPanelHarnessState();
+}
+
+class _LegalPanelHarnessState extends State<_LegalPanelHarness> {
+  bool termsAccepted = false;
+  bool healthAcknowledged = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          LegalAcceptancePanel(
+            termsAccepted: termsAccepted,
+            healthAcknowledged: healthAcknowledged,
+            buildStage: widget.buildStage,
+            onTermsChanged: (value) {
+              setState(() => termsAccepted = value);
+            },
+            onHealthChanged: (value) {
+              setState(() => healthAcknowledged = value);
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 Map<String, String> _frontMatter(String markdown) {
