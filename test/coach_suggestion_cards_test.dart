@@ -21,12 +21,10 @@ void main() {
   }
 
   Future<void> openCoach(WidgetTester tester) async {
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('route-/chat')),
-      300,
-      scrollable: find.byType(Scrollable).first,
+    final navigationBar = tester.widget<NavigationBar>(
+      find.byKey(const Key('hydrion-bottom-nav')),
     );
-    await tester.tap(find.byKey(const Key('route-/chat')));
+    navigationBar.onDestinationSelected?.call(3);
     await tester.pumpAndSettle();
   }
 
@@ -229,6 +227,7 @@ HydrionServices _withSuggestionService(
     locationService: base.locationService,
     weatherForecastService: base.weatherForecastService,
     dailyWeatherGoalCoordinator: base.dailyWeatherGoalCoordinator,
+    profilePhotoPicker: base.profilePhotoPicker,
     hydrationSummaryService: base.hydrationSummaryService,
     hydrationContextProvider: base.hydrationContextProvider,
     aiActionValidator: base.aiActionValidator,

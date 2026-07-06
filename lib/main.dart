@@ -23,6 +23,7 @@ import 'services/location_service.dart';
 import 'services/notifications.dart';
 import 'services/policy_service.dart';
 import 'services/provider_health.dart';
+import 'services/profile_photo_service.dart';
 import 'services/voice_client.dart';
 import 'services/voice_llm_bridge.dart';
 import 'services/wearable_service.dart';
@@ -30,7 +31,7 @@ import 'services/weather_goal_service.dart';
 import 'ui/screens/analytics_screen.dart';
 import 'ui/screens/ar_visualization_screen.dart';
 import 'ui/screens/chat_coach_screen.dart';
-import 'ui/screens/home_screen.dart';
+import 'ui/screens/hydrion_shell.dart';
 import 'ui/screens/legal_about_screen.dart';
 import 'ui/screens/log_screen.dart';
 import 'ui/screens/onboarding_screen.dart';
@@ -38,6 +39,8 @@ import 'ui/screens/reminders_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/social_challenges_screen.dart';
 import 'ui/screens/startup_screen.dart';
+import 'ui/screens/profile_screen.dart';
+import 'ui/theme/hydrion_design.dart';
 import 'storage/local_store.dart';
 import 'utils/i18n_resolver.dart';
 import 'utils/permissions.dart';
@@ -69,6 +72,7 @@ class HydrionApp extends StatelessWidget {
         Provider.value(value: services.locationService),
         Provider.value(value: services.weatherForecastService),
         Provider.value(value: services.dailyWeatherGoalCoordinator),
+        Provider.value(value: services.profilePhotoPicker),
         Provider<HydrationSummaryService>.value(
           value: services.hydrationSummaryService,
         ),
@@ -103,7 +107,7 @@ class HydrionApp extends StatelessWidget {
         builder: (context, i18n, _) {
           return MaterialApp(
             title: 'Hydrion',
-            theme: _theme,
+            theme: buildHydrionTheme(),
             debugShowCheckedModeBanner: false,
             localizationsDelegates: const [
               AppLocalizations.delegate,
@@ -125,7 +129,7 @@ class HydrionApp extends StatelessWidget {
                     isOnboardingCompleted: () => services
                         .settingsRepository.settings.onboardingCompleted,
                   ),
-              '/home': (_) => const HomeScreen(),
+              '/home': (_) => const HydrionShell(),
               '/onboarding': (_) => const OnboardingScreen(),
               '/analytics': (_) => const AnalyticsScreen(),
               '/chat': (_) => const ChatCoachScreen(),
@@ -133,6 +137,7 @@ class HydrionApp extends StatelessWidget {
               if (services.capabilityReporter.capabilities.osNotifications)
                 '/reminders': (_) => const RemindersScreen(),
               '/settings': (_) => const SettingsScreen(),
+              '/profile': (_) => const ProfileScreen(),
               '/legal-about': (_) => const LegalAboutScreen(),
               '/challenges': (_) => const SocialChallengesScreen(),
               if (services.capabilityReporter.capabilities.arVisualization)
@@ -161,6 +166,7 @@ class HydrionServices {
   final HydrionLocationService locationService;
   final WeatherForecastService weatherForecastService;
   final DailyWeatherGoalCoordinator dailyWeatherGoalCoordinator;
+  final HydrionProfilePhotoPicker profilePhotoPicker;
   final HydrationSummaryService hydrationSummaryService;
   final HydrationContextProvider hydrationContextProvider;
   final HydrationAiActionValidator aiActionValidator;
@@ -191,6 +197,7 @@ class HydrionServices {
     required this.locationService,
     required this.weatherForecastService,
     required this.dailyWeatherGoalCoordinator,
+    required this.profilePhotoPicker,
     required this.hydrationSummaryService,
     required this.hydrationContextProvider,
     required this.aiActionValidator,
@@ -225,6 +232,7 @@ class HydrionServices {
     HydrionLocationService? locationService,
     HydrionNotificationAdapter? notificationAdapter,
     DailyWeatherProvider? weatherProvider,
+    HydrionProfilePhotoPicker? profilePhotoPicker,
   }) async {
     final hydrationRepository = await HydrationRepository.load(store);
     final settingsRepository = await UserSettingsRepository.load(store);
@@ -240,6 +248,7 @@ class HydrionServices {
       locationService: locationService,
       notificationAdapter: notificationAdapter,
       weatherProvider: weatherProvider,
+      profilePhotoPicker: profilePhotoPicker,
     );
   }
 
@@ -248,6 +257,7 @@ class HydrionServices {
     HydrionLocationService? locationService,
     HydrionNotificationAdapter? notificationAdapter,
     DailyWeatherProvider? weatherProvider,
+    HydrionProfilePhotoPicker? profilePhotoPicker,
   }) {
     final store = MemoryHydrionStore();
     return _build(
@@ -263,6 +273,7 @@ class HydrionServices {
             permission: HydrionNotificationPermissionState.granted,
           ),
       weatherProvider: weatherProvider ?? _FakeDailyWeatherProvider(),
+      profilePhotoPicker: profilePhotoPicker ?? FakeHydrionProfilePhotoPicker(),
     );
   }
 
@@ -276,6 +287,7 @@ class HydrionServices {
     HydrionLocationService? locationService,
     HydrionNotificationAdapter? notificationAdapter,
     DailyWeatherProvider? weatherProvider,
+    HydrionProfilePhotoPicker? profilePhotoPicker,
   }) {
     final coreBridge = CoreBridge(hydrationRepository: hydrationRepository);
     final permissions = Permissions();
@@ -298,6 +310,8 @@ class HydrionServices {
       weatherService: weatherForecastService,
       notificationService: notificationService,
     );
+    final photoPicker =
+        profilePhotoPicker ?? ImagePickerHydrionProfilePhotoPicker();
     final providerHealthReporter = LocalProviderHealthReporter.fromConfig(
       aiRuntimeConfig,
       privacyConsentGranted:
@@ -395,6 +409,7 @@ class HydrionServices {
       locationService: location,
       weatherForecastService: weatherForecastService,
       dailyWeatherGoalCoordinator: dailyWeatherGoalCoordinator,
+      profilePhotoPicker: photoPicker,
       hydrationSummaryService: hydrationSummaryService,
       hydrationContextProvider: hydrationContextProvider,
       aiActionValidator: aiActionValidator,
@@ -428,12 +443,6 @@ class HydrionServices {
     );
   }
 }
-
-final ThemeData _theme = ThemeData(
-  useMaterial3: true,
-  colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E88E5)),
-  visualDensity: VisualDensity.adaptivePlatformDensity,
-);
 
 String _localizedHomeAdvice({
   required AppLocalizations l10n,

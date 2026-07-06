@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/adapters/elka/elka_adapter.dart';
 import 'package:hydrion/adapters/local/local_hydrion_adapters.dart';
@@ -196,11 +197,12 @@ void main() {
       locationService: base.locationService,
       weatherForecastService: base.weatherForecastService,
       dailyWeatherGoalCoordinator: base.dailyWeatherGoalCoordinator,
+      profilePhotoPicker: base.profilePhotoPicker,
       hydrationSummaryService: const _FakeSummaryService(),
       hydrationContextProvider: base.hydrationContextProvider,
       aiActionValidator: base.aiActionValidator,
       hydrationCoach: const _FakeCoach(),
-      coachSuggestionService: base.coachSuggestionService,
+      coachSuggestionService: const _FakeCoachSuggestionService(),
       aiActionExecutor: base.aiActionExecutor,
       challengeGenerator: const _FakeChallengeGenerator(),
       commandParser: const _FakeCommandParser(),
@@ -218,7 +220,20 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
 
-    expect(find.text('1234 / 3000 ml'), findsOneWidget);
+    expect(find.text('0 / 2200 ml'), findsOneWidget);
+
+    final navigationBar = tester.widget<NavigationBar>(
+      find.byKey(const Key('hydrion-bottom-nav')),
+    );
+    navigationBar.onDestinationSelected?.call(3);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'adapter check');
+    final sendButton = find.widgetWithIcon(FilledButton, Icons.send);
+    await tester.ensureVisible(sendButton);
+    await tester.tap(sendButton);
+    await tester.pumpAndSettle();
+
     expect(find.text('Fake coach adapter response'), findsOneWidget);
   });
 }
@@ -297,6 +312,32 @@ class _FakeAiProvider implements HydrationAiProvider {
   }) async {
     return actions;
   }
+}
+
+class _FakeCoachSuggestionService implements CoachSuggestionService {
+  const _FakeCoachSuggestionService();
+
+  @override
+  Future<CoachTurn> ask({
+    required String userQuery,
+    required HydrationCoachDigestKey digestKey,
+  }) async {
+    return const CoachTurn(
+      message: 'Fake coach adapter response',
+      suggestions: <CoachSuggestionCard>[],
+    );
+  }
+
+  @override
+  Future<CoachSuggestionExecutionView> confirm(String suggestionId) async {
+    return CoachSuggestionExecutionView(
+      suggestionId: suggestionId,
+      status: CoachSuggestionStatus.rejected,
+    );
+  }
+
+  @override
+  void dismiss(String suggestionId) {}
 }
 
 class _FakeChallengeGenerator implements ChallengeGenerator {

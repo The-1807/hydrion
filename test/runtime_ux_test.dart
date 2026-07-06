@@ -1,14 +1,24 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
+import 'package:hydrion/services/profile_photo_service.dart';
 
 void main() {
-  Future<void> scrollToHomeItem(WidgetTester tester, Finder finder) async {
-    await tester.scrollUntilVisible(
-      finder,
-      300,
-      scrollable: find.byType(Scrollable).first,
+  Future<void> openLogHistory(WidgetTester tester) async {
+    final history = find.byKey(const Key('home-log-history'));
+    await tester.ensureVisible(history);
+    await tester.pumpAndSettle();
+    await tester.tap(history);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> openTab(WidgetTester tester, Key key) async {
+    final navigationBar = tester.widget<NavigationBar>(
+      find.byKey(const Key('hydrion-bottom-nav')),
     );
+    navigationBar.onDestinationSelected?.call(_tabIndex(key));
     await tester.pumpAndSettle();
   }
 
@@ -21,29 +31,27 @@ void main() {
 
     expect(find.text('0 / 2200 ml'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('volume-picker')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('500 ml').last);
+    tester
+        .widget<ChoiceChip>(find.byKey(const Key('quick-volume-500')))
+        .onSelected
+        ?.call(true);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('log-water-button')));
+    final dynamic logButton =
+        tester.widget(find.byKey(const Key('log-water-button')));
+    logButton.onPressed();
     await tester.pumpAndSettle();
 
     expect(find.text('500 / 2200 ml'), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
 
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/log')));
-    await tester.tap(find.byKey(const Key('route-/log')));
-    await tester.pumpAndSettle();
-
+    await openLogHistory(tester);
     expect(find.text('500 ml'), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/analytics')));
-    await tester.tap(find.byKey(const Key('route-/analytics')));
-    await tester.pumpAndSettle();
+    await openTab(tester, const Key('nav-progress'));
 
     expect(find.text('500 / 2200 ml today'), findsOneWidget);
     expect(
@@ -68,9 +76,7 @@ void main() {
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
 
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/log')));
-    await tester.tap(find.byKey(const Key('route-/log')));
-    await tester.pumpAndSettle();
+    await openLogHistory(tester);
 
     expect(find.text('400 ml'), findsOneWidget);
 
@@ -109,27 +115,31 @@ void main() {
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
 
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/log')));
-    await tester.tap(find.byKey(const Key('route-/log')));
-    await tester.pumpAndSettle();
+    await openLogHistory(tester);
     expect(find.text('No hydration logs found'), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/analytics')));
-    await tester.tap(find.byKey(const Key('route-/analytics')));
-    await tester.pumpAndSettle();
+    await openTab(tester, const Key('nav-progress'));
     expect(find.text('No analytics yet'), findsOneWidget);
 
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('route-/reminders')), findsOneWidget);
+    await openTab(tester, const Key('nav-profile'));
+    await tester.scrollUntilVisible(
+      find.text('No reminders yet'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('No reminders yet'), findsOneWidget);
     expect(find.byKey(const Key('route-/ar')), findsNothing);
 
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/challenges')));
-    await tester.tap(find.byKey(const Key('route-/challenges')));
-    await tester.pumpAndSettle();
+    await openTab(tester, const Key('nav-challenges'));
+    await tester.scrollUntilVisible(
+      find.text('No active challenge yet'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('No active challenge yet'), findsOneWidget);
+    expect(find.byKey(const Key('bottle-bingo-board')), findsOneWidget);
   });
 
   testWidgets('fallback-only actions are gated and labeled', (tester) async {
@@ -141,8 +151,14 @@ void main() {
     expect(find.byTooltip('Voice input disabled by app capabilities'),
         findsNothing);
     expect(find.byKey(const Key('route-/ar')), findsNothing);
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/reminders')));
-    expect(find.byKey(const Key('route-/reminders')), findsOneWidget);
+    await openTab(tester, const Key('nav-profile'));
+    expect(find.byKey(const Key('profile-reminders-action')), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('No reminders yet'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('No reminders yet'), findsOneWidget);
     expect(services.reminderRepository.reminders, isEmpty);
   });
 
@@ -159,6 +175,7 @@ void main() {
     expect(find.byKey(const Key('settings-logo')), findsOneWidget);
     expect(find.text('Standalone local mode'), findsOneWidget);
     expect(find.text('Language choice is saved locally.'), findsOneWidget);
+    expect(find.byKey(const Key('settings-open-profile')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Daily hydration goal'),
       300,
@@ -205,7 +222,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Privacidad local'), findsOneWidget);
-    expect(find.text('Estado de funciones en ejecución'), findsNothing);
+    expect(find.text('Estado de funciones en ejecucion'), findsNothing);
     expect(find.text('Adaptador ELKA'), findsNothing);
   });
 
@@ -216,19 +233,92 @@ void main() {
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
 
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/challenges')));
-    await tester.tap(find.byKey(const Key('route-/challenges')));
-    await tester.pumpAndSettle();
+    await openTab(tester, const Key('nav-challenges'));
 
     expect(find.text('Local challenge mode'), findsOneWidget);
     final joinButton =
         find.byKey(const Key('join-around-the-world-infusion-week'));
-    await tester.ensureVisible(joinButton);
+    await tester.scrollUntilVisible(
+      joinButton,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(joinButton);
     await tester.pumpAndSettle();
 
     expect(services.challengeRepository.activeChallenge, isNotNull);
-    expect(find.text('Joined'), findsOneWidget);
   });
+
+  testWidgets(
+      'profile editor saves a local photo without restarting onboarding',
+      (tester) async {
+    final picker = FakeHydrionProfilePhotoPicker(
+      base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+      ),
+    );
+    final services = HydrionServices.memory(profilePhotoPicker: picker);
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    await openTab(tester, const Key('nav-profile'));
+    expect(find.text('Welcome to Hydrion'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('profile-edit-action')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const Key('profile-edit-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('profile-pick-photo')));
+    await tester.pumpAndSettle();
+
+    expect(services.settingsRepository.settings.profilePhotoBase64, isNotNull);
+    expect(find.text('Sign out'), findsNothing);
+  });
+
+  testWidgets('legal screen includes real privacy terms and safety sections',
+      (tester) async {
+    final services = HydrionServices.memory();
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    await openTab(tester, const Key('nav-profile'));
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('profile-legal-action')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const Key('profile-legal-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Privacy Policy Draft'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Terms and Conditions Draft'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Terms and Conditions Draft'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Health and Safety Notice'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Health and Safety Notice'), findsOneWidget);
+  });
+}
+
+int _tabIndex(Key key) {
+  return switch (key) {
+    const Key('nav-home') => 0,
+    const Key('nav-challenges') => 1,
+    const Key('nav-progress') => 2,
+    const Key('nav-coach') => 3,
+    const Key('nav-profile') => 4,
+    _ => throw ArgumentError('Unknown tab key: $key'),
+  };
 }

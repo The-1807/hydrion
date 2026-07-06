@@ -7,7 +7,9 @@ import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
 
 class ChatCoachScreen extends StatefulWidget {
-  const ChatCoachScreen({super.key});
+  final bool embedded;
+
+  const ChatCoachScreen({super.key, this.embedded = false});
 
   @override
   State<ChatCoachScreen> createState() => _ChatCoachScreenState();
@@ -144,10 +146,12 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
         _messages.isNotEmpty || visibleSuggestions.isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.chatCoachTitle),
-        centerTitle: true,
-      ),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: Text(l10n.chatCoachTitle),
+              centerTitle: true,
+            ),
       body: Column(
         children: [
           Material(

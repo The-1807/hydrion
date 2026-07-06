@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/avatar_manifest.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
+import 'package:hydrion/domain/companion_state.dart';
 import 'package:hydrion/domain/release_metadata.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
@@ -47,6 +48,7 @@ void main() {
         ),
         isTrue);
     expect(await first.setAvatarId('superhappy_shark'), isTrue);
+    expect(await first.setProfilePhotoBase64('AQIDBA=='), isTrue);
     await first.setGoalMode(HydrionGoalMode.weatherInformed);
     await first.setVolumeUnit(HydrionVolumeUnit.ounces);
     expect(await first.setContainerSizeMl(750), isTrue);
@@ -61,11 +63,16 @@ void main() {
     expect(second.settings.age, 29);
     expect(second.settings.sex, HydrionSex.intersex);
     expect(second.settings.avatarId, 'superhappy_shark');
+    expect(second.settings.profilePhotoBase64, 'AQIDBA==');
     expect(second.settings.goalMode, HydrionGoalMode.weatherInformed);
     expect(second.settings.volumeUnit, HydrionVolumeUnit.ounces);
     expect(second.settings.containerSizeMl, 750);
     expect(second.settings.onboardingCompleted, isTrue);
     expect(second.settings.legalAndHealthAcknowledged, isTrue);
+
+    await second.clearProfilePhoto();
+    final third = await UserSettingsRepository.load(store);
+    expect(third.settings.profilePhotoBase64, isNull);
   });
 
   test('invalid profile settings recover to safe defaults', () {
@@ -75,6 +82,7 @@ void main() {
       'age': 4,
       'sex': 'unknown',
       'avatarId': 'renamed-by-guessing',
+      'profilePhotoBase64': 'not a valid base64 image',
       'goalMode': 'mystery',
       'volumeUnit': 'cups',
       'containerSizeMl': 9000,
@@ -85,10 +93,41 @@ void main() {
     expect(settings.age, isNull);
     expect(settings.sex, isNull);
     expect(settings.avatarId, 'savvy-eco_shark');
+    expect(settings.profilePhotoBase64, isNull);
     expect(settings.goalMode, HydrionGoalMode.manual);
     expect(settings.volumeUnit, HydrionVolumeUnit.milliliters);
     expect(settings.containerSizeMl, UserSettings.defaultContainerSizeMl);
     expect(settings.dailyGoalMl, UserSettings.defaultDailyGoalMl);
+  });
+
+  test('companion state reacts to weather and completed goals', () {
+    const director = HydrionCompanionDirector();
+    const weatherSettings = UserSettings(
+      locale: UserSettings.fallbackLocale,
+      goalMode: HydrionGoalMode.weatherInformed,
+      weatherAdjustedGoalActive: true,
+      lastWeatherGoalExplanation: 'Heat added a small adjustment.',
+    );
+
+    final weatherState = director.select(
+      hydrationPercent: 35,
+      entryCount: 1,
+      settings: weatherSettings,
+      now: DateTime(2026, 7, 5, 10),
+    );
+
+    expect(weatherState.mood, HydrionCompanionMood.hotWeather);
+    expect(weatherState.message, contains('Heat added'));
+
+    final completeState = director.select(
+      hydrationPercent: 101,
+      entryCount: 4,
+      settings: const UserSettings(locale: UserSettings.fallbackLocale),
+      now: DateTime(2026, 7, 5, 18),
+    );
+
+    expect(completeState.mood, HydrionCompanionMood.goalComplete);
+    expect(completeState.title, 'Goal reached');
   });
 
   test('weather goal recommendation is deterministic bounded and explainable',

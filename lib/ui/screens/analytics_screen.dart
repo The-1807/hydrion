@@ -10,7 +10,9 @@ import '../components/achievement_badge.dart';
 import '../components/hydration_score_card.dart';
 
 class AnalyticsScreen extends StatelessWidget {
-  const AnalyticsScreen({super.key});
+  final bool embedded;
+
+  const AnalyticsScreen({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context) {
@@ -35,10 +37,12 @@ class AnalyticsScreen extends StatelessWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.analyticsTitle),
-        centerTitle: true,
-      ),
+      appBar: embedded
+          ? null
+          : AppBar(
+              title: Text(l10n.analyticsTitle),
+              centerTitle: true,
+            ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

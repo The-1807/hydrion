@@ -16,12 +16,19 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> scrollToHomeItem(WidgetTester tester, Finder finder) async {
-    await tester.scrollUntilVisible(
-      finder,
-      300,
-      scrollable: find.byType(Scrollable).first,
+  Future<void> openLogHistory(WidgetTester tester) async {
+    final history = find.byKey(const Key('home-log-history'));
+    await tester.ensureVisible(history);
+    await tester.pumpAndSettle();
+    await tester.tap(history);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> openTab(WidgetTester tester, Key key) async {
+    final navigationBar = tester.widget<NavigationBar>(
+      find.byKey(const Key('hydrion-bottom-nav')),
     );
+    navigationBar.onDestinationSelected?.call(_tabIndex(key));
     await tester.pumpAndSettle();
   }
 
@@ -100,15 +107,18 @@ void main() {
     await pumpHydrion(tester, services: services);
 
     expect(find.byKey(const Key('home-logo')), findsOneWidget);
-    expect(find.byKey(const Key('volume-picker')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('volume-picker')));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -360));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('350 ml').last);
+    final amountChip = find.byKey(const Key('quick-volume-350'));
+    expect(amountChip, findsOneWidget);
+    tester.widget<ChoiceChip>(amountChip).onSelected?.call(true);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('log-water-button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('log-water-button')));
+    final dynamic logButton =
+        tester.widget(find.byKey(const Key('log-water-button')));
+    logButton.onPressed();
     await tester.pumpAndSettle();
 
     expect(services.hydrationRepository.totalForDay(DateTime.now()), 350);
@@ -295,9 +305,7 @@ void main() {
     );
     await pumpHydrion(tester, services: services);
 
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/chat')));
-    await tester.tap(find.byKey(const Key('route-/chat')));
-    await tester.pumpAndSettle();
+    await openTab(tester, const Key('nav-coach'));
 
     expect(find.text('Provider coach'), findsOneWidget);
     expect(find.textContaining('Today: 500 / 2200 ml'), findsOneWidget);
@@ -314,7 +322,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('You'), findsOneWidget);
-    expect(find.text('Coach'), findsOneWidget);
+    expect(find.text('Coach'), findsWidgets);
     expect(
       find.text('You are on pace. Take 250 ml over the next hour.'),
       findsOneWidget,
@@ -375,35 +383,36 @@ void main() {
       (tester) async {
     await pumpHydrion(tester);
 
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/log')));
-    await tester.tap(find.byKey(const Key('route-/log')));
-    await tester.pumpAndSettle();
+    await openLogHistory(tester);
     expect(find.text('No hydration logs found'), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/analytics')));
-    await tester.tap(find.byKey(const Key('route-/analytics')));
-    await tester.pumpAndSettle();
+    await openTab(tester, const Key('nav-progress'));
     expect(find.text('No analytics yet'), findsOneWidget);
 
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('route-/reminders')), findsOneWidget);
+    await openTab(tester, const Key('nav-profile'));
+    await tester.scrollUntilVisible(
+      find.text('No reminders yet'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('No reminders yet'), findsOneWidget);
     expect(find.byKey(const Key('route-/ar')), findsNothing);
 
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/challenges')));
-    await tester.tap(find.byKey(const Key('route-/challenges')));
-    await tester.pumpAndSettle();
+    await openTab(tester, const Key('nav-challenges'));
+    await tester.scrollUntilVisible(
+      find.text('No active challenge yet'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('No active challenge yet'), findsOneWidget);
   });
 
   testWidgets('product QA: Coach fallback flow stays local', (tester) async {
     await pumpHydrion(tester);
 
-    await scrollToHomeItem(tester, find.byKey(const Key('route-/chat')));
-    await tester.tap(find.byKey(const Key('route-/chat')));
-    await tester.pumpAndSettle();
+    await openTab(tester, const Key('nav-coach'));
 
     expect(find.text('On-device coach'), findsOneWidget);
     expect(
@@ -445,6 +454,7 @@ HydrionServices _withOverrides(
     locationService: base.locationService,
     weatherForecastService: base.weatherForecastService,
     dailyWeatherGoalCoordinator: base.dailyWeatherGoalCoordinator,
+    profilePhotoPicker: base.profilePhotoPicker,
     hydrationSummaryService: base.hydrationSummaryService,
     hydrationContextProvider: base.hydrationContextProvider,
     aiActionValidator: base.aiActionValidator,
@@ -558,4 +568,15 @@ class _StaticCoachSuggestionService implements CoachSuggestionService {
 
   @override
   void dismiss(String suggestionId) {}
+}
+
+int _tabIndex(Key key) {
+  return switch (key) {
+    const Key('nav-home') => 0,
+    const Key('nav-challenges') => 1,
+    const Key('nav-progress') => 2,
+    const Key('nav-coach') => 3,
+    const Key('nav-profile') => 4,
+    _ => throw ArgumentError('Unknown tab key: $key'),
+  };
 }

@@ -21,6 +21,7 @@ dependencies:
   geolocator: ^14.0.2
   flutter_local_notifications: ^20.1.0
   timezone: ^0.10.1
+  image_picker: ^1.2.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

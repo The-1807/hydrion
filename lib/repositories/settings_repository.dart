@@ -33,12 +33,14 @@ class UserSettings {
   static const minContainerSizeMl = 100;
   static const maxContainerSizeMl = 2000;
   static const maxNicknameLength = 32;
+  static const maxProfilePhotoBase64Length = 1600000;
 
   final Locale locale;
   final bool nonLocalProviderConsentGranted;
   final int dailyGoalMl;
   final bool reusableContainerEnabled;
   final String? nickname;
+  final String? profilePhotoBase64;
   final int? age;
   final HydrionSex? sex;
   final String avatarId;
@@ -64,6 +66,7 @@ class UserSettings {
     this.dailyGoalMl = defaultDailyGoalMl,
     this.reusableContainerEnabled = false,
     this.nickname,
+    this.profilePhotoBase64,
     this.age,
     this.sex,
     this.avatarId = 'savvy-eco_shark',
@@ -91,6 +94,8 @@ class UserSettings {
     bool? reusableContainerEnabled,
     String? nickname,
     bool clearNickname = false,
+    String? profilePhotoBase64,
+    bool clearProfilePhotoBase64 = false,
     int? age,
     bool clearAge = false,
     HydrionSex? sex,
@@ -126,6 +131,9 @@ class UserSettings {
       reusableContainerEnabled:
           reusableContainerEnabled ?? this.reusableContainerEnabled,
       nickname: clearNickname ? null : nickname ?? this.nickname,
+      profilePhotoBase64: clearProfilePhotoBase64
+          ? null
+          : profilePhotoBase64 ?? this.profilePhotoBase64,
       age: clearAge ? null : age ?? this.age,
       sex: clearSex ? null : sex ?? this.sex,
       avatarId: avatarId ?? this.avatarId,
@@ -182,6 +190,7 @@ class UserSettings {
       'dailyGoalMl': dailyGoalMl,
       'reusableContainerEnabled': reusableContainerEnabled,
       'nickname': nickname,
+      'profilePhotoBase64': profilePhotoBase64,
       'age': age,
       'sex': sex?.name,
       'avatarId': avatarId,
@@ -219,6 +228,8 @@ class UserSettings {
         dailyGoalMl: _safeDailyGoal(value['dailyGoalMl']),
         reusableContainerEnabled: value['reusableContainerEnabled'] == true,
         nickname: _safeNickname(value['nickname']),
+        profilePhotoBase64:
+            _safeProfilePhotoBase64(value['profilePhotoBase64']),
         age: _safeAge(value['age']),
         sex: _safeSex(value['sex']),
         avatarId: _safeAvatarId(value['avatarId']),
@@ -254,6 +265,7 @@ class UserSettings {
       dailyGoalMl: _safeDailyGoal(value['dailyGoalMl']),
       reusableContainerEnabled: value['reusableContainerEnabled'] == true,
       nickname: _safeNickname(value['nickname']),
+      profilePhotoBase64: _safeProfilePhotoBase64(value['profilePhotoBase64']),
       age: _safeAge(value['age']),
       sex: _safeSex(value['sex']),
       avatarId: _safeAvatarId(value['avatarId']),
@@ -349,6 +361,20 @@ class UserSettings {
       return null;
     }
     return nickname;
+  }
+
+  static String? _safeProfilePhotoBase64(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    final photo = value.trim();
+    if (photo.isEmpty || photo.length > maxProfilePhotoBase64Length) {
+      return null;
+    }
+    if (!RegExp(r'^[A-Za-z0-9+/=]+$').hasMatch(photo)) {
+      return null;
+    }
+    return photo;
   }
 
   static int? _safeAge(Object? value) {
@@ -542,6 +568,23 @@ class UserSettingsRepository extends ChangeNotifier {
     await _persist();
     notifyListeners();
     return true;
+  }
+
+  Future<bool> setProfilePhotoBase64(String value) async {
+    final safePhoto = UserSettings._safeProfilePhotoBase64(value);
+    if (safePhoto == null) {
+      return false;
+    }
+    _settings = _settings.copyWith(profilePhotoBase64: safePhoto);
+    await _persist();
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> clearProfilePhoto() async {
+    _settings = _settings.copyWith(clearProfilePhotoBase64: true);
+    await _persist();
+    notifyListeners();
   }
 
   Future<void> setGoalMode(HydrionGoalMode mode) async {
@@ -767,6 +810,17 @@ class UserSettingsRepository extends ChangeNotifier {
     }
     if (value.containsKey('avatarId') &&
         UserSettings._safeAvatarId(value['avatarId']) != value['avatarId']) {
+      events.add(
+        const StorageRecoveryEvent(
+          category: _category,
+          code: StorageRecoveryCodes.invalidValue,
+          action: StorageRecoveryActions.fallbackDefaults,
+        ),
+      );
+    }
+    if (value.containsKey('profilePhotoBase64') &&
+        UserSettings._safeProfilePhotoBase64(value['profilePhotoBase64']) ==
+            null) {
       events.add(
         const StorageRecoveryEvent(
           category: _category,

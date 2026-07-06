@@ -1,19 +1,25 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/avatar_manifest.dart';
+import '../../domain/companion_state.dart';
+import '../../domain/challenge_catalog.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../l10n/app_localizations.dart';
+import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
+import '../../repositories/reminder_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/weather_goal_service.dart';
-import '../components/hydrion_logo.dart';
-import '../components/intake_ring.dart';
-import '../components/llm_advice_card.dart';
-import '../components/reminder_tile.dart';
 import '../components/voice_input_widget.dart';
+import '../theme/hydrion_design.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool showRouteShortcuts;
+
+  const HomeScreen({super.key, this.showRouteShortcuts = true});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -41,10 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    final now = DateTime.now();
     await repository.addLog(
       volumeMl: volumeMl,
-      timestamp: now,
+      timestamp: DateTime.now(),
       source: 'local',
     );
     if (!mounted) {
@@ -94,16 +99,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Recommended goal: '
-                        '${decision.recommendedGoalMl} ml'),
+                    Text('Base goal: ${decision.baselineGoalMl} ml'),
+                    Text(
+                      'Weather adjustment: '
+                      '${decision.weatherAdjustmentMl >= 0 ? '+' : ''}'
+                      '${decision.weatherAdjustmentMl} ml',
+                    ),
+                    Text('Today: ${decision.recommendedGoalMl} ml'),
                     const SizedBox(height: 8),
-                    Text('Baseline: ${decision.baselineGoalMl} ml'),
-                    Text('Weather adjustment: '
-                        '${decision.weatherAdjustmentMl >= 0 ? '+' : ''}'
-                        '${decision.weatherAdjustmentMl} ml'),
-                    Text('Weather: ${forecast.condition}, '
-                        '${forecast.temperatureC.round()} C'
-                        '${forecast.humidityPercent == null ? '' : ', ${forecast.humidityPercent!.round()}% humidity'}'),
+                    Text(
+                      'Weather: ${forecast.condition}, '
+                      '${forecast.temperatureC.round()} C'
+                      '${forecast.humidityPercent == null ? '' : ', ${forecast.humidityPercent!.round()}% humidity'}',
+                    ),
                     const SizedBox(height: 8),
                     Text(decision.explanation),
                     const SizedBox(height: 8),
@@ -114,9 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       contentPadding: EdgeInsets.zero,
                       value: doNotAskEachDay,
                       onChanged: (value) {
-                        setDialogState(
-                          () => doNotAskEachDay = value == true,
-                        );
+                        setDialogState(() => doNotAskEachDay = value == true);
                       },
                       title: const Text('Do not ask me each day'),
                     ),
@@ -171,202 +177,127 @@ class _HomeScreenState extends State<HomeScreen> {
     final l10n = AppLocalizations.of(context);
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final settings = context.watch<UserSettingsRepository>().settings;
-    context.watch<HydrationRepository>();
-    final syncStatus = [
-      if (!capabilities.bleSync) 'BLE',
-      if (!capabilities.healthSync) 'Health',
-    ];
+    final hydrationRepository = context.watch<HydrationRepository>();
+    final challengeRepository = context.watch<ChallengeRepository>();
+    final reminderRepository = context.watch<ReminderRepository>();
+    final now = DateTime.now();
+    final todayMl = hydrationRepository.totalForDay(now);
+    final targetMl = settings.dailyGoalMl;
+    final percent = targetMl <= 0 ? 0.0 : (todayMl / targetMl * 100);
+    final remainingMl = math.max(0, targetMl - todayMl);
+    final todayLogs = hydrationRepository.fetch(
+      DateTime(now.year, now.month, now.day),
+      DateTime(now.year, now.month, now.day + 1),
+    );
+    final companion = const HydrionCompanionDirector().select(
+      hydrationPercent: percent,
+      entryCount: todayLogs.length,
+      settings: settings,
+      now: now,
+      hasActiveChallenge: challengeRepository.activeChallenge != null,
+      reminderDue: reminderRepository.reminders.isNotEmpty,
+    );
+    final localizedAdvice = _homeAdvice(
+      l10n,
+      hydrationPercent: percent,
+      entryCount: todayLogs.length,
+      weatherAdjustedGoalActive: settings.weatherAdjustedGoalActive,
+    );
+    final avatar = HydrionAvatarManifest.byId(settings.avatarId);
+    final progress = (percent / 100).clamp(0.0, 1.0);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
+        key: const Key('home-appbar'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            HydrionLogo(
-              size: 32,
-              imageKey: const Key('home-logo'),
-              semanticLabel: l10n.hydrionLogoSemantics,
+            Text(
+              'Hydrion',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
             ),
-            const SizedBox(width: 8),
-            Text(l10n.appTitle),
+            Text(
+              _greeting(settings, now),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            key: const Key('home-settings-action'),
+            tooltip: 'Settings',
             onPressed: () => Navigator.of(context).pushNamed('/settings'),
-            tooltip: l10n.settingsTooltip,
+            icon: const Icon(Icons.settings),
+          ),
+          PopupMenuButton<String>(
+            key: const Key('home-avatar-menu'),
+            tooltip: 'Profile menu',
+            icon: CircleAvatar(
+              backgroundImage: AssetImage(avatar.assetPath),
+              radius: 18,
+            ),
+            onSelected: (value) {
+              switch (value) {
+                case 'profile':
+                  Navigator.of(context).pushNamed('/profile');
+                  break;
+                case 'settings':
+                  Navigator.of(context).pushNamed('/settings');
+                  break;
+                case 'support':
+                  Navigator.of(context).pushNamed('/legal-about');
+                  break;
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'profile', child: Text('View Profile')),
+              PopupMenuItem(value: 'settings', child: Text('Settings')),
+              PopupMenuItem(value: 'support', child: Text('Support')),
+            ],
           ),
         ],
       ),
-      body: FutureBuilder<HydrationSummary>(
-        future: context.read<HydrationSummaryService>().getHydrationSummary(),
-        builder: (context, snapshot) {
-          final summary = snapshot.data ??
-              const HydrationSummary(
-                hydrationPercent: 0,
-                entryCount: 0,
-                consumedMl: 0,
-                targetMl: 2200,
-              );
-
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Center(
-                child: IntakeRing(
-                  consumedMl: summary.consumedMl.toDouble(),
-                  targetMl: summary.targetMl.toDouble(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              LLMAdviceCard(
-                hydrationPercent: summary.hydrationPercent,
-                entryCount: summary.entryCount,
-                temperatureC: 24,
-              ),
-              if (settings.weatherAdjustedGoalActive &&
-                  settings.lastWeatherGoalExplanation != null) ...[
-                const SizedBox(height: 12),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.wb_sunny_outlined),
-                    title: const Text('Weather-adjusted'),
-                    subtitle: Text(settings.lastWeatherGoalExplanation!),
-                    trailing: Text('${settings.dailyGoalMl} ml'),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.logHydration,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final stackControls = constraints.maxWidth < 380;
-                          final picker = DropdownButtonFormField<int>(
-                            key: const Key('volume-picker'),
-                            initialValue: _selectedVolumeMl,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: l10n.amountLabel,
-                              border: const OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            items: const [150, 250, 350, 500, 750, 1000]
-                                .map(
-                                  (amount) => DropdownMenuItem<int>(
-                                    value: amount,
-                                    child: Text('$amount ml'),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() => _selectedVolumeMl = value);
-                              }
-                            },
-                          );
-                          final button = FilledButton.icon(
-                            key: const Key('log-water-button'),
-                            onPressed: () => _logWater(_selectedVolumeMl),
-                            icon: const Icon(Icons.local_drink),
-                            label: Text(
-                              l10n.logVolume(volumeMl: _selectedVolumeMl),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-
-                          if (stackControls) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                picker,
-                                const SizedBox(height: 8),
-                                button,
-                              ],
-                            );
-                          }
-
-                          return Row(
-                            children: [
-                              Expanded(child: picker),
-                              const SizedBox(width: 8),
-                              button,
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        syncStatus.isEmpty
-                            ? l10n.savedLocally
-                            : l10n.savedLocallySyncDisabled(
-                                syncNames: syncStatus.join(' and '),
-                                verb: syncStatus.length == 1 ? 'is' : 'are',
-                              ),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (capabilities.osNotifications) ...[
-                const SizedBox(height: 12),
-                Card(
-                  child: ReminderTile(
-                    shortfallMl: (summary.targetMl - summary.consumedMl)
-                        .clamp(0, summary.targetMl),
-                    lastDrinkHoursAgo: 1.5,
-                    hydrationPercent: summary.hydrationPercent,
-                    isActiveTime: true,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  const _RouteButton(
-                      labelKey: _RouteLabel.analytics,
-                      icon: Icons.insights,
-                      route: '/analytics'),
-                  const _RouteButton(
-                      labelKey: _RouteLabel.log,
-                      icon: Icons.list_alt,
-                      route: '/log'),
-                  const _RouteButton(
-                      labelKey: _RouteLabel.coach,
-                      icon: Icons.chat_bubble_outline,
-                      route: '/chat'),
-                  const _RouteButton(
-                      labelKey: _RouteLabel.challenges,
-                      icon: Icons.emoji_events,
-                      route: '/challenges'),
-                  if (capabilities.osNotifications)
-                    const _RouteButton(
-                        labelKey: _RouteLabel.reminders,
-                        icon: Icons.notifications_none,
-                        route: '/reminders'),
-                  if (capabilities.arVisualization)
-                    const _RouteButton(
-                        labelKey: _RouteLabel.arUnavailable,
-                        icon: Icons.view_in_ar,
-                        route: '/ar'),
-                ],
-              ),
-            ],
-          );
-        },
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        children: [
+          _HeroHydrationScene(
+            avatar: avatar,
+            companion: companion,
+            localizedAdvice: localizedAdvice,
+            consumedMl: todayMl,
+            targetMl: targetMl,
+            remainingMl: remainingMl,
+            progress: progress,
+            settings: settings,
+          ),
+          const SizedBox(height: 16),
+          _QuickLogPanel(
+            title: l10n.logHydration,
+            logLabel: l10n.logVolume(volumeMl: _selectedVolumeMl),
+            selectedVolumeMl: _selectedVolumeMl,
+            onVolumeChanged: (value) =>
+                setState(() => _selectedVolumeMl = value),
+            onLog: () => _logWater(_selectedVolumeMl),
+            onHistory: () => Navigator.of(context).pushNamed('/log'),
+          ),
+          const SizedBox(height: 16),
+          _WeatherJourneyPanel(settings: settings),
+          const SizedBox(height: 16),
+          _TodayMomentumGrid(
+            entryCount: todayLogs.length,
+            challengeRepository: challengeRepository,
+            targetMl: targetMl,
+          ),
+          if (widget.showRouteShortcuts) ...[
+            const SizedBox(height: 16),
+            _LegacyRouteShortcuts(capabilities: capabilities),
+          ],
+        ],
       ),
       floatingActionButton: capabilities.voiceInput
           ? VoiceInputWidget(
@@ -382,44 +313,455 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-enum _WeatherGoalAction {
-  useRecommendation,
-  adjust,
-  keep,
+class _HeroHydrationScene extends StatelessWidget {
+  final HydrionAvatar avatar;
+  final HydrionCompanionState companion;
+  final String localizedAdvice;
+  final int consumedMl;
+  final int targetMl;
+  final int remainingMl;
+  final double progress;
+  final UserSettings settings;
+
+  const _HeroHydrationScene({
+    required this.avatar,
+    required this.companion,
+    required this.localizedAdvice,
+    required this.consumedMl,
+    required this.targetMl,
+    required this.remainingMl,
+    required this.progress,
+    required this.settings,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = (progress * 100).round();
+    return HydrionSurface(
+      gradient: HydrionGradients.ocean,
+      radius: HydrionRadii.lg,
+      child: DefaultTextStyle(
+        style: const TextStyle(color: Colors.white),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        companion.title,
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(companion.message),
+                      const SizedBox(height: 6),
+                      Text(
+                        localizedAdvice,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.86),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _HeroPill('$percent%'),
+                          _HeroPill('$remainingMl ml left'),
+                          _HeroPill(
+                            settings.weatherAdjustedGoalActive
+                                ? 'Weather-adjusted'
+                                : 'Standard goal',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Transform.rotate(
+                  angle: _companionTilt(companion.mood),
+                  child: Image.asset(
+                    avatar.assetPath,
+                    key: const Key('home-logo'),
+                    height: 116,
+                    semanticLabel: avatar.displayName,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(HydrionRadii.pill),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 14,
+                backgroundColor: Colors.white.withValues(alpha: 0.18),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  progress >= 1 ? HydrionColors.sunrise : HydrionColors.glow,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '$consumedMl / $targetMl ml',
+              key: const Key('home-progress-text'),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-enum _RouteLabel {
-  analytics,
-  log,
-  coach,
-  challenges,
-  reminders,
-  arUnavailable,
+class _QuickLogPanel extends StatelessWidget {
+  final String title;
+  final String logLabel;
+  final int selectedVolumeMl;
+  final ValueChanged<int> onVolumeChanged;
+  final VoidCallback onLog;
+  final VoidCallback onHistory;
+
+  const _QuickLogPanel({
+    required this.title,
+    required this.logLabel,
+    required this.selectedVolumeMl,
+    required this.onVolumeChanged,
+    required this.onLog,
+    required this.onHistory,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const favorites = [150, 250, 350, 500, 750, 1000];
+    return HydrionSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+              TextButton.icon(
+                key: const Key('home-log-history'),
+                onPressed: onHistory,
+                icon: const Icon(Icons.history),
+                label: const Text('History'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final amount in favorites)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      key: Key('quick-volume-$amount'),
+                      selected: selectedVolumeMl == amount,
+                      label: Text('$amount ml'),
+                      onSelected: (_) => onVolumeChanged(amount),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            key: const Key('volume-picker'),
+            initialValue: selectedVolumeMl,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Custom amount',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: favorites
+                .map(
+                  (amount) => DropdownMenuItem<int>(
+                    value: amount,
+                    child: Text('$amount ml'),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                onVolumeChanged(value);
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: const Key('log-water-button'),
+              onPressed: onLog,
+              icon: const Icon(Icons.water_drop),
+              label: Text(logLabel),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeatherJourneyPanel extends StatelessWidget {
+  final UserSettings settings;
+
+  const _WeatherJourneyPanel({required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    final weatherMode = settings.goalMode == HydrionGoalMode.weatherInformed;
+    final active = settings.weatherAdjustedGoalActive;
+    final adjustment = settings.dailyGoalMl - settings.baselineDailyGoalMl;
+    return HydrionSurface(
+      gradient: LinearGradient(
+        colors: active
+            ? [
+                HydrionColors.sunrise.withValues(alpha: 0.22),
+                HydrionColors.glow.withValues(alpha: 0.16),
+              ]
+            : [
+                Colors.white.withValues(alpha: 0.98),
+                HydrionColors.foam,
+              ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(active ? Icons.wb_sunny : Icons.cloud_queue),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  active ? 'Weather changed today\'s route' : 'Weather layer',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (active) ...[
+            Text('Base goal: ${settings.baselineDailyGoalMl} ml'),
+            Text(
+              'Weather adjustment: ${adjustment >= 0 ? '+' : ''}$adjustment ml',
+            ),
+            Text('Today\'s goal: ${settings.dailyGoalMl} ml'),
+            if (settings.lastWeatherGoalExplanation != null) ...[
+              const SizedBox(height: 8),
+              Text(settings.lastWeatherGoalExplanation!),
+            ],
+          ] else if (weatherMode) ...[
+            const Text(
+              'Weather mode is enabled. Hydrion will show the adjustment here after a successful eligible forecast.',
+            ),
+          ] else ...[
+            const Text(
+              'Manual mode is calm and predictable. Turn on weather personalization when you want Hydrion to explain heat-aware goal changes.',
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key('home-enable-weather'),
+              onPressed: () => Navigator.of(context).pushNamed('/settings'),
+              icon: const Icon(Icons.wb_sunny_outlined),
+              label: const Text('Personalize with weather'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TodayMomentumGrid extends StatelessWidget {
+  final int entryCount;
+  final ChallengeRepository challengeRepository;
+  final int targetMl;
+
+  const _TodayMomentumGrid({
+    required this.entryCount,
+    required this.challengeRepository,
+    required this.targetMl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final challenge = challengeRepository.activeChallenge;
+    final catalogChallenge = challenge == null
+        ? HydrionChallengeCatalog.byId('bottle-bingo')
+        : HydrionChallengeCatalog.byId(challenge.id);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoColumns = constraints.maxWidth >= 430;
+        final children = [
+          _MiniModule(
+            icon: Icons.bolt,
+            title: 'Momentum',
+            value: entryCount == 0 ? 'First log waiting' : '$entryCount logs',
+            body: entryCount == 0
+                ? 'One small entry gives the day a shape.'
+                : 'Your shark has real data to react to.',
+          ),
+          _MiniModule(
+            icon: Icons.emoji_events_outlined,
+            title: challenge == null ? 'Challenge pick' : 'Active challenge',
+            value: catalogChallenge.name,
+            body: challenge == null
+                ? 'Bottle Bingo is ready when you want a playful routine.'
+                : 'Keep today gentle; progress comes from normal logs.',
+          ),
+        ];
+        if (!twoColumns) {
+          return Column(
+            children: [
+              for (final child in children) ...[
+                child,
+                if (child != children.last) const SizedBox(height: 12),
+              ],
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final child in children) ...[
+              Expanded(child: child),
+              if (child != children.last) const SizedBox(width: 12),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MiniModule extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final String body;
+
+  const _MiniModule({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return HydrionSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon),
+          const SizedBox(height: 8),
+          Text(title, style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(body),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroPill extends StatelessWidget {
+  final String label;
+
+  const _HeroPill(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(HydrionRadii.pill),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Text(label),
+      ),
+    );
+  }
+}
+
+class _LegacyRouteShortcuts extends StatelessWidget {
+  final AppCapabilities capabilities;
+
+  const _LegacyRouteShortcuts({required this.capabilities});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        const _RouteButton(
+            label: 'Progress', icon: Icons.insights, route: '/analytics'),
+        const _RouteButton(
+            label: 'Log history', icon: Icons.list_alt, route: '/log'),
+        const _RouteButton(
+            label: 'Coach', icon: Icons.chat_bubble_outline, route: '/chat'),
+        const _RouteButton(
+            label: 'Challenges',
+            icon: Icons.emoji_events,
+            route: '/challenges'),
+        if (capabilities.osNotifications)
+          const _RouteButton(
+            label: 'Reminders',
+            icon: Icons.notifications_none,
+            route: '/reminders',
+          ),
+      ],
+    );
+  }
 }
 
 class _RouteButton extends StatelessWidget {
-  final _RouteLabel labelKey;
+  final String label;
   final IconData icon;
   final String route;
 
   const _RouteButton({
-    required this.labelKey,
+    required this.label,
     required this.icon,
     required this.route,
   });
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final label = switch (labelKey) {
-      _RouteLabel.analytics => l10n.analyticsRoute,
-      _RouteLabel.log => l10n.logRoute,
-      _RouteLabel.coach => l10n.coachRoute,
-      _RouteLabel.challenges => l10n.challengesRoute,
-      _RouteLabel.reminders => l10n.remindersRoute,
-      _RouteLabel.arUnavailable => l10n.arUnavailableRoute,
-    };
-
     return ActionChip(
       key: Key('route-$route'),
       avatar: Icon(icon, size: 18),
@@ -427,4 +769,51 @@ class _RouteButton extends StatelessWidget {
       onPressed: () => Navigator.of(context).pushNamed(route),
     );
   }
+}
+
+enum _WeatherGoalAction {
+  useRecommendation,
+  adjust,
+  keep,
+}
+
+String _greeting(UserSettings settings, DateTime now) {
+  final name = settings.nickname?.trim();
+  final displayName = name == null || name.isEmpty ? 'there' : name;
+  final dayPart = now.hour < 12
+      ? 'Good morning'
+      : now.hour < 18
+          ? 'Good afternoon'
+          : 'Good evening';
+  return '$dayPart, $displayName';
+}
+
+String _homeAdvice(
+  AppLocalizations l10n, {
+  required double hydrationPercent,
+  required int entryCount,
+  required bool weatherAdjustedGoalActive,
+}) {
+  final hydration = hydrationPercent.clamp(0.0, 100.0);
+  final advice = switch (hydration) {
+    >= 100.0 => l10n.homeAdviceGoalReached,
+    >= 85.0 => l10n.homeAdviceStrong,
+    >= 65.0 => l10n.homeAdviceClose,
+    _ => l10n.homeAdviceStart,
+  };
+  final heat = weatherAdjustedGoalActive ? ' ${l10n.homeAdviceHeat}' : '';
+  final entryNote = entryCount >= 3
+      ? ' ${l10n.homeAdviceReliableEntries(count: entryCount)}'
+      : ' ${l10n.homeAdviceAddEntries}';
+  return '$advice$heat$entryNote';
+}
+
+double _companionTilt(HydrionCompanionMood mood) {
+  return switch (mood) {
+    HydrionCompanionMood.goalComplete => -0.08,
+    HydrionCompanionMood.nearlyComplete => 0.06,
+    HydrionCompanionMood.hotWeather => -0.04,
+    HydrionCompanionMood.recovery => 0.02,
+    _ => 0,
+  };
 }

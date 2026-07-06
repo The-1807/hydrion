@@ -250,19 +250,33 @@ class _ProfileSummaryCard extends StatelessWidget {
                     '${settings.containerSizeMl} ml container • ${settings.dailyGoalMl} ml/day',
                   ),
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    key: const Key('settings-reopen-onboarding'),
-                    onPressed: () async {
-                      await context
-                          .read<UserSettingsRepository>()
-                          .reopenOnboarding();
-                      if (!context.mounted) {
-                        return;
-                      }
-                      Navigator.of(context).pushReplacementNamed('/onboarding');
-                    },
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit onboarding'),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        key: const Key('settings-open-profile'),
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed('/profile'),
+                        icon: const Icon(Icons.person_outline),
+                        label: const Text('Open profile'),
+                      ),
+                      TextButton.icon(
+                        key: const Key('settings-reopen-onboarding'),
+                        onPressed: () async {
+                          await context
+                              .read<UserSettingsRepository>()
+                              .reopenOnboarding();
+                          if (!context.mounted) {
+                            return;
+                          }
+                          Navigator.of(context)
+                              .pushReplacementNamed('/onboarding');
+                        },
+                        icon: const Icon(Icons.restart_alt),
+                        label: const Text('Restart guided setup'),
+                      ),
+                    ],
                   ),
                 ],
               ),
