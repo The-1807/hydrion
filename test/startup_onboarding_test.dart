@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrion/domain/legal_document_registry.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/storage/local_store.dart';
@@ -36,8 +37,20 @@ void main() {
     await tester.tap(find.byKey(const Key('onboarding-next')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('onboarding-legal-ack')));
-    await tester.pumpAndSettle();
+    tester
+        .widget<CheckboxListTile>(
+          find.byKey(const Key('onboarding-terms-accept')),
+        )
+        .onChanged
+        ?.call(true);
+    await tester.pump();
+    tester
+        .widget<CheckboxListTile>(
+          find.byKey(const Key('onboarding-health-ack')),
+        )
+        .onChanged
+        ?.call(true);
+    await tester.pump();
     await tester.tap(find.byKey(const Key('onboarding-next')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('onboarding-next')));
@@ -49,6 +62,20 @@ void main() {
     expect(reloaded.settings.nickname, 'Avery');
     expect(reloaded.settings.onboardingCompleted, isTrue);
     expect(reloaded.settings.legalAndHealthAcknowledged, isTrue);
+    expect(
+      reloaded.settings.acceptedTermsVersion,
+      HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion,
+    );
+    expect(reloaded.settings.acceptedTermsAt, isNotNull);
+    expect(
+      reloaded.settings.acknowledgedHealthDisclaimerVersion,
+      HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion,
+    );
+    expect(reloaded.settings.acknowledgedHealthDisclaimerAt, isNotNull);
+    expect(
+      reloaded.settings.privacyPolicyVersionShown,
+      HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion,
+    );
   });
 
   testWidgets('returning users skip onboarding after startup', (tester) async {
@@ -59,6 +86,66 @@ void main() {
 
     expect(find.byKey(const Key('home-logo')), findsOneWidget);
     expect(find.text('Welcome to Hydrion'), findsNothing);
+  });
+
+  testWidgets('existing users get focused legal migration without data loss',
+      (tester) async {
+    final store = MemoryHydrionStore();
+    await store.writeString(
+      UserSettingsRepository.storageKey,
+      '{"languageCode":"en","dailyGoalMl":2200,'
+      '"onboardingCompleted":true,'
+      '"legalAndHealthAcknowledged":true}',
+    );
+    final services = await HydrionServices.fromStore(store);
+    await services.hydrationRepository.addLog(
+      volumeMl: 450,
+      timestamp: DateTime(2026, 7, 6, 9),
+      source: 'migration-test',
+    );
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Review Hydrion terms'), findsOneWidget);
+    expect(find.byKey(const Key('onboarding-terms-accept')), findsOneWidget);
+    expect(find.byKey(const Key('onboarding-health-ack')), findsOneWidget);
+    expect(services.hydrationRepository.logs.single.volumeMl, 450);
+
+    await tester.tap(find.byKey(const Key('legal-open-terms')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('legal-document-terms')), findsOneWidget);
+    expect(services.settingsRepository.settings.acceptedTermsVersion, isNull);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    tester
+        .widget<CheckboxListTile>(
+          find.byKey(const Key('onboarding-terms-accept')),
+        )
+        .onChanged
+        ?.call(true);
+    await tester.pump();
+    tester
+        .widget<CheckboxListTile>(
+          find.byKey(const Key('onboarding-health-ack')),
+        )
+        .onChanged
+        ?.call(true);
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('legal-review-continue')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('home-logo')), findsOneWidget);
+    expect(services.hydrationRepository.logs.single.volumeMl, 450);
+    expect(
+      services.settingsRepository.settings.acceptedTermsVersion,
+      HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion,
+    );
+    expect(
+      services.settingsRepository.settings.acknowledgedHealthDisclaimerVersion,
+      HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion,
+    );
   });
 
   testWidgets('startup supports reduced motion rendering', (tester) async {

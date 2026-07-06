@@ -38,7 +38,7 @@ class HydrationChallenge {
     this.category = 'Hydration habit',
     this.dailyTask = 'Track your hydration honestly.',
     this.safetyNote =
-        'Hydration needs vary. Stop or adjust a challenge if you feel unwell, and do not force fluids beyond your normal needs or professional health guidance.',
+        'Hydration needs vary. Stop or adjust a challenge if you feel unwell, and do not force fluids for progress, streaks, rewards, or beyond professional health guidance.',
     this.objectiveType = ChallengeObjectiveType.dailyGoalFromLogs,
   });
 }

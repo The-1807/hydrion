@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: "3.44.4"
+  FLUTTER_VERSION: "3.35.6"
   JAVA_VERSION: "17"
   CI_ARTIFACTS_DIRECTORY: "ci-artifacts"
 
@@ -137,6 +137,20 @@ jobs:
 
           timeout 10m dart run tool/secret_scan.dart 2>&1 |
             tee "${CI_ARTIFACTS_DIRECTORY}/secret-scan.log"
+
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=${exit_code}" >> "${GITHUB_OUTPUT}"
+          exit "${exit_code}"
+
+      - name: Verify Dart formatting
+        id: format
+        continue-on-error: true
+        run: |
+          set +e
+          set -o pipefail
+
+          dart format --set-exit-if-changed . 2>&1 |
+            tee "${CI_ARTIFACTS_DIRECTORY}/dart-format.log"
 
           exit_code=${PIPESTATUS[0]}
           echo "exit_code=${exit_code}" >> "${GITHUB_OUTPUT}"
@@ -618,6 +632,7 @@ jobs:
         if: always()
         env:
           SECRET_EXIT: ${{ steps.secret_scan.outputs.exit_code }}
+          FORMAT_EXIT: ${{ steps.format.outputs.exit_code }}
           ANALYZE_EXIT: ${{ steps.analyze.outputs.exit_code }}
           TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
           OUTDATED_EXIT: ${{ steps.outdated.outputs.exit_code }}
@@ -632,6 +647,7 @@ jobs:
 
           checks = [
               ("Secret hygiene scan", os.environ.get("SECRET_EXIT") or "not-run", True),
+              ("Dart format", os.environ.get("FORMAT_EXIT") or "not-run", True),
               ("Flutter analyze", os.environ.get("ANALYZE_EXIT") or "not-run", True),
               ("Flutter tests", os.environ.get("TEST_EXIT") or "not-run", True),
               ("Dependency audit", os.environ.get("OUTDATED_EXIT") or "not-run", False),
@@ -696,10 +712,12 @@ jobs:
         if: always()
         env:
           SECRET_EXIT: ${{ steps.secret_scan.outputs.exit_code }}
+          FORMAT_EXIT: ${{ steps.format.outputs.exit_code }}
           ANALYZE_EXIT: ${{ steps.analyze.outputs.exit_code }}
           TEST_EXIT: ${{ steps.tests.outputs.exit_code }}
         run: |
           secret_exit="${SECRET_EXIT:-1}"
+          format_exit="${FORMAT_EXIT:-1}"
           analyze_exit="${ANALYZE_EXIT:-1}"
           test_exit="${TEST_EXIT:-1}"
 
@@ -707,6 +725,11 @@ jobs:
 
           if [[ "${secret_exit}" != "0" ]]; then
             echo "::error::Secret hygiene scan failed with exit code ${secret_exit}."
+            failed=1
+          fi
+
+          if [[ "${format_exit}" != "0" ]]; then
+            echo "::error::Dart formatting failed with exit code ${format_exit}."
             failed=1
           fi
 
@@ -780,8 +803,36 @@ jobs:
           done
 
           if [[ "${signing_values}" -eq 0 ]]; then
-            echo "release_signing_available=false" >> "${GITHUB_OUTPUT}"
-            echo "::notice::Android release signing secrets are not configured. CI will upload a debug-signed APK for ad hoc phone installs and skip the release APK artifact."
+            echo "::notice::Android release signing secrets are not configured. CI will create an ephemeral CI-signed release APK for clean device installs. Configure HYDRION_ANDROID_* secrets for stable production signing and store upload."
+
+            ci_store_password="$(openssl rand -base64 24)"
+            ci_key_password="$(openssl rand -base64 24)"
+            ci_key_alias="hydrion-ci-release"
+
+            echo "::add-mask::${ci_store_password}"
+            echo "::add-mask::${ci_key_password}"
+            echo "::add-mask::${ci_key_alias}"
+
+            keytool -genkeypair \
+              -v \
+              -keystore android/hydrion-ci-release.jks \
+              -storepass "${ci_store_password}" \
+              -keypass "${ci_key_password}" \
+              -alias "${ci_key_alias}" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 30 \
+              -dname "CN=Hydrion CI,O=The 1807,C=US"
+
+            cat > android/key.properties <<EOF
+          storeFile=../hydrion-ci-release.jks
+          storePassword=${ci_store_password}
+          keyAlias=${ci_key_alias}
+          keyPassword=${ci_key_password}
+          EOF
+
+            echo "release_signing_available=true" >> "${GITHUB_OUTPUT}"
+            echo "release_signing_kind=ci-ephemeral" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
@@ -805,6 +856,7 @@ jobs:
           EOF
 
           echo "release_signing_available=true" >> "${GITHUB_OUTPUT}"
+          echo "release_signing_kind=production" >> "${GITHUB_OUTPUT}"
 
       - name: Build debug APK for device smoke installs
         run: flutter build apk --debug
@@ -844,7 +896,7 @@ jobs:
         if: steps.android-signing.outputs.release_signing_available == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: hydrion-android-signed-release-apk-${{ github.run_number }}-${{ github.run_attempt }}
+          name: hydrion-android-${{ steps.android-signing.outputs.release_signing_kind }}-signed-release-apk-${{ github.run_number }}-${{ github.run_attempt }}
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14

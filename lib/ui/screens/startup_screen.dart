@@ -10,6 +10,7 @@ import '../components/hydrion_droplet_loader.dart';
 class StartupScreen extends StatefulWidget {
   final Future<void> Function() warmUp;
   final bool Function() isOnboardingCompleted;
+  final String Function()? nextRoute;
   final Duration minimumDuration;
   final Duration timeout;
 
@@ -17,6 +18,7 @@ class StartupScreen extends StatefulWidget {
     super.key,
     required this.warmUp,
     required this.isOnboardingCompleted,
+    this.nextRoute,
     this.minimumDuration = const Duration(milliseconds: 2200),
     this.timeout = const Duration(seconds: 6),
   });
@@ -119,7 +121,8 @@ class _StartupScreenState extends State<StartupScreen>
   }
 
   void _goNext() {
-    final route = widget.isOnboardingCompleted() ? '/home' : '/onboarding';
+    final route = widget.nextRoute?.call() ??
+        (widget.isOnboardingCompleted() ? '/home' : '/onboarding');
     Navigator.of(context).pushReplacementNamed(route);
   }
 

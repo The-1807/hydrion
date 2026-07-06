@@ -7,6 +7,7 @@ import '../../domain/avatar_manifest.dart';
 import '../../domain/companion_state.dart';
 import '../../domain/challenge_catalog.dart';
 import '../../domain/hydration_contracts.dart';
+import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
@@ -116,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(decision.explanation),
                     const SizedBox(height: 8),
                     const Text(
-                      'Hydrion is not medical advice. Drink comfortably, stop if you feel unwell, and adjust the goal any time.',
+                      'Hydrion is not medical advice. Drink comfortably, stop if you feel unwell, and do not force fluids for progress, streaks, or challenges.',
                     ),
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
@@ -203,7 +204,9 @@ class _HomeScreenState extends State<HomeScreen> {
       entryCount: todayLogs.length,
       weatherAdjustedGoalActive: settings.weatherAdjustedGoalActive,
     );
-    final avatar = HydrionAvatarManifest.byId(settings.avatarId);
+    final profileAvatar = HydrionAvatarManifest.byId(settings.avatarId);
+    final companionAvatar =
+        HydrionAvatarManifest.companionByProfileAvatarId(settings.avatarId);
     final progress = (percent / 100).clamp(0.0, 1.0);
 
     return Scaffold(
@@ -238,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
             key: const Key('home-avatar-menu'),
             tooltip: 'Profile menu',
             icon: CircleAvatar(
-              backgroundImage: AssetImage(avatar.assetPath),
+              backgroundImage: AssetImage(profileAvatar.assetPath),
               radius: 18,
             ),
             onSelected: (value) {
@@ -266,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
           _HeroHydrationScene(
-            avatar: avatar,
+            avatar: companionAvatar,
             companion: companion,
             localizedAdvice: localizedAdvice,
             consumedMl: todayMl,
@@ -285,6 +288,8 @@ class _HomeScreenState extends State<HomeScreen> {
             onLog: () => _logWater(_selectedVolumeMl),
             onHistory: () => Navigator.of(context).pushNamed('/log'),
           ),
+          const SizedBox(height: 16),
+          const _HydrionLifestyleRail(),
           const SizedBox(height: 16),
           _WeatherJourneyPanel(settings: settings),
           const SizedBox(height: 16),
@@ -309,6 +314,125 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             )
           : null,
+    );
+  }
+}
+
+class _HydrionLifestyleRail extends StatelessWidget {
+  const _HydrionLifestyleRail();
+
+  @override
+  Widget build(BuildContext context) {
+    final scenes = [
+      HydrionUiAssetManifest.byId('sip-break'),
+      HydrionUiAssetManifest.byId('plan-check'),
+      HydrionUiAssetManifest.byId('bottle-break'),
+      HydrionUiAssetManifest.byId('runner-ready'),
+    ];
+
+    return HydrionSurface(
+      key: const Key('home-lifestyle-rail'),
+      padding: const EdgeInsets.fromLTRB(16, 16, 0, 16),
+      gradient: LinearGradient(
+        colors: [
+          Colors.white.withValues(alpha: 0.98),
+          HydrionColors.foam,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Row(
+              children: [
+                const Icon(Icons.auto_awesome_outlined),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Today\'s hydration ritual',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Text(
+              'A few visual cues to make logging feel like a small lifestyle moment, not a spreadsheet chore.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 178,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: scenes.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final scene = scenes[index];
+                return _LifestyleSceneCard(scene: scene);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LifestyleSceneCard extends StatelessWidget {
+  final HydrionUiScene scene;
+
+  const _LifestyleSceneCard({required this.scene});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 132,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(HydrionRadii.sm),
+          border: Border.all(
+            color: HydrionColors.current.withValues(alpha: 0.14),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(HydrionRadii.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ColoredBox(
+                  color: HydrionColors.foam,
+                  child: Image.asset(
+                    scene.assetPath,
+                    fit: BoxFit.contain,
+                    semanticLabel: scene.description,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Text(
+                  scene.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

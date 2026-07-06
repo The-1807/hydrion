@@ -1,0 +1,264 @@
+workflows:
+  hydrion-validation:
+    name: Hydrion Validation
+    instance_type: linux_x2
+    max_build_duration: 45
+    environment:
+      flutter: 3.35.6
+      vars:
+        CI_ARTIFACTS_DIRECTORY: codemagic-artifacts/validation
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+        - pattern: develop
+          include: true
+          source: true
+        - pattern: apk-stabilization
+          include: true
+          source: true
+    scripts:
+      - name: Prepare artifact directory
+        script: mkdir -p "$CI_ARTIFACTS_DIRECTORY"
+      - name: Record environment
+        script: |
+          {
+            echo "Hydrion Codemagic validation"
+            flutter --version
+            dart --version
+            java -version
+          } 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/environment.txt"
+      - name: Get dependencies
+        script: flutter pub get 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-pub-get.log"
+      - name: Verify formatting
+        script: dart format --set-exit-if-changed . 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/dart-format.log"
+      - name: Secret hygiene scan
+        script: dart run tool/secret_scan.dart 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/secret-scan.log"
+      - name: Analyze
+        script: flutter analyze 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-analyze.log"
+      - name: Test
+        script: flutter test 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-test.log"
+      - name: Build web release
+        script: flutter build web --release 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-web.log"
+    artifacts:
+      - codemagic-artifacts/validation/**
+      - build/web/**
+
+  hydrion-android:
+    name: Hydrion Android APK and App Bundle
+    instance_type: linux_x2
+    max_build_duration: 45
+    environment:
+      flutter: 3.35.6
+      vars:
+        CI_ARTIFACTS_DIRECTORY: codemagic-artifacts/android
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+        - pattern: develop
+          include: true
+          source: true
+        - pattern: apk-stabilization
+          include: true
+          source: true
+    scripts:
+      - name: Prepare artifact directory
+        script: mkdir -p "$CI_ARTIFACTS_DIRECTORY"
+      - name: Get dependencies
+        script: flutter pub get 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-pub-get.log"
+      - name: Build debug smoke APK
+        script: |
+          flutter build apk --debug 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-debug-apk.log"
+          cp build/app/outputs/flutter-apk/app-debug.apk \
+            "$CI_ARTIFACTS_DIRECTORY/hydrion-android-debug-smoke.apk"
+      - name: Prepare Android signing
+        script: |
+          set -euo pipefail
+
+          signing_values=0
+          for value in \
+            "${HYDRION_ANDROID_KEYSTORE_BASE64:-}" \
+            "${HYDRION_ANDROID_KEYSTORE_PASSWORD:-}" \
+            "${HYDRION_ANDROID_KEY_ALIAS:-}" \
+            "${HYDRION_ANDROID_KEY_PASSWORD:-}"; do
+            if [ -n "$value" ]; then
+              signing_values=$((signing_values + 1))
+            fi
+          done
+
+          if [ "$signing_values" -eq 0 ]; then
+            echo "HYDRION_ANDROID_SIGNING_KIND=ci-ephemeral" >> "$CM_ENV"
+            echo "No production Android signing secrets were provided."
+            echo "Creating an ephemeral CI keystore for clean install testing only."
+
+            ci_store_password="$(openssl rand -base64 24)"
+            ci_key_password="$(openssl rand -base64 24)"
+            ci_key_alias="hydrion-ci-release"
+
+            keytool -genkeypair \
+              -v \
+              -keystore android/hydrion-ci-release.jks \
+              -storepass "$ci_store_password" \
+              -keypass "$ci_key_password" \
+              -alias "$ci_key_alias" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 30 \
+              -dname "CN=Hydrion CI,O=The 1807,C=US"
+
+            cat > android/key.properties <<EOF
+          storeFile=../hydrion-ci-release.jks
+          storePassword=$ci_store_password
+          keyAlias=$ci_key_alias
+          keyPassword=$ci_key_password
+          EOF
+            exit 0
+          fi
+
+          if [ "$signing_values" -ne 4 ]; then
+            echo "Android signing secrets are partially configured."
+            echo "Set all four HYDRION_ANDROID_* variables or remove all of them."
+            exit 1
+          fi
+
+          echo "HYDRION_ANDROID_SIGNING_KIND=production" >> "$CM_ENV"
+          printf '%s' "$HYDRION_ANDROID_KEYSTORE_BASE64" | base64 --decode > android/hydrion-release.jks
+          cat > android/key.properties <<EOF
+          storeFile=../hydrion-release.jks
+          storePassword=$HYDRION_ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$HYDRION_ANDROID_KEY_ALIAS
+          keyPassword=$HYDRION_ANDROID_KEY_PASSWORD
+          EOF
+      - name: Build signed release APK
+        script: |
+          flutter build apk --release 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-release-apk.log"
+          if [ "$HYDRION_ANDROID_SIGNING_KIND" = "production" ]; then
+            cp build/app/outputs/flutter-apk/app-release.apk \
+              "$CI_ARTIFACTS_DIRECTORY/hydrion-android-production-signed-release.apk"
+          else
+            cp build/app/outputs/flutter-apk/app-release.apk \
+              "$CI_ARTIFACTS_DIRECTORY/hydrion-android-ci-ephemeral-signed-release.apk"
+          fi
+      - name: Build production signed App Bundle
+        script: |
+          if [ "$HYDRION_ANDROID_SIGNING_KIND" != "production" ]; then
+            echo "Skipping App Bundle because production signing secrets are absent."
+            exit 0
+          fi
+          flutter build appbundle --release 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-release-aab.log"
+          cp build/app/outputs/bundle/release/app-release.aab \
+            "$CI_ARTIFACTS_DIRECTORY/hydrion-android-production-signed-release.aab"
+      - name: Verify APK signatures
+        script: |
+          set -euo pipefail
+          apk_path="$CI_ARTIFACTS_DIRECTORY/hydrion-android-${HYDRION_ANDROID_SIGNING_KIND}-signed-release.apk"
+          if [ "$HYDRION_ANDROID_SIGNING_KIND" = "ci-ephemeral" ]; then
+            apk_path="$CI_ARTIFACTS_DIRECTORY/hydrion-android-ci-ephemeral-signed-release.apk"
+          fi
+          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          "$apksigner" verify --verbose --print-certs "$apk_path" \
+            2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/apksigner-release.log"
+    artifacts:
+      - codemagic-artifacts/android/**
+
+  hydrion-ios-compatibility:
+    name: Hydrion iOS Compatibility
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.35.6
+      xcode: latest
+      cocoapods: default
+      vars:
+        CI_ARTIFACTS_DIRECTORY: codemagic-artifacts/ios-compatibility
+    scripts:
+      - name: Prepare artifact directory
+        script: mkdir -p "$CI_ARTIFACTS_DIRECTORY"
+      - name: Get dependencies
+        script: flutter pub get 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-pub-get.log"
+      - name: Verify formatting
+        script: dart format --set-exit-if-changed . 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/dart-format.log"
+      - name: Secret hygiene scan
+        script: dart run tool/secret_scan.dart 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/secret-scan.log"
+      - name: Analyze
+        script: flutter analyze 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-analyze.log"
+      - name: Test
+        script: flutter test 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-test.log"
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install 2>&1 | tee "../$CI_ARTIFACTS_DIRECTORY/pod-install.log"
+      - name: Build iOS simulator target
+        script: |
+          flutter build ios --simulator --debug 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-ios-simulator.log"
+          ditto -c -k --keepParent build/ios/iphonesimulator/Runner.app \
+            "$CI_ARTIFACTS_DIRECTORY/hydrion-ios-simulator-compatibility.app.zip"
+      - name: Build unsigned iOS release
+        script: |
+          flutter build ios --release --no-codesign 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-ios-release-nocodesign.log"
+    artifacts:
+      - codemagic-artifacts/ios-compatibility/**
+      - build/ios/iphoneos/Runner.app/**
+
+  hydrion-ios-signed-testflight-prep:
+    name: Hydrion Signed iOS IPA and TestFlight Prep
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.35.6
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.the1807.hydrion
+      vars:
+        BUNDLE_ID: com.the1807.hydrion
+        CI_ARTIFACTS_DIRECTORY: codemagic-artifacts/ios-signed
+    scripts:
+      - name: Confirm signed iOS gate
+        script: |
+          if [ "${HYDRION_SIGNED_IOS_ENABLED:-false}" != "true" ]; then
+            echo "Set HYDRION_SIGNED_IOS_ENABLED=true in a protected Codemagic environment to build a signed IPA."
+            exit 1
+          fi
+      - name: Prepare artifact directory
+        script: mkdir -p "$CI_ARTIFACTS_DIRECTORY"
+      - name: Get dependencies
+        script: flutter pub get 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-pub-get.log"
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install 2>&1 | tee "../$CI_ARTIFACTS_DIRECTORY/pod-install.log"
+      - name: Set up iOS code signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build signed IPA
+        script: |
+          flutter build ipa --release 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-ipa.log"
+          ipa_path="$(find build/ios/ipa -name '*.ipa' -type f | head -n 1)"
+          if [ -z "$ipa_path" ]; then
+            echo "Signed IPA was not produced."
+            exit 1
+          fi
+          cp "$ipa_path" "$CI_ARTIFACTS_DIRECTORY/hydrion-ios-production-signed-release.ipa"
+      - name: Prepare TestFlight note
+        script: |
+          cat > "$CI_ARTIFACTS_DIRECTORY/TESTFLIGHT_PREP.txt" <<'EOF'
+          Hydrion signed IPA is built for App Store Connect upload or TestFlight preparation.
+          This workflow does not publish automatically.
+          Owner must explicitly upload or add a Codemagic publishing block after approval.
+          EOF
+    artifacts:
+      - codemagic-artifacts/ios-signed/**
+      - build/ios/ipa/*.ipa

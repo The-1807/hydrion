@@ -497,7 +497,7 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Hydrion can use a one-time approximate location lookup and a daily forecast to suggest a conservative adjustment to your approved baseline. Coordinates are not stored as history.',
+              'Hydrion can use approximate foreground location and a daily forecast to suggest a conservative adjustment to your baseline. Coordinates are sent to Open-Meteo for the request and are not stored as location history.',
             ),
             const SizedBox(height: 12),
             SegmentedButton<HydrionGoalMode>(
@@ -592,6 +592,28 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final repository = context.read<UserSettingsRepository>();
     final locationService = context.read<HydrionLocationService>();
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Use location for weather?'),
+        content: const Text(
+          'Hydrion uses approximate foreground location for this weather lookup. Rounded coordinates are sent to Open-Meteo, and manual goals still work if you decline.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true || !context.mounted) {
+      return;
+    }
     await repository.recordLocationPermissionPrompt(DateTime.now());
     final result = await locationService.requestPermission();
     if (!context.mounted) {
@@ -606,6 +628,28 @@ class _WeatherGoalSettingsCard extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final repository = context.read<UserSettingsRepository>();
     final notificationService = context.read<NotificationService>();
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Enable hydration reminders?'),
+        content: const Text(
+          'Notification permission is used for local hydration reminders. Manual tracking still works if you decline, and exact delivery times are not guaranteed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true || !context.mounted) {
+      return;
+    }
     await repository.recordNotificationPermissionPrompt(DateTime.now());
     final result = await notificationService.requestPermission();
     if (!context.mounted) {

@@ -15,6 +15,7 @@ class JoinedChallenge {
   final int targetMl;
   final int durationDays;
   final DateTime joinedAt;
+  final Set<int> bottleBingoCompletedTiles;
 
   const JoinedChallenge({
     required this.id,
@@ -23,17 +24,35 @@ class JoinedChallenge {
     required this.targetMl,
     required this.durationDays,
     required this.joinedAt,
+    this.bottleBingoCompletedTiles = const <int>{},
   });
 
   Map<String, dynamic> toJson() {
     return {
+      'schemaVersion': ChallengeRepository._currentSchemaVersion,
       'id': id,
       'name': name,
       'description': description,
       'targetMl': targetMl,
       'durationDays': durationDays,
       'joinedAt': joinedAt.toIso8601String(),
+      'bottleBingoCompletedTiles': bottleBingoCompletedTiles.toList()..sort(),
     };
+  }
+
+  JoinedChallenge copyWith({
+    Set<int>? bottleBingoCompletedTiles,
+  }) {
+    return JoinedChallenge(
+      id: id,
+      name: name,
+      description: description,
+      targetMl: targetMl,
+      durationDays: durationDays,
+      joinedAt: joinedAt,
+      bottleBingoCompletedTiles:
+          bottleBingoCompletedTiles ?? this.bottleBingoCompletedTiles,
+    );
   }
 
   static JoinedChallenge? fromJson(Object? value) {
@@ -47,6 +66,8 @@ class JoinedChallenge {
     final targetMl = value['targetMl'];
     final durationDays = value['durationDays'];
     final joinedAt = DateTime.tryParse((value['joinedAt'] ?? '').toString());
+    final bottleBingoCompletedTiles =
+        _safeBottleBingoCompletedTiles(value['bottleBingoCompletedTiles']);
 
     if (id.isEmpty ||
         name.isEmpty ||
@@ -68,7 +89,25 @@ class JoinedChallenge {
       targetMl: targetMl.round(),
       durationDays: durationDays.round(),
       joinedAt: joinedAt,
+      bottleBingoCompletedTiles: bottleBingoCompletedTiles,
     );
+  }
+
+  static Set<int> _safeBottleBingoCompletedTiles(Object? value) {
+    if (value is! List) {
+      return const <int>{};
+    }
+    final tiles = <int>{};
+    for (final item in value) {
+      if (item is! num || !item.isFinite) {
+        continue;
+      }
+      final index = item.round();
+      if (index >= 1 && index <= 5) {
+        tiles.add(index);
+      }
+    }
+    return Set<int>.unmodifiable(tiles);
   }
 }
 
@@ -92,7 +131,7 @@ class ChallengeProgress {
 class ChallengeRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.joined_challenge.v1';
   static const _category = 'active_challenge';
-  static const _currentSchemaVersion = 1;
+  static const _currentSchemaVersion = 2;
 
   final HydrionLocalStore _store;
   final List<StorageRecoveryEvent> _recoveryEvents;
@@ -153,6 +192,48 @@ class ChallengeRepository extends ChangeNotifier {
   Future<void> leave() async {
     _activeChallenge = null;
     await _store.remove(storageKey);
+    notifyListeners();
+  }
+
+  Future<bool> toggleBottleBingoTile(int index) async {
+    if (!_canPersistBottleBingoTile(index)) {
+      return false;
+    }
+    final tiles = <int>{..._activeChallenge!.bottleBingoCompletedTiles};
+    if (!tiles.add(index)) {
+      tiles.remove(index);
+    }
+    await _updateActiveChallenge(
+      _activeChallenge!.copyWith(
+        bottleBingoCompletedTiles: Set<int>.unmodifiable(tiles),
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> resetBottleBingoTiles() async {
+    if (_activeChallenge?.id != 'bottle-bingo') {
+      return false;
+    }
+    await _updateActiveChallenge(
+      _activeChallenge!.copyWith(
+        bottleBingoCompletedTiles: const <int>{},
+      ),
+    );
+    return true;
+  }
+
+  bool isBottleBingoTileManuallyComplete(int index) {
+    return _activeChallenge?.bottleBingoCompletedTiles.contains(index) == true;
+  }
+
+  bool _canPersistBottleBingoTile(int index) {
+    return _activeChallenge?.id == 'bottle-bingo' && index >= 1 && index <= 5;
+  }
+
+  Future<void> _updateActiveChallenge(JoinedChallenge challenge) async {
+    _activeChallenge = challenge;
+    await _store.writeString(storageKey, jsonEncode(challenge.toJson()));
     notifyListeners();
   }
 

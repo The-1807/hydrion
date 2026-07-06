@@ -2,7 +2,7 @@ import 'hydration_contracts.dart';
 
 class HydrionChallengeCatalog {
   static const safetyNote =
-      'Hydration needs vary. Stop or adjust a challenge if you feel unwell, and do not force fluids beyond your normal needs or professional health guidance.';
+      'Hydration needs vary. Stop or adjust a challenge if you feel unwell, and do not force fluids for progress, streaks, rewards, or beyond professional health guidance.';
 
   static const challenges = <HydrationChallenge>[
     HydrationChallenge(

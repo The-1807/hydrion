@@ -1,7 +1,14 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:provider/provider.dart';
 
 import '../../domain/community_links.dart';
+import '../../domain/legal_document_registry.dart';
 import '../../domain/release_metadata.dart';
+import '../../repositories/settings_repository.dart';
 import '../theme/hydrion_design.dart';
 
 class LegalAboutScreen extends StatelessWidget {
@@ -9,131 +16,306 @@ class LegalAboutScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final documents = HydrionLegalDocumentRegistry.userFacingDocuments.toList();
+    final settings = context.watch<UserSettingsRepository>().settings;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Legal & About'),
+        title: const Text('About & Legal'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
-        children: const [
-          _IntroCard(),
-          SizedBox(height: 12),
-          _Section(
-            icon: Icons.privacy_tip_outlined,
-            title: 'Privacy Policy Draft',
-            status: HydrionReleaseMetadata.privacyStatus,
-            paragraphs: [
-              'Hydrion is designed as a local-first hydration companion. Hydration logs, daily goals, profile preferences, selected shark companion, local profile photo, reminders, challenge state, language preference, and legal acknowledgement are stored on this device.',
-              'Hydrion does not operate an account system in this build. There is no sign-in, sign-out, username directory, friend graph, cloud backup, or Hydrion-hosted profile page.',
-              'Hydrion does not sell personal data. It does not automatically enroll users in marketing or release-letter lists. Community links are opened only when the user chooses them.',
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+          children: [
+            _LegalIntroCard(settings: settings),
+            const SizedBox(height: 12),
+            for (final document in documents) ...[
+              _LegalDocumentTile(document: document),
+              const SizedBox(height: 8),
+            ],
+            _UtilityTile(
+              key: const Key('legal-open-source-licenses'),
+              icon: Icons.code_outlined,
+              title: 'Open Source Licenses',
+              description: 'Flutter and package license notices.',
+              onTap: () => showLicensePage(
+                context: context,
+                applicationName: HydrionReleaseMetadata.productName,
+                applicationVersion: HydrionReleaseMetadata.flutterVersionName,
+                applicationLegalese:
+                    'Hydrion uses open-source components under their licenses.',
+              ),
+            ),
+            const SizedBox(height: 8),
+            const _AppInfoTile(),
+            const SizedBox(height: 8),
+            const _SupportTile(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LegalDocumentScreen extends StatelessWidget {
+  final String documentId;
+
+  const LegalDocumentScreen({
+    super.key,
+    required this.documentId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final document = HydrionLegalDocumentRegistry.byId(documentId);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (document == null || document.internalOnly) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Legal document')),
+        body: const _LegalMissingState(),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(document.title),
+      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: math.min(constraints.maxWidth, 820),
+                height: constraints.maxHeight,
+                child: FutureBuilder<String>(
+                  future: rootBundle.loadString(document.assetPath),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          key: Key('legal-document-loading'),
+                        ),
+                      );
+                    }
+                    if (snapshot.hasError || !snapshot.hasData) {
+                      return const _LegalMissingState();
+                    }
+                    final data = _stripFrontMatter(snapshot.data!);
+                    return Markdown(
+                      key: Key('legal-document-${document.id}'),
+                      data: data,
+                      selectable: true,
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                      styleSheet: MarkdownStyleSheet.fromTheme(
+                        Theme.of(context),
+                      ).copyWith(
+                        p: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              height: 1.45,
+                            ),
+                        h1: Theme.of(
+                          context,
+                        ).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                        h2: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: colorScheme.primary,
+                            ),
+                        a: TextStyle(
+                          color: colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                        blockquoteDecoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 820),
+            child: _DocumentMetadataBar(document: document),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class LegalReviewScreen extends StatefulWidget {
+  const LegalReviewScreen({super.key});
+
+  @override
+  State<LegalReviewScreen> createState() => _LegalReviewScreenState();
+}
+
+class _LegalReviewScreenState extends State<LegalReviewScreen> {
+  bool _termsAccepted = false;
+  bool _healthAcknowledged = false;
+
+  Future<void> _continue() async {
+    if (!_termsAccepted || !_healthAcknowledged) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please accept the Terms and acknowledge the health disclaimer.',
+          ),
+        ),
+      );
+      return;
+    }
+    await context.read<UserSettingsRepository>().recordLegalReview();
+    if (!mounted) {
+      return;
+    }
+    Navigator.of(context).pushReplacementNamed('/home');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('Review Hydrion terms'),
+      ),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+              children: [
+                HydrionSurface(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'One quick review',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Hydrion now stores versioned Terms acceptance and a separate Health and Safety acknowledgement locally. Your hydration logs and profile data are not reset.',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                LegalAcceptancePanel(
+                  termsAccepted: _termsAccepted,
+                  healthAcknowledged: _healthAcknowledged,
+                  onTermsChanged: (value) {
+                    setState(() => _termsAccepted = value);
+                  },
+                  onHealthChanged: (value) {
+                    setState(() => _healthAcknowledged = value);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: FilledButton.icon(
+            key: const Key('legal-review-continue'),
+            onPressed: _continue,
+            icon: const Icon(Icons.check),
+            label: const Text('Continue to Hydrion'),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class LegalAcceptancePanel extends StatelessWidget {
+  final bool termsAccepted;
+  final bool healthAcknowledged;
+  final ValueChanged<bool> onTermsChanged;
+  final ValueChanged<bool> onHealthChanged;
+
+  const LegalAcceptancePanel({
+    super.key,
+    required this.termsAccepted,
+    required this.healthAcknowledged,
+    required this.onTermsChanged,
+    required this.onHealthChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return HydrionSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.health_and_safety_outlined),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Legal review',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
             ],
           ),
-          SizedBox(height: 12),
-          _ListSection(
-            icon: Icons.storage_outlined,
-            title: 'Data Stored On Device',
-            items: [
-              'Hydration log entries, including amount, timestamp, and local source label.',
-              'Goal settings, unit preference, reusable container size, weather-goal mode, and last weather-goal explanation.',
-              'Profile details the user enters, including display name, optional age, optional sex selection, shark avatar choice, and optional local profile photo.',
-              'Reminder definitions, local notification scheduling state, challenge participation, and local app language.',
-              'Recovery events used to safely handle malformed local storage without sending diagnostic data to Hydrion.',
+          const SizedBox(height: 8),
+          const Text(
+            'Hydrion is a general wellness tracker. Review the documents below before continuing. The Privacy Policy is a notice, not a contract checkbox.',
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _DocumentChip(document: HydrionLegalDocumentRegistry.terms),
+              _DocumentChip(document: HydrionLegalDocumentRegistry.privacy),
+              _DocumentChip(document: HydrionLegalDocumentRegistry.health),
             ],
           ),
-          SizedBox(height: 12),
-          _Section(
-            icon: Icons.location_on_outlined,
-            title: 'Location, Weather, and Permissions',
-            paragraphs: [
-              'Weather-informed goals are optional. When enabled, Hydrion may request foreground location permission to fetch a daily forecast for the current area.',
-              'Approximate latitude and longitude may be sent to the selected forecast provider, currently Open-Meteo, to retrieve weather data. Hydrion stores the resulting daily forecast summary needed for the local day, not a location-history trail.',
-              'Notification permission is requested only when reminder features need operating-system notifications. Permission prompts are not shown on cold launch.',
-              'If permission is denied, unavailable, stale, or unsupported, Hydrion keeps the user on their baseline goal and shows an explanatory state instead of silently changing the goal.',
-            ],
+          const SizedBox(height: 12),
+          CheckboxListTile(
+            key: const Key('onboarding-terms-accept'),
+            contentPadding: EdgeInsets.zero,
+            value: termsAccepted,
+            onChanged: (value) => onTermsChanged(value == true),
+            title: const Text('I accept the Hydrion Terms of Use.'),
+            subtitle: Text(
+              'Version ${HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion}',
+            ),
+            controlAffinity: ListTileControlAffinity.leading,
           ),
-          SizedBox(height: 12),
-          _Section(
-            icon: Icons.smart_toy_outlined,
-            title: 'Coach and AI Disclosure',
-            paragraphs: [
-              'Hydrion can run local rule-based coaching without sending hydration context to a non-local AI provider.',
-              'If a non-local provider such as Gemini is configured, Hydrion keeps that provider disabled until the user grants provider privacy consent. When consent is disabled, the app falls back to local rules.',
-              'Coach suggestions are informational product features. They are not medical advice and should not override professional guidance, symptoms, medication instructions, or clinician-directed fluid limits.',
-            ],
-          ),
-          SizedBox(height: 12),
-          _Section(
-            icon: Icons.article_outlined,
-            title: 'Terms and Conditions Draft',
-            status: HydrionReleaseMetadata.termsStatus,
-            paragraphs: [
-              'By using Hydrion, the user agrees to use the app for personal hydration tracking and routine support only. The user remains responsible for deciding what is comfortable and appropriate for their own body and circumstances.',
-              'Hydrion is provided as-is in this release candidate. Features may be unavailable, inaccurate, delayed, or affected by device permissions, local storage limits, battery policies, network conditions, forecast availability, and operating-system behavior.',
-              'The user is responsible for maintaining device security and for understanding that clearing app storage, uninstalling the app, or changing devices may delete local Hydrion data.',
-              'Hydrion challenge content is intended to encourage gentle habits. Users must not force fluids, use challenges as competitions for excessive intake, or ignore health conditions that affect hydration needs.',
-              'These draft terms require product-owner and legal approval before a public release or store listing uses them as binding terms.',
-            ],
-          ),
-          SizedBox(height: 12),
-          _Section(
-            icon: Icons.health_and_safety_outlined,
-            title: 'Health and Safety Notice',
-            status: HydrionReleaseMetadata.healthSafetyStatus,
-            paragraphs: [
-              'Hydrion is health-adjacent software, not a medical device. It does not diagnose, treat, cure, prevent disease, or calculate exact fluid requirements.',
-              'Hydration needs vary by body, medications, medical conditions, climate, pregnancy, exercise, diet, and clinician guidance. Some people are advised to limit fluids.',
-              'Stop, reduce intake, or seek medical advice if drinking more water causes discomfort, nausea, confusion, swelling, headache, dizziness, or any unusual symptom.',
-              'Weather-informed goals are conservative product suggestions. They should be adjusted or ignored whenever they do not fit the user.',
-            ],
-          ),
-          SizedBox(height: 12),
-          _Section(
-            icon: Icons.delete_outline,
-            title: 'Access, Correction, and Deletion',
-            paragraphs: [
-              'Profile and preference data can be edited inside Hydrion. Hydration logs can be edited or deleted from log history.',
-              'Because this build is local-first and has no Hydrion account backend, users can delete Hydrion data through operating-system app-storage controls or by uninstalling the app.',
-              'For support, product questions, or owner review, contact ${HydrionCommunityConfig.contactEmail}.',
-            ],
-          ),
-          SizedBox(height: 12),
-          _Section(
-            icon: Icons.groups_outlined,
-            title: HydrionCommunityConfig.name,
-            paragraphs: [
-              'Community handle: ${HydrionCommunityConfig.handle}',
-              'Contact: ${HydrionCommunityConfig.contactEmail}',
-              'Release letters require a production, consent-aware mailing list before signup links are enabled.',
-            ],
-          ),
-          SizedBox(height: 12),
-          _Section(
-            icon: Icons.list_alt_outlined,
-            title: 'Release Notes',
-            paragraphs: [
-              'v1.0.0 focuses on local hydration logging, weather-aware goal explanation, local reminders, local-only challenges, provider-guarded coaching, profile customization, and release-readiness transparency.',
-              'Next planned version: ${HydrionReleaseMetadata.nextPlannedVersion}',
-            ],
-          ),
-          SizedBox(height: 12),
-          _ListSection(
-            icon: Icons.warning_amber_outlined,
-            title: 'Known Limitations',
-            items: HydrionReleaseMetadata.knownLimitations,
-          ),
-          SizedBox(height: 12),
-          _ListSection(
-            icon: Icons.fact_check_outlined,
-            title: 'Release Checklist',
-            items: HydrionReleaseMetadata.releaseChecklist,
-          ),
-          SizedBox(height: 12),
-          _Section(
-            icon: Icons.code_outlined,
-            title: 'Licenses',
-            paragraphs: [
-              'Open-source licenses are available from the platform license page.',
-            ],
+          CheckboxListTile(
+            key: const Key('onboarding-health-ack'),
+            contentPadding: EdgeInsets.zero,
+            value: healthAcknowledged,
+            onChanged: (value) => onHealthChanged(value == true),
+            title: const Text(
+              'I acknowledge the Health and Safety Disclaimer.',
+            ),
+            subtitle: Text(
+              'Version ${HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion}',
+            ),
+            controlAffinity: ListTileControlAffinity.leading,
           ),
         ],
       ),
@@ -141,11 +323,16 @@ class LegalAboutScreen extends StatelessWidget {
   }
 }
 
-class _IntroCard extends StatelessWidget {
-  const _IntroCard();
+class _LegalIntroCard extends StatelessWidget {
+  final UserSettings settings;
+
+  const _LegalIntroCard({required this.settings});
 
   @override
   Widget build(BuildContext context) {
+    final legalStatus = settings.hasCurrentLegalReview
+        ? 'Current legal review recorded'
+        : 'Legal review needed';
     return HydrionSurface(
       gradient: HydrionGradients.ocean,
       radius: HydrionRadii.lg,
@@ -163,20 +350,19 @@ class _IntroCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'A local-first hydration companion for logging water, understanding progress, and building gentler everyday routines.',
+              'A local-first hydration companion for water logging, goals, reminders, and gentle challenges.',
             ),
             const SizedBox(height: 12),
-            const Wrap(
+            Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _IntroPill(
+                const _IntroPill(
                   label: 'Version ${HydrionReleaseMetadata.flutterVersionName}',
                 ),
-                _IntroPill(label: HydrionReleaseMetadata.releaseDateLabel),
-                _IntroPill(
-                  label: 'Metadata: ${HydrionReleaseMetadata.metadataStatus}',
-                ),
+                const _IntroPill(
+                    label: HydrionReleaseMetadata.releaseDateLabel),
+                _IntroPill(label: legalStatus),
               ],
             ),
           ],
@@ -186,99 +372,232 @@ class _IntroCard extends StatelessWidget {
   }
 }
 
-class _Section extends StatelessWidget {
+class _LegalDocumentTile extends StatelessWidget {
+  final HydrionLegalDocument document;
+
+  const _LegalDocumentTile({required this.document});
+
+  @override
+  Widget build(BuildContext context) {
+    return _UtilityTile(
+      key: Key('legal-document-tile-${document.id}'),
+      icon: _iconFor(document.id),
+      title: document.title,
+      description: document.description,
+      onTap: () => Navigator.of(context).pushNamed(document.routeName),
+      trailing: Text(
+        'v${document.version}',
+        style: Theme.of(context).textTheme.labelMedium,
+      ),
+    );
+  }
+}
+
+class _DocumentChip extends StatelessWidget {
+  final HydrionLegalDocument document;
+
+  const _DocumentChip({required this.document});
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      key: Key('legal-open-${document.id}'),
+      avatar: Icon(_iconFor(document.id), size: 18),
+      label: Text(document.title),
+      tooltip: document.accessibilityLabel,
+      onPressed: () => Navigator.of(context).pushNamed(document.routeName),
+    );
+  }
+}
+
+class _UtilityTile extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String? status;
-  final List<String> paragraphs;
+  final String description;
+  final VoidCallback onTap;
+  final Widget? trailing;
 
-  const _Section({
+  const _UtilityTile({
+    super.key,
     required this.icon,
     required this.title,
-    required this.paragraphs,
-    this.status,
+    required this.description,
+    required this.onTap,
+    this.trailing,
   });
 
   @override
   Widget build(BuildContext context) {
-    return HydrionSurface(
-      child: Column(
+    return Card(
+      child: ListTile(
+        minVerticalPadding: 14,
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: Text(description),
+        trailing: trailing ?? const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _AppInfoTile extends StatelessWidget {
+  const _AppInfoTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      key: const Key('legal-app-info'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.info_outline),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'App information',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const _InfoLine(
+              label: 'Version',
+              value: HydrionReleaseMetadata.flutterVersionName,
+            ),
+            const _InfoLine(
+              label: 'Bundle',
+              value: 'com.the1807.hydrion',
+            ),
+            const _InfoLine(
+              label: 'Mode',
+              value: 'Local-first MVP',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SupportTile extends StatelessWidget {
+  const _SupportTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      key: const Key('legal-support-info'),
+      child: ListTile(
+        minVerticalPadding: 14,
+        leading: const Icon(Icons.support_agent_outlined),
+        title: const Text('Support'),
+        subtitle: const Text(HydrionCommunityConfig.contactEmail),
+        trailing: const Icon(Icons.copy_outlined),
+        onTap: () async {
+          await Clipboard.setData(
+            const ClipboardData(text: HydrionCommunityConfig.contactEmail),
+          );
+          if (!context.mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Support email copied.')),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoLine({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-              ),
-            ],
+          SizedBox(
+            width: 88,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
           ),
-          if (status != null) ...[
-            const SizedBox(height: 8),
-            _StatusPill(label: 'Status: $status'),
-          ],
-          const SizedBox(height: 12),
-          for (final paragraph in paragraphs) ...[
-            Text(paragraph),
-            if (paragraph != paragraphs.last) const SizedBox(height: 8),
-          ],
+          const SizedBox(width: 8),
+          Expanded(child: Text(value)),
         ],
       ),
     );
   }
 }
 
-class _ListSection extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final List<String> items;
+class _DocumentMetadataBar extends StatelessWidget {
+  final HydrionLegalDocument document;
 
-  const _ListSection({
-    required this.icon,
-    required this.title,
-    required this.items,
-  });
+  const _DocumentMetadataBar({required this.document});
 
   @override
   Widget build(BuildContext context) {
-    return HydrionSurface(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 6,
+          children: [
+            Text('Version ${document.version}'),
+            Text('Effective ${_dateLabel(document.effectiveDate)}'),
+            Text('Updated ${_dateLabel(document.lastUpdated)}'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LegalMissingState extends StatelessWidget {
+  const _LegalMissingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
+              const Icon(Icons.error_outline, size: 42),
+              const SizedBox(height: 12),
+              Text(
+                'Document unavailable',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Hydrion could not load this bundled legal document. Please return to About & Legal and try another document.',
+                textAlign: TextAlign.center,
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          for (final item in items)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('- '),
-                  Expanded(child: Text(item)),
-                ],
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -304,17 +623,29 @@ class _IntroPill extends StatelessWidget {
   }
 }
 
-class _StatusPill extends StatelessWidget {
-  final String label;
+IconData _iconFor(String documentId) {
+  return switch (documentId) {
+    'terms' => Icons.article_outlined,
+    'privacy' => Icons.privacy_tip_outlined,
+    'health' => Icons.health_and_safety_outlined,
+    'beta' => Icons.science_outlined,
+    _ => Icons.description_outlined,
+  };
+}
 
-  const _StatusPill({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      avatar: const Icon(Icons.pending_actions, size: 18),
-      label: Text(label),
-      backgroundColor: HydrionColors.sunrise.withValues(alpha: 0.18),
-    );
+String _stripFrontMatter(String markdown) {
+  if (!markdown.startsWith('---')) {
+    return markdown;
   }
+  final end = markdown.indexOf('\n---', 3);
+  if (end == -1) {
+    return markdown;
+  }
+  return markdown.substring(end + 4).trimLeft();
+}
+
+String _dateLabel(DateTime date) {
+  return '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 }

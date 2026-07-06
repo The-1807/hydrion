@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../domain/avatar_manifest.dart';
 import '../../domain/community_links.dart';
 import '../../domain/hydration_contracts.dart';
+import '../../domain/ui_asset_manifest.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../repositories/settings_repository.dart';
@@ -46,13 +47,49 @@ class ProfileScreen extends StatelessWidget {
               actions: [_ProfileMenu(embedded: embedded)],
             ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+        padding: EdgeInsets.fromLTRB(16, 20, 16, embedded ? 112 : 28),
         children: [
           _ProfileHero(
             settings: settings,
             avatar: avatar,
             unlockedAchievements: unlocked,
           ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.icon(
+                key: const Key('profile-edit-action'),
+                onPressed: () => _openEditor(context, settings),
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Edit profile'),
+              ),
+              OutlinedButton.icon(
+                key: const Key('profile-settings-action'),
+                onPressed: () => Navigator.of(context).pushNamed('/settings'),
+                icon: const Icon(Icons.tune),
+                label: const Text('Settings'),
+              ),
+              if (capabilities.osNotifications)
+                OutlinedButton.icon(
+                  key: const Key('profile-reminders-action'),
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed('/reminders'),
+                  icon: const Icon(Icons.notifications_none),
+                  label: const Text('Reminders'),
+                ),
+              OutlinedButton.icon(
+                key: const Key('profile-legal-action'),
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/legal-about'),
+                icon: const Icon(Icons.article_outlined),
+                label: const Text('Legal'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const _ProfileLifestyleMoment(),
           const SizedBox(height: 16),
           HydrionSurface(
             child: Column(
@@ -131,40 +168,6 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ],
             ),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              FilledButton.icon(
-                key: const Key('profile-edit-action'),
-                onPressed: () => _openEditor(context, settings),
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Edit profile'),
-              ),
-              OutlinedButton.icon(
-                key: const Key('profile-settings-action'),
-                onPressed: () => Navigator.of(context).pushNamed('/settings'),
-                icon: const Icon(Icons.tune),
-                label: const Text('Settings'),
-              ),
-              if (capabilities.osNotifications)
-                OutlinedButton.icon(
-                  key: const Key('profile-reminders-action'),
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed('/reminders'),
-                  icon: const Icon(Icons.notifications_none),
-                  label: const Text('Reminders'),
-                ),
-              OutlinedButton.icon(
-                key: const Key('profile-legal-action'),
-                onPressed: () =>
-                    Navigator.of(context).pushNamed('/legal-about'),
-                icon: const Icon(Icons.article_outlined),
-                label: const Text('Legal'),
-              ),
-            ],
           ),
           const SizedBox(height: 16),
           HydrionSurface(
@@ -249,7 +252,7 @@ class _ProfileHero extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(height: 6),
-                  Text('${avatar.displayName} is your shark companion.'),
+                  Text(_avatarRelationshipLabel(avatar)),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
@@ -269,6 +272,59 @@ class _ProfileHero extends StatelessWidget {
             ),
           ),
           const _ProfileMenu(embedded: true),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileLifestyleMoment extends StatelessWidget {
+  const _ProfileLifestyleMoment();
+
+  @override
+  Widget build(BuildContext context) {
+    final scene = HydrionUiAssetManifest.byId('studio-bottle');
+    return HydrionSurface(
+      key: const Key('profile-lifestyle-moment'),
+      gradient: LinearGradient(
+        colors: [
+          HydrionColors.foam,
+          HydrionColors.glow.withValues(alpha: 0.12),
+        ],
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(HydrionRadii.sm),
+            child: ColoredBox(
+              color: Colors.white.withValues(alpha: 0.82),
+              child: Image.asset(
+                scene.assetPath,
+                width: 104,
+                height: 132,
+                fit: BoxFit.contain,
+                semanticLabel: scene.description,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Built around your routine',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Your photo, avatar, goals, reminders, and challenge state stay local to this device.',
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -444,25 +500,34 @@ class _ProfileEditorState extends State<_ProfileEditor> {
               _ProfileImage(settings: settings, avatar: avatar, size: 72),
               const SizedBox(width: 12),
               Expanded(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    OutlinedButton.icon(
-                      key: const Key('profile-pick-photo'),
-                      onPressed: _pickPhoto,
-                      icon: const Icon(Icons.photo_library_outlined),
-                      label: const Text('Choose photo'),
+                    const Text(
+                      'Selected photos are used only as your local profile image. You can remove the photo and return to the default avatar any time.',
                     ),
-                    OutlinedButton.icon(
-                      key: const Key('profile-remove-photo'),
-                      onPressed: settings.profilePhotoBase64 == null
-                          ? null
-                          : () => context
-                              .read<UserSettingsRepository>()
-                              .clearProfilePhoto(),
-                      icon: const Icon(Icons.person_outline),
-                      label: const Text('Use shark'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          key: const Key('profile-pick-photo'),
+                          onPressed: _pickPhoto,
+                          icon: const Icon(Icons.photo_library_outlined),
+                          label: const Text('Choose photo'),
+                        ),
+                        OutlinedButton.icon(
+                          key: const Key('profile-remove-photo'),
+                          onPressed: settings.profilePhotoBase64 == null
+                              ? null
+                              : () => context
+                                  .read<UserSettingsRepository>()
+                                  .clearProfilePhoto(),
+                          icon: const Icon(Icons.person_outline),
+                          label: const Text('Use default avatar'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -509,7 +574,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
           DropdownButtonFormField<String>(
             initialValue: _avatarId,
             decoration: const InputDecoration(
-              labelText: 'Shark companion',
+              labelText: 'Default profile avatar',
               border: OutlineInputBorder(),
             ),
             items: HydrionAvatarManifest.avatars
@@ -700,4 +765,11 @@ String _sexLabel(HydrionSex sex) {
     HydrionSex.intersex => 'Intersex',
     HydrionSex.preferNotToSay => 'Prefer not to say',
   };
+}
+
+String _avatarRelationshipLabel(HydrionAvatar avatar) {
+  if (avatar.kind == HydrionAvatarKind.human) {
+    return '${avatar.displayName} is your default profile avatar.';
+  }
+  return '${avatar.displayName} is your shark companion.';
 }

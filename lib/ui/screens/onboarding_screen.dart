@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../domain/avatar_manifest.dart';
 import '../../repositories/settings_repository.dart';
+import 'legal_about_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -26,7 +27,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   HydrionGoalMode _goalMode = HydrionGoalMode.manual;
   HydrionVolumeUnit _unit = HydrionVolumeUnit.milliliters;
   bool _reusable = false;
-  bool _legalAccepted = false;
+  bool _termsAccepted = false;
+  bool _healthAcknowledged = false;
 
   @override
   void didChangeDependencies() {
@@ -41,7 +43,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _goalMode = settings.goalMode;
     _unit = settings.volumeUnit;
     _reusable = settings.reusableContainerEnabled;
-    _legalAccepted = settings.legalAndHealthAcknowledged;
   }
 
   @override
@@ -61,10 +62,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       return;
     }
-    if (_step == 6 && !_legalAccepted) {
+    if (_step == 6 && (!_termsAccepted || !_healthAcknowledged)) {
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('Accept the legal and health acknowledgement.'),
+          content: Text(
+            'Accept the Terms and acknowledge the health disclaimer.',
+          ),
         ),
       );
       return;
@@ -115,10 +118,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     await repository.setDailyGoalMl(goal);
     await repository.setContainerSizeMl(container);
     await repository.setReusableContainerEnabled(_reusable);
-    await repository.setOnboardingCompleted(
-      completed: true,
-      legalAndHealthAcknowledged: _legalAccepted,
-    );
+    await repository.completeOnboardingWithLegalReview(
+        reviewedAt: DateTime.now());
     if (!mounted) {
       return;
     }
@@ -251,7 +252,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       _OnboardingPanel(
         icon: Icons.face_outlined,
-        title: 'Choose your shark',
+        title: 'Choose your default avatar',
         child: GridView.builder(
           key: const Key('onboarding-avatar-grid'),
           shrinkWrap: true,
@@ -261,7 +262,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 0.82,
+            childAspectRatio: 0.72,
           ),
           itemBuilder: (context, index) {
             final avatar = HydrionAvatarManifest.avatars[index];
@@ -295,6 +296,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         avatar.displayName,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      Text(
+                        avatar.kind == HydrionAvatarKind.human
+                            ? 'Profile default'
+                            : 'Shark companion',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelSmall,
                       ),
                       Text(
                         avatar.description,
@@ -416,17 +424,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       _OnboardingPanel(
         icon: Icons.health_and_safety_outlined,
-        title: 'Legal and health acknowledgement',
-        child: CheckboxListTile(
-          key: const Key('onboarding-legal-ack'),
-          value: _legalAccepted,
-          onChanged: (value) => setState(() => _legalAccepted = value == true),
-          title: const Text(
-            'I understand Hydrion is not medical advice and hydration needs vary.',
-          ),
-          subtitle: const Text(
-            'Review Terms, Privacy, and Health/Safety in Settings. Stop or adjust if you feel unwell.',
-          ),
+        title: 'Review before you start',
+        child: LegalAcceptancePanel(
+          termsAccepted: _termsAccepted,
+          healthAcknowledged: _healthAcknowledged,
+          onTermsChanged: (value) {
+            setState(() => _termsAccepted = value);
+          },
+          onHealthChanged: (value) {
+            setState(() => _healthAcknowledged = value);
+          },
         ),
       ),
       _OnboardingPanel(

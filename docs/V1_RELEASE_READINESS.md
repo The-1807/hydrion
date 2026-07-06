@@ -53,7 +53,7 @@ The daily prompt appears only when eligibility is complete:
 - age provided
 - explicit sex option other than "Prefer not to say"
 - weather goal mode enabled
-- health/safety acknowledgement accepted
+- current Terms acceptance and Health/Safety acknowledgement recorded
 - location permission granted
 - notification permission granted
 - weather provider configured
@@ -93,11 +93,13 @@ remote push, or exact-alarm permission is requested for v1.
 
 ## Android Application ID
 
-Current namespace and application id are `com.example.hydrion_app`. This is a
-placeholder and needs owner approval before changing. Likely final candidates
-include `xyz.the1807.hydrion` or `com.the1807.hydrion`, but the repository does
-not yet contain approval for either. Changing the application id changes Android
-package identity and affects update paths from existing local installs.
+Current namespace and application id are `com.the1807.hydrion`, matching the
+package identity requested in the iOS/APK/UI corrective prompt. Changing the
+application id again would create a different Android app identity and affects
+update paths from existing local installs.
+
+If a tester previously installed an APK using `com.example.hydrion_app`, they
+should uninstall that build before installing the new package identity.
 
 ## Release Signing
 
@@ -118,9 +120,69 @@ signed release APK only when protected repository secrets provide:
 - `HYDRION_ANDROID_KEY_ALIAS`
 - `HYDRION_ANDROID_KEY_PASSWORD`
 
-Without those credentials, release packaging remains blocked and must not be
-treated as production-ready. CI must not upload an unsigned release APK as an
-installable phone artifact.
+Without those credentials, CI generates an ephemeral CI-signed release APK so a
+clean install can be tested on a phone. That artifact is intentionally named
+`hydrion-android-ci-ephemeral-signed-release-apk-*`. It is not suitable for
+store upload or reliable update testing because each run can use a different
+signing key. Configure the protected secrets above for production signing.
+
+CI must not upload an unsigned release APK as an installable phone artifact.
+
+## Codemagic CI/CD
+
+Hydrion now includes `codemagic.yaml` as the primary Apple-compatible CI/CD
+configuration. Workflows:
+
+- `hydrion-validation`
+- `hydrion-android`
+- `hydrion-ios-compatibility`
+- `hydrion-ios-signed-testflight-prep`
+
+Important artifact names:
+
+- `hydrion-android-debug-smoke.apk`
+- `hydrion-android-ci-ephemeral-signed-release.apk`
+- `hydrion-android-production-signed-release.apk`
+- `hydrion-android-production-signed-release.aab`
+- `hydrion-ios-simulator-compatibility.app.zip`
+- `hydrion-ios-production-signed-release.ipa`
+
+The signed iOS workflow is gated and does not upload to TestFlight
+automatically.
+
+## Legal Implementation
+
+Hydrion now bundles Markdown legal documents under
+`docs/Hydrion_Legal_Pack_Markdown/` and exposes them through the in-app
+`About & Legal` hub:
+
+- Terms of Use
+- Privacy Policy
+- Health and Safety Disclaimer
+- Alpha and Beta Testing Notice
+- Open Source Licenses
+- App information
+- Support
+
+Internal owner notes are not exposed in the user-facing menu.
+
+Onboarding stores:
+
+- accepted Terms version;
+- Terms acceptance timestamp;
+- acknowledged Health and Safety Disclaimer version;
+- acknowledgement timestamp;
+- Privacy Policy version shown.
+
+Existing users with old one-boolean legal state receive a focused legal review
+screen without resetting hydration logs or profile data.
+
+## Shorebird
+
+Shorebird is not required for Hydrion v1.0.0 builds. `SHOREBIRD_TOKEN`,
+Shorebird install commands, release commands, and patch commands are not part
+of ordinary validation, Android, iOS, web, or TestFlight-prep workflows. See
+`docs/architecture/SHOREBIRD_DECISION.md`.
 
 ## Build Commands
 
@@ -149,20 +211,28 @@ users are not forced to delete data and can complete new profile fields later.
 
 ## Known Limitations
 
-- Legal copy is draft and owner/legal approval is still required.
+- Legal copy is implementation-aligned draft text and owner/legal approval is
+  still required.
+- Public privacy-policy URL and support URL are still required for store
+  submission.
 - Release date is pending.
-- Android application id is not approved.
+- Android package identity is configured as `com.the1807.hydrion`; store-owner
+  approval is still required before public upload.
 - Production signing credentials are not present.
+- CI-signed release artifacts are installable for clean smoke tests but are not
+  production-signed artifacts.
 - Notification delivery and location/weather flows require real-device testing.
 - Open-Meteo availability and network errors must fall back honestly.
 - Social sync is not connected; challenges remain local-only.
 
 ## Owner Decisions Required
 
-- Final Android application id.
+- Confirm the `com.the1807.hydrion` package identity before store upload.
 - Production signing setup and CI secret names.
+- Codemagic Apple Developer and App Store Connect signing integration.
 - Public release date.
 - Legal approval for Terms, Privacy Policy, and Health/Safety Disclaimer.
+- Public privacy-policy URL and support URL.
 - Store listing, screenshots, rating questionnaire, and support process.
 
 ## Manual Device Validation Checklist
@@ -176,7 +246,7 @@ Do not mark these manually verified until executed on real devices:
 - first-run onboarding
 - returning-user onboarding skip
 - nickname, age, sex, avatar, unit, goal, and container persistence
-- all ten shark PFPs
+- all ten shark PFPs and all nineteen human default profile avatars
 - profile editing
 - manual goal
 - weather goal eligibility

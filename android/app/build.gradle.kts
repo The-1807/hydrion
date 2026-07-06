@@ -16,7 +16,7 @@ if (hasReleaseSigning) {
 }
 
 android {
-    namespace = "com.example.hydrion_app"
+    namespace = "com.the1807.hydrion"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -31,8 +31,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.hydrion_app"
+        applicationId = "com.the1807.hydrion"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

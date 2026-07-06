@@ -53,14 +53,18 @@ void main() {
     await tester.pumpAndSettle();
     await openTab(tester, const Key('nav-progress'));
 
+    expect(find.byKey(const Key('weekly-hydration-strip')), findsOneWidget);
     expect(find.text('500 / 2200 ml today'), findsOneWidget);
-    expect(
-      find.text(
-        'Enable reusable-container tracking in Settings before Hydrion '
-        'estimates avoided disposable plastic.',
-      ),
-      findsOneWidget,
+    final reusableEstimate = find.text(
+      'Enable reusable-container tracking in Settings before Hydrion '
+      'estimates avoided disposable plastic.',
     );
+    await tester.scrollUntilVisible(
+      reusableEstimate,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(reusableEstimate, findsOneWidget);
   });
 
   testWidgets('persisted log entries can be edited and deleted',
@@ -124,6 +128,7 @@ void main() {
     expect(find.text('No analytics yet'), findsOneWidget);
 
     await openTab(tester, const Key('nav-profile'));
+    expect(find.byKey(const Key('profile-lifestyle-moment')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('No reminders yet'),
       300,
@@ -152,7 +157,7 @@ void main() {
         findsNothing);
     expect(find.byKey(const Key('route-/ar')), findsNothing);
     await openTab(tester, const Key('nav-profile'));
-    expect(find.byKey(const Key('profile-reminders-action')), findsNothing);
+    expect(find.byKey(const Key('profile-reminders-action')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('No reminders yet'),
       300,
@@ -280,7 +285,7 @@ void main() {
     expect(find.text('Sign out'), findsNothing);
   });
 
-  testWidgets('legal screen includes real privacy terms and safety sections',
+  testWidgets('legal screen opens bundled privacy terms and safety documents',
       (tester) async {
     final services = HydrionServices.memory();
 
@@ -296,19 +301,27 @@ void main() {
     await tester.tap(find.byKey(const Key('profile-legal-action')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Privacy Policy Draft'), findsOneWidget);
+    expect(find.text('About & Legal'), findsOneWidget);
+    expect(find.text('Privacy Policy'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('Terms and Conditions Draft'),
+      find.text('Terms of Use'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Terms and Conditions Draft'), findsOneWidget);
+    expect(find.text('Terms of Use'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('Health and Safety Notice'),
+      find.text('Health and Safety Disclaimer'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Health and Safety Notice'), findsOneWidget);
+    expect(find.text('Health and Safety Disclaimer'), findsOneWidget);
+    expect(find.text('Read Before Publishing'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('legal-document-tile-privacy')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('legal-document-privacy')), findsOneWidget);
+    expect(find.text('Hydrion Privacy Policy'), findsOneWidget);
   });
 }
 

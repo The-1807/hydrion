@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../domain/avatar_manifest.dart';
+import '../domain/legal_document_registry.dart';
 import '../storage/local_store.dart';
 import 'storage_recovery.dart';
 
@@ -49,6 +50,12 @@ class UserSettings {
   final int containerSizeMl;
   final bool onboardingCompleted;
   final bool legalAndHealthAcknowledged;
+  final String? acceptedTermsVersion;
+  final DateTime? acceptedTermsAt;
+  final String? acknowledgedHealthDisclaimerVersion;
+  final DateTime? acknowledgedHealthDisclaimerAt;
+  final String? privacyPolicyVersionShown;
+  final DateTime? privacyPolicyShownAt;
   final bool weatherGoalAutoApplyEnabled;
   final DateTime? lastWeatherGoalDecisionAt;
   final int baselineDailyGoalMl;
@@ -75,6 +82,12 @@ class UserSettings {
     this.containerSizeMl = defaultContainerSizeMl,
     this.onboardingCompleted = false,
     this.legalAndHealthAcknowledged = false,
+    this.acceptedTermsVersion,
+    this.acceptedTermsAt,
+    this.acknowledgedHealthDisclaimerVersion,
+    this.acknowledgedHealthDisclaimerAt,
+    this.privacyPolicyVersionShown,
+    this.privacyPolicyShownAt,
     this.weatherGoalAutoApplyEnabled = false,
     this.lastWeatherGoalDecisionAt,
     this.baselineDailyGoalMl = defaultDailyGoalMl,
@@ -106,6 +119,18 @@ class UserSettings {
     int? containerSizeMl,
     bool? onboardingCompleted,
     bool? legalAndHealthAcknowledged,
+    String? acceptedTermsVersion,
+    bool clearAcceptedTermsVersion = false,
+    DateTime? acceptedTermsAt,
+    bool clearAcceptedTermsAt = false,
+    String? acknowledgedHealthDisclaimerVersion,
+    bool clearAcknowledgedHealthDisclaimerVersion = false,
+    DateTime? acknowledgedHealthDisclaimerAt,
+    bool clearAcknowledgedHealthDisclaimerAt = false,
+    String? privacyPolicyVersionShown,
+    bool clearPrivacyPolicyVersionShown = false,
+    DateTime? privacyPolicyShownAt,
+    bool clearPrivacyPolicyShownAt = false,
     bool? weatherGoalAutoApplyEnabled,
     DateTime? lastWeatherGoalDecisionAt,
     bool clearLastWeatherGoalDecisionAt = false,
@@ -143,6 +168,26 @@ class UserSettings {
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       legalAndHealthAcknowledged:
           legalAndHealthAcknowledged ?? this.legalAndHealthAcknowledged,
+      acceptedTermsVersion: clearAcceptedTermsVersion
+          ? null
+          : acceptedTermsVersion ?? this.acceptedTermsVersion,
+      acceptedTermsAt:
+          clearAcceptedTermsAt ? null : acceptedTermsAt ?? this.acceptedTermsAt,
+      acknowledgedHealthDisclaimerVersion:
+          clearAcknowledgedHealthDisclaimerVersion
+              ? null
+              : acknowledgedHealthDisclaimerVersion ??
+                  this.acknowledgedHealthDisclaimerVersion,
+      acknowledgedHealthDisclaimerAt: clearAcknowledgedHealthDisclaimerAt
+          ? null
+          : acknowledgedHealthDisclaimerAt ??
+              this.acknowledgedHealthDisclaimerAt,
+      privacyPolicyVersionShown: clearPrivacyPolicyVersionShown
+          ? null
+          : privacyPolicyVersionShown ?? this.privacyPolicyVersionShown,
+      privacyPolicyShownAt: clearPrivacyPolicyShownAt
+          ? null
+          : privacyPolicyShownAt ?? this.privacyPolicyShownAt,
       weatherGoalAutoApplyEnabled:
           weatherGoalAutoApplyEnabled ?? this.weatherGoalAutoApplyEnabled,
       lastWeatherGoalDecisionAt: clearLastWeatherGoalDecisionAt
@@ -175,6 +220,15 @@ class UserSettings {
 
   bool get hasProfileName => nickname != null && nickname!.trim().isNotEmpty;
 
+  bool get hasCurrentLegalReview {
+    return HydrionLegalAcceptancePolicy.hasCurrentTermsAcceptance(
+          acceptedTermsVersion,
+        ) &&
+        HydrionLegalAcceptancePolicy.hasCurrentHealthAcknowledgement(
+          acknowledgedHealthDisclaimerVersion,
+        );
+  }
+
   bool get weatherGoalEligible {
     return age != null &&
         sex != null &&
@@ -199,6 +253,14 @@ class UserSettings {
       'containerSizeMl': containerSizeMl,
       'onboardingCompleted': onboardingCompleted,
       'legalAndHealthAcknowledged': legalAndHealthAcknowledged,
+      'acceptedTermsVersion': acceptedTermsVersion,
+      'acceptedTermsAt': acceptedTermsAt?.toIso8601String(),
+      'acknowledgedHealthDisclaimerVersion':
+          acknowledgedHealthDisclaimerVersion,
+      'acknowledgedHealthDisclaimerAt':
+          acknowledgedHealthDisclaimerAt?.toIso8601String(),
+      'privacyPolicyVersionShown': privacyPolicyVersionShown,
+      'privacyPolicyShownAt': privacyPolicyShownAt?.toIso8601String(),
       'weatherGoalAutoApplyEnabled': weatherGoalAutoApplyEnabled,
       'lastWeatherGoalDecisionAt': lastWeatherGoalDecisionAt?.toIso8601String(),
       'baselineDailyGoalMl': baselineDailyGoalMl,
@@ -238,6 +300,15 @@ class UserSettings {
         containerSizeMl: _safeContainerSize(value['containerSizeMl']),
         onboardingCompleted: value['onboardingCompleted'] == true,
         legalAndHealthAcknowledged: value['legalAndHealthAcknowledged'] == true,
+        acceptedTermsVersion: _safeLegalVersion(value['acceptedTermsVersion']),
+        acceptedTermsAt: _safeDateTime(value['acceptedTermsAt']),
+        acknowledgedHealthDisclaimerVersion:
+            _safeLegalVersion(value['acknowledgedHealthDisclaimerVersion']),
+        acknowledgedHealthDisclaimerAt:
+            _safeDateTime(value['acknowledgedHealthDisclaimerAt']),
+        privacyPolicyVersionShown:
+            _safeLegalVersion(value['privacyPolicyVersionShown']),
+        privacyPolicyShownAt: _safeDateTime(value['privacyPolicyShownAt']),
         weatherGoalAutoApplyEnabled:
             value['weatherGoalAutoApplyEnabled'] == true,
         lastWeatherGoalDecisionAt:
@@ -274,6 +345,15 @@ class UserSettings {
       containerSizeMl: _safeContainerSize(value['containerSizeMl']),
       onboardingCompleted: value['onboardingCompleted'] == true,
       legalAndHealthAcknowledged: value['legalAndHealthAcknowledged'] == true,
+      acceptedTermsVersion: _safeLegalVersion(value['acceptedTermsVersion']),
+      acceptedTermsAt: _safeDateTime(value['acceptedTermsAt']),
+      acknowledgedHealthDisclaimerVersion:
+          _safeLegalVersion(value['acknowledgedHealthDisclaimerVersion']),
+      acknowledgedHealthDisclaimerAt:
+          _safeDateTime(value['acknowledgedHealthDisclaimerAt']),
+      privacyPolicyVersionShown:
+          _safeLegalVersion(value['privacyPolicyVersionShown']),
+      privacyPolicyShownAt: _safeDateTime(value['privacyPolicyShownAt']),
       weatherGoalAutoApplyEnabled: value['weatherGoalAutoApplyEnabled'] == true,
       lastWeatherGoalDecisionAt:
           _safeDateTime(value['lastWeatherGoalDecisionAt']),
@@ -350,6 +430,17 @@ class UserSettings {
       return null;
     }
     return text;
+  }
+
+  static String? _safeLegalVersion(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    final version = value.trim();
+    if (!RegExp(r'^\d+\.\d+\.\d+$').hasMatch(version)) {
+      return null;
+    }
+    return version;
   }
 
   static String? _safeNickname(Object? value) {
@@ -479,6 +570,22 @@ class UserSettingsRepository extends ChangeNotifier {
             reusableContainerEnabled: reusableContainerEnabled,
             onboardingCompleted: onboardingCompleted,
             legalAndHealthAcknowledged: onboardingCompleted,
+            acceptedTermsVersion: onboardingCompleted
+                ? HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion
+                : null,
+            acceptedTermsAt:
+                onboardingCompleted ? DateTime(2026, 7, 6, 12) : null,
+            acknowledgedHealthDisclaimerVersion: onboardingCompleted
+                ? HydrionLegalAcceptancePolicy
+                    .requiredHealthAcknowledgementVersion
+                : null,
+            acknowledgedHealthDisclaimerAt:
+                onboardingCompleted ? DateTime(2026, 7, 6, 12) : null,
+            privacyPolicyVersionShown: onboardingCompleted
+                ? HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion
+                : null,
+            privacyPolicyShownAt:
+                onboardingCompleted ? DateTime(2026, 7, 6, 12) : null,
           ),
         );
 
@@ -687,9 +794,80 @@ class UserSettingsRepository extends ChangeNotifier {
     required bool completed,
     required bool legalAndHealthAcknowledged,
   }) async {
+    final shouldRecordCurrentLegal = completed && legalAndHealthAcknowledged;
+    final now = shouldRecordCurrentLegal ? DateTime.now() : null;
     _settings = _settings.copyWith(
       onboardingCompleted: completed,
       legalAndHealthAcknowledged: legalAndHealthAcknowledged,
+      acceptedTermsVersion: shouldRecordCurrentLegal
+          ? _settings.acceptedTermsVersion ??
+              HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion
+          : null,
+      clearAcceptedTermsVersion: !shouldRecordCurrentLegal,
+      acceptedTermsAt:
+          shouldRecordCurrentLegal ? _settings.acceptedTermsAt ?? now : null,
+      clearAcceptedTermsAt: !shouldRecordCurrentLegal,
+      acknowledgedHealthDisclaimerVersion: shouldRecordCurrentLegal
+          ? _settings.acknowledgedHealthDisclaimerVersion ??
+              HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion
+          : null,
+      clearAcknowledgedHealthDisclaimerVersion: !shouldRecordCurrentLegal,
+      acknowledgedHealthDisclaimerAt: shouldRecordCurrentLegal
+          ? _settings.acknowledgedHealthDisclaimerAt ?? now
+          : null,
+      clearAcknowledgedHealthDisclaimerAt: !shouldRecordCurrentLegal,
+      privacyPolicyVersionShown: shouldRecordCurrentLegal
+          ? _settings.privacyPolicyVersionShown ??
+              HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion
+          : null,
+      clearPrivacyPolicyVersionShown: !shouldRecordCurrentLegal,
+      privacyPolicyShownAt: shouldRecordCurrentLegal
+          ? _settings.privacyPolicyShownAt ?? now
+          : null,
+      clearPrivacyPolicyShownAt: !shouldRecordCurrentLegal,
+    );
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<void> completeOnboardingWithLegalReview({
+    required DateTime reviewedAt,
+  }) async {
+    _settings = _settings.copyWith(
+      onboardingCompleted: true,
+      legalAndHealthAcknowledged: true,
+      acceptedTermsVersion:
+          HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion,
+      acceptedTermsAt: reviewedAt,
+      acknowledgedHealthDisclaimerVersion:
+          HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion,
+      acknowledgedHealthDisclaimerAt: reviewedAt,
+      privacyPolicyVersionShown:
+          HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion,
+      privacyPolicyShownAt: reviewedAt,
+    );
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<void> recordLegalReview({
+    DateTime? reviewedAt,
+    String? termsVersion,
+    String? healthDisclaimerVersion,
+    String? privacyPolicyVersion,
+  }) async {
+    final timestamp = reviewedAt ?? DateTime.now();
+    _settings = _settings.copyWith(
+      legalAndHealthAcknowledged: true,
+      acceptedTermsVersion: termsVersion ??
+          HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion,
+      acceptedTermsAt: timestamp,
+      acknowledgedHealthDisclaimerVersion: healthDisclaimerVersion ??
+          HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion,
+      acknowledgedHealthDisclaimerAt: timestamp,
+      privacyPolicyVersionShown: privacyPolicyVersion ??
+          HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion,
+      privacyPolicyShownAt: timestamp,
     );
     await _persist();
     notifyListeners();

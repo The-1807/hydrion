@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../domain/challenge_catalog.dart';
 import '../../domain/hydration_contracts.dart';
+import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
@@ -19,8 +20,6 @@ class SocialChallengesScreen extends StatefulWidget {
 }
 
 class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
-  final Set<int> _bingoPreviewedTiles = <int>{};
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -59,14 +58,9 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
           _BottleBingoBoard(
             activeChallenge: activeChallenge,
             progress: progress,
-            previewedTiles: _bingoPreviewedTiles,
-            onTileToggled: (index) {
-              setState(() {
-                if (!_bingoPreviewedTiles.add(index)) {
-                  _bingoPreviewedTiles.remove(index);
-                }
-              });
-            },
+            challengeRepository: challengeRepository,
+            onTileToggled: challengeRepository.toggleBottleBingoTile,
+            onReset: () => _confirmBottleBingoReset(context),
           ),
           const SizedBox(height: 16),
           const HydrionSurface(
@@ -102,6 +96,34 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
       ),
     );
   }
+
+  Future<void> _confirmBottleBingoReset(BuildContext context) async {
+    final repository = context.read<ChallengeRepository>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Reset Bottle Bingo?'),
+          content: const Text(
+            'This clears manually checked Bottle Bingo tiles. Water logged before lunch still comes from your hydration history.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Reset'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true) {
+      await repository.resetBottleBingoTiles();
+    }
+  }
 }
 
 class _ChallengeHero extends StatelessWidget {
@@ -120,6 +142,7 @@ class _ChallengeHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasActive = activeChallenge != null;
+    final scene = HydrionUiAssetManifest.byId('runner-ready');
     return HydrionSurface(
       gradient: HydrionGradients.ocean,
       radius: HydrionRadii.lg,
@@ -149,6 +172,12 @@ class _ChallengeHero extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                         ),
                   ),
+                ),
+                Image.asset(
+                  scene.assetPath,
+                  height: 88,
+                  fit: BoxFit.contain,
+                  semanticLabel: scene.description,
                 ),
               ],
             ),
@@ -230,19 +259,26 @@ class _BottleBingoBoard extends StatelessWidget {
 
   final JoinedChallenge? activeChallenge;
   final ChallengeProgress progress;
-  final Set<int> previewedTiles;
-  final ValueChanged<int> onTileToggled;
+  final ChallengeRepository challengeRepository;
+  final Future<bool> Function(int index) onTileToggled;
+  final VoidCallback onReset;
 
   const _BottleBingoBoard({
     required this.activeChallenge,
     required this.progress,
-    required this.previewedTiles,
+    required this.challengeRepository,
     required this.onTileToggled,
+    required this.onReset,
   });
 
   @override
   Widget build(BuildContext context) {
     final bottleBingoJoined = activeChallenge?.id == 'bottle-bingo';
+    final manuallyCompleted =
+        activeChallenge?.bottleBingoCompletedTiles ?? const <int>{};
+    final progressBackedComplete = bottleBingoJoined && progress.todayMl > 0;
+    final completedCount =
+        manuallyCompleted.length + (progressBackedComplete ? 1 : 0);
     return HydrionSurface(
       key: const Key('bottle-bingo-board'),
       gradient: LinearGradient(
@@ -267,7 +303,9 @@ class _BottleBingoBoard extends StatelessWidget {
                 ),
               ),
               _StatusChip(
-                label: bottleBingoJoined ? 'Active' : 'Preview',
+                label: bottleBingoJoined
+                    ? '$completedCount/${_tiles.length}'
+                    : 'Preview',
                 active: bottleBingoJoined,
               ),
             ],
@@ -275,9 +313,29 @@ class _BottleBingoBoard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             bottleBingoJoined
-                ? 'Tiles react to your local progress. Tap the other prompts to sketch today\'s plan.'
+                ? 'The first tile reacts to real logs before lunch. Tap other prompts when you complete them.'
                 : 'Preview the prompts before joining. The first tile completes from real water logged before lunch.',
           ),
+          if (bottleBingoJoined) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _StatusChip(
+                  label: '$completedCount complete',
+                  active: completedCount > 0,
+                ),
+                OutlinedButton.icon(
+                  key: const Key('bottle-bingo-reset'),
+                  onPressed: manuallyCompleted.isEmpty ? null : onReset,
+                  icon: const Icon(Icons.restart_alt),
+                  label: const Text('Reset board'),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 14),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -294,17 +352,20 @@ class _BottleBingoBoard extends StatelessWidget {
                 ),
                 itemBuilder: (context, index) {
                   final tile = _tiles[index];
-                  final completed = tile.progressBacked &&
-                      bottleBingoJoined &&
-                      progress.todayMl > 0;
-                  final previewed = previewedTiles.contains(index);
+                  final completed = tile.progressBacked
+                      ? progressBackedComplete
+                      : challengeRepository
+                          .isBottleBingoTileManuallyComplete(index);
                   return _BottleBingoTile(
                     key: Key('bottle-bingo-tile-$index'),
                     tile: tile,
-                    selected: completed || previewed,
+                    selected: completed,
                     lockedToProgress: tile.progressBacked,
-                    onTap:
-                        tile.progressBacked ? null : () => onTileToggled(index),
+                    onTap: tile.progressBacked || !bottleBingoJoined
+                        ? null
+                        : () {
+                            onTileToggled(index);
+                          },
                   );
                 },
               );
@@ -335,50 +396,62 @@ class _BottleBingoTile extends StatelessWidget {
     final background =
         selected ? HydrionColors.deep : Colors.white.withValues(alpha: 0.86);
     final foreground = selected ? Colors.white : HydrionColors.abyss;
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(HydrionRadii.sm),
-      child: InkWell(
-        onTap: onTap,
+    final state = selected
+        ? 'Complete'
+        : lockedToProgress
+            ? 'Completes from water logged before lunch'
+            : onTap == null
+                ? 'Join Bottle Bingo to mark this tile'
+                : 'Double tap to toggle completion';
+    return Semantics(
+      button: onTap != null,
+      selected: selected,
+      label: '${tile.title}. ${tile.body}. $state.',
+      child: Material(
+        color: background,
         borderRadius: BorderRadius.circular(HydrionRadii.sm),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: DefaultTextStyle(
-            style: TextStyle(color: foreground),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(tile.icon, color: foreground),
-                    const Spacer(),
-                    Icon(
-                      selected
-                          ? Icons.check_circle
-                          : lockedToProgress
-                              ? Icons.lock_clock
-                              : Icons.add_circle_outline,
-                      color: foreground.withValues(alpha: 0.9),
-                      size: 20,
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Text(
-                  tile.title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: foreground,
-                        fontWeight: FontWeight.w900,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(HydrionRadii.sm),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: DefaultTextStyle(
+              style: TextStyle(color: foreground),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(tile.icon, color: foreground),
+                      const Spacer(),
+                      Icon(
+                        selected
+                            ? Icons.check_circle
+                            : lockedToProgress
+                                ? Icons.lock_clock
+                                : Icons.add_circle_outline,
+                        color: foreground.withValues(alpha: 0.9),
+                        size: 20,
                       ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  tile.body,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: foreground.withValues(alpha: 0.86)),
-                ),
-              ],
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    tile.title,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: foreground,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    tile.body,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: foreground.withValues(alpha: 0.86)),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -1,21 +1,30 @@
+enum HydrionAvatarKind {
+  shark,
+  human,
+}
+
 class HydrionAvatar {
   final String id;
   final String displayName;
   final String description;
   final String assetPath;
+  final HydrionAvatarKind kind;
 
   const HydrionAvatar({
     required this.id,
     required this.displayName,
     required this.description,
     required this.assetPath,
+    this.kind = HydrionAvatarKind.shark,
   });
+
+  bool get isHuman => kind == HydrionAvatarKind.human;
 }
 
 class HydrionAvatarManifest {
   static const mascotAssetPath = 'assets/pfp_mascot/hydrion_mascot.png';
 
-  static const avatars = <HydrionAvatar>[
+  static const sharkAvatars = <HydrionAvatar>[
     HydrionAvatar(
       id: 'savvy-eco_shark',
       displayName: 'Savvy Eco',
@@ -79,10 +88,159 @@ class HydrionAvatarManifest {
     ),
   ];
 
+  static const humanAvatars = <HydrionAvatar>[
+    HydrionAvatar(
+      id: 'hydrion-human-anchor',
+      displayName: 'Anchor',
+      description: 'A grounded default profile portrait.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-anchor.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-bloom',
+      displayName: 'Bloom',
+      description: 'Bright profile energy for steady daily routines.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-bloom.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-bluebell',
+      displayName: 'Bluebell',
+      description: 'A colorful profile portrait with gentle confidence.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-bluebell.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-breeze',
+      displayName: 'Breeze',
+      description: 'A calm profile portrait for easy check-ins.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-breeze.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-compass',
+      displayName: 'Compass',
+      description: 'A polished profile portrait for focused tracking.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-compass.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-cove',
+      displayName: 'Cove',
+      description: 'Warm profile energy for a local-first routine.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-cove.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-current',
+      displayName: 'Current',
+      description: 'Clean profile energy for momentum days.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-current.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-drift',
+      displayName: 'Drift',
+      description: 'A relaxed default portrait for lighter routines.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-drift.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-harbor',
+      displayName: 'Harbor',
+      description: 'Steady profile energy for reliable daily logging.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-harbor.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-lagoon',
+      displayName: 'Lagoon',
+      description: 'Friendly profile energy for hydrated mornings.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-lagoon.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-mist',
+      displayName: 'Mist',
+      description: 'Soft profile energy for quiet consistency.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-mist.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-pearl',
+      displayName: 'Pearl',
+      description: 'A simple, polished default profile portrait.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-pearl.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-reef',
+      displayName: 'Reef',
+      description: 'Confident profile energy for active routines.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-reef.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-river',
+      displayName: 'River',
+      description: 'Friendly profile energy for steady hydration.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-river.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-silver',
+      displayName: 'Silver',
+      description: 'A composed profile portrait for long-term habits.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-silver.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-splash',
+      displayName: 'Splash',
+      description: 'Upbeat profile energy for quick water logs.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-splash.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-sunrise',
+      displayName: 'Sunrise',
+      description: 'Bright profile energy for the first check-in.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-sunrise.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-tide',
+      displayName: 'Tide',
+      description: 'Clean profile energy for daily progress.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-tide.png',
+      kind: HydrionAvatarKind.human,
+    ),
+    HydrionAvatar(
+      id: 'hydrion-human-wave',
+      displayName: 'Wave',
+      description: 'A lively default portrait for hydration wins.',
+      assetPath: 'assets/pfp_mascot/hpfp/hydrion-human-wave.png',
+      kind: HydrionAvatarKind.human,
+    ),
+  ];
+
+  static const avatars = <HydrionAvatar>[
+    ...sharkAvatars,
+    ...humanAvatars,
+  ];
+
   static HydrionAvatar byId(String? id) {
     return avatars.firstWhere(
       (avatar) => avatar.id == id,
       orElse: () => avatars.first,
     );
+  }
+
+  static HydrionAvatar companionByProfileAvatarId(String? id) {
+    final avatar = byId(id);
+    if (avatar.kind == HydrionAvatarKind.shark) {
+      return avatar;
+    }
+    return sharkAvatars.first;
   }
 }

@@ -627,7 +627,7 @@ class DailyWeatherGoalCoordinator {
         status: DailyWeatherGoalStatus.onboardingRequired,
       );
     }
-    if (!settings.legalAndHealthAcknowledged) {
+    if (!settings.hasCurrentLegalReview) {
       return const DailyWeatherGoalResult(
         status: DailyWeatherGoalStatus.legalAcknowledgementRequired,
       );

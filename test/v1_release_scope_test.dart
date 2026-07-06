@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/avatar_manifest.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/domain/companion_state.dart';
+import 'package:hydrion/domain/legal_document_registry.dart';
 import 'package:hydrion/domain/release_metadata.dart';
+import 'package:hydrion/domain/ui_asset_manifest.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
@@ -13,9 +15,11 @@ void main() {
   test('avatar manifest preserves supplied shark identities and assets', () {
     expect(HydrionAvatarManifest.mascotAssetPath,
         'assets/pfp_mascot/hydrion_mascot.png');
-    expect(HydrionAvatarManifest.avatars, hasLength(10));
+    expect(HydrionAvatarManifest.sharkAvatars, hasLength(10));
+    expect(HydrionAvatarManifest.humanAvatars, hasLength(19));
+    expect(HydrionAvatarManifest.avatars, hasLength(29));
     expect(
-      HydrionAvatarManifest.avatars.map((avatar) => avatar.displayName),
+      HydrionAvatarManifest.sharkAvatars.map((avatar) => avatar.displayName),
       containsAll([
         'Savvy Eco',
         'Scout',
@@ -31,7 +35,32 @@ void main() {
     );
     expect(HydrionAvatarManifest.byId('snss').assetPath,
         'assets/pfp_mascot/pfp/snss.png');
+    expect(HydrionAvatarManifest.byId('hydrion-human-river').kind,
+        HydrionAvatarKind.human);
+    expect(HydrionAvatarManifest.byId('hydrion-human-river').assetPath,
+        'assets/pfp_mascot/hpfp/hydrion-human-river.png');
+    expect(
+      HydrionAvatarManifest.companionByProfileAvatarId('hydrion-human-river')
+          .id,
+      'savvy-eco_shark',
+    );
     expect(HydrionAvatarManifest.byId('missing').id, 'savvy-eco_shark');
+  });
+
+  test('UI asset manifest separates lifestyle scenes from profile avatars', () {
+    expect(HydrionUiAssetManifest.lifestyleScenes, hasLength(9));
+    expect(HydrionUiAssetManifest.byId('sip-break').assetPath,
+        'assets/UI_BETA/hydrion-lifestyle-sip-break.png');
+    expect(
+      HydrionUiAssetManifest.lifestyleScenes.map((scene) => scene.assetPath),
+      everyElement(
+        allOf(
+          startsWith('assets/UI_BETA/'),
+          isNot(contains('ChatGPT Image')),
+          isNot(contains(' ')),
+        ),
+      ),
+    );
   });
 
   test('profile and onboarding settings persist across repository reloads',
@@ -69,6 +98,18 @@ void main() {
     expect(second.settings.containerSizeMl, 750);
     expect(second.settings.onboardingCompleted, isTrue);
     expect(second.settings.legalAndHealthAcknowledged, isTrue);
+    expect(
+      second.settings.acceptedTermsVersion,
+      HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion,
+    );
+    expect(
+      second.settings.acknowledgedHealthDisclaimerVersion,
+      HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion,
+    );
+    expect(
+      second.settings.privacyPolicyVersionShown,
+      HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion,
+    );
 
     await second.clearProfilePhoto();
     final third = await UserSettingsRepository.load(store);
@@ -237,6 +278,33 @@ void main() {
     final progress = challengeRepository.progressFor(hydrationRepository);
     expect(progress.completedDays, 1);
     expect(progress.todayMl, 150);
+  });
+
+  test('Bottle Bingo manual tiles persist with active challenge state',
+      () async {
+    final store = MemoryHydrionStore();
+    final first = await ChallengeRepository.load(store);
+    final bottleBingo = HydrionChallengeCatalog.byId('bottle-bingo');
+
+    await first.join(
+      id: bottleBingo.id,
+      name: bottleBingo.name,
+      description: bottleBingo.description,
+      targetMl: bottleBingo.targetMl,
+      durationDays: bottleBingo.durationDays,
+      joinedAt: DateTime(2026, 7, 6),
+    );
+
+    expect(await first.toggleBottleBingoTile(2), isTrue);
+    expect(await first.toggleBottleBingoTile(5), isTrue);
+    expect(await first.toggleBottleBingoTile(0), isFalse);
+
+    final second = await ChallengeRepository.load(store);
+    expect(second.activeChallenge?.bottleBingoCompletedTiles, {2, 5});
+
+    expect(await second.resetBottleBingoTiles(), isTrue);
+    final third = await ChallengeRepository.load(store);
+    expect(third.activeChallenge?.bottleBingoCompletedTiles, isEmpty);
   });
 
   test('release metadata keeps v1 identity and pending release date explicit',

@@ -7,6 +7,7 @@ import 'adapters/elka/elka_adapter.dart';
 import 'adapters/gemini/gemini_adapter.dart';
 import 'adapters/local/local_hydrion_adapters.dart';
 import 'domain/hydration_contracts.dart';
+import 'domain/legal_document_registry.dart';
 import 'l10n/app_localizations.dart';
 import 'repositories/challenge_repository.dart';
 import 'repositories/hydration_repository.dart';
@@ -128,6 +129,21 @@ class HydrionApp extends StatelessWidget {
                     },
                     isOnboardingCompleted: () => services
                         .settingsRepository.settings.onboardingCompleted,
+                    nextRoute: () {
+                      final settings = services.settingsRepository.settings;
+                      if (!settings.onboardingCompleted) {
+                        return '/onboarding';
+                      }
+                      if (HydrionLegalAcceptancePolicy.needsReview(
+                        onboardingCompleted: settings.onboardingCompleted,
+                        acceptedTermsVersion: settings.acceptedTermsVersion,
+                        acknowledgedHealthDisclaimerVersion:
+                            settings.acknowledgedHealthDisclaimerVersion,
+                      )) {
+                        return '/legal-review';
+                      }
+                      return '/home';
+                    },
                   ),
               '/home': (_) => const HydrionShell(),
               '/onboarding': (_) => const OnboardingScreen(),
@@ -139,6 +155,11 @@ class HydrionApp extends StatelessWidget {
               '/settings': (_) => const SettingsScreen(),
               '/profile': (_) => const ProfileScreen(),
               '/legal-about': (_) => const LegalAboutScreen(),
+              '/legal-review': (_) => const LegalReviewScreen(),
+              for (final document
+                  in HydrionLegalDocumentRegistry.userFacingDocuments)
+                document.routeName: (_) =>
+                    LegalDocumentScreen(documentId: document.id),
               '/challenges': (_) => const SocialChallengesScreen(),
               if (services.capabilityReporter.capabilities.arVisualization)
                 '/ar': (_) => const ArVisualizationScreen(),
