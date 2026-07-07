@@ -2,8 +2,13 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
-class HydrionDropletLoader extends StatefulWidget {
+class HydrionDropletLoader extends StatelessWidget {
+  static const sharkAssetPath = 'assets/buffer/Shark.lottie';
+  static const sharkAnimationId = '12345';
+  static const sharkAnimationName = 'animals 3';
+
   final double progress;
   final double size;
   final bool reducedMotion;
@@ -24,84 +29,127 @@ class HydrionDropletLoader extends StatefulWidget {
     return value.clamp(0.0, 1.0).toDouble();
   }
 
-  @override
-  State<HydrionDropletLoader> createState() => _HydrionDropletLoaderState();
-}
-
-class _HydrionDropletLoaderState extends State<HydrionDropletLoader>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _waveController;
-
-  @override
-  void initState() {
-    super.initState();
-    _waveController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
+  static Future<LottieComposition?> decodeSharkDotLottie(List<int> bytes) {
+    return LottieComposition.decodeZip(
+      bytes,
+      filePicker: (files) {
+        for (final file in files) {
+          if (file.name == 'animations/$sharkAnimationId.json') {
+            return file;
+          }
+        }
+        for (final file in files) {
+          if (file.name.startsWith('animations/') &&
+              file.name.endsWith('.json')) {
+            return file;
+          }
+        }
+        return null;
+      },
     );
-    _syncWaveAnimation();
-  }
-
-  @override
-  void didUpdateWidget(covariant HydrionDropletLoader oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _syncWaveAnimation();
-  }
-
-  @override
-  void dispose() {
-    _waveController.dispose();
-    super.dispose();
-  }
-
-  void _syncWaveAnimation() {
-    final complete = HydrionDropletLoader.clampProgress(widget.progress) >= 1;
-    if (widget.reducedMotion || complete) {
-      _waveController.stop();
-      return;
-    }
-    if (!_waveController.isAnimating) {
-      _waveController.repeat();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final clamped = HydrionDropletLoader.clampProgress(widget.progress);
+    final clamped = HydrionDropletLoader.clampProgress(progress);
     final percent = (clamped * 100).round();
-    final duration = widget.reducedMotion
+    final duration = reducedMotion
         ? const Duration(milliseconds: 120)
         : const Duration(milliseconds: 460);
 
     return Semantics(
-      label:
-          widget.semanticLabel ?? 'Loading Hydrion, $percent percent complete',
+      label: semanticLabel ?? 'Loading Hydrion, $percent percent complete',
       value: '$percent%',
       child: RepaintBoundary(
         child: TweenAnimationBuilder<double>(
           tween: Tween<double>(end: clamped),
           duration: duration,
-          curve: widget.reducedMotion ? Curves.linear : Curves.easeOutCubic,
+          curve: reducedMotion ? Curves.linear : Curves.easeOutCubic,
           builder: (context, smoothProgress, _) {
-            return AnimatedBuilder(
-              animation: _waveController,
-              builder: (context, _) {
-                return SizedBox.square(
-                  key: const Key('hydrion-droplet-loader'),
-                  dimension: widget.size,
-                  child: CustomPaint(
-                    painter: _HydrionDropletPainter(
-                      progress: smoothProgress,
-                      wavePhase:
-                          widget.reducedMotion ? 0 : _waveController.value,
-                      reducedMotion: widget.reducedMotion,
-                    ),
-                  ),
-                );
-              },
+            return SizedBox.square(
+              key: const Key('hydrion-droplet-loader'),
+              dimension: size,
+              child: _HydrionLoaderVisual(
+                progress: smoothProgress,
+                size: size,
+                reducedMotion: reducedMotion,
+              ),
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _HydrionLoaderVisual extends StatelessWidget {
+  final double progress;
+  final double size;
+  final bool reducedMotion;
+
+  const _HydrionLoaderVisual({
+    required this.progress,
+    required this.size,
+    required this.reducedMotion,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (reducedMotion) {
+      return _HydrionDropletFallback(
+        progress: progress,
+        size: size,
+        reducedMotion: true,
+      );
+    }
+
+    final complete = HydrionDropletLoader.clampProgress(progress) >= 1;
+    final fallback = _HydrionDropletFallback(
+      progress: progress,
+      size: size,
+      reducedMotion: true,
+    );
+
+    return Lottie.asset(
+      HydrionDropletLoader.sharkAssetPath,
+      key: const Key('hydrion-shark-lottie-loader'),
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      animate: !complete,
+      repeat: !complete,
+      decoder: HydrionDropletLoader.decodeSharkDotLottie,
+      frameBuilder: (context, child, composition) {
+        if (composition == null) {
+          return fallback;
+        }
+        return child;
+      },
+      errorBuilder: (context, error, stackTrace) => fallback,
+    );
+  }
+}
+
+class _HydrionDropletFallback extends StatelessWidget {
+  final double progress;
+  final double size;
+  final bool reducedMotion;
+
+  const _HydrionDropletFallback({
+    required this.progress,
+    required this.size,
+    required this.reducedMotion,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      key: const Key('hydrion-droplet-fallback'),
+      size: Size.square(size),
+      painter: _HydrionDropletPainter(
+        progress: progress,
+        wavePhase: 0,
+        reducedMotion: reducedMotion,
       ),
     );
   }

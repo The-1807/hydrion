@@ -3,6 +3,55 @@
 Status: draft, owner review required. This document records implemented release
 work and remaining validation needs. It does not approve public release.
 
+## 2026-07-07 Persistence and Lottie Evidence Update
+
+Hydrion now persists incomplete onboarding progress through
+`hydrion.user_settings.v1` using `onboardingStep`, so relaunching during setup
+returns users to the saved step instead of restarting at the first screen.
+Legacy settings records that lack `onboardingCompleted` but contain completed
+user evidence are migrated as completed users and routed to focused legal
+review when current legal versions are missing.
+
+Startup uses the bundled local `assets/buffer/Shark.lottie` asset through the
+Flutter `lottie` package. The recovered permanent LottieFiles share URL is
+`https://app.lottiefiles.com/share/a1310b00-ea2c-4d3a-b580-688ad4c56291`.
+Static share-page inspection did not expose creator identity or
+animation-specific licence wording; production approval remains blocked until
+that evidence is captured or owner/legal approval explicitly accepts the
+available evidence.
+
+## 2026-07-07 Local Validation Update
+
+Local automated validation completed on Windows with Flutter 3.35.6:
+
+- `dart format --output=none --set-exit-if-changed .` passed with 95 files
+  checked and 0 changes.
+- `flutter analyze` passed with no issues.
+- `flutter test` passed with 212 tests.
+- `dart run tool/secret_scan.dart` passed with no committed API keys,
+  credentials, or private key blocks found.
+- `git diff --check` passed; Git reported only LF-to-CRLF working-copy
+  warnings.
+- After the final credits wording update, `dart analyze
+  lib/ui/screens/legal_about_screen.dart test/legal_document_test.dart` passed
+  with no issues and `flutter test test/legal_document_test.dart` passed with
+  12 tests.
+
+Android packaging was attempted with `flutter build apk` and
+`flutter build appbundle`. Both commands were blocked by the local machine
+because no Android SDK was configured. `flutter doctor -v` reported Flutter,
+Windows, Chrome, Visual Studio, and network resources as available, but the
+Android toolchain failed with "Unable to locate Android SDK" and Android Studio
+was not installed.
+
+iOS build, signing, simulator/device, TestFlight, and App Store Connect
+validation were not run locally because this is a Windows environment.
+
+The Hydrion GitHub project board was checked on 2026-07-07. The V1 Release Gate
+card remains in `In Progress`; it should not move to `Review/QA` or `Done`
+until Android/iOS packaging, manual device validation, and Lottie licence
+approval are complete.
+
 ## Location Behavior
 
 Hydrion does not request location permission on cold launch. Weather-informed
@@ -183,9 +232,9 @@ screen without resetting hydration logs or profile data.
 The current legal gate also requires each relevant document to be opened in the
 Hydrion legal viewer before its corresponding acceptance or acknowledgement can
 be checked. Opening a document does not record acceptance or check a box. Alpha
-and beta builds also require the Alpha and Beta Testing Notice. Alpha/beta gate
-copy is controlled by `HydrionReleaseMetadata` and production uses restrained
-copy.
+and beta builds also require the Alpha and Beta Testing Notice. Legal gate copy
+is controlled by `HydrionReleaseMetadata` and uses restrained release wording
+for all build stages.
 
 ## Hydration Gauge
 

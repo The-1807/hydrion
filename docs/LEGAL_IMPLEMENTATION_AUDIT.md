@@ -123,9 +123,9 @@ Internal owner notes and drafting references are not exposed in the user-facing 
 - Attempting to check too early shows an inline live-region error and
   highlights the required document control instead of showing a blocking
   full-screen error.
-- Alpha/beta builds use `fahhhhhhh!!! open legal pack` from
-  `HydrionReleaseMetadata`; production builds use
-  `Open the required legal document before continuing.`.
+- Alpha/beta/stable builds use
+  `Open the required legal document before continuing.` from
+  `HydrionReleaseMetadata`.
 - Legal acceptance is stored locally with version and timestamp.
 - Existing users with old local storage go to a focused legal review screen.
 - Local hydration data survives legal-state migration.

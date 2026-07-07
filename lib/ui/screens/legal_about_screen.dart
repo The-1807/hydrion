@@ -47,6 +47,8 @@ class LegalAboutScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+            const _CreditsAndLicencesTile(),
+            const SizedBox(height: 8),
             const _AppInfoTile(),
             const SizedBox(height: 8),
             const _SupportTile(),
@@ -699,6 +701,41 @@ class _UtilityTile extends StatelessWidget {
         subtitle: Text(description),
         trailing: trailing ?? const Icon(Icons.chevron_right),
         onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _CreditsAndLicencesTile extends StatelessWidget {
+  const _CreditsAndLicencesTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      key: const Key('legal-credits-licences'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.attribution_outlined),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Credits and licences',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Loading animation obtained from LottieFiles and bundled for Hydrion. Source-page creator and licence evidence are recorded in THIRD_PARTY_NOTICES.md before release.',
+            ),
+          ],
+        ),
       ),
     );
   }

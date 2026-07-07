@@ -182,6 +182,22 @@ void main() {
     expect(find.byType(LicensePage), findsOneWidget);
   });
 
+  testWidgets('legal hub displays loading animation credits', (tester) async {
+    await _pumpLegalApp(tester);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('legal-credits-licences')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(find.text('Credits and licences'), findsOneWidget);
+    expect(
+      find.textContaining('Loading animation obtained from LottieFiles'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('legal screens render in dark theme and large text',
       (tester) async {
     await _pumpLegalApp(
@@ -225,7 +241,10 @@ void main() {
           .value,
       isFalse,
     );
-    expect(find.text('fahhhhhhh!!! open legal pack'), findsOneWidget);
+    expect(
+      find.text('Open the required legal document before continuing.'),
+      findsOneWidget,
+    );
     expect(find.text('Terms of Use opened'), findsNothing);
   });
 
@@ -291,7 +310,6 @@ void main() {
       find.text('Open the required legal document before continuing.'),
       findsOneWidget,
     );
-    expect(find.text('fahhhhhhh!!! open legal pack'), findsNothing);
   });
 
   testWidgets('legal review never requests platform permissions',

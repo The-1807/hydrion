@@ -78,3 +78,9 @@ app.*.map.json
 
 
 *.jks
+# Local marketing and release exports
+assets/UI_BETA/hyd-ad/
+*.apk
+*.aab
+*.ipa
+*.zip

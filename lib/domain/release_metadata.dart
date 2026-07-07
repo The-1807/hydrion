@@ -63,7 +63,7 @@ class HydrionReleaseMetadata {
     return switch (stage) {
       HydrionBuildStage.alpha ||
       HydrionBuildStage.beta =>
-        'fahhhhhhh!!! open legal pack',
+        'Open the required legal document before continuing.',
       HydrionBuildStage.production =>
         'Open the required legal document before continuing.',
     };

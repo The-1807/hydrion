@@ -30,6 +30,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('onboarding-avatar-grid')), findsOneWidget);
+    expect(find.text('Shark companion'), findsNothing);
     await tester.tap(find.byKey(const Key('onboarding-next')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('onboarding-next')));
@@ -92,6 +93,56 @@ void main() {
 
     expect(find.byKey(const Key('home-logo')), findsOneWidget);
     expect(find.text('Welcome to Hydrion'), findsNothing);
+  });
+
+  testWidgets('partial onboarding resumes at the saved step after relaunch',
+      (tester) async {
+    final store = MemoryHydrionStore();
+    final services = await HydrionServices.fromStore(store);
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('onboarding-next')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('onboarding-nickname')),
+      'Riley',
+    );
+    await tester.tap(find.byKey(const Key('onboarding-next')));
+    await tester.pumpAndSettle();
+
+    final saved = await UserSettingsRepository.load(store);
+    expect(saved.settings.onboardingCompleted, isFalse);
+    expect(saved.settings.onboardingStep, 2);
+    expect(saved.settings.nickname, 'Riley');
+
+    final relaunchedServices = await HydrionServices.fromStore(store);
+    await tester.pumpWidget(HydrionApp(services: relaunchedServices));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('onboarding-avatar-grid')), findsOneWidget);
+    expect(find.text('Welcome to Hydrion'), findsOneWidget);
+    expect(find.text('Basic profile'), findsNothing);
+  });
+
+  testWidgets('legacy completed users missing completion flag avoid onboarding',
+      (tester) async {
+    final store = MemoryHydrionStore();
+    await store.writeString(
+      UserSettingsRepository.storageKey,
+      '{"languageCode":"en","dailyGoalMl":2200,'
+      '"nickname":"Legacy Shark",'
+      '"legalAndHealthAcknowledged":true}',
+    );
+    final services = await HydrionServices.fromStore(store);
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    expect(services.settingsRepository.settings.onboardingCompleted, isTrue);
+    expect(find.text('Welcome to Hydrion'), findsNothing);
+    expect(find.text('Review Hydrion terms'), findsOneWidget);
   });
 
   testWidgets('existing users get focused legal migration without data loss',

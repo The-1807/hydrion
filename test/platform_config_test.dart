@@ -62,6 +62,7 @@ void main() {
     final uiAssets = Directory('assets/UI_BETA').listSync().whereType<File>();
 
     expect(pubspec, contains('assets/UI_BETA/'));
+    expect(pubspec, contains('assets/buffer/'));
     expect(pubspec, isNot(contains('assets/pfp_mascot/hpfp/')));
     expect(pubspec, contains('docs/Hydrion_Legal_Pack_Markdown/'));
     expect(humanAssets, isEmpty);
@@ -70,6 +71,33 @@ void main() {
     for (final file in [...archivedHumanAssets, ...uiAssets]) {
       expect(file.path, isNot(contains('ChatGPT Image')));
       expect(file.path, isNot(contains(' ')));
+    }
+  });
+
+  test('image asset filenames do not expose AI provider or generator names',
+      () {
+    final disallowedImageName = RegExp(
+      r'(chatgpt|gemini|openai|dall[-_ ]?e|midjourney|stable[-_ ]?diffusion|generated[-_ ]?image|ai[-_ ]?generated)',
+      caseSensitive: false,
+    );
+    final assetRoots = [
+      Directory('assets'),
+      Directory('assets_source_original'),
+    ].where((directory) => directory.existsSync());
+
+    for (final root in assetRoots) {
+      final imageFiles = root
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((file) => _isImageAsset(file.path));
+      for (final file in imageFiles) {
+        final fileName = file.uri.pathSegments.last;
+        expect(
+          disallowedImageName.hasMatch(fileName),
+          isFalse,
+          reason: file.path,
+        );
+      }
     }
   });
 
@@ -107,4 +135,13 @@ void main() {
     expect(codemagic, isNot(contains('SHOREBIRD_TOKEN')));
     expect(codemagic.toLowerCase(), isNot(contains('shorebird release')));
   });
+}
+
+bool _isImageAsset(String path) {
+  final lower = path.toLowerCase();
+  return lower.endsWith('.png') ||
+      lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg') ||
+      lower.endsWith('.webp') ||
+      lower.endsWith('.gif');
 }

@@ -95,3 +95,8 @@ The CI baseline runs:
 - `flutter build apk --release`
 
 Architecture and provider safety notes live in `docs/architecture/`.
+
+## Release Readiness
+
+Hydrion V1 release validation is tracked in the
+[Hydrion V1 Release Readiness Checklist](docs/release/HYDRION_V1_RELEASE_READINESS_CHECKLIST.md).

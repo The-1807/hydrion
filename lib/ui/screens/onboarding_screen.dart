@@ -31,10 +31,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _healthAcknowledged = false;
   bool _legalReviewReady = false;
   int _legalValidationAttempt = 0;
+  bool _initializedFromSettings = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_initializedFromSettings) {
+      return;
+    }
     final settings = context.read<UserSettingsRepository>().settings;
     _nicknameController.text = settings.nickname ?? _nicknameController.text;
     _ageController.text = settings.age?.toString() ?? _ageController.text;
@@ -45,6 +49,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _goalMode = settings.goalMode;
     _unit = settings.volumeUnit;
     _reusable = settings.reusableContainerEnabled;
+    _step = settings.onboardingCompleted ? 0 : settings.onboardingStep;
+    _initializedFromSettings = true;
   }
 
   @override
@@ -58,28 +64,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _next() async {
     final messenger = ScaffoldMessenger.of(context);
-    if (_step == 1 && !_profileIsValid()) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Enter a nickname up to 32 characters.')),
-      );
+    if (_step == UserSettings.maxOnboardingStep) {
+      await _finish();
       return;
     }
-    if (_step == 6 && !_legalReviewReady) {
-      setState(() => _legalValidationAttempt += 1);
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Open the required legal documents, accept the Terms, and acknowledge the health disclaimer.',
-          ),
-        ),
-      );
+    if (!await _persistCurrentStep(messenger)) {
       return;
     }
-    if (_step < 7) {
-      setState(() => _step += 1);
-      return;
-    }
-    await _finish();
+    await _goToStep(_step + 1);
   }
 
   bool _profileIsValid() {
@@ -88,39 +80,115 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         nickname.length <= UserSettings.maxNicknameLength;
   }
 
-  Future<void> _finish() async {
+  Future<void> _goToStep(int step) async {
+    final nextStep = step.clamp(0, UserSettings.maxOnboardingStep).toInt();
+    await context.read<UserSettingsRepository>().setOnboardingStep(nextStep);
+    if (!mounted) {
+      return;
+    }
+    setState(() => _step = nextStep);
+  }
+
+  Future<bool> _persistCurrentStep(ScaffoldMessengerState messenger) async {
     final repository = context.read<UserSettingsRepository>();
+    switch (_step) {
+      case 0:
+        return true;
+      case 1:
+        if (!_profileIsValid()) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Enter a nickname up to 32 characters.'),
+            ),
+          );
+          return false;
+        }
+        return repository.setProfile(
+          nickname: _nicknameController.text,
+          age: _parsedAge(),
+          sex: _sex,
+        );
+      case 2:
+        return repository.setAvatarId(_avatarId);
+      case 3:
+        await repository.setGoalMode(_goalMode);
+        return true;
+      case 4:
+        return _saveHydrationSetup(repository, messenger);
+      case 5:
+        return true;
+      case 6:
+        if (!_legalReviewReady) {
+          setState(() => _legalValidationAttempt += 1);
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Open the required legal documents, accept the Terms, and acknowledge the health disclaimer.',
+              ),
+            ),
+          );
+          return false;
+        }
+        return true;
+      default:
+        return true;
+    }
+  }
+
+  int? _parsedAge() {
     final ageText = _ageController.text.trim();
-    final age = ageText.isEmpty ? null : int.tryParse(ageText);
+    return ageText.isEmpty ? null : int.tryParse(ageText);
+  }
+
+  Future<bool> _saveHydrationSetup(
+    UserSettingsRepository repository,
+    ScaffoldMessengerState messenger,
+  ) async {
     final goal = int.tryParse(_goalController.text.trim());
     final container = int.tryParse(_containerController.text.trim());
-
     if (goal == null ||
         goal < UserSettings.minDailyGoalMl ||
         goal > UserSettings.maxDailyGoalMl ||
         container == null ||
         container < UserSettings.minContainerSizeMl ||
         container > UserSettings.maxContainerSizeMl) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content:
               Text('Check your goal and container size before continuing.'),
         ),
       );
+      return false;
+    }
+    await repository.setVolumeUnit(_unit);
+    await repository.setDailyGoalMl(goal);
+    await repository.setContainerSizeMl(container);
+    await repository.setReusableContainerEnabled(_reusable);
+    return true;
+  }
+
+  Future<void> _finish() async {
+    final repository = context.read<UserSettingsRepository>();
+    final messenger = ScaffoldMessenger.of(context);
+    if (!_profileIsValid()) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Enter a nickname up to 32 characters.')),
+      );
+      await _goToStep(1);
+      return;
+    }
+    if (!await _saveHydrationSetup(repository, messenger)) {
+      await _goToStep(4);
       return;
     }
 
     await repository.setProfile(
       nickname: _nicknameController.text,
-      age: age,
+      age: _parsedAge(),
       sex: _sex,
     );
     await repository.setAvatarId(_avatarId);
     await repository.setGoalMode(_goalMode);
-    await repository.setVolumeUnit(_unit);
-    await repository.setDailyGoalMl(goal);
-    await repository.setContainerSizeMl(container);
-    await repository.setReusableContainerEnabled(_reusable);
     await repository.completeOnboardingWithLegalReview(
         reviewedAt: DateTime.now());
     if (!mounted) {
@@ -256,68 +324,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _OnboardingPanel(
         icon: Icons.face_outlined,
         title: 'Choose your default avatar',
-        child: GridView.builder(
-          key: const Key('onboarding-avatar-grid'),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: HydrionAvatarManifest.avatars.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.72,
-          ),
-          itemBuilder: (context, index) {
-            final avatar = HydrionAvatarManifest.avatars[index];
-            final selected = avatar.id == _avatarId;
-            return InkWell(
-              key: Key('avatar-${avatar.id}'),
-              onTap: () => setState(() => _avatarId = avatar.id),
-              borderRadius: BorderRadius.circular(8),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    width: selected ? 3 : 1,
-                    color: selected
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).dividerColor,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Image.asset(
-                          avatar.assetPath,
-                          semanticLabel: avatar.displayName,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      Text(
-                        avatar.displayName,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      Text(
-                        'Shark companion',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
-                      Text(
-                        avatar.description,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
+        child: _AvatarSelectionGrid(
+          selectedAvatarId: _avatarId,
+          onSelected: (avatarId) => setState(() => _avatarId = avatarId),
         ),
       ),
       _OnboardingPanel(
@@ -460,6 +469,160 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       HydrionSex.intersex => 'Intersex',
       HydrionSex.preferNotToSay => 'Prefer not to say',
     };
+  }
+}
+
+class _AvatarSelectionGrid extends StatelessWidget {
+  final String selectedAvatarId;
+  final ValueChanged<String> onSelected;
+
+  const _AvatarSelectionGrid({
+    required this.selectedAvatarId,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 620
+            ? 4
+            : constraints.maxWidth >= 440
+                ? 3
+                : 2;
+        return GridView.builder(
+          key: const Key('onboarding-avatar-grid'),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: HydrionAvatarManifest.avatars.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.86,
+          ),
+          itemBuilder: (context, index) {
+            final avatar = HydrionAvatarManifest.avatars[index];
+            return _AvatarChoiceTile(
+              avatar: avatar,
+              selected: avatar.id == selectedAvatarId,
+              onTap: () => onSelected(avatar.id),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _AvatarChoiceTile extends StatelessWidget {
+  final HydrionAvatar avatar;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _AvatarChoiceTile({
+    required this.avatar,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: selected
+          ? '${avatar.displayName} avatar selected'
+          : 'Select ${avatar.displayName} avatar',
+      child: InkWell(
+        key: Key('avatar-${avatar.id}'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              width: selected ? 3 : 1,
+              color: selected ? scheme.primary : Theme.of(context).dividerColor,
+            ),
+            color: selected
+                ? scheme.primaryContainer.withValues(alpha: 0.24)
+                : scheme.surface.withValues(alpha: 0.76),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned.fill(
+                            child: ClipOval(
+                              child: Image.asset(
+                                avatar.assetPath,
+                                semanticLabel: avatar.displayName,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: scheme.surfaceContainerHighest,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.person_outline,
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          if (selected)
+                            Positioned(
+                              top: -2,
+                              right: -2,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: scheme.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(4),
+                                  child: Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  avatar.displayName,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

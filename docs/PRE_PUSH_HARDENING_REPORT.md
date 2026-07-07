@@ -128,12 +128,11 @@ These controls explain availability and do not navigate into incomplete screens.
 - Opening a document does not check a box and does not record acceptance.
 - Legal viewer route has an immediate shell key for stable testing and asynchronous Markdown loading.
 
-## 8. Alpha And Production Validation Copy
+## 8. Legal Validation Copy
 
-- Alpha/beta: `fahhhhhhh!!! open legal pack`
-- Production/stable: `Open the required legal document before continuing.`
+- Alpha/beta/stable: `Open the required legal document before continuing.`
 
-Both are controlled by `HydrionReleaseMetadata`.
+This copy is controlled by `HydrionReleaseMetadata`.
 
 ## 9. Responsive-Layout Corrections
 

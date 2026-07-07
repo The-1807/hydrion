@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/ui/components/hydrion_droplet_loader.dart';
 import 'package:hydrion/ui/screens/startup_screen.dart';
@@ -28,8 +29,24 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byKey(const Key('hydrion-droplet-loader')), findsOneWidget);
-      expect(find.byType(CustomPaint), findsWidgets);
+      expect(
+        find.byKey(const Key('hydrion-shark-lottie-loader')),
+        findsOneWidget,
+      );
     }
+  });
+
+  test('shark dotLottie asset decodes from the bundled animation file',
+      () async {
+    final data = await rootBundle.load(HydrionDropletLoader.sharkAssetPath);
+    final composition = await HydrionDropletLoader.decodeSharkDotLottie(
+      Uint8List.sublistView(data),
+    );
+
+    expect(composition, isNotNull);
+    expect(composition!.durationFrames, greaterThan(0));
+    expect(composition.bounds.width, 200);
+    expect(composition.bounds.height, 200);
   });
 
   testWidgets('droplet progress clamps and exposes useful semantics',
@@ -58,6 +75,7 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('hydrion-droplet-loader')), findsOneWidget);
+    expect(find.byKey(const Key('hydrion-droplet-fallback')), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

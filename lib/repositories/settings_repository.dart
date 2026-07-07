@@ -35,6 +35,7 @@ class UserSettings {
   static const maxContainerSizeMl = 2000;
   static const maxNicknameLength = 32;
   static const maxProfilePhotoBase64Length = 1600000;
+  static const maxOnboardingStep = 7;
 
   final Locale locale;
   final bool nonLocalProviderConsentGranted;
@@ -66,6 +67,7 @@ class UserSettings {
   final DateTime? lastManualGoalEditAt;
   final DateTime? locationPermissionPromptedAt;
   final DateTime? notificationPermissionPromptedAt;
+  final int onboardingStep;
 
   const UserSettings({
     required this.locale,
@@ -98,6 +100,7 @@ class UserSettings {
     this.lastManualGoalEditAt,
     this.locationPermissionPromptedAt,
     this.notificationPermissionPromptedAt,
+    this.onboardingStep = 0,
   });
 
   UserSettings copyWith({
@@ -147,6 +150,7 @@ class UserSettings {
     bool clearLocationPermissionPromptedAt = false,
     DateTime? notificationPermissionPromptedAt,
     bool clearNotificationPermissionPromptedAt = false,
+    int? onboardingStep,
   }) {
     return UserSettings(
       locale: locale ?? this.locale,
@@ -215,6 +219,7 @@ class UserSettings {
           ? null
           : notificationPermissionPromptedAt ??
               this.notificationPermissionPromptedAt,
+      onboardingStep: onboardingStep ?? this.onboardingStep,
     );
   }
 
@@ -274,6 +279,7 @@ class UserSettings {
           locationPermissionPromptedAt?.toIso8601String(),
       'notificationPermissionPromptedAt':
           notificationPermissionPromptedAt?.toIso8601String(),
+      'onboardingStep': onboardingStep,
     };
   }
 
@@ -298,7 +304,7 @@ class UserSettings {
         goalMode: _safeGoalMode(value['goalMode']),
         volumeUnit: _safeVolumeUnit(value['volumeUnit']),
         containerSizeMl: _safeContainerSize(value['containerSizeMl']),
-        onboardingCompleted: value['onboardingCompleted'] == true,
+        onboardingCompleted: _safeOnboardingCompleted(value),
         legalAndHealthAcknowledged: value['legalAndHealthAcknowledged'] == true,
         acceptedTermsVersion: _safeLegalVersion(value['acceptedTermsVersion']),
         acceptedTermsAt: _safeDateTime(value['acceptedTermsAt']),
@@ -326,6 +332,7 @@ class UserSettings {
             _safeDateTime(value['locationPermissionPromptedAt']),
         notificationPermissionPromptedAt:
             _safeDateTime(value['notificationPermissionPromptedAt']),
+        onboardingStep: _safeOnboardingStep(value),
       );
     }
     final countryCode = _countryCode(value['countryCode']);
@@ -343,7 +350,7 @@ class UserSettings {
       goalMode: _safeGoalMode(value['goalMode']),
       volumeUnit: _safeVolumeUnit(value['volumeUnit']),
       containerSizeMl: _safeContainerSize(value['containerSizeMl']),
-      onboardingCompleted: value['onboardingCompleted'] == true,
+      onboardingCompleted: _safeOnboardingCompleted(value),
       legalAndHealthAcknowledged: value['legalAndHealthAcknowledged'] == true,
       acceptedTermsVersion: _safeLegalVersion(value['acceptedTermsVersion']),
       acceptedTermsAt: _safeDateTime(value['acceptedTermsAt']),
@@ -370,7 +377,43 @@ class UserSettings {
           _safeDateTime(value['locationPermissionPromptedAt']),
       notificationPermissionPromptedAt:
           _safeDateTime(value['notificationPermissionPromptedAt']),
+      onboardingStep: _safeOnboardingStep(value),
     );
+  }
+
+  static bool _safeOnboardingCompleted(Map value) {
+    final completed = value['onboardingCompleted'];
+    if (completed is bool) {
+      return completed;
+    }
+    if (value.containsKey('onboardingStep')) {
+      return false;
+    }
+    return _hasLegacyCompletedUserEvidence(value);
+  }
+
+  static bool _hasLegacyCompletedUserEvidence(Map value) {
+    if (value['legalAndHealthAcknowledged'] == true) {
+      return true;
+    }
+    final hasProfile = _safeNickname(value['nickname']) != null;
+    final dailyGoal = value['dailyGoalMl'];
+    final hasValidGoal = dailyGoal is num &&
+        dailyGoal.isFinite &&
+        dailyGoal.round() >= minDailyGoalMl &&
+        dailyGoal.round() <= maxDailyGoalMl;
+    return hasProfile && hasValidGoal;
+  }
+
+  static int _safeOnboardingStep(Map value) {
+    if (_safeOnboardingCompleted(value)) {
+      return 0;
+    }
+    final step = value['onboardingStep'];
+    if (step is! num || !step.isFinite) {
+      return 0;
+    }
+    return step.round().clamp(0, maxOnboardingStep).toInt();
   }
 
   static String? _supportedLanguageCode(Object? value) {
@@ -828,7 +871,18 @@ class UserSettingsRepository extends ChangeNotifier {
           ? _settings.privacyPolicyShownAt ?? now
           : null,
       clearPrivacyPolicyShownAt: !shouldRecordCurrentLegal,
+      onboardingStep: completed ? 0 : _settings.onboardingStep,
     );
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<void> setOnboardingStep(int step) async {
+    final safeStep = step.clamp(0, UserSettings.maxOnboardingStep).toInt();
+    if (_settings.onboardingStep == safeStep) {
+      return;
+    }
+    _settings = _settings.copyWith(onboardingStep: safeStep);
     await _persist();
     notifyListeners();
   }
@@ -848,6 +902,7 @@ class UserSettingsRepository extends ChangeNotifier {
       privacyPolicyVersionShown:
           HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion,
       privacyPolicyShownAt: reviewedAt,
+      onboardingStep: 0,
     );
     await _persist();
     notifyListeners();
@@ -877,7 +932,10 @@ class UserSettingsRepository extends ChangeNotifier {
   }
 
   Future<void> reopenOnboarding() async {
-    _settings = _settings.copyWith(onboardingCompleted: false);
+    _settings = _settings.copyWith(
+      onboardingCompleted: false,
+      onboardingStep: 0,
+    );
     await _persist();
     notifyListeners();
   }

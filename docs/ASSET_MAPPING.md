@@ -107,3 +107,18 @@ and bundle-size notes.
 The new generated image filenames were renamed to stable, neutral filenames.
 Existing shark filenames were preserved because they already have community
 identity and code references.
+
+## Shark Loading Animation
+
+`assets/buffer/Shark.lottie` is the bundled startup/loading animation. Hydrion
+loads it locally through the Flutter `lottie` package and selects
+`animations/12345.json` from the dotLottie archive. If the animation cannot be
+decoded, the native droplet painter remains the static fallback.
+
+Source-page creator and licence evidence are tracked in
+`THIRD_PARTY_NOTICES.md` and
+`docs/third_party/lottiefiles_shark_animation.md`; those fields must be
+completed before this asset is release-approved.
+
+Permanent source reference:
+`https://app.lottiefiles.com/share/a1310b00-ea2c-4d3a-b580-688ad4c56291`.
