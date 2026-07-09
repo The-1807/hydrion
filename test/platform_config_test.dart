@@ -62,7 +62,8 @@ void main() {
     final uiAssets = Directory('assets/UI_BETA').listSync().whereType<File>();
 
     expect(pubspec, contains('assets/UI_BETA/'));
-    expect(pubspec, contains('assets/buffer/'));
+    expect(pubspec, contains('assets/buffer/Shark.json'));
+    expect(pubspec, isNot(contains('assets/buffer/Shark.lottie')));
     expect(pubspec, isNot(contains('assets/pfp_mascot/hpfp/')));
     expect(pubspec, contains('docs/Hydrion_Legal_Pack_Markdown/'));
     expect(humanAssets, isEmpty);

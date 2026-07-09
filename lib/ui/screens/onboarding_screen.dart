@@ -123,7 +123,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           messenger.showSnackBar(
             const SnackBar(
               content: Text(
-                'Open the required legal documents, accept the Terms, and acknowledge the health disclaimer.',
+                'Accept the Terms and acknowledge the health disclaimer to continue.',
               ),
             ),
           );

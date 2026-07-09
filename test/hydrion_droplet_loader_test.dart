@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/ui/components/hydrion_droplet_loader.dart';
 import 'package:hydrion/ui/screens/startup_screen.dart';
+import 'package:lottie/lottie.dart';
 
 void main() {
   Widget loaderHarness({
@@ -37,17 +39,56 @@ void main() {
     }
   });
 
-  test('shark dotLottie asset decodes from the bundled animation file',
-      () async {
+  test('shark JSON asset decodes for the startup animation', () async {
     final data = await rootBundle.load(HydrionDropletLoader.sharkAssetPath);
+    final composition = await LottieComposition.fromByteData(data);
+
+    expect(composition.durationFrames, greaterThan(0));
+    expect(composition.bounds.width, 200);
+    expect(composition.bounds.height, 200);
+  });
+
+  test('source dotLottie asset is retained and decodes', () async {
+    final data = await File(
+      HydrionDropletLoader.sharkSourceAssetPath,
+    ).readAsBytes();
     final composition = await HydrionDropletLoader.decodeSharkDotLottie(
-      Uint8List.sublistView(data),
+      Uint8List.fromList(data),
     );
 
     expect(composition, isNotNull);
     expect(composition!.durationFrames, greaterThan(0));
     expect(composition.bounds.width, 200);
     expect(composition.bounds.height, 200);
+  });
+
+  testWidgets('startup remains mounted while warmup is pending',
+      (tester) async {
+    final warmUp = Completer<void>();
+    await tester.pumpWidget(
+      MaterialApp(
+        routes: {
+          '/': (_) => StartupScreen(
+                warmUp: () => warmUp.future,
+                isOnboardingCompleted: () => true,
+                minimumDuration: const Duration(seconds: 3),
+              ),
+          '/home': (_) => const SizedBox(key: Key('dummy-home')),
+        },
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.byType(StartupScreen), findsOneWidget);
+    expect(find.byKey(const Key('startup-droplet-loader')), findsOneWidget);
+    expect(_hasLoaderOrFallback(tester), isTrue);
+    expect(find.byKey(const Key('dummy-home')), findsNothing);
+
+    warmUp.complete();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('droplet progress clamps and exposes useful semantics',
@@ -136,10 +177,41 @@ void main() {
     expect(find.byKey(const Key('hydrion-bottom-nav')), findsNothing);
 
     await tester.pump(const Duration(seconds: 1));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('hydrion-bottom-nav')), findsOneWidget);
     expect(find.byKey(const Key('startup-droplet-loader')), findsNothing);
+  });
+
+  testWidgets('route handoff waits for the minimum visible duration',
+      (tester) async {
+    final warmUp = Completer<void>();
+    String? selectedRoute;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StartupScreen(
+          warmUp: () => warmUp.future,
+          isOnboardingCompleted: () => true,
+          minimumDuration: const Duration(seconds: 3),
+          onRouteSelected: (route) => selectedRoute = route,
+        ),
+      ),
+    );
+
+    await tester.pump();
+    expect(_hasLoaderOrFallback(tester), isTrue);
+
+    warmUp.complete();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(find.byType(StartupScreen), findsOneWidget);
+    expect(selectedRoute, isNull);
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+
+    expect(selectedRoute, '/home');
   });
 
   testWidgets('startup timeout stops loading and offers recovery actions',
@@ -173,6 +245,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('dummy-home')), findsOneWidget);
   });
+}
+
+bool _hasLoaderOrFallback(WidgetTester tester) {
+  return find
+          .byKey(const Key('hydrion-shark-lottie-loader'))
+          .evaluate()
+          .isNotEmpty ||
+      find.byKey(const Key('hydrion-droplet-fallback')).evaluate().isNotEmpty ||
+      find.byKey(const Key('startup-mascot')).evaluate().isNotEmpty;
 }
 
 Semantics _dropletSemantics(WidgetTester tester) {

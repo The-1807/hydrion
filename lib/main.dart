@@ -44,9 +44,11 @@ import 'ui/theme/hydrion_design.dart';
 import 'storage/local_store.dart';
 import 'utils/i18n_resolver.dart';
 import 'utils/permissions.dart';
+import 'utils/startup_trace.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HydrionStartupTrace.log('Dart main() reached');
   runApp(const HydrionBootstrapApp());
 }
 
@@ -73,16 +75,19 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
   @override
   void initState() {
     super.initState();
+    HydrionStartupTrace.log('HydrionBootstrapApp.initState');
     _servicesFuture = (widget.servicesLoader ?? HydrionServices.local)();
   }
 
   Future<void> _loadServicesAndWarmUp() async {
+    HydrionStartupTrace.log('HydrionBootstrapApp.warmup started');
     final services = await _servicesFuture;
     _loadedServices = services;
     await Future.wait([
       services.hydrationSummaryService.getHydrationSummary(),
       services.hydrationContextProvider.getHydrationContext(),
     ]);
+    HydrionStartupTrace.log('HydrionBootstrapApp.warmup complete');
   }
 
   String _routeFor(HydrionServices services) {
@@ -106,6 +111,10 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
     if (services == null || !mounted) {
       return;
     }
+    HydrionStartupTrace.log(
+      'HydrionBootstrapApp.route handoff accepted',
+      data: {'route': route},
+    );
     setState(() {
       _services = services;
       _initialRoute = route;

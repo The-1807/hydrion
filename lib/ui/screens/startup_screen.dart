@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/avatar_manifest.dart';
 import '../../domain/release_metadata.dart';
+import '../../utils/startup_trace.dart';
 import '../components/hydrion_droplet_loader.dart';
 
 class StartupScreen extends StatefulWidget {
@@ -35,14 +36,24 @@ class _StartupScreenState extends State<StartupScreen>
   final ValueNotifier<double> _startupProgress = ValueNotifier<double>(0);
   String? _recoverableError;
   int _startupRun = 0;
+  Completer<DateTime> _loaderVisible = Completer<DateTime>();
+  bool _loggedFirstFrame = false;
 
   @override
   void initState() {
     super.initState();
+    HydrionStartupTrace.log('StartupScreen.initState');
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _loggedFirstFrame) {
+        return;
+      }
+      _loggedFirstFrame = true;
+      HydrionStartupTrace.log('first Flutter frame painted');
+    });
     unawaited(_start());
   }
 
@@ -56,7 +67,7 @@ class _StartupScreenState extends State<StartupScreen>
   Future<void> _start() async {
     final run = _startupRun + 1;
     _startupRun = run;
-    final startedAt = DateTime.now();
+    _loaderVisible = Completer<DateTime>();
     setState(() {
       _recoverableError = null;
     });
@@ -71,7 +82,8 @@ class _StartupScreenState extends State<StartupScreen>
       if (!mounted) {
         return;
       }
-      await _waitForMinimumDuration(startedAt);
+      final visibleAt = await _waitForLoaderVisible(run);
+      await _waitForMinimumDuration(visibleAt);
       if (!mounted || _startupRun != run) {
         return;
       }
@@ -109,6 +121,39 @@ class _StartupScreenState extends State<StartupScreen>
     await widget.warmUp();
   }
 
+  Future<DateTime> _waitForLoaderVisible(int run) async {
+    if (!_loaderVisible.isCompleted) {
+      HydrionStartupTrace.log('waiting for loader/fallback visible frame');
+    }
+    final visibleAt = await _loaderVisible.future;
+    HydrionStartupTrace.log(
+      'loader/fallback visible gate satisfied',
+      data: {'run': run},
+    );
+    return visibleAt;
+  }
+
+  void _handleLoaderVisualState(HydrionLoaderVisualState state) {
+    final event = switch (state) {
+      HydrionLoaderVisualState.fallbackShown => 'loader fallback shown',
+      HydrionLoaderVisualState.lottieLoaded => 'loader asset loaded',
+    };
+    HydrionStartupTrace.log(event);
+    if (!_loaderVisible.isCompleted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _loaderVisible.isCompleted) {
+          return;
+        }
+        final now = DateTime.now();
+        _loaderVisible.complete(now);
+        HydrionStartupTrace.log(
+          'loader/fallback visible gate started',
+          data: {'source': state.name},
+        );
+      });
+    }
+  }
+
   void _setStartupProgress(double progress, int run) {
     if (!mounted || _startupRun != run || _recoverableError != null) {
       return;
@@ -135,6 +180,8 @@ class _StartupScreenState extends State<StartupScreen>
   void _goNext() {
     final route = widget.nextRoute?.call() ??
         (widget.isOnboardingCompleted() ? '/home' : '/onboarding');
+    HydrionStartupTrace.log('StartupScreen.route handoff',
+        data: {'route': route});
     final onRouteSelected = widget.onRouteSelected;
     if (onRouteSelected != null) {
       onRouteSelected(route);
@@ -175,6 +222,7 @@ class _StartupScreenState extends State<StartupScreen>
                                   progress: progress,
                                   reducedMotion: disableAnimations,
                                   hasError: error != null,
+                                  onLoaderVisualState: _handleLoaderVisualState,
                                 );
                               },
                             ),
@@ -275,12 +323,14 @@ class _StartupScene extends StatelessWidget {
   final double progress;
   final bool reducedMotion;
   final bool hasError;
+  final ValueChanged<HydrionLoaderVisualState> onLoaderVisualState;
 
   const _StartupScene({
     required this.controller,
     required this.progress,
     required this.reducedMotion,
     required this.hasError,
+    required this.onLoaderVisualState,
   });
 
   @override
@@ -343,6 +393,7 @@ class _StartupScene extends StatelessWidget {
                           progress: clampedProgress,
                           size: 112,
                           reducedMotion: reducedMotion || hasError,
+                          onVisualStateChanged: onLoaderVisualState,
                         ),
                       ),
                     ),
@@ -363,11 +414,16 @@ class _StaticMascot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      HydrionAvatarManifest.mascotAssetPath,
+    return SizedBox.square(
       key: const Key('startup-mascot'),
-      semanticLabel: 'Hydrion mascot',
-      fit: BoxFit.contain,
+      dimension: 118,
+      child: ClipOval(
+        child: Image.asset(
+          HydrionAvatarManifest.mascotAssetPath,
+          semanticLabel: 'Hydrion mascot',
+          fit: BoxFit.cover,
+        ),
+      ),
     );
   }
 }

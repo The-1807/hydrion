@@ -110,10 +110,11 @@ identity and code references.
 
 ## Shark Loading Animation
 
-`assets/buffer/Shark.lottie` is the bundled startup/loading animation. Hydrion
-loads it locally through the Flutter `lottie` package and selects
-`animations/12345.json` from the dotLottie archive. If the animation cannot be
-decoded, the native droplet painter remains the static fallback.
+`assets/buffer/Shark.json` is the bundled runtime startup/loading animation.
+Hydrion loads it locally through the Flutter `lottie` package. The original
+downloaded `assets/buffer/Shark.lottie` file is retained as source evidence. If
+the animation cannot be decoded, the native droplet painter and startup mascot
+remain the static fallback.
 
 Source-page creator and licence evidence are tracked in
 `THIRD_PARTY_NOTICES.md` and

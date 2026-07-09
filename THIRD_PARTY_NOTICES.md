@@ -7,7 +7,7 @@ license terms.
 ## LottieFiles Shark Loading Animation
 
 - **Asset name:** Hydrion shark loading animation
-- **Bundled asset:** `assets/buffer/Shark.lottie`
+- **Runtime asset:** `assets/buffer/Shark.json`
 - **Original downloaded file retained at:** `assets/buffer/Shark.lottie`
 - **Permanent source reference:** https://app.lottiefiles.com/share/a1310b00-ea2c-4d3a-b580-688ad4c56291
 - **Source platform:** LottieFiles
@@ -31,15 +31,16 @@ license terms.
   not required. This is not a substitute for animation-specific evidence if the
   share page or account workspace shows a different licence state.
 - **Modifications in Hydrion:** None to the downloaded `.lottie` file; Hydrion
-  only selects `animations/12345.json` from the local dotLottie bundle at
-  runtime
+  extracts `animations/12345.json` into `assets/buffer/Shark.json` for the
+  first-frame-critical startup path
 - **Runtime use:** Startup/loading animation, bundled locally for offline use
   and to avoid loading from the LottieFiles CDN
 - **Hosted source comparison:** The recovered share page currently preloads
   `https://lottie.host/16b69e12-0efb-4061-b33d-12dc2b93fd84/Ax2k12jKRd.lottie`,
   whose SHA-256 differs from the bundled file. Treat the share page as source
   reference evidence, not proof that the current hosted binary is identical to
-  `assets/buffer/Shark.lottie`.
+  `assets/buffer/Shark.lottie`; Hydrion retains that file as the source
+  original and loads `assets/buffer/Shark.json` at runtime.
 - **Production approval:** Pending creator identity and animation-specific
   licence evidence review.
 
@@ -56,7 +57,7 @@ wording with:
 ## lottie Flutter Package
 
 - **Package:** `lottie`
-- **Purpose:** Renders the bundled dotLottie loading animation from local app
+- **Purpose:** Renders the bundled JSON Lottie startup animation from local app
   assets.
 - **Source:** https://pub.dev/packages/lottie
 - **Licence:** MIT License, as published with the package.

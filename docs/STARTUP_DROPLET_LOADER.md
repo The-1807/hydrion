@@ -1,12 +1,12 @@
 # Hydrion Startup Loading Animation
 
-Status: implemented with the bundled shark dotLottie asset and native fallback
-for v1 owner review.
+Status: implemented with a bundled shark JSON Lottie runtime asset and native
+fallback for v1 owner review.
 
 ## Architecture
 
 `HydrionDropletLoader` is a reusable Flutter widget that renders the bundled
-`assets/buffer/Shark.lottie` animation with the `lottie` package. It keeps the
+`assets/buffer/Shark.json` animation with the `lottie` package. It keeps the
 existing native droplet painter as a static fallback for reduced-motion users,
 loading placeholders, and asset/decode failures. It does not load animation
 data from the LottieFiles CDN.
@@ -29,12 +29,12 @@ Startup does not add a fixed splash delay. The loader remains visible while the
 real warmup future is pending, then waits for the current frame boundary before
 routing so a quick startup does not block on decoration.
 
-## dotLottie Asset
+## Lottie Asset
 
-The bundled file is a dotLottie ZIP archive containing `manifest.json` and
-`animations/12345.json`. The `lottie` package's default ZIP decoder would find
-`manifest.json` first, so Hydrion provides a decoder that selects the animation
-JSON directly.
+The original downloaded `assets/buffer/Shark.lottie` dotLottie ZIP is retained
+as source evidence. Runtime startup uses the extracted
+`assets/buffer/Shark.json` animation so the first-frame-critical loader path
+does not depend on ZIP selection during launch.
 
 ## Droplet Fallback
 

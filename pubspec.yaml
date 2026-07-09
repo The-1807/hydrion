@@ -35,7 +35,7 @@ flutter:
   assets:
     - assets/icons/icon1807.jpg
     - assets/UI_BETA/
-    - assets/buffer/
+    - assets/buffer/Shark.json
     - assets/pfp_mascot/hydrion_mascot.jpg
     - assets/pfp_mascot/pfp/
     - config/

@@ -193,7 +193,7 @@ class _LegalReviewScreenState extends State<LegalReviewScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Open the required legal documents, accept the Terms, and acknowledge the health disclaimer.',
+            'Accept the Terms and acknowledge the health disclaimer to continue.',
           ),
         ),
       );
@@ -340,7 +340,7 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Hydrion is a general wellness tracker. Review the documents below before continuing. The Privacy Policy is a notice, not a contract checkbox.',
+            'Hydrion is a general wellness tracker. The documents remain available below; checking the boxes records your acceptance and acknowledgement.',
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -435,13 +435,6 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
   }
 
   void _setTermsAccepted(bool value) {
-    if (value && !_hasOpened(HydrionLegalDocumentRegistry.terms)) {
-      _blockDocument(
-        HydrionLegalDocumentRegistry.terms,
-        errorKey: 'terms',
-      );
-      return;
-    }
     setState(() {
       _inlineErrors.remove('terms');
     });
@@ -450,13 +443,6 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
   }
 
   void _setHealthAcknowledged(bool value) {
-    if (value && !_hasOpened(HydrionLegalDocumentRegistry.health)) {
-      _blockDocument(
-        HydrionLegalDocumentRegistry.health,
-        errorKey: 'health',
-      );
-      return;
-    }
     setState(() {
       _inlineErrors.remove('health');
     });
@@ -464,42 +450,21 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
     _emitReadiness(healthAcknowledged: value);
   }
 
-  void _blockDocument(
-    HydrionLegalDocument document, {
-    required String errorKey,
-  }) {
-    HapticFeedback.selectionClick();
-    final message = HydrionReleaseMetadata.legalDocumentOpenRequiredMessageFor(
-      _buildStage,
-    );
-    setState(() {
-      _highlightedDocumentId = document.id;
-      _inlineErrors[errorKey] = message;
-    });
-  }
-
   void _validateAllRequiredDocuments() {
-    final missing = _requiredDocuments
-        .where((document) => !_hasOpened(document))
-        .map((document) => document.title)
-        .toList();
-    final message = HydrionReleaseMetadata.legalDocumentOpenRequiredMessageFor(
-      _buildStage,
-    );
     setState(() {
-      if (missing.isNotEmpty) {
-        _highlightedDocumentId = _requiredDocuments
-            .firstWhere((document) => !_hasOpened(document))
-            .id;
-        _inlineErrors['review'] = '$message (${missing.join(', ')})';
-      } else {
-        _inlineErrors.remove('review');
-      }
+      _highlightedDocumentId = null;
+      _inlineErrors.remove('review');
       if (!widget.termsAccepted) {
-        _inlineErrors.putIfAbsent('terms', () => message);
+        _inlineErrors.putIfAbsent(
+          'terms',
+          () => 'Check this box to accept the current Terms.',
+        );
       }
       if (!widget.healthAcknowledged) {
-        _inlineErrors.putIfAbsent('health', () => message);
+        _inlineErrors.putIfAbsent(
+          'health',
+          () => 'Check this box to acknowledge the health disclaimer.',
+        );
       }
     });
   }
@@ -517,8 +482,7 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
     bool? healthAcknowledged,
   }) {
     return (termsAccepted ?? widget.termsAccepted) &&
-        (healthAcknowledged ?? widget.healthAcknowledged) &&
-        _requiredDocuments.every(_hasOpened);
+        (healthAcknowledged ?? widget.healthAcknowledged);
   }
 
   void _emitReadiness({

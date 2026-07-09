@@ -4,8 +4,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
+enum HydrionLoaderVisualState {
+  fallbackShown,
+  lottieLoaded,
+}
+
 class HydrionDropletLoader extends StatelessWidget {
-  static const sharkAssetPath = 'assets/buffer/Shark.lottie';
+  static const sharkAssetPath = 'assets/buffer/Shark.json';
+  static const sharkSourceAssetPath = 'assets/buffer/Shark.lottie';
   static const sharkAnimationId = '12345';
   static const sharkAnimationName = 'animals 3';
 
@@ -13,6 +19,7 @@ class HydrionDropletLoader extends StatelessWidget {
   final double size;
   final bool reducedMotion;
   final String? semanticLabel;
+  final ValueChanged<HydrionLoaderVisualState>? onVisualStateChanged;
 
   const HydrionDropletLoader({
     super.key,
@@ -20,6 +27,7 @@ class HydrionDropletLoader extends StatelessWidget {
     this.size = 96,
     this.reducedMotion = false,
     this.semanticLabel,
+    this.onVisualStateChanged,
   });
 
   static double clampProgress(double value) {
@@ -73,6 +81,7 @@ class HydrionDropletLoader extends StatelessWidget {
                 progress: smoothProgress,
                 size: size,
                 reducedMotion: reducedMotion,
+                onVisualStateChanged: onVisualStateChanged,
               ),
             );
           },
@@ -86,11 +95,13 @@ class _HydrionLoaderVisual extends StatelessWidget {
   final double progress;
   final double size;
   final bool reducedMotion;
+  final ValueChanged<HydrionLoaderVisualState>? onVisualStateChanged;
 
   const _HydrionLoaderVisual({
     required this.progress,
     required this.size,
     required this.reducedMotion,
+    this.onVisualStateChanged,
   });
 
   @override
@@ -100,6 +111,9 @@ class _HydrionLoaderVisual extends StatelessWidget {
         progress: progress,
         size: size,
         reducedMotion: true,
+        onVisible: () => onVisualStateChanged?.call(
+          HydrionLoaderVisualState.fallbackShown,
+        ),
       );
     }
 
@@ -108,6 +122,9 @@ class _HydrionLoaderVisual extends StatelessWidget {
       progress: progress,
       size: size,
       reducedMotion: true,
+      onVisible: () => onVisualStateChanged?.call(
+        HydrionLoaderVisualState.fallbackShown,
+      ),
     );
 
     return Lottie.asset(
@@ -118,7 +135,9 @@ class _HydrionLoaderVisual extends StatelessWidget {
       fit: BoxFit.contain,
       animate: !complete,
       repeat: !complete,
-      decoder: HydrionDropletLoader.decodeSharkDotLottie,
+      onLoaded: (_) => onVisualStateChanged?.call(
+        HydrionLoaderVisualState.lottieLoaded,
+      ),
       frameBuilder: (context, child, composition) {
         if (composition == null) {
           return fallback;
@@ -134,25 +153,62 @@ class _HydrionDropletFallback extends StatelessWidget {
   final double progress;
   final double size;
   final bool reducedMotion;
+  final VoidCallback? onVisible;
 
   const _HydrionDropletFallback({
     required this.progress,
     required this.size,
     required this.reducedMotion,
+    this.onVisible,
   });
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      key: const Key('hydrion-droplet-fallback'),
-      size: Size.square(size),
-      painter: _HydrionDropletPainter(
-        progress: progress,
-        wavePhase: 0,
-        reducedMotion: reducedMotion,
+    return _VisibleOnce(
+      onVisible: onVisible,
+      child: CustomPaint(
+        key: const Key('hydrion-droplet-fallback'),
+        size: Size.square(size),
+        painter: _HydrionDropletPainter(
+          progress: progress,
+          wavePhase: 0,
+          reducedMotion: reducedMotion,
+        ),
       ),
     );
   }
+}
+
+class _VisibleOnce extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onVisible;
+
+  const _VisibleOnce({
+    required this.child,
+    this.onVisible,
+  });
+
+  @override
+  State<_VisibleOnce> createState() => _VisibleOnceState();
+}
+
+class _VisibleOnceState extends State<_VisibleOnce> {
+  bool _notified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _notified) {
+        return;
+      }
+      _notified = true;
+      widget.onVisible?.call();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _HydrionDropletPainter extends CustomPainter {

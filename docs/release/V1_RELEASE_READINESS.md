@@ -12,8 +12,10 @@ Legacy settings records that lack `onboardingCompleted` but contain completed
 user evidence are migrated as completed users and routed to focused legal
 review when current legal versions are missing.
 
-Startup uses the bundled local `assets/buffer/Shark.lottie` asset through the
-Flutter `lottie` package. The recovered permanent LottieFiles share URL is
+Startup uses the bundled local `assets/buffer/Shark.json` runtime asset through
+the Flutter `lottie` package. The original downloaded
+`assets/buffer/Shark.lottie` file is retained as source evidence. The recovered
+permanent LottieFiles share URL is
 `https://app.lottiefiles.com/share/a1310b00-ea2c-4d3a-b580-688ad4c56291`.
 Static share-page inspection did not expose creator identity or
 animation-specific licence wording; production approval remains blocked until

@@ -221,7 +221,7 @@ void main() {
     expect(find.text('Document unavailable'), findsOneWidget);
   });
 
-  testWidgets('legal checkbox is blocked until document version is opened',
+  testWidgets('legal checkboxes can be accepted without opening documents',
       (tester) async {
     await _pumpLegalPanel(tester);
 
@@ -239,13 +239,30 @@ void main() {
             find.byKey(const Key('onboarding-terms-accept')),
           )
           .value,
-      isFalse,
+      isTrue,
     );
     expect(
       find.text('Open the required legal document before continuing.'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('Terms of Use opened'), findsNothing);
+
+    tester
+        .widget<CheckboxListTile>(
+          find.byKey(const Key('onboarding-health-ack')),
+        )
+        .onChanged
+        ?.call(true);
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const Key('onboarding-health-ack')),
+          )
+          .value,
+      isTrue,
+    );
   });
 
   testWidgets('opening a legal document does not check acceptance',
@@ -292,7 +309,8 @@ void main() {
     );
   });
 
-  testWidgets('production legal gate uses restrained copy', (tester) async {
+  testWidgets('production legal gate accepts acknowledgement without doc open',
+      (tester) async {
     await _pumpLegalPanel(
       tester,
       buildStage: HydrionBuildStage.production,
@@ -308,7 +326,15 @@ void main() {
 
     expect(
       find.text('Open the required legal document before continuing.'),
-      findsOneWidget,
+      findsNothing,
+    );
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const Key('onboarding-health-ack')),
+          )
+          .value,
+      isTrue,
     );
   });
 
@@ -337,8 +363,11 @@ void main() {
     );
 
     await tester.pumpWidget(HydrionApp(services: services));
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pump();
+    await _pumpUntilFound(
+      tester,
+      find.text('Review Hydrion terms'),
+      timeout: const Duration(seconds: 8),
+    );
 
     expect(find.text('Review Hydrion terms'), findsOneWidget);
     await tester.tap(find.byKey(const Key('legal-open-health')));

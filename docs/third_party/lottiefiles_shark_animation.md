@@ -3,7 +3,7 @@
 ## Asset Record
 
 - **Asset name:** Hydrion shark loading animation
-- **Bundled asset:** `assets/buffer/Shark.lottie`
+- **Runtime asset:** `assets/buffer/Shark.json`
 - **Original downloaded file retained at:** `assets/buffer/Shark.lottie`
 - **Permanent LottieFiles share URL:** https://app.lottiefiles.com/share/a1310b00-ea2c-4d3a-b580-688ad4c56291
 - **Source platform:** LottieFiles
@@ -42,7 +42,8 @@
 
 - Hydrion bundles the animation locally in `assets/buffer/` instead of loading
   it from the LottieFiles CDN.
-- Runtime code selects `animations/12345.json` from the dotLottie bundle.
+- Runtime code loads `assets/buffer/Shark.json`, extracted from
+  `animations/12345.json` in the retained dotLottie source bundle.
 - No modification has been made to the downloaded `.lottie` file.
 - In-app credit is shown under Settings -> About Hydrion -> Credits and
   licences via the existing About & Legal screen.
