@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrion/main.dart';
 import 'package:hydrion/ui/components/hydrion_droplet_loader.dart';
 import 'package:hydrion/ui/screens/startup_screen.dart';
 
@@ -105,6 +106,40 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('dummy-home')), findsOneWidget);
+  });
+
+  testWidgets('bootstrap shows shark loader while services warm up',
+      (tester) async {
+    final services = HydrionServices.memory();
+    await services.settingsRepository.completeOnboardingWithLegalReview(
+      reviewedAt: DateTime(2026, 7, 9),
+    );
+    final servicesReady = Completer<HydrionServices>();
+
+    await tester.pumpWidget(
+      HydrionBootstrapApp(
+        startupMinimumDuration: const Duration(seconds: 3),
+        servicesLoader: () => servicesReady.future,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('startup-droplet-loader')), findsOneWidget);
+    expect(
+      find.byKey(const Key('hydrion-shark-lottie-loader')),
+      findsOneWidget,
+    );
+
+    servicesReady.complete(services);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byKey(const Key('startup-droplet-loader')), findsOneWidget);
+    expect(find.byKey(const Key('hydrion-bottom-nav')), findsNothing);
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+
+    expect(find.byKey(const Key('hydrion-bottom-nav')), findsOneWidget);
+    expect(find.byKey(const Key('startup-droplet-loader')), findsNothing);
   });
 
   testWidgets('startup timeout stops loading and offers recovery actions',

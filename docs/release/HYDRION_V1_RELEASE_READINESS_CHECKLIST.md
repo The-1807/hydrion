@@ -649,8 +649,8 @@
 - [ ] Every completed V1 story satisfies its acceptance criteria.
 - [ ] Every open release-blocking defect is resolved.
 - [ ] Remaining open issues are classified as post-V1 or non-blocking.
-- [ ] Kanban cards match actual repository implementation status.
-- [ ] Product stories remain separate from technical child issues where appropriate.
+- [x] Kanban cards match actual repository implementation status.
+- [x] Product stories remain separate from technical child issues where appropriate.
 - [ ] V1 release notes match completed work.
 - [ ] The final release commit is identified.
 - [ ] The release tag is created from the correct commit.

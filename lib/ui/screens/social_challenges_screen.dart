@@ -33,29 +33,24 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
       targetMlOverride: settings.dailyGoalMl,
     );
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: widget.embedded
-          ? null
-          : AppBar(
-              title: Text(l10n.challengesTitle),
-              centerTitle: true,
-            ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
-        children: [
-          _ChallengeHero(
-            localModeLabel: capabilities.socialSync
-                ? l10n.socialChallengeCapabilityReported
-                : l10n.localChallengeMode,
-            localModeBody: capabilities.socialSync
-                ? l10n.socialCapabilityNoAdapter
-                : l10n.socialSyncNotConnected,
-            activeChallenge: activeChallenge,
-            progress: progress,
-            sex: settings.sex,
-          ),
-          const SizedBox(height: 16),
+    final mediaPadding = MediaQuery.paddingOf(context);
+    final bottomPadding = widget.embedded ? 96.0 + mediaPadding.bottom : 28.0;
+    final listView = ListView(
+      padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPadding),
+      children: [
+        _ChallengeHero(
+          localModeLabel: capabilities.socialSync
+              ? l10n.socialChallengeCapabilityReported
+              : l10n.localChallengeMode,
+          localModeBody: capabilities.socialSync
+              ? l10n.socialCapabilityNoAdapter
+              : l10n.socialSyncNotConnected,
+          activeChallenge: activeChallenge,
+          progress: progress,
+          sex: settings.sex,
+        ),
+        const SizedBox(height: 16),
+        if (activeChallenge?.id == 'bottle-bingo') ...[
           _BottleBingoBoard(
             activeChallenge: activeChallenge,
             progress: progress,
@@ -64,37 +59,54 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             onReset: () => _confirmBottleBingoReset(context),
           ),
           const SizedBox(height: 16),
-          const HydrionSurface(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.health_and_safety_outlined),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(HydrionChallengeCatalog.safetyNote),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (activeChallenge == null) ...[
-            _NoChallengeCard(
-              title: l10n.noActiveChallengeYet,
-              body: l10n.joinLocalChallengeDescription,
-            ),
-            const SizedBox(height: 12),
-          ],
-          for (final challenge in HydrionChallengeCatalog.challenges) ...[
-            _ChallengeCard(
-              challenge: challenge,
-              challengeRepository: challengeRepository,
-              hydrationRepository: hydrationRepository,
-              targetMl: settings.dailyGoalMl,
-            ),
-            const SizedBox(height: 12),
-          ],
         ],
-      ),
+        const HydrionSurface(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.health_and_safety_outlined),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(HydrionChallengeCatalog.safetyNote),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (activeChallenge == null) ...[
+          _NoChallengeCard(
+            title: l10n.noActiveChallengeYet,
+            body: l10n.joinLocalChallengeDescription,
+          ),
+          const SizedBox(height: 12),
+        ],
+        for (final challenge in HydrionChallengeCatalog.challenges) ...[
+          _ChallengeCard(
+            challenge: challenge,
+            challengeRepository: challengeRepository,
+            hydrationRepository: hydrationRepository,
+            targetMl: settings.dailyGoalMl,
+          ),
+          const SizedBox(height: 12),
+        ],
+      ],
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: Text(l10n.challengesTitle),
+              centerTitle: true,
+            ),
+      body: widget.embedded
+          ? SafeArea(
+              top: true,
+              bottom: false,
+              child: listView,
+            )
+          : listView,
     );
   }
 
@@ -179,11 +191,16 @@ class _ChallengeHero extends StatelessWidget {
                         ),
                   ),
                 ),
-                Image.asset(
-                  scene.assetPath,
-                  height: 88,
-                  fit: BoxFit.contain,
-                  semanticLabel: scene.description,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(HydrionRadii.md),
+                  child: SizedBox.square(
+                    dimension: 88,
+                    child: Image.asset(
+                      scene.assetPath,
+                      fit: BoxFit.cover,
+                      semanticLabel: scene.description,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -525,13 +542,7 @@ class _ChallengeCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            l10n.challengeDetails(
-              description: challenge.description,
-              targetMl: targetMl,
-              durationDays: challenge.durationDays,
-            ),
-          ),
+          Text(challenge.description),
           const SizedBox(height: 8),
           Text(
             challenge.dailyTask,
@@ -586,34 +597,48 @@ class _ChallengeCard extends StatelessWidget {
                   label: const Text('Leave'),
                 )
               else
-                FilledButton.icon(
-                  key: Key('join-${challenge.id}'),
-                  onPressed: hasOtherActive
-                      ? null
-                      : () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          await challengeRepository.join(
-                            id: challenge.id,
-                            name: challenge.name,
-                            description: challenge.description,
-                            targetMl: targetMl,
-                            durationDays: challenge.durationDays,
-                          );
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                l10n.challengeJoinedLocally(
-                                  message: l10n.challengeJoined,
+                Tooltip(
+                  message: hasOtherActive
+                      ? 'Leave the active challenge before joining another.'
+                      : l10n.join,
+                  child: FilledButton.icon(
+                    key: Key('join-${challenge.id}'),
+                    onPressed: hasOtherActive
+                        ? null
+                        : () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            await challengeRepository.join(
+                              id: challenge.id,
+                              name: challenge.name,
+                              description: challenge.description,
+                              targetMl: targetMl,
+                              durationDays: challenge.durationDays,
+                            );
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.challengeJoinedLocally(
+                                    message: l10n.challengeJoined,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                  icon: const Icon(Icons.play_arrow),
-                  label: Text(hasOtherActive ? 'One active' : l10n.join),
+                            );
+                          },
+                    icon: const Icon(Icons.play_arrow),
+                    label: Text(
+                      hasOtherActive ? 'Leave current first' : l10n.join,
+                    ),
+                  ),
                 ),
             ],
           ),
+          if (hasOtherActive && !joined) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Leave the active challenge before joining another.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ],
       ),
     );

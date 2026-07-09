@@ -142,7 +142,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('No active challenge yet'), findsOneWidget);
-    expect(find.byKey(const Key('bottle-bingo-board')), findsOneWidget);
+    expect(find.byKey(const Key('bottle-bingo-board')), findsNothing);
   });
 
   testWidgets('fallback-only actions are gated and labeled', (tester) async {
@@ -272,6 +272,44 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(services.challengeRepository.activeChallenge, isNotNull);
+  });
+
+  testWidgets('Bottle Bingo board appears only after joining Bottle Bingo',
+      (tester) async {
+    final services = HydrionServices.memory();
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    await openTab(tester, const Key('nav-challenges'));
+    expect(find.byKey(const Key('bottle-bingo-board')), findsNothing);
+
+    final joinBottleBingo = find.byKey(const Key('join-bottle-bingo'));
+    await tester.scrollUntilVisible(
+      joinBottleBingo,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(joinBottleBingo);
+    await tester.pumpAndSettle();
+    await tester.tap(joinBottleBingo);
+    await tester.pumpAndSettle();
+
+    expect(services.challengeRepository.activeChallenge?.id, 'bottle-bingo');
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('bottle-bingo-tile-1')),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('bottle-bingo-board')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('bottle-bingo-tile-1')));
+    await tester.pumpAndSettle();
+    expect(
+      services.challengeRepository.activeChallenge?.bottleBingoCompletedTiles,
+      contains(1),
+    );
   });
 
   testWidgets(

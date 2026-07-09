@@ -515,11 +515,16 @@ class _HeroHydrationScene extends StatelessWidget {
                 const SizedBox(width: 12),
                 Transform.rotate(
                   angle: _companionTilt(companion.mood),
-                  child: Image.asset(
-                    avatar.assetPath,
-                    key: const Key('home-logo'),
-                    height: 116,
-                    semanticLabel: avatar.displayName,
+                  child: ClipOval(
+                    child: SizedBox.square(
+                      dimension: 116,
+                      child: Image.asset(
+                        avatar.assetPath,
+                        key: const Key('home-logo'),
+                        fit: BoxFit.cover,
+                        semanticLabel: avatar.displayName,
+                      ),
+                    ),
                   ),
                 ),
               ],

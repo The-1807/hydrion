@@ -11,6 +11,7 @@ class StartupScreen extends StatefulWidget {
   final Future<void> Function() warmUp;
   final bool Function() isOnboardingCompleted;
   final String Function()? nextRoute;
+  final ValueChanged<String>? onRouteSelected;
   final Duration minimumDuration;
   final Duration timeout;
 
@@ -19,6 +20,7 @@ class StartupScreen extends StatefulWidget {
     required this.warmUp,
     required this.isOnboardingCompleted,
     this.nextRoute,
+    this.onRouteSelected,
     this.minimumDuration = Duration.zero,
     this.timeout = const Duration(seconds: 6),
   });
@@ -54,6 +56,7 @@ class _StartupScreenState extends State<StartupScreen>
   Future<void> _start() async {
     final run = _startupRun + 1;
     _startupRun = run;
+    final startedAt = DateTime.now();
     setState(() {
       _recoverableError = null;
     });
@@ -66,6 +69,10 @@ class _StartupScreenState extends State<StartupScreen>
         _setStartupProgress(0.72, run);
       });
       if (!mounted) {
+        return;
+      }
+      await _waitForMinimumDuration(startedAt);
+      if (!mounted || _startupRun != run) {
         return;
       }
       _setStartupProgress(1, run);
@@ -114,9 +121,25 @@ class _StartupScreenState extends State<StartupScreen>
     unawaited(_start());
   }
 
+  Future<void> _waitForMinimumDuration(DateTime startedAt) async {
+    if (widget.minimumDuration <= Duration.zero) {
+      return;
+    }
+    final elapsed = DateTime.now().difference(startedAt);
+    final remaining = widget.minimumDuration - elapsed;
+    if (remaining > Duration.zero) {
+      await Future<void>.delayed(remaining);
+    }
+  }
+
   void _goNext() {
     final route = widget.nextRoute?.call() ??
         (widget.isOnboardingCompleted() ? '/home' : '/onboarding');
+    final onRouteSelected = widget.onRouteSelected;
+    if (onRouteSelected != null) {
+      onRouteSelected(route);
+      return;
+    }
     Navigator.of(context).pushReplacementNamed(route);
   }
 

@@ -47,18 +47,167 @@ import 'utils/permissions.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final services = await HydrionServices.local();
-  runApp(HydrionApp(services: services));
+  runApp(const HydrionBootstrapApp());
+}
+
+class HydrionBootstrapApp extends StatefulWidget {
+  final Future<HydrionServices> Function()? servicesLoader;
+  final Duration startupMinimumDuration;
+
+  const HydrionBootstrapApp({
+    super.key,
+    this.servicesLoader,
+    this.startupMinimumDuration = const Duration(seconds: 3),
+  });
+
+  @override
+  State<HydrionBootstrapApp> createState() => _HydrionBootstrapAppState();
+}
+
+class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
+  late final Future<HydrionServices> _servicesFuture;
+  HydrionServices? _loadedServices;
+  HydrionServices? _services;
+  String _initialRoute = '/home';
+
+  @override
+  void initState() {
+    super.initState();
+    _servicesFuture = (widget.servicesLoader ?? HydrionServices.local)();
+  }
+
+  Future<void> _loadServicesAndWarmUp() async {
+    final services = await _servicesFuture;
+    _loadedServices = services;
+    await Future.wait([
+      services.hydrationSummaryService.getHydrationSummary(),
+      services.hydrationContextProvider.getHydrationContext(),
+    ]);
+  }
+
+  String _routeFor(HydrionServices services) {
+    final settings = services.settingsRepository.settings;
+    if (!settings.onboardingCompleted) {
+      return '/onboarding';
+    }
+    if (HydrionLegalAcceptancePolicy.needsReview(
+      onboardingCompleted: settings.onboardingCompleted,
+      acceptedTermsVersion: settings.acceptedTermsVersion,
+      acknowledgedHealthDisclaimerVersion:
+          settings.acknowledgedHealthDisclaimerVersion,
+    )) {
+      return '/legal-review';
+    }
+    return '/home';
+  }
+
+  void _showLoadedApp(String route) {
+    final services = _loadedServices;
+    if (services == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _services = services;
+      _initialRoute = route;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final services = _services;
+    if (services != null) {
+      return HydrionApp(
+        services: services,
+        initialRoute: _initialRoute,
+      );
+    }
+
+    return MaterialApp(
+      title: 'Hydrion',
+      theme: buildHydrionTheme(),
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: StartupScreen(
+        warmUp: _loadServicesAndWarmUp,
+        isOnboardingCompleted: () =>
+            _loadedServices?.settingsRepository.settings.onboardingCompleted ??
+            false,
+        nextRoute: () {
+          final services = _loadedServices;
+          return services == null ? '/onboarding' : _routeFor(services);
+        },
+        onRouteSelected: _showLoadedApp,
+        minimumDuration: widget.startupMinimumDuration,
+      ),
+    );
+  }
 }
 
 class HydrionApp extends StatelessWidget {
   final HydrionServices services;
+  final String initialRoute;
+  final Duration startupMinimumDuration;
 
-  HydrionApp({super.key, HydrionServices? services})
-      : services = services ?? HydrionServices.memory();
+  HydrionApp({
+    super.key,
+    HydrionServices? services,
+    this.initialRoute = '/',
+    this.startupMinimumDuration = Duration.zero,
+  }) : services = services ?? HydrionServices.memory();
 
   @override
   Widget build(BuildContext context) {
+    final routes = <String, WidgetBuilder>{
+      '/': (_) => StartupScreen(
+            warmUp: () async {
+              await Future.wait([
+                services.hydrationSummaryService.getHydrationSummary(),
+                services.hydrationContextProvider.getHydrationContext(),
+              ]);
+            },
+            isOnboardingCompleted: () =>
+                services.settingsRepository.settings.onboardingCompleted,
+            nextRoute: () {
+              final settings = services.settingsRepository.settings;
+              if (!settings.onboardingCompleted) {
+                return '/onboarding';
+              }
+              if (HydrionLegalAcceptancePolicy.needsReview(
+                onboardingCompleted: settings.onboardingCompleted,
+                acceptedTermsVersion: settings.acceptedTermsVersion,
+                acknowledgedHealthDisclaimerVersion:
+                    settings.acknowledgedHealthDisclaimerVersion,
+              )) {
+                return '/legal-review';
+              }
+              return '/home';
+            },
+            minimumDuration: startupMinimumDuration,
+          ),
+      '/home': (_) => const HydrionShell(),
+      '/onboarding': (_) => const OnboardingScreen(),
+      '/analytics': (_) => const AnalyticsScreen(),
+      '/chat': (_) => const ChatCoachScreen(),
+      '/log': (_) => const LogScreen(),
+      if (services.capabilityReporter.capabilities.osNotifications)
+        '/reminders': (_) => const RemindersScreen(),
+      '/settings': (_) => const SettingsScreen(),
+      '/profile': (_) => const ProfileScreen(),
+      '/legal-about': (_) => const LegalAboutScreen(),
+      '/legal-review': (_) => const LegalReviewScreen(),
+      for (final document in HydrionLegalDocumentRegistry.userFacingDocuments)
+        document.routeName: (_) => LegalDocumentScreen(documentId: document.id),
+      '/challenges': (_) => const SocialChallengesScreen(),
+      if (kDebugMode)
+        '/debug-diagnostics': (_) => const DebugDiagnosticsScreen(),
+    };
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: services.hydrationRepository),
@@ -117,51 +266,16 @@ class HydrionApp extends StatelessWidget {
             ],
             supportedLocales: AppLocalizations.supportedLocales,
             locale: i18n.locale,
-            initialRoute: '/',
-            routes: {
-              '/': (_) => StartupScreen(
-                    warmUp: () async {
-                      await Future.wait([
-                        services.hydrationSummaryService.getHydrationSummary(),
-                        services.hydrationContextProvider.getHydrationContext(),
-                      ]);
-                    },
-                    isOnboardingCompleted: () => services
-                        .settingsRepository.settings.onboardingCompleted,
-                    nextRoute: () {
-                      final settings = services.settingsRepository.settings;
-                      if (!settings.onboardingCompleted) {
-                        return '/onboarding';
-                      }
-                      if (HydrionLegalAcceptancePolicy.needsReview(
-                        onboardingCompleted: settings.onboardingCompleted,
-                        acceptedTermsVersion: settings.acceptedTermsVersion,
-                        acknowledgedHealthDisclaimerVersion:
-                            settings.acknowledgedHealthDisclaimerVersion,
-                      )) {
-                        return '/legal-review';
-                      }
-                      return '/home';
-                    },
-                  ),
-              '/home': (_) => const HydrionShell(),
-              '/onboarding': (_) => const OnboardingScreen(),
-              '/analytics': (_) => const AnalyticsScreen(),
-              '/chat': (_) => const ChatCoachScreen(),
-              '/log': (_) => const LogScreen(),
-              if (services.capabilityReporter.capabilities.osNotifications)
-                '/reminders': (_) => const RemindersScreen(),
-              '/settings': (_) => const SettingsScreen(),
-              '/profile': (_) => const ProfileScreen(),
-              '/legal-about': (_) => const LegalAboutScreen(),
-              '/legal-review': (_) => const LegalReviewScreen(),
-              for (final document
-                  in HydrionLegalDocumentRegistry.userFacingDocuments)
-                document.routeName: (_) =>
-                    LegalDocumentScreen(documentId: document.id),
-              '/challenges': (_) => const SocialChallengesScreen(),
-              if (kDebugMode)
-                '/debug-diagnostics': (_) => const DebugDiagnosticsScreen(),
+            initialRoute: initialRoute,
+            routes: routes,
+            onGenerateInitialRoutes: (initialRouteName) {
+              final builder = routes[initialRouteName] ?? routes['/']!;
+              return [
+                MaterialPageRoute<void>(
+                  builder: builder,
+                  settings: RouteSettings(name: initialRouteName),
+                ),
+              ];
             },
           );
         },
