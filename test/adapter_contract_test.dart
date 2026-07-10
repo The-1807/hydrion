@@ -228,7 +228,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'adapter check');
-    final sendButton = find.widgetWithIcon(FilledButton, Icons.send);
+    await tester.pump();
+    final sendButton = find.byKey(const Key('coach-send-button'));
     await tester.ensureVisible(sendButton);
     await tester.tap(sendButton);
     await tester.pumpAndSettle();

@@ -5,6 +5,7 @@ import '../../domain/hydration_contracts.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
+import '../theme/hydrion_design.dart';
 
 class ChatCoachScreen extends StatefulWidget {
   final bool embedded;
@@ -21,9 +22,24 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
   final List<_CoachMessageEntry> _messages = <_CoachMessageEntry>[];
   final List<CoachSuggestionCard> _suggestions = <CoachSuggestionCard>[];
   bool _sending = false;
+  bool _hasDraft = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_handleDraftChanged);
+  }
+
+  void _handleDraftChanged() {
+    final hasDraft = _controller.text.trim().isNotEmpty;
+    if (hasDraft != _hasDraft) {
+      setState(() => _hasDraft = hasDraft);
+    }
+  }
 
   @override
   void dispose() {
+    _controller.removeListener(_handleDraftChanged);
     _controller.dispose();
     _scroll.dispose();
     super.dispose();
@@ -257,39 +273,56 @@ class _ChatCoachScreenState extends State<ChatCoachScreen> {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      enabled: !_sending,
-                      minLines: 1,
-                      maxLines: 4,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _send(),
-                      decoration: InputDecoration(
-                        hintText: l10n.chatHint,
-                        border: const OutlineInputBorder(),
-                        isDense: true,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(HydrionRadii.sm),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 6, 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          key: const Key('coach-message-input'),
+                          controller: _controller,
+                          enabled: !_sending,
+                          minLines: 1,
+                          maxLines: 4,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) {
+                            if (_hasDraft && !_sending) {
+                              _send();
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: l10n.chatHint,
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      IconButton.filled(
+                        key: const Key('coach-send-button'),
+                        tooltip: l10n.chatCoachTitle,
+                        onPressed: _sending || !_hasDraft ? null : _send,
+                        icon: _sending
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.send),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    height: 48,
-                    width: 48,
-                    child: FilledButton(
-                      onPressed: _sending ? null : _send,
-                      child: _sending
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.send),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

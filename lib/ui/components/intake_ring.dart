@@ -143,9 +143,6 @@ class _HydrationProgressGaugeState extends State<HydrationProgressGauge>
         : widget.onDarkBackground
             ? Colors.white
             : scheme.primary;
-    final segmentMarker = widget.onDarkBackground
-        ? Colors.white.withValues(alpha: 0.68)
-        : scheme.secondary;
     final status = invalidGoal
         ? 'Set a daily goal'
         : overGoal
@@ -175,10 +172,8 @@ class _HydrationProgressGaugeState extends State<HydrationProgressGauge>
                     painter: _SegmentedGaugePainter(
                       progress: _progress.value,
                       stroke: widget.stroke,
-                      segments: widget.segments,
                       trackColor: track,
                       fillColor: fill,
-                      markerColor: segmentMarker,
                     ),
                   );
                 },
@@ -234,23 +229,18 @@ class _HydrationProgressGaugeState extends State<HydrationProgressGauge>
 class _SegmentedGaugePainter extends CustomPainter {
   final double progress;
   final double stroke;
-  final int segments;
   final Color trackColor;
   final Color fillColor;
-  final Color markerColor;
 
   const _SegmentedGaugePainter({
     required this.progress,
     required this.stroke,
-    required this.segments,
     required this.trackColor,
     required this.fillColor,
-    required this.markerColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final safeSegments = math.max(6, segments);
     final radius = math.min(
       (size.width - stroke) / 2,
       size.height - stroke,
@@ -259,10 +249,7 @@ class _SegmentedGaugePainter extends CustomPainter {
     final rect = Rect.fromCircle(center: center, radius: radius);
     const startAngle = math.pi;
     const totalSweep = math.pi;
-    final segmentSpan = totalSweep / safeSegments;
-    final segmentSweep = segmentSpan * 0.68;
     final normalized = progress.clamp(0.0, 1.0);
-    final filledSegments = normalized * safeSegments;
 
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
@@ -276,37 +263,15 @@ class _SegmentedGaugePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..color = fillColor;
 
-    final markerPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(2, stroke * 0.16)
-      ..strokeCap = StrokeCap.round
-      ..color = markerColor;
-
-    for (var index = 0; index < safeSegments; index += 1) {
-      final start = startAngle + index * segmentSpan;
-      canvas.drawArc(rect, start, segmentSweep, false, trackPaint);
-      final segmentProgress = (filledSegments - index).clamp(0.0, 1.0);
-      if (segmentProgress > 0) {
-        canvas.drawArc(
-          rect,
-          start,
-          segmentSweep * segmentProgress,
-          false,
-          fillPaint,
-        );
-      }
-      if (index % 3 == 0) {
-        final tickAngle = start + segmentSweep + segmentSpan * 0.12;
-        final outer = Offset(
-          center.dx + math.cos(tickAngle) * (radius + stroke * 0.24),
-          center.dy + math.sin(tickAngle) * (radius + stroke * 0.24),
-        );
-        final inner = Offset(
-          center.dx + math.cos(tickAngle) * (radius - stroke * 0.24),
-          center.dy + math.sin(tickAngle) * (radius - stroke * 0.24),
-        );
-        canvas.drawLine(inner, outer, markerPaint);
-      }
+    canvas.drawArc(rect, startAngle, totalSweep, false, trackPaint);
+    if (normalized > 0) {
+      canvas.drawArc(
+        rect,
+        startAngle,
+        totalSweep * normalized,
+        false,
+        fillPaint,
+      );
     }
   }
 
@@ -314,10 +279,8 @@ class _SegmentedGaugePainter extends CustomPainter {
   bool shouldRepaint(covariant _SegmentedGaugePainter oldDelegate) {
     return oldDelegate.progress != progress ||
         oldDelegate.stroke != stroke ||
-        oldDelegate.segments != segments ||
         oldDelegate.trackColor != trackColor ||
-        oldDelegate.fillColor != fillColor ||
-        oldDelegate.markerColor != markerColor;
+        oldDelegate.fillColor != fillColor;
   }
 }
 

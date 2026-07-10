@@ -38,6 +38,26 @@ void main() {
     expect(secondRepository.totalForDay(timestamp), 350);
   });
 
+  test('daily totals reset at local day boundaries', () async {
+    final repository = HydrationRepository.memory();
+    final today = DateTime(2026, 5, 23, 10, 30);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    await repository.addLog(
+      volumeMl: 500,
+      timestamp: yesterday,
+      source: 'test',
+    );
+    await repository.addLog(
+      volumeMl: 350,
+      timestamp: today,
+      source: 'test',
+    );
+
+    expect(repository.totalForDay(yesterday), 500);
+    expect(repository.totalForDay(today), 350);
+  });
+
   test('hydration logs can be edited and deleted', () async {
     final store = await SharedPreferencesHydrionStore.create();
     final repository = await HydrationRepository.load(store);
@@ -174,6 +194,27 @@ void main() {
       await services.ecoTracker.getTotalPlasticSavedKg(),
       closeTo(0.01, 0.0001),
     );
+  });
+
+  test('hydration context refreshes after new hydration logs', () async {
+    final services = await HydrionServices.fromStore(MemoryHydrionStore());
+    final timestamp = DateTime(2026, 5, 23, 10, 30);
+
+    final before = await services.hydrationContextProvider
+        .getHydrationContext(now: timestamp);
+
+    await services.hydrationRepository.addLog(
+      volumeMl: 400,
+      timestamp: timestamp,
+      source: 'test',
+    );
+
+    final after = await services.hydrationContextProvider
+        .getHydrationContext(now: timestamp);
+
+    expect(before.dailySummary.consumedMl, 0);
+    expect(after.dailySummary.consumedMl, 400);
+    expect(after.dailySummary.entryCount, 1);
   });
 
   test('achievements recalculate from current saved logs', () async {

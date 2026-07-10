@@ -102,13 +102,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
               title: Text(l10n.challengesTitle),
               centerTitle: true,
             ),
-      body: widget.embedded
-          ? SafeArea(
-              top: true,
-              bottom: false,
-              child: listView,
-            )
-          : listView,
+      body: widget.embedded ? listView : listView,
     );
   }
 
@@ -197,10 +191,13 @@ class _ChallengeHero extends StatelessWidget {
                   borderRadius: BorderRadius.circular(HydrionRadii.md),
                   child: SizedBox.square(
                     dimension: 88,
-                    child: Image.asset(
-                      scene.assetPath,
-                      fit: BoxFit.cover,
-                      semanticLabel: scene.description,
+                    child: ColoredBox(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      child: Image.asset(
+                        scene.assetPath,
+                        fit: BoxFit.cover,
+                        semanticLabel: scene.description,
+                      ),
                     ),
                   ),
                 ),

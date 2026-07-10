@@ -30,7 +30,8 @@ void main() {
 
   Future<void> sendCoachMessage(WidgetTester tester) async {
     await tester.enterText(find.byType(TextField), 'suggest next steps');
-    final sendButton = find.widgetWithIcon(FilledButton, Icons.send);
+    await tester.pump();
+    final sendButton = find.byKey(const Key('coach-send-button'));
     await tester.ensureVisible(sendButton);
     await tester.tap(sendButton);
     await tester.pumpAndSettle();
@@ -206,6 +207,28 @@ void main() {
 
     expect(find.text('Suggestion de rappel'), findsOneWidget);
     expect(find.text('Confirmation requise'), findsOneWidget);
+  });
+
+  testWidgets('coach send action stays disabled until a message is entered',
+      (tester) async {
+    final services = HydrionServices.memory();
+
+    await pumpHydrion(tester, services: services);
+    await openCoach(tester);
+
+    IconButton sendButton = tester.widget(
+      find.byKey(const Key('coach-send-button')),
+    );
+    expect(sendButton.onPressed, isNull);
+
+    await tester.enterText(
+      find.byKey(const Key('coach-message-input')),
+      'suggest next steps',
+    );
+    await tester.pump();
+
+    sendButton = tester.widget(find.byKey(const Key('coach-send-button')));
+    expect(sendButton.onPressed, isNotNull);
   });
 }
 

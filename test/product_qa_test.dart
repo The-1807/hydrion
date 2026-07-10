@@ -315,7 +315,8 @@ void main() {
     expect(find.textContaining('HydrationContext'), findsNothing);
 
     await tester.enterText(find.byType(TextField), 'How am I doing?');
-    final sendButton = find.widgetWithIcon(FilledButton, Icons.send);
+    await tester.pump();
+    final sendButton = find.byKey(const Key('coach-send-button'));
     await tester.ensureVisible(sendButton);
     await tester.pumpAndSettle();
     await tester.tap(sendButton);
@@ -419,7 +420,8 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextField), 'How am I doing?');
-    final sendButton = find.widgetWithIcon(FilledButton, Icons.send);
+    await tester.pump();
+    final sendButton = find.byKey(const Key('coach-send-button'));
     await tester.ensureVisible(sendButton);
     await tester.pumpAndSettle();
     await tester.tap(sendButton);

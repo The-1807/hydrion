@@ -43,6 +43,14 @@ void main() {
     expect(find.text('1100 ml / 2200 ml'), findsOneWidget);
   });
 
+  testWidgets('gauge keeps small partial progress proportional',
+      (tester) async {
+    await pumpGauge(tester, consumedMl: 150, targetMl: 2200);
+
+    expect(find.text('7%'), findsOneWidget);
+    expect(find.text('150 ml / 2200 ml'), findsOneWidget);
+  });
+
   testWidgets('gauge renders 100 percent without overflow messaging',
       (tester) async {
     await pumpGauge(tester, consumedMl: 2200, targetMl: 2200);

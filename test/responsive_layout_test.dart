@@ -7,6 +7,7 @@ void main() {
     WidgetTester tester,
     Size size, {
     double textScale = 1,
+    EdgeInsets padding = EdgeInsets.zero,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -19,6 +20,7 @@ void main() {
         data: MediaQueryData(
           size: size,
           textScaler: TextScaler.linear(textScale),
+          padding: padding,
         ),
         child: HydrionApp(services: services),
       ),
@@ -73,6 +75,28 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('log-water-button')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('tab content starts below the top safe area', (tester) async {
+    await pumpAtSize(
+      tester,
+      const Size(390, 844),
+      padding: const EdgeInsets.only(top: 36),
+    );
+
+    final safeStack = find.byKey(const Key('hydrion-tab-safe-stack'));
+    expect(safeStack, findsOneWidget);
+    expect(tester.getTopLeft(safeStack).dy, greaterThanOrEqualTo(36));
+
+    final navigationBar = tester.widget<NavigationBar>(
+      find.byKey(const Key('hydrion-bottom-nav')),
+    );
+    navigationBar.onDestinationSelected?.call(3);
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(safeStack).dy, greaterThanOrEqualTo(36));
+    expect(find.byKey(const Key('coach-message-input')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

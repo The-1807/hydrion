@@ -91,9 +91,48 @@ ThemeData buildHydrionTheme() {
       style: FilledButton.styleFrom(
         backgroundColor: HydrionColors.deep,
         foregroundColor: Colors.white,
+        disabledBackgroundColor: scheme.surfaceContainerHighest,
+        disabledForegroundColor: scheme.onSurfaceVariant,
+        minimumSize: const Size(48, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(HydrionRadii.pill),
+          borderRadius: BorderRadius.circular(HydrionRadii.sm),
         ),
+        iconSize: 20,
+        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: HydrionColors.deep,
+        disabledForegroundColor: scheme.onSurfaceVariant,
+        minimumSize: const Size(48, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        side: BorderSide(color: scheme.outlineVariant),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(HydrionRadii.sm),
+        ),
+        iconSize: 20,
+        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: HydrionColors.deep,
+        disabledForegroundColor: scheme.onSurfaceVariant,
+        minimumSize: const Size(44, 40),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(HydrionRadii.sm),
+        ),
+        iconSize: 20,
+        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        foregroundColor: HydrionColors.deep,
+        disabledForegroundColor: scheme.onSurfaceVariant,
       ),
     ),
   );

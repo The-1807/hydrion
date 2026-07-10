@@ -200,6 +200,41 @@ void main() {
         ReminderScheduleState.disabled);
   });
 
+  test('reconciliation reschedules reminders after permission becomes granted',
+      () async {
+    final adapter = FakeHydrionNotificationAdapter(
+      permission: HydrionNotificationPermissionState.denied,
+    );
+    final repository = ReminderRepository.memory();
+    final reminder = await repository.save(
+      triggerTime: DateTime(2026, 7, 5, 9),
+      message: 'Drink water',
+      priority: 1,
+    );
+    final service = NotificationService(
+      reminderPolicy: ReminderPolicy(),
+      reminderRepository: repository,
+      adapter: adapter,
+    );
+
+    await service.reconcileSchedules(requestPermissionIfNeeded: true);
+
+    expect(adapter.scheduledIds, isEmpty);
+    expect(
+      repository.reminders.single.scheduleState,
+      ReminderScheduleState.permissionDenied,
+    );
+
+    adapter.permission = HydrionNotificationPermissionState.granted;
+    await service.reconcileSchedules(requestPermissionIfNeeded: true);
+
+    expect(adapter.scheduledIds, contains(reminder.platformNotificationId));
+    expect(
+      repository.reminders.single.scheduleState,
+      ReminderScheduleState.scheduled,
+    );
+  });
+
   test('timezone and day rollover trigger times are retained', () async {
     final repository = ReminderRepository.memory();
     final service = NotificationService(

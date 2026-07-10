@@ -189,6 +189,12 @@ class _WeeklyHydrationStrip extends StatelessWidget {
     final average = totals.isEmpty
         ? 0
         : (totals.reduce((a, b) => a + b) / totals.length).round();
+    final loggedDays = totals.where((value) => value > 0).length;
+    final rhythmSummary = loggedDays == 0
+        ? 'Log a drink to start the rhythm.'
+        : loggedDays < 2
+            ? 'Building rhythm from today\'s logs.'
+            : 'Average: $average ml/day. Target: $targetMl ml.';
     return HydrionSurface(
       key: const Key('weekly-hydration-strip'),
       child: Row(
@@ -205,7 +211,7 @@ class _WeeklyHydrationStrip extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: 4),
-                Text('Average: $average ml/day. Target: $targetMl ml.'),
+                Text(rhythmSummary),
                 const SizedBox(height: 16),
                 Semantics(
                   label:
@@ -236,12 +242,21 @@ class _WeeklyHydrationStrip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14),
-          Image.asset(
-            scene.assetPath,
-            width: 88,
-            height: 132,
-            fit: BoxFit.contain,
-            semanticLabel: scene.description,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(HydrionRadii.sm),
+            child: ColoredBox(
+              color: HydrionColors.foam,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Image.asset(
+                  scene.assetPath,
+                  width: 76,
+                  height: 120,
+                  fit: BoxFit.contain,
+                  semanticLabel: scene.description,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -266,23 +281,31 @@ class _DayBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final percent = maxMl <= 0 ? 0.0 : (valueMl / maxMl).clamp(0.0, 1.0);
     final goalMet = valueMl >= targetMl;
+    final label = isToday ? 'Today' : _compactLiters(valueMl);
+    final subLabel = isToday ? _compactLiters(valueMl) : '';
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Expanded(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: FractionallySizedBox(
-              heightFactor: percent,
-              widthFactor: 1,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: goalMet
-                      ? HydrionColors.kelp
-                      : isToday
-                          ? HydrionColors.deep
-                          : HydrionColors.current.withValues(alpha: 0.72),
-                  borderRadius: BorderRadius.circular(HydrionRadii.pill),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: HydrionColors.current.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(HydrionRadii.pill),
+            ),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: FractionallySizedBox(
+                heightFactor: percent,
+                widthFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: goalMet
+                        ? HydrionColors.kelp
+                        : isToday
+                            ? HydrionColors.deep
+                            : HydrionColors.current.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(HydrionRadii.pill),
+                  ),
                 ),
               ),
             ),
@@ -290,10 +313,21 @@ class _DayBar extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          isToday ? 'Now' : _compactLiters(valueMl),
+          label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.labelSmall,
+        ),
+        SizedBox(
+          height: 14,
+          child: Text(
+            subLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
         ),
       ],
     );
@@ -302,7 +336,7 @@ class _DayBar extends StatelessWidget {
 
 String _compactLiters(int valueMl) {
   if (valueMl <= 0) {
-    return '0L';
+    return '0';
   }
   final liters = valueMl / 1000;
   return '${liters.toStringAsFixed(1)}L';

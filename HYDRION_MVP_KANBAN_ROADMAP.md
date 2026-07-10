@@ -4,10 +4,13 @@ Date Generated: 2026-06-12
 
 Repository audited: `E:\hydrion_app`
 
-Path note: the pasted request named `C:\Users\Wildf\hydrion_app`, but that path
-was not present in this shell. The active Hydrion repository was found at
-`E:\hydrion_app`, including the currently open
-`docs/architecture/ADAPTER_BOUNDARY.md`.
+Current repo reconciliation: 2026-07-10 at
+`C:\Users\Wildf\OneDrive\Desktop\hydrion`.
+
+Historical path note from the original audit: the pasted request named
+`C:\Users\Wildf\hydrion_app`, but that path was not present in that shell. The
+active Hydrion repository was found at `E:\hydrion_app`, including the
+currently open `docs/architecture/ADAPTER_BOUNDARY.md`.
 
 ## Executive Summary
 
@@ -40,6 +43,24 @@ was not present in this shell. The active Hydrion repository was found at
 - Next sprint: focus on trust and release hygiene, not new integrations. The
   first sprint should close provider consent/key-policy risks, storage schema
   risks, time-boundary correctness, stale config truth, and CI release checks.
+
+## V1 Release Tracking Reconciliation - 2026-07-10
+
+This update reconciles existing MVP/V1 cards to the current repository state.
+No new product scope was added.
+
+| Card / area | Current lane | Repo evidence | Notes |
+|---|---|---|---|
+| Minimal Hydrion startup buffer | Done | `lib/ui/screens/startup_screen.dart`; `test/startup_buffer_test.dart` | Accepted flow is native splash, Flutter buffer with shark Lottie and two startup lines, then normal routing. Real Android appearance still needs video/manual acceptance. |
+| Shared hydration source of truth | Done | `lib/repositories/hydration_repository.dart`; `test/persistence_test.dart`; `test/social_challenges_bottle_bingo_test.dart` | Home logging, challenge hydration actions, daily progress, dashboard/history, and coach context all read/write the normal hydration log. |
+| Challenge hydration logging | Done | `lib/repositories/challenge_repository.dart`; `lib/ui/screens/social_challenges_screen.dart`; `test/social_challenges_bottle_bingo_test.dart` | Bottle Bingo hydration tiles create one normal hydration log and do not create challenge-only hydration records. |
+| Safe-area and fixed-header polish | Done | `lib/ui/screens/hydrion_shell.dart`; `test/responsive_layout_test.dart` | Tab bodies now sit below the top safe area; embedded challenge screen no longer stacks a second top safe area. |
+| Progress gauge and weekly rhythm clarity | Done | `lib/ui/components/intake_ring.dart`; `lib/ui/screens/analytics_screen.dart`; `test/hydration_progress_gauge_test.dart` | Gauge is a clean proportional arc; low-data weekly rhythm avoids repeated noisy zero-liter labels. |
+| Button and coach input polish | Done | `lib/ui/theme/hydrion_design.dart`; `lib/ui/screens/chat_coach_screen.dart`; `test/coach_suggestion_cards_test.dart` | Shared button states are more consistent; coach send stays disabled until text exists. |
+| Local lifecycle reconciliation | Done | `lib/ui/screens/hydrion_shell.dart`; `lib/services/notifications.dart`; `test/notification_service_test.dart` | App resume reconciles local notification schedules and weather-informed goal state when applicable. |
+| Unused runtime media cleanup | Done | Asset tree audit; previous V1 cleanup removed unreferenced `assets/UI_BETA/hyd-ad/*` runtime clutter | Remaining referenced media are kept; uncertain/design/archive media are not deleted. |
+| Real-device Android startup acceptance | Blocking human verification | N/A | Widget tests prove text/timing/routing logic only. A fresh install and relaunch video/manual pass is still required. |
+| BLE, Health, voice, cloud sync, ELKA runtime, social backend | V1.1 or later | Existing roadmap and disabled-feature tests | These remain intentionally out of V1 and should not be moved into V1 release scope. |
 
 ## Current Completed Work
 
