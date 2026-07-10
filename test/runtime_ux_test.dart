@@ -274,7 +274,7 @@ void main() {
     expect(services.challengeRepository.activeChallenge, isNotNull);
   });
 
-  testWidgets('Bottle Bingo board appears only after joining Bottle Bingo',
+  testWidgets('Bottle Bingo hydration action writes one normal log',
       (tester) async {
     final services = HydrionServices.memory();
 
@@ -306,10 +306,33 @@ void main() {
 
     await tester.tap(find.byKey(const Key('bottle-bingo-tile-1')));
     await tester.pumpAndSettle();
+
+    expect(services.hydrationRepository.logs, hasLength(1));
+    expect(
+      services.hydrationRepository.logs.single.volumeMl,
+      services.settingsRepository.settings.containerSizeMl,
+    );
+    expect(
+      services.hydrationRepository.logs.single.source,
+      'challenge:bottle-bingo:tile-1',
+    );
+    expect(
+      services.hydrationRepository.totalForDay(DateTime.now()),
+      services.settingsRepository.settings.containerSizeMl,
+    );
     expect(
       services.challengeRepository.activeChallenge?.bottleBingoCompletedTiles,
       contains(1),
     );
+
+    await tester.tap(find.byKey(const Key('bottle-bingo-tile-1')));
+    await tester.pumpAndSettle();
+    expect(services.hydrationRepository.logs, hasLength(1));
+
+    await openTab(tester, const Key('nav-home'));
+    expect(find.text('500 ml / 2200 ml'), findsOneWidget);
+    await openLogHistory(tester);
+    expect(find.text('500 ml'), findsOneWidget);
   });
 
   testWidgets(

@@ -212,7 +212,9 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.byKey(const Key('startup-mascot')), findsOneWidget);
+    expect(find.byKey(const Key('startup-shark-loader')), findsOneWidget);
+    expect(
+        find.byKey(const Key('hydrion-shark-lottie-loader')), findsOneWidget);
 
     warmUp.complete();
     await tester.pump();

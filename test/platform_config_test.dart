@@ -60,12 +60,14 @@ void main() {
       'assets_source_original/removed_runtime_assets/assets/pfp_mascot/hpfp',
     ).listSync().whereType<File>().toList();
     final uiAssets = Directory('assets/UI_BETA').listSync().whereType<File>();
+    final hydAdRuntimeDirectory = Directory('assets/UI_BETA/hyd-ad');
 
     expect(pubspec, contains('assets/UI_BETA/'));
     expect(pubspec, contains('assets/buffer/Shark.json'));
     expect(pubspec, isNot(contains('assets/buffer/Shark.lottie')));
     expect(pubspec, isNot(contains('assets/pfp_mascot/hpfp/')));
     expect(pubspec, contains('docs/Hydrion_Legal_Pack_Markdown/'));
+    expect(hydAdRuntimeDirectory.existsSync(), isFalse);
     expect(humanAssets, isEmpty);
     expect(archivedHumanAssets, hasLength(19));
     expect(uiAssets, hasLength(9));

@@ -13,9 +13,10 @@ user evidence are migrated as completed users and routed to focused legal
 review when current legal versions are missing.
 
 Startup uses the bundled local `assets/buffer/Shark.json` runtime asset through
-the Flutter `lottie` package. The original downloaded
-`assets/buffer/Shark.lottie` file is retained as source evidence. The recovered
-permanent LottieFiles share URL is
+the Flutter `lottie` package in a minimal buffer with only the shark animation
+and the `Welcome` / `Preparing your hydration space...` text sequence. The
+original downloaded `assets/buffer/Shark.lottie` file is retained as source
+evidence. The recovered permanent LottieFiles share URL is
 `https://app.lottiefiles.com/share/a1310b00-ea2c-4d3a-b580-688ad4c56291`.
 Static share-page inspection did not expose creator identity or
 animation-specific licence wording; production approval remains blocked until
@@ -268,8 +269,8 @@ choice remains independent.
 Runtime image assets were optimized before this push:
 
 - Before: 44 files, 76,702,320 bytes under `assets/`.
-- After: 21 runtime-declared files, 1,790,496 bytes under `assets/`.
-- Reduction: 74,911,824 bytes, 97.67%.
+- After: 22 runtime-declared media files, 1,793,473 bytes under `assets/`.
+- Reduction: 74,908,847 bytes, 97.66%.
 - After web release build: 64 files, 35,428,770 bytes under `build/web`.
 - Original owner assets are preserved under `assets_source_original/assets/...`.
 - The unused MP4 was removed from the runtime bundle.

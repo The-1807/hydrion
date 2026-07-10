@@ -55,6 +55,8 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             activeChallenge: activeChallenge,
             progress: progress,
             challengeRepository: challengeRepository,
+            hydrationRepository: hydrationRepository,
+            containerSizeMl: settings.containerSizeMl,
             onTileToggled: challengeRepository.toggleBottleBingoTile,
             onReset: () => _confirmBottleBingoReset(context),
           ),
@@ -258,6 +260,7 @@ class _BottleBingoBoard extends StatelessWidget {
       title: 'Refill ritual',
       body: 'Refill your usual bottle once.',
       icon: Icons.local_drink_outlined,
+      hydrationAction: _BingoHydrationAction.bottle,
     ),
     _BingoTileData(
       title: 'Flavor swap',
@@ -273,6 +276,7 @@ class _BottleBingoBoard extends StatelessWidget {
       title: 'Tiny sip',
       body: 'Take a small comfortable sip.',
       icon: Icons.water_drop_outlined,
+      hydrationAction: _BingoHydrationAction.sip,
     ),
     _BingoTileData(
       title: 'Evening ease',
@@ -284,6 +288,8 @@ class _BottleBingoBoard extends StatelessWidget {
   final JoinedChallenge? activeChallenge;
   final ChallengeProgress progress;
   final ChallengeRepository challengeRepository;
+  final HydrationRepository hydrationRepository;
+  final int containerSizeMl;
   final Future<bool> Function(int index) onTileToggled;
   final VoidCallback onReset;
 
@@ -291,6 +297,8 @@ class _BottleBingoBoard extends StatelessWidget {
     required this.activeChallenge,
     required this.progress,
     required this.challengeRepository,
+    required this.hydrationRepository,
+    required this.containerSizeMl,
     required this.onTileToggled,
     required this.onReset,
   });
@@ -300,6 +308,8 @@ class _BottleBingoBoard extends StatelessWidget {
     final bottleBingoJoined = activeChallenge?.id == 'bottle-bingo';
     final manuallyCompleted =
         activeChallenge?.bottleBingoCompletedTiles ?? const <int>{};
+    final resettableCompleted = manuallyCompleted
+        .difference(ChallengeRepository.bottleBingoHydrationTileIndexes);
     final progressBackedComplete = bottleBingoJoined && progress.todayMl > 0;
     final completedCount =
         manuallyCompleted.length + (progressBackedComplete ? 1 : 0);
@@ -353,7 +363,7 @@ class _BottleBingoBoard extends StatelessWidget {
                 ),
                 OutlinedButton.icon(
                   key: const Key('bottle-bingo-reset'),
-                  onPressed: manuallyCompleted.isEmpty ? null : onReset,
+                  onPressed: resettableCompleted.isEmpty ? null : onReset,
                   icon: const Icon(Icons.restart_alt),
                   label: const Text('Reset board'),
                 ),
@@ -376,6 +386,10 @@ class _BottleBingoBoard extends StatelessWidget {
                 ),
                 itemBuilder: (context, index) {
                   final tile = _tiles[index];
+                  final hydrationVolumeMl = _hydrationVolumeMlFor(
+                    tile,
+                    containerSizeMl,
+                  );
                   final completed = tile.progressBacked
                       ? progressBackedComplete
                       : challengeRepository
@@ -385,11 +399,33 @@ class _BottleBingoBoard extends StatelessWidget {
                     tile: tile,
                     selected: completed,
                     lockedToProgress: tile.progressBacked,
+                    hydrationVolumeMl: hydrationVolumeMl,
                     onTap: tile.progressBacked || !bottleBingoJoined
                         ? null
-                        : () {
-                            onTileToggled(index);
-                          },
+                        : hydrationVolumeMl != null
+                            ? completed
+                                ? null
+                                : () async {
+                                    final messenger =
+                                        ScaffoldMessenger.of(context);
+                                    final log = await challengeRepository
+                                        .completeBottleBingoHydrationTile(
+                                      index: index,
+                                      hydrationRepository: hydrationRepository,
+                                      volumeMl: hydrationVolumeMl,
+                                    );
+                                    if (log != null) {
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                          content:
+                                              Text('Logged ${log.volumeMl} ml'),
+                                        ),
+                                      );
+                                    }
+                                  }
+                            : () {
+                                onTileToggled(index);
+                              },
                   );
                 },
               );
@@ -405,6 +441,7 @@ class _BottleBingoTile extends StatelessWidget {
   final _BingoTileData tile;
   final bool selected;
   final bool lockedToProgress;
+  final int? hydrationVolumeMl;
   final VoidCallback? onTap;
 
   const _BottleBingoTile({
@@ -412,6 +449,7 @@ class _BottleBingoTile extends StatelessWidget {
     required this.tile,
     required this.selected,
     required this.lockedToProgress,
+    required this.hydrationVolumeMl,
     required this.onTap,
   });
 
@@ -421,12 +459,16 @@ class _BottleBingoTile extends StatelessWidget {
         selected ? HydrionColors.deep : Colors.white.withValues(alpha: 0.86);
     final foreground = selected ? Colors.white : HydrionColors.abyss;
     final state = selected
-        ? 'Complete'
+        ? hydrationVolumeMl == null
+            ? 'Complete'
+            : 'Logged to hydration history'
         : lockedToProgress
             ? 'Completes from water logged before lunch'
-            : onTap == null
-                ? 'Join Bottle Bingo to mark this tile'
-                : 'Double tap to toggle completion';
+            : hydrationVolumeMl != null
+                ? 'Double tap to log $hydrationVolumeMl ml'
+                : onTap == null
+                    ? 'Join Bottle Bingo to mark this tile'
+                    : 'Double tap to toggle completion';
     return Semantics(
       button: onTap != null,
       selected: selected,
@@ -722,13 +764,28 @@ class _BingoTileData {
   final String body;
   final IconData icon;
   final bool progressBacked;
+  final _BingoHydrationAction? hydrationAction;
 
   const _BingoTileData({
     required this.title,
     required this.body,
     required this.icon,
     this.progressBacked = false,
+    this.hydrationAction,
   });
+}
+
+enum _BingoHydrationAction {
+  bottle,
+  sip,
+}
+
+int? _hydrationVolumeMlFor(_BingoTileData tile, int containerSizeMl) {
+  return switch (tile.hydrationAction) {
+    _BingoHydrationAction.bottle => containerSizeMl,
+    _BingoHydrationAction.sip => 150,
+    null => null,
+  };
 }
 
 IconData _challengeIcon(HydrationChallenge challenge) {

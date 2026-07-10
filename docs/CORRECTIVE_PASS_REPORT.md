@@ -30,7 +30,8 @@ Status: completed on July 6, 2026.
 
 ## Size And CI
 
-- Runtime-declared image assets: 21 files, 1,790,496 bytes.
+- Runtime-declared media assets after July 10 corrective cleanup: 22 files,
+  1,793,473 bytes.
 - Web release build: 64 files, 35,428,770 bytes under `build/web`.
 - Codemagic now builds split-per-ABI release APKs where Flutter produces them.
 - `tool/android_size_audit.dart` writes `hydrion-android-size-audit.txt` with

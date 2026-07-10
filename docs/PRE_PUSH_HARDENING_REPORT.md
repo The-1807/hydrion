@@ -156,8 +156,8 @@ Originals remain in `assets_source_original/assets/...`.
 ## 12. Before And After Asset Totals
 
 - Before runtime assets: 44 files, 76,702,320 bytes.
-- After runtime assets: 21 runtime-declared files, 1,790,496 bytes.
-- Reduction: 74,911,824 bytes, 97.67%.
+- After July 10 corrective cleanup: 22 runtime-declared media files, 1,793,473 bytes.
+- Reduction: 74,908,847 bytes, 97.66%.
 
 ## 13. Before And After Measured Build Sizes
 

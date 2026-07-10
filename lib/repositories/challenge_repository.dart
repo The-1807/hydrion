@@ -130,6 +130,7 @@ class ChallengeProgress {
 
 class ChallengeRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.joined_challenge.v1';
+  static const bottleBingoHydrationTileIndexes = <int>{1, 4};
   static const _category = 'active_challenge';
   static const _currentSchemaVersion = 2;
 
@@ -196,7 +197,8 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<bool> toggleBottleBingoTile(int index) async {
-    if (!_canPersistBottleBingoTile(index)) {
+    if (!_canPersistBottleBingoTile(index) ||
+        bottleBingoHydrationTileIndexes.contains(index)) {
       return false;
     }
     final tiles = <int>{..._activeChallenge!.bottleBingoCompletedTiles};
@@ -211,13 +213,52 @@ class ChallengeRepository extends ChangeNotifier {
     return true;
   }
 
+  Future<HydrationLog?> completeBottleBingoHydrationTile({
+    required int index,
+    required HydrationRepository hydrationRepository,
+    required int volumeMl,
+    DateTime? timestamp,
+  }) async {
+    if (!_canPersistBottleBingoTile(index) || volumeMl <= 0) {
+      return null;
+    }
+    final challenge = _activeChallenge!;
+    if (challenge.bottleBingoCompletedTiles.contains(index)) {
+      return null;
+    }
+
+    final log = await hydrationRepository.addLog(
+      volumeMl: volumeMl,
+      timestamp: timestamp ?? DateTime.now(),
+      source: 'challenge:${challenge.id}:tile-$index',
+    );
+    if (log == null) {
+      return null;
+    }
+
+    await _updateActiveChallenge(
+      challenge.copyWith(
+        bottleBingoCompletedTiles: Set<int>.unmodifiable({
+          ...challenge.bottleBingoCompletedTiles,
+          index,
+        }),
+      ),
+    );
+    return log;
+  }
+
   Future<bool> resetBottleBingoTiles() async {
     if (_activeChallenge?.id != 'bottle-bingo') {
       return false;
     }
+    final retainedHydrationTiles = _activeChallenge!.bottleBingoCompletedTiles
+        .where(bottleBingoHydrationTileIndexes.contains)
+        .toSet();
     await _updateActiveChallenge(
       _activeChallenge!.copyWith(
-        bottleBingoCompletedTiles: const <int>{},
+        bottleBingoCompletedTiles: Set<int>.unmodifiable(
+          retainedHydrationTiles,
+        ),
       ),
     );
     return true;

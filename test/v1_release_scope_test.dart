@@ -315,6 +315,7 @@ void main() {
 
     expect(await first.toggleBottleBingoTile(2), isTrue);
     expect(await first.toggleBottleBingoTile(5), isTrue);
+    expect(await first.toggleBottleBingoTile(1), isFalse);
     expect(await first.toggleBottleBingoTile(0), isFalse);
 
     final second = await ChallengeRepository.load(store);
@@ -323,6 +324,75 @@ void main() {
     expect(await second.resetBottleBingoTiles(), isTrue);
     final third = await ChallengeRepository.load(store);
     expect(third.activeChallenge?.bottleBingoCompletedTiles, isEmpty);
+  });
+
+  test('Bottle Bingo hydration tile creates one normal hydration log',
+      () async {
+    final hydrationRepository = HydrationRepository.memory();
+    final challengeRepository = ChallengeRepository.memory();
+    final bottleBingo = HydrionChallengeCatalog.byId('bottle-bingo');
+    final today = DateTime.now();
+    final timestamp = DateTime(today.year, today.month, today.day, 10);
+
+    await challengeRepository.join(
+      id: bottleBingo.id,
+      name: bottleBingo.name,
+      description: bottleBingo.description,
+      targetMl: bottleBingo.targetMl,
+      durationDays: bottleBingo.durationDays,
+      joinedAt: DateTime(today.year, today.month, today.day),
+    );
+
+    final log = await challengeRepository.completeBottleBingoHydrationTile(
+      index: 4,
+      hydrationRepository: hydrationRepository,
+      volumeMl: 150,
+      timestamp: timestamp,
+    );
+
+    expect(log, isNotNull);
+    expect(hydrationRepository.logs, hasLength(1));
+    expect(hydrationRepository.logs.single.id, log!.id);
+    expect(hydrationRepository.logs.single.source,
+        'challenge:bottle-bingo:tile-4');
+    expect(hydrationRepository.totalForDay(today), 150);
+    expect(
+      challengeRepository.progressFor(hydrationRepository).todayMl,
+      150,
+    );
+    expect(
+      challengeRepository.activeChallenge?.bottleBingoCompletedTiles,
+      contains(4),
+    );
+
+    final duplicate =
+        await challengeRepository.completeBottleBingoHydrationTile(
+      index: 4,
+      hydrationRepository: hydrationRepository,
+      volumeMl: 150,
+      timestamp: timestamp,
+    );
+
+    expect(duplicate, isNull);
+    expect(hydrationRepository.logs, hasLength(1));
+    expect(hydrationRepository.totalForDay(today), 150);
+
+    expect(await challengeRepository.resetBottleBingoTiles(), isTrue);
+    expect(
+      challengeRepository.activeChallenge?.bottleBingoCompletedTiles,
+      contains(4),
+    );
+
+    final afterReset =
+        await challengeRepository.completeBottleBingoHydrationTile(
+      index: 4,
+      hydrationRepository: hydrationRepository,
+      volumeMl: 150,
+      timestamp: timestamp,
+    );
+
+    expect(afterReset, isNull);
+    expect(hydrationRepository.logs, hasLength(1));
   });
 
   test('release metadata keeps v1 identity and pending release date explicit',

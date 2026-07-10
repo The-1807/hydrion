@@ -7,7 +7,7 @@ visual assets are used so they do not become arbitrary decoration.
 
 | Asset | Identity | Emotional role | Product use |
 |---|---|---|---|
-| `assets/pfp_mascot/hydrion_mascot.jpg` | Hydrion mascot | Brand anchor | Startup, onboarding, fallback brand moments |
+| `assets/pfp_mascot/hydrion_mascot.jpg` | Hydrion mascot | Brand anchor | Onboarding and fallback brand moments |
 | `assets/pfp_mascot/pfp/savvy-eco_shark.jpg` | Savvy Eco | Eco-minded and steady | Default shark companion and fallback avatar |
 | `assets/pfp_mascot/pfp/scout_shark.jpg` | Scout | Curious and practical | Selectable shark companion |
 | `assets/pfp_mascot/pfp/sensei_shark.jpg` | Sensei | Calm and focused | Selectable shark companion |
@@ -89,8 +89,8 @@ originals are preserved outside the bundled app path in
 Measured runtime asset totals:
 
 - Before: 44 files, 76,702,320 bytes.
-- After removing human default avatar JPGs: 21 runtime-declared files, 1,790,496 bytes.
-- Reduction: 74,911,824 bytes, 97.67%.
+- After the July 10 corrective cleanup: 22 runtime-declared media files, 1,793,473 bytes.
+- Reduction: 74,908,847 bytes, 97.66%.
 
 The unused `assets/pfp_mascot/pfp/1000064425.mp4` was moved to
 `assets_source_original/assets/pfp_mascot/pfp/1000064425.mp4` and is not
@@ -110,11 +110,10 @@ identity and code references.
 
 ## Shark Loading Animation
 
-`assets/buffer/Shark.json` is the bundled runtime startup/loading animation.
-Hydrion loads it locally through the Flutter `lottie` package. The original
-downloaded `assets/buffer/Shark.lottie` file is retained as source evidence. If
-the animation cannot be decoded, the native droplet painter and startup mascot
-remain the static fallback.
+`assets/buffer/Shark.json` is the bundled runtime startup animation. Hydrion
+loads it locally through the Flutter `lottie` package for the minimal startup
+buffer. The original downloaded `assets/buffer/Shark.lottie` file is retained
+as source evidence and is not declared in `pubspec.yaml`.
 
 Source-page creator and licence evidence are tracked in
 `THIRD_PARTY_NOTICES.md` and

@@ -10,8 +10,8 @@ Status: draft, not approved for production release.
   review steps.
 - Returning users skip onboarding after completion, and partial onboarding now
   resumes at the saved step.
-- Bundled startup shark loading animation with local fallback and reduced-motion
-  support.
+- Minimal startup buffer with the bundled shark Lottie animation, a two-step
+  text sequence, and reduced-motion static playback.
 - In-app About & Legal hub with credits and licences.
 - Weather-informed goal mode using Open-Meteo after explicit user action and
   foreground location permission.

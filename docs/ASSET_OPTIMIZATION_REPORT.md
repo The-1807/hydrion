@@ -2,17 +2,22 @@
 
 Status: measured local pass on July 6, 2026.
 
+Corrective follow-up on July 10, 2026 removed the unreferenced
+`assets/UI_BETA/hyd-ad/` runtime media folder. Current measured media under the
+declared Flutter asset paths is 22 files, 1,793,473 bytes. The retained
+`assets/buffer/Shark.lottie` source original is not declared in `pubspec.yaml`.
+
 ## Summary
 
 | Metric | Before | After |
 |---|---:|---:|
-| Runtime asset files under `assets/` | 44 | 21 |
-| Runtime asset bytes under `assets/` | 76,702,320 | 1,790,496 |
-| Runtime byte reduction |  | 74,911,824 bytes |
-| Runtime percentage reduction |  | 97.67% |
+| Runtime asset files under `assets/` | 44 | 22 |
+| Runtime asset bytes under `assets/` | 76,702,320 | 1,793,473 |
+| Runtime byte reduction |  | 74,908,847 bytes |
+| Runtime percentage reduction |  | 97.66% |
 | Source originals preserved |  | `assets_source_original/` |
 
-The before total is the measured pre-optimization `assets/` total from this pass. The after total is the current runtime-declared asset set, excluding zero-byte `.gitkeep` placeholders. Original owner assets were moved to `assets_source_original/assets/...` and are not declared in `pubspec.yaml`.
+The before total is the measured pre-optimization `assets/` total from this pass. The after total is the current runtime-declared media asset set. Original owner assets were moved to `assets_source_original/assets/...` and are not declared in `pubspec.yaml`.
 
 ## Build Size Measurements
 
@@ -28,6 +33,7 @@ The before total is the measured pre-optimization `assets/` total from this pass
 - Resized profile avatars, shark companions, mascot, and app icon to a maximum long side of 640 px.
 - Moved the unused `assets/pfp_mascot/pfp/1000064425.mp4` out of the runtime bundle.
 - Moved generated human profile-avatar JPG derivatives out of the runtime bundle.
+- Deleted the unreferenced `assets/UI_BETA/hyd-ad/` runtime ad artifacts.
 - Updated Dart, tests, docs, and `pubspec.yaml` references from `.png` to `.jpg`.
 - Preserved shark avatar IDs in code; removed human avatar IDs migrate to the default shark.
 
@@ -89,7 +95,7 @@ All original PNG files in `assets_source_original/assets/...` were checked with 
 
 - `assets/UI_BETA/*.jpg`: lifestyle scenes used by Home, Progress, Challenges, Profile, onboarding, empty/recommendation/weather surfaces through `HydrionUiAssetManifest` and `HydrionLifestyleArtResolver`.
 - `assets/pfp_mascot/pfp/*.jpg`: selectable shark companion avatars through `HydrionAvatarManifest`.
-- `assets/pfp_mascot/hydrion_mascot.jpg`: startup, onboarding, fallback logo/brand moments.
+- `assets/pfp_mascot/hydrion_mascot.jpg`: onboarding and fallback logo/brand moments.
 - `assets/icons/icon1807.jpg`: Hydrion logo component and app icon source reference.
 
 The generated human profile-avatar JPGs are archived under `assets_source_original/removed_runtime_assets/assets/pfp_mascot/hpfp/` and are not declared in `pubspec.yaml`.
