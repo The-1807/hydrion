@@ -245,16 +245,12 @@
 - [ ] Streaks handle time-zone changes correctly.
 - [ ] Streak calculations remain consistent across Android and iOS.
 
-# 12. Achievements
+# 12. Achievements / Badges
 
-- [ ] Achievement rules are documented.
-- [ ] Achievements unlock under the correct conditions.
-- [ ] Achievements do not unlock more than once unless designed to repeat.
-- [ ] Achievement progress persists after restarting the application.
-- [ ] Achievement notifications do not interrupt essential actions.
-- [ ] Completed achievements remain completed.
-- [ ] Incomplete achievements do not display as completed.
-- [ ] Achievement calculations remain consistent across Android and iOS.
+- [ ] Achievement and badge runtime UI is absent from V1 surfaces.
+- [ ] Achievement badge placeholders are not shown as fake progress.
+- [ ] Achievement service logic remains covered as post-V1/Icebox code.
+- [ ] Any future achievement launch is tracked as V1.1/Post-V1 scope.
 
 # 13. Challenges
 
@@ -558,7 +554,7 @@
 - [ ] Android and iOS expose the same V1 feature set.
 - [ ] Android and iOS use the same hydration calculations.
 - [ ] Android and iOS use the same streak calculations.
-- [ ] Android and iOS use the same achievement rules.
+- [ ] Android and iOS keep achievement/badge UI absent from V1 surfaces.
 - [ ] Android and iOS use the same challenge rules.
 - [ ] Android and iOS use the same localization content.
 - [ ] Android and iOS display the same legal documents.

@@ -55,6 +55,8 @@ void main() {
 
     expect(find.byKey(const Key('weekly-hydration-strip')), findsOneWidget);
     expect(find.text('500 / 2200 ml today'), findsOneWidget);
+    expect(find.text('Achievements'), findsNothing);
+    expect(find.text('Daily Goal'), findsNothing);
     final reusableEstimate = find.text(
       'Enable reusable-container tracking in Settings before Hydrion '
       'estimates avoided disposable plastic.',
@@ -272,6 +274,47 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(services.challengeRepository.activeChallenge, isNotNull);
+  });
+
+  testWidgets('non-Bottle active challenge card stays at the top',
+      (tester) async {
+    final services = HydrionServices.memory();
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    await openTab(tester, const Key('nav-challenges'));
+    final joinButton = find.byKey(const Key('join-temperature-roulette'));
+    await tester.scrollUntilVisible(
+      joinButton,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final dynamic join = tester.widget(joinButton);
+    join.onPressed();
+    await tester.pumpAndSettle();
+
+    final activeCard =
+        find.byKey(const Key('challenge-card-temperature-roulette'));
+    final firstCatalogCard = find.byKey(
+      const Key('challenge-card-around-the-world-infusion-week'),
+    );
+    await tester.scrollUntilVisible(
+      activeCard,
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(services.challengeRepository.activeChallenge?.id,
+        'temperature-roulette');
+    expect(activeCard, findsOneWidget);
+    expect(firstCatalogCard, findsOneWidget);
+    expect(
+      tester.getTopLeft(activeCard).dy,
+      lessThan(tester.getTopLeft(firstCatalogCard).dy),
+    );
+    expect(find.byKey(const Key('bottle-bingo-board')), findsNothing);
   });
 
   testWidgets('Bottle Bingo hydration action writes one normal log',

@@ -59,6 +59,8 @@ No new product scope was added.
 | Button and coach input polish | Done | `lib/ui/theme/hydrion_design.dart`; `lib/ui/screens/chat_coach_screen.dart`; `test/coach_suggestion_cards_test.dart` | Shared button states are more consistent; coach send stays disabled until text exists. |
 | Local lifecycle reconciliation | Done | `lib/ui/screens/hydrion_shell.dart`; `lib/services/notifications.dart`; `test/notification_service_test.dart` | App resume reconciles local notification schedules and weather-informed goal state when applicable. |
 | Unused runtime media cleanup | Done | Asset tree audit; previous V1 cleanup removed unreferenced `assets/UI_BETA/hyd-ad/*` runtime clutter | Remaining referenced media are kept; uncertain/design/archive media are not deleted. |
+| Transparent runtime asset replacement | Done | `lib/domain/ui_asset_manifest.dart`; `assets/UI_BETA/*.png`; `test/asset_registry_test.dart` | Boxed `hydrion-lifestyle-*.jpg` runtime art was replaced with transparent PNG assets; old runtime JPG lifestyle files were removed. |
+| Badge / achievement runtime UI | V1.1 or later | `lib/ui/screens/analytics_screen.dart`; `lib/ui/screens/profile_screen.dart`; `docs/release/HYDRION_V1_RELEASE_READINESS_CHECKLIST.md` | Achievement service logic remains covered, but badge placeholders are not visible in V1 runtime surfaces. |
 | Real-device Android startup acceptance | Blocking human verification | N/A | Widget tests prove text/timing/routing logic only. A fresh install and relaunch video/manual pass is still required. |
 | BLE, Health, voice, cloud sync, ELKA runtime, social backend | V1.1 or later | Existing roadmap and disabled-feature tests | These remain intentionally out of V1 and should not be moved into V1 release scope. |
 

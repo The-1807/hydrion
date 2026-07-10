@@ -70,10 +70,14 @@ void main() {
     expect(hydAdRuntimeDirectory.existsSync(), isFalse);
     expect(humanAssets, isEmpty);
     expect(archivedHumanAssets, hasLength(19));
-    expect(uiAssets, hasLength(9));
+    expect(uiAssets, hasLength(12));
     for (final file in [...archivedHumanAssets, ...uiAssets]) {
       expect(file.path, isNot(contains('ChatGPT Image')));
       expect(file.path, isNot(contains(' ')));
+    }
+    for (final file in uiAssets) {
+      expect(file.path, endsWith('.png'));
+      expect(file.path, isNot(contains('hydrion-lifestyle-')));
     }
   });
 

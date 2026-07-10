@@ -44,14 +44,18 @@ void main() {
   });
 
   test('UI asset manifest separates lifestyle scenes from profile avatars', () {
-    expect(HydrionUiAssetManifest.lifestyleScenes, hasLength(9));
+    expect(HydrionUiAssetManifest.lifestyleScenes, hasLength(11));
     expect(HydrionUiAssetManifest.byId('sip-break').assetPath,
-        'assets/UI_BETA/hydrion-lifestyle-sip-break.jpg');
+        'assets/UI_BETA/drinking-lady.png');
+    expect(HydrionUiAssetManifest.successCheckAssetPath,
+        'assets/UI_BETA/green-check.png');
     expect(
       HydrionUiAssetManifest.lifestyleScenes.map((scene) => scene.assetPath),
       everyElement(
         allOf(
           startsWith('assets/UI_BETA/'),
+          endsWith('.png'),
+          isNot(contains('hydrion-lifestyle-')),
           isNot(contains('ChatGPT Image')),
           isNot(contains(' ')),
         ),

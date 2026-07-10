@@ -8,10 +8,8 @@ import '../../domain/avatar_manifest.dart';
 import '../../domain/community_links.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../domain/ui_asset_manifest.dart';
-import '../../repositories/hydration_repository.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../repositories/settings_repository.dart';
-import '../../services/achievement_service.dart';
 import '../../services/profile_photo_service.dart';
 import '../theme/hydrion_design.dart';
 
@@ -23,21 +21,9 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<UserSettingsRepository>().settings;
-    final hydrationRepository = context.watch<HydrationRepository>();
     final reminderRepository = context.watch<ReminderRepository>();
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final avatar = HydrionAvatarManifest.byId(settings.avatarId);
-    final today = DateTime.now();
-    final achievements = const AchievementService().evaluate(
-      hydrationRepository: hydrationRepository,
-      now: today,
-      activeGoalMl: settings.dailyGoalMl,
-    );
-    final unlocked = [
-      achievements.dailyGoal,
-      achievements.threeLogsToday,
-      achievements.sevenDayStreak,
-    ].where((achievement) => achievement.unlocked).length;
 
     return Scaffold(
       appBar: embedded
@@ -52,7 +38,6 @@ class ProfileScreen extends StatelessWidget {
           _ProfileHero(
             settings: settings,
             avatar: avatar,
-            unlockedAchievements: unlocked,
           ),
           const SizedBox(height: 16),
           Wrap(
@@ -218,12 +203,10 @@ class ProfileScreen extends StatelessWidget {
 class _ProfileHero extends StatelessWidget {
   final UserSettings settings;
   final HydrionAvatar avatar;
-  final int unlockedAchievements;
 
   const _ProfileHero({
     required this.settings,
     required this.avatar,
-    required this.unlockedAchievements,
   });
 
   @override
@@ -264,7 +247,6 @@ class _ProfileHero extends StatelessWidget {
                             ? 'Weather-aware'
                             : 'Manual goal',
                       ),
-                      _MiniPill('$unlockedAchievements badges'),
                     ],
                   ),
                 ],
@@ -301,15 +283,12 @@ class _ProfileLifestyleMoment extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(HydrionRadii.sm),
-            child: ColoredBox(
-              color: Colors.white.withValues(alpha: 0.82),
-              child: Image.asset(
-                scene.assetPath,
-                width: 104,
-                height: 132,
-                fit: BoxFit.contain,
-                semanticLabel: scene.description,
-              ),
+            child: Image.asset(
+              scene.assetPath,
+              width: 104,
+              height: 132,
+              fit: BoxFit.contain,
+              semanticLabel: scene.description,
             ),
           ),
           const SizedBox(width: 16),

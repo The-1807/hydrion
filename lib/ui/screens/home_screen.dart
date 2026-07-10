@@ -407,8 +407,8 @@ class _LifestyleSceneCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: ColoredBox(
-                  color: HydrionColors.foam,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
                   child: Image.asset(
                     scene.assetPath,
                     fit: BoxFit.contain,

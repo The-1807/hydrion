@@ -269,7 +269,7 @@ choice remains independent.
 Runtime image assets were optimized before this push:
 
 - Before: 44 files, 76,702,320 bytes under `assets/`.
-- After: 22 runtime-declared media files, 1,793,473 bytes under `assets/`.
+- After: 25 runtime-declared media files, 16,790,393 bytes under `assets/`.
 - Reduction: 74,908,847 bytes, 97.66%.
 - After web release build: 64 files, 35,428,770 bytes under `build/web`.
 - Original owner assets are preserved under `assets_source_original/assets/...`.

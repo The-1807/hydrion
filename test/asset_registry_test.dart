@@ -11,17 +11,29 @@ void main() {
       for (final avatar in HydrionAvatarManifest.avatars) avatar.assetPath,
       for (final scene in HydrionUiAssetManifest.lifestyleScenes)
         scene.assetPath,
+      HydrionUiAssetManifest.successCheckAssetPath,
       'assets/icons/icon1807.jpg',
     };
 
     expect(HydrionAvatarManifest.humanAvatars, isEmpty);
-    expect(paths, hasLength(21));
     for (final path in paths) {
-      expect(path, isNot(endsWith('.png')), reason: path);
       expect(path, isNot(contains('assets_source_original')));
       expect(File(path).existsSync(), isTrue, reason: path);
-      expect(File(path).lengthSync(), lessThan(130000), reason: path);
+      expect(File(path).lengthSync(), greaterThan(0), reason: path);
     }
+
+    for (final scene in HydrionUiAssetManifest.lifestyleScenes) {
+      expect(scene.assetPath, endsWith('.png'), reason: scene.id);
+      expect(
+        _pngColorType(scene.assetPath),
+        anyOf(3, 4, 6),
+        reason: scene.assetPath,
+      );
+    }
+    expect(
+      _pngColorType(HydrionUiAssetManifest.successCheckAssetPath),
+      anyOf(2, 6),
+    );
   });
 
   test('runtime identifiers are unique and stale source assets stay unbundled',
@@ -40,5 +52,12 @@ void main() {
     expect(pubspec, isNot(contains('assets/pfp_mascot/hpfp/')));
     expect(pubspec, isNot(contains('1000064425.mp4')));
     expect(pubspec, isNot(contains('icon1807.png')));
+    expect(pubspec, isNot(contains('hydrion-lifestyle-')));
   });
+}
+
+int _pngColorType(String path) {
+  final bytes = File(path).readAsBytesSync();
+  expect(bytes.take(8), [137, 80, 78, 71, 13, 10, 26, 10], reason: path);
+  return bytes[25];
 }

@@ -5,9 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
-import '../../services/achievement_service.dart';
 import '../../services/eco_tracker.dart';
-import '../components/achievement_badge.dart';
 import '../components/hydration_score_card.dart';
 import '../theme/hydrion_design.dart';
 
@@ -36,12 +34,6 @@ class AnalyticsScreen extends StatelessWidget {
       return hydrationRepository.totalForDay(day);
     });
     final hydrationPercent = (todayMl / targetMl * 100).clamp(0.0, 100.0);
-    final achievements = const AchievementService().evaluate(
-      hydrationRepository: hydrationRepository,
-      now: today,
-      activeGoalMl: targetMl,
-    );
-
     return Scaffold(
       appBar: embedded
           ? null
@@ -103,34 +95,6 @@ class AnalyticsScreen extends StatelessWidget {
               subtitle: Text(l10n.localEntriesToday(count: todayLogs.length)),
             ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            l10n.achievementsTitle,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              AchievementBadge(
-                badgeName: l10n.badgeDailyGoal,
-                isUnlocked: achievements.dailyGoal.unlocked,
-              ),
-              AchievementBadge(
-                badgeName: l10n.badgeThreeLogsToday,
-                isUnlocked: achievements.threeLogsToday.unlocked,
-              ),
-              AchievementBadge(
-                badgeName: l10n.badgeSevenDayStreak,
-                isUnlocked: achievements.sevenDayStreak.unlocked,
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
           Text(
             l10n.ecoImpactTitle,
             style: Theme.of(context)
@@ -244,17 +208,14 @@ class _WeeklyHydrationStrip extends StatelessWidget {
           const SizedBox(width: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(HydrionRadii.sm),
-            child: ColoredBox(
-              color: HydrionColors.foam,
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: Image.asset(
-                  scene.assetPath,
-                  width: 76,
-                  height: 120,
-                  fit: BoxFit.contain,
-                  semanticLabel: scene.description,
-                ),
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Image.asset(
+                scene.assetPath,
+                width: 76,
+                height: 120,
+                fit: BoxFit.contain,
+                semanticLabel: scene.description,
               ),
             ),
           ),

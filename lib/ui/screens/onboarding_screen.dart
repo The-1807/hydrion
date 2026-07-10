@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/avatar_manifest.dart';
+import '../../domain/ui_asset_manifest.dart';
 import '../../repositories/settings_repository.dart';
 import 'legal_about_screen.dart';
 
@@ -455,8 +456,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _OnboardingPanel(
         icon: Icons.check_circle_outline,
         title: 'Ready',
-        child: Text(
-          'Hydrion will start with ${_nicknameController.text.trim().isEmpty ? 'your profile' : _nicknameController.text.trim()}, ${HydrionAvatarManifest.byId(_avatarId).displayName}, ${_goalController.text.trim()} ml/day, and local-first tracking.',
+        child: Column(
+          children: [
+            Image.asset(
+              HydrionUiAssetManifest.successCheckAssetPath,
+              key: const Key('onboarding-success-image'),
+              height: 112,
+              fit: BoxFit.contain,
+              semanticLabel: 'Onboarding ready',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Hydrion will start with ${_nicknameController.text.trim().isEmpty ? 'your profile' : _nicknameController.text.trim()}, ${HydrionAvatarManifest.byId(_avatarId).displayName}, ${_goalController.text.trim()} ml/day, and local-first tracking.',
+            ),
+          ],
         ),
       ),
     ];

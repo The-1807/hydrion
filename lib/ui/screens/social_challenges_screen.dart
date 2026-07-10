@@ -32,6 +32,14 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
       hydrationRepository,
       targetMlOverride: settings.dailyGoalMl,
     );
+    final orderedChallenges = [
+      if (activeChallenge != null)
+        ...HydrionChallengeCatalog.challenges
+            .where((challenge) => challenge.id == activeChallenge.id),
+      ...HydrionChallengeCatalog.challenges.where(
+        (challenge) => challenge.id != activeChallenge?.id,
+      ),
+    ];
 
     final mediaPadding = MediaQuery.paddingOf(context);
     final bottomPadding = widget.embedded ? 96.0 + mediaPadding.bottom : 28.0;
@@ -82,7 +90,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
           ),
           const SizedBox(height: 12),
         ],
-        for (final challenge in HydrionChallengeCatalog.challenges) ...[
+        for (final challenge in orderedChallenges) ...[
           _ChallengeCard(
             challenge: challenge,
             challengeRepository: challengeRepository,
@@ -191,13 +199,10 @@ class _ChallengeHero extends StatelessWidget {
                   borderRadius: BorderRadius.circular(HydrionRadii.md),
                   child: SizedBox.square(
                     dimension: 88,
-                    child: ColoredBox(
-                      color: Colors.white.withValues(alpha: 0.16),
-                      child: Image.asset(
-                        scene.assetPath,
-                        fit: BoxFit.cover,
-                        semanticLabel: scene.description,
-                      ),
+                    child: Image.asset(
+                      scene.assetPath,
+                      fit: BoxFit.contain,
+                      semanticLabel: scene.description,
                     ),
                   ),
                 ),
@@ -548,6 +553,7 @@ class _ChallengeCard extends StatelessWidget {
     );
 
     return HydrionSurface(
+      key: Key('challenge-card-${challenge.id}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

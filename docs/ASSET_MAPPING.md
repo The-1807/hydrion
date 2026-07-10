@@ -28,22 +28,31 @@ owner review only. Saved ids matching the removed `hydrion-human-*` set migrate
 to the default `savvy-eco_shark` avatar. Users can still provide a custom
 profile photo through the existing profile-photo flow.
 
-## UI_BETA Lifestyle Assets
+## UI_BETA Transparent Runtime Assets
 
-The files in `assets/UI_BETA/` are not PFPs. They are full-body or brand-scene
-assets used to add product flavor to Home, Progress, Challenges, and Profile.
+The active files in `assets/UI_BETA/` are PNG runtime illustrations. Character
+and context art is intentionally transparent so Home, Progress, Challenges,
+Profile, weather, and onboarding surfaces do not show boxed JPG backgrounds.
+The older `hydrion-lifestyle-*.jpg` runtime files were removed in the V1 asset
+replacement pass.
 
 | Asset | Scene | Product use |
 |---|---|---|
-| `assets/UI_BETA/hydrion-lifestyle-app-check.jpg` | App Check | Home ritual rail and product atmosphere |
-| `assets/UI_BETA/hydrion-lifestyle-blue-kit.jpg` | Blue Kit | Progress, profile, or empty-state accent |
-| `assets/UI_BETA/hydrion-lifestyle-bottle-break.jpg` | Bottle Break | Home ritual rail and challenge routines |
-| `assets/UI_BETA/hydrion-lifestyle-cooldown.jpg` | Cooldown | Seven-day Progress strip |
-| `assets/UI_BETA/hydrion-lifestyle-plan-check.jpg` | Plan Check | Home ritual rail and weather-goal surfaces |
-| `assets/UI_BETA/hydrion-lifestyle-portrait.jpg` | Portrait | Brand atmosphere only; not a selectable profile photo |
-| `assets/UI_BETA/hydrion-lifestyle-runner-ready.jpg` | Runner Ready | Challenges hero |
-| `assets/UI_BETA/hydrion-lifestyle-sip-break.jpg` | Sip Break | Home ritual rail |
-| `assets/UI_BETA/hydrion-lifestyle-studio-bottle.jpg` | Studio Bottle | Profile lifestyle moment |
+| `assets/UI_BETA/green-check.png` | Success Check | Onboarding ready/completion state |
+| `assets/UI_BETA/drinking-lady.png` | Sip Break | Home ritual rail and hydration contexts |
+| `assets/UI_BETA/drinking-man.png` | Bottle Break | Home rail and routine-building contexts |
+| `assets/UI_BETA/workout-lady.png` | Workout Routine | Profile and active routine contexts |
+| `assets/UI_BETA/workout-man.png` | Cooldown | Progress dashboard and activity-adjacent moments |
+| `assets/UI_BETA/tracked_intake.png` | Tracked Intake | Progress, profile, or empty-state accent |
+| `assets/UI_BETA/man-checking-app.png` | App Check | Home, weather, and app-checking contexts |
+| `assets/UI_BETA/lady-checking-app.png` | Plan Check | Home daily-plan and weather-goal panels |
+| `assets/UI_BETA/community-run.png` | Community Run | Local challenge and social-coming-soon context |
+| `assets/UI_BETA/running-lady.png` | Runner Ready | Challenges and active routine cards |
+| `assets/UI_BETA/running-man.png` | Runner | Active routine and challenge cards |
+| `assets/UI_BETA/ble_bottle.png` | BLE Bottle | Preserved for documented future/coming-soon visual use only; not active V1 smart-bottle support |
+
+No non-empty attribution text file was supplied with these PNGs. A zero-byte
+`assets/UI_BETA/attributions` placeholder was removed from the runtime bundle.
 
 ## Profile-Aware Lifestyle Resolver
 
@@ -89,7 +98,7 @@ originals are preserved outside the bundled app path in
 Measured runtime asset totals:
 
 - Before: 44 files, 76,702,320 bytes.
-- After the July 10 corrective cleanup: 22 runtime-declared media files, 1,793,473 bytes.
+- After the July 10 transparent PNG replacement: 25 runtime-declared media files, 16,790,393 bytes.
 - Reduction: 74,908,847 bytes, 97.66%.
 
 The unused `assets/pfp_mascot/pfp/1000064425.mp4` was moved to
