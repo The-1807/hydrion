@@ -26,7 +26,6 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
     final challengeRepository = context.watch<ChallengeRepository>();
     final hydrationRepository = context.watch<HydrationRepository>();
     final settings = context.watch<UserSettingsRepository>().settings;
-    final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final activeChallenge = challengeRepository.activeChallenge;
     final progress = challengeRepository.progressFor(
       hydrationRepository,
@@ -47,12 +46,6 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
       padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPadding),
       children: [
         _ChallengeHero(
-          localModeLabel: capabilities.socialSync
-              ? l10n.socialChallengeCapabilityReported
-              : l10n.localChallengeMode,
-          localModeBody: capabilities.socialSync
-              ? l10n.socialCapabilityNoAdapter
-              : l10n.socialSyncNotConnected,
           activeChallenge: activeChallenge,
           progress: progress,
           sex: settings.sex,
@@ -144,15 +137,11 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
 }
 
 class _ChallengeHero extends StatelessWidget {
-  final String localModeLabel;
-  final String localModeBody;
   final JoinedChallenge? activeChallenge;
   final ChallengeProgress progress;
   final HydrionSex? sex;
 
   const _ChallengeHero({
-    required this.localModeLabel,
-    required this.localModeBody,
     required this.activeChallenge,
     required this.progress,
     required this.sex,
@@ -229,19 +218,6 @@ class _ChallengeHero extends StatelessWidget {
               Text(
                 '${progress.completedDays}/${progress.durationDays} days complete. Today: ${progress.todayMl}/${progress.targetMl} ml.',
               ),
-            ] else ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _ChallengePill(localModeLabel),
-                  const _ChallengePill('Social sync Coming soon'),
-                  const _ChallengePill('No account required'),
-                  const _ChallengePill('Local progress'),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(localModeBody),
             ],
           ],
         ),
@@ -717,26 +693,6 @@ class _NoChallengeCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ChallengePill extends StatelessWidget {
-  final String label;
-
-  const _ChallengePill(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(HydrionRadii.pill),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Text(label),
       ),
     );
   }

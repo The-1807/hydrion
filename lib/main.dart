@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -213,8 +212,6 @@ class HydrionApp extends StatelessWidget {
       for (final document in HydrionLegalDocumentRegistry.userFacingDocuments)
         document.routeName: (_) => LegalDocumentScreen(documentId: document.id),
       '/challenges': (_) => const SocialChallengesScreen(),
-      if (kDebugMode)
-        '/debug-diagnostics': (_) => const DebugDiagnosticsScreen(),
     };
 
     return MultiProvider(

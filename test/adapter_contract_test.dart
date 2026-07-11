@@ -227,14 +227,9 @@ void main() {
     navigationBar.onDestinationSelected?.call(3);
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'adapter check');
-    await tester.pump();
-    final sendButton = find.byKey(const Key('coach-send-button'));
-    await tester.ensureVisible(sendButton);
-    await tester.tap(sendButton);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Fake coach adapter response'), findsOneWidget);
+    expect(find.byKey(const Key('coach-coming-soon')), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byKey(const Key('coach-send-button')), findsNothing);
   });
 }
 

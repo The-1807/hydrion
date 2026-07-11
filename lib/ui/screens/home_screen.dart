@@ -13,7 +13,6 @@ import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../repositories/settings_repository.dart';
-import '../../services/weather_goal_service.dart';
 import '../components/intake_ring.dart';
 import '../components/voice_input_widget.dart';
 import '../theme/hydrion_design.dart';
@@ -29,22 +28,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedVolumeMl = 250;
-  bool _weatherGoalChecked = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_weatherGoalChecked) {
-      return;
-    }
-    _weatherGoalChecked = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _maybeShowWeatherGoalPrompt();
-      }
-    });
-  }
-
   Future<void> _logWater(int volumeMl) async {
     final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
@@ -60,118 +43,6 @@ class _HomeScreenState extends State<HomeScreen> {
     messenger.showSnackBar(
       SnackBar(content: Text(l10n.loggedVolume(volumeMl: volumeMl))),
     );
-  }
-
-  Future<void> _maybeShowWeatherGoalPrompt() async {
-    final coordinator = context.read<DailyWeatherGoalCoordinator>();
-    final result = await coordinator.evaluate();
-    if (!mounted) {
-      return;
-    }
-    if (result.status == DailyWeatherGoalStatus.autoApplied &&
-        result.decision != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Weather-adjusted goal applied: '
-            '${result.decision!.recommendedGoalMl} ml.',
-          ),
-        ),
-      );
-      return;
-    }
-    if (result.status != DailyWeatherGoalStatus.promptReady ||
-        result.decision == null ||
-        result.forecast == null) {
-      return;
-    }
-
-    var doNotAskEachDay = false;
-    final decision = result.decision!;
-    final forecast = result.forecast!;
-    final action = await showDialog<_WeatherGoalAction>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Today\'s weather goal'),
-              content: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Base goal: ${decision.baselineGoalMl} ml'),
-                    Text(
-                      'Weather adjustment: '
-                      '${decision.weatherAdjustmentMl >= 0 ? '+' : ''}'
-                      '${decision.weatherAdjustmentMl} ml',
-                    ),
-                    Text('Today: ${decision.recommendedGoalMl} ml'),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Weather: ${forecast.condition}, '
-                      '${forecast.temperatureC.round()} C'
-                      '${forecast.humidityPercent == null ? '' : ', ${forecast.humidityPercent!.round()}% humidity'}',
-                    ),
-                    const SizedBox(height: 8),
-                    Text(decision.explanation),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Hydrion is not medical advice. Drink comfortably, stop if you feel unwell, and do not force fluids for progress, streaks, or challenges.',
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: doNotAskEachDay,
-                      onChanged: (value) {
-                        setDialogState(() => doNotAskEachDay = value == true);
-                      },
-                      title: const Text('Do not ask me each day'),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () =>
-                      Navigator.of(dialogContext).pop(_WeatherGoalAction.keep),
-                  child: const Text('Keep previous goal'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext)
-                      .pop(_WeatherGoalAction.adjust),
-                  child: const Text('Adjust'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(dialogContext)
-                      .pop(_WeatherGoalAction.useRecommendation),
-                  child: const Text('Use recommendation'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    if (!mounted || action == null) {
-      return;
-    }
-    switch (action) {
-      case _WeatherGoalAction.useRecommendation:
-        await coordinator.acceptRecommendation(
-          decision: decision,
-          doNotAskEachDay: doNotAskEachDay,
-        );
-        break;
-      case _WeatherGoalAction.adjust:
-        await Navigator.of(context).pushNamed('/settings');
-        break;
-      case _WeatherGoalAction.keep:
-        await coordinator.keepPreviousGoal(
-          explanation: 'User kept the previous goal for today.',
-        );
-        break;
-    }
   }
 
   @override
@@ -203,7 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
       l10n,
       hydrationPercent: percent,
       entryCount: todayLogs.length,
-      weatherAdjustedGoalActive: settings.weatherAdjustedGoalActive,
     );
     final profileAvatar = HydrionAvatarManifest.byId(settings.avatarId);
     final companionAvatar =
@@ -712,104 +582,6 @@ class _QuickLogPanel extends StatelessWidget {
   }
 }
 
-class _WeatherJourneyPanel extends StatelessWidget {
-  final UserSettings settings;
-
-  const _WeatherJourneyPanel({required this.settings});
-
-  @override
-  Widget build(BuildContext context) {
-    final weatherMode = settings.goalMode == HydrionGoalMode.weatherInformed;
-    final active = settings.weatherAdjustedGoalActive;
-    final adjustment = settings.dailyGoalMl - settings.baselineDailyGoalMl;
-    final scene = HydrionLifestyleArtResolver.sceneFor(
-      surface: HydrionLifestyleSurface.weather,
-      sex: settings.sex,
-    );
-    final assetPath =
-        active ? HydrionUiAssetManifest.hotSummerAssetPath : scene.assetPath;
-    final semanticLabel =
-        active ? 'Hydrion hot weather illustration.' : scene.description;
-    return HydrionSurface(
-      gradient: LinearGradient(
-        colors: active
-            ? [
-                HydrionColors.sunrise.withValues(alpha: 0.22),
-                HydrionColors.glow.withValues(alpha: 0.16),
-              ]
-            : [
-                Colors.white.withValues(alpha: 0.98),
-                HydrionColors.foam,
-              ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Icon(active ? Icons.wb_sunny : Icons.cloud_queue),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        active
-                            ? 'Weather changed today\'s route'
-                            : 'Weather layer',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Image.asset(
-                assetPath,
-                width: 64,
-                height: 84,
-                fit: BoxFit.contain,
-                semanticLabel: semanticLabel,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (active) ...[
-            Text('Base goal: ${settings.baselineDailyGoalMl} ml'),
-            Text(
-              'Weather adjustment: ${adjustment >= 0 ? '+' : ''}$adjustment ml',
-            ),
-            Text('Today\'s goal: ${settings.dailyGoalMl} ml'),
-            if (settings.lastWeatherGoalExplanation != null) ...[
-              const SizedBox(height: 8),
-              Text(settings.lastWeatherGoalExplanation!),
-            ],
-          ] else if (weatherMode) ...[
-            const Text(
-              'Weather mode is enabled. Hydrion will show the adjustment here after a successful eligible forecast.',
-            ),
-          ] else ...[
-            const Text(
-              'Manual mode is calm and predictable. Turn on weather personalization when you want Hydrion to explain heat-aware goal changes.',
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              key: const Key('home-enable-weather'),
-              onPressed: () => Navigator.of(context).pushNamed('/settings'),
-              icon: const Icon(Icons.wb_sunny_outlined),
-              label: const Text('Personalize with weather'),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 class _TodayMomentumGrid extends StatelessWidget {
   final int entryCount;
   final ChallengeRepository challengeRepository;
@@ -955,13 +727,6 @@ class _LegacyRouteShortcuts extends StatelessWidget {
             label: 'Reminders',
             icon: Icons.notifications_none,
             route: '/reminders',
-          )
-        else
-          const _ComingSoonRouteChip(
-            label: 'Reminders',
-            icon: Icons.notifications_none,
-            explanation:
-                'Reminder notification setup is coming soon on this platform.',
           ),
       ],
     );
@@ -990,42 +755,6 @@ class _RouteButton extends StatelessWidget {
   }
 }
 
-class _ComingSoonRouteChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final String explanation;
-
-  const _ComingSoonRouteChip({
-    required this.label,
-    required this.icon,
-    required this.explanation,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: '$label. Coming soon. $explanation',
-      child: ActionChip(
-        key: Key('coming-soon-${label.toLowerCase().replaceAll(' ', '-')}'),
-        avatar: Icon(icon, size: 18),
-        label: Text('$label - Coming soon'),
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(explanation)),
-          );
-        },
-      ),
-    );
-  }
-}
-
-enum _WeatherGoalAction {
-  useRecommendation,
-  adjust,
-  keep,
-}
-
 String _greeting(UserSettings settings, DateTime now) {
   final name = settings.nickname?.trim();
   final displayName = name == null || name.isEmpty ? 'there' : name;
@@ -1041,7 +770,6 @@ String _homeAdvice(
   AppLocalizations l10n, {
   required double hydrationPercent,
   required int entryCount,
-  required bool weatherAdjustedGoalActive,
 }) {
   final hydration = hydrationPercent.clamp(0.0, 100.0);
   final advice = switch (hydration) {
@@ -1050,11 +778,10 @@ String _homeAdvice(
     >= 65.0 => l10n.homeAdviceClose,
     _ => l10n.homeAdviceStart,
   };
-  final heat = weatherAdjustedGoalActive ? ' ${l10n.homeAdviceHeat}' : '';
   final entryNote = entryCount >= 3
       ? ' ${l10n.homeAdviceReliableEntries(count: entryCount)}'
       : ' ${l10n.homeAdviceAddEntries}';
-  return '$advice$heat$entryNote';
+  return '$advice$entryNote';
 }
 
 double _companionTilt(HydrionCompanionMood mood) {

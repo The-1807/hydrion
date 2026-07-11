@@ -171,49 +171,7 @@ void main() {
     expect(find.byKey(const Key('bottle-bingo-board')), findsNothing);
   });
 
-  testWidgets('fallback-only actions are gated and labeled', (tester) async {
-    final services = HydrionServices.memory();
-
-    await tester.pumpWidget(HydrionApp(services: services));
-    await tester.pumpAndSettle();
-
-    expect(find.byTooltip('Voice input disabled by app capabilities'),
-        findsNothing);
-    await tester.tap(find.byIcon(Icons.settings));
-    await tester.pumpAndSettle();
-    final devicesComingSoon =
-        find.byKey(const Key('coming-soon-connected-devices'));
-    await tester.scrollUntilVisible(
-      devicesComingSoon,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.ensureVisible(devicesComingSoon);
-    await tester.pumpAndSettle();
-    expect(devicesComingSoon, findsOneWidget);
-    await tester.tap(devicesComingSoon);
-    await tester.pumpAndSettle();
-    expect(
-      find.text(
-        'BLE smart bottle and smartwatch support are planned. This build does not scan for Bluetooth devices, connect to a bottle, or request Health permissions.',
-      ),
-      findsWidgets,
-    );
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await openTab(tester, const Key('nav-profile'));
-    expect(find.byKey(const Key('profile-reminders-action')), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('No reminders yet'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('No reminders yet'), findsOneWidget);
-    expect(services.reminderRepository.reminders, isEmpty);
-  });
-
-  testWidgets('settings distinguish local controls from unavailable adapters',
-      (tester) async {
+  testWidgets('settings expose only working V1 controls', (tester) async {
     final services = HydrionServices.memory();
 
     await tester.pumpWidget(HydrionApp(services: services));
@@ -222,10 +180,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('settings-logo')), findsOneWidget);
-    expect(find.text('Standalone local mode'), findsOneWidget);
-    expect(find.text('Language choice is saved locally.'), findsOneWidget);
-    expect(find.byKey(const Key('settings-open-profile')), findsOneWidget);
+    expect(find.byKey(const Key('settings-locale-picker')), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Daily hydration goal'),
       300,
@@ -241,15 +197,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Reusable container'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('settings-permissions-check')));
-    await tester.pumpAndSettle();
-    expect(
-      find.text('No platform permissions requested in standalone mode'),
-      findsOneWidget,
-    );
-    await tester.pump(const Duration(seconds: 4));
-    await tester.pumpAndSettle();
-
     await tester.scrollUntilVisible(
       find.byKey(const Key('settings-locale-picker')),
       -300,
@@ -264,16 +211,9 @@ void main() {
     expect(find.text('Idioma actualizado'), findsOneWidget);
     expect(services.i18n.locale.languageCode, 'es');
 
-    await tester.scrollUntilVisible(
-      find.text('Privacidad local'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Privacidad local'), findsOneWidget);
-    expect(find.text('Estado de funciones en ejecucion'), findsNothing);
-    expect(find.text('Adaptador ELKA'), findsNothing);
+    expect(find.textContaining('Gemini'), findsNothing);
+    expect(find.textContaining('provider'), findsNothing);
+    expect(find.textContaining('adapter'), findsNothing);
   });
 
   testWidgets('local challenge join state is persisted in app services',
@@ -285,7 +225,7 @@ void main() {
 
     await openTab(tester, const Key('nav-challenges'));
 
-    expect(find.text('Local challenge mode'), findsOneWidget);
+    expect(find.text('Challenge dock'), findsOneWidget);
     final joinButton =
         find.byKey(const Key('join-around-the-world-infusion-week'));
     await tester.scrollUntilVisible(

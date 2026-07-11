@@ -96,7 +96,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.getTopLeft(safeStack).dy, greaterThanOrEqualTo(36));
-    expect(find.byKey(const Key('coach-message-input')), findsOneWidget);
+    expect(find.byKey(const Key('coach-coming-soon')), findsOneWidget);
+    expect(find.byKey(const Key('coach-message-input')), findsNothing);
+    expect(find.byKey(const Key('hydrion-bottom-nav')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
