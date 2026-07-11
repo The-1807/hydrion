@@ -290,7 +290,11 @@ class _HomeScreenState extends State<HomeScreen> {
             onHistory: () => Navigator.of(context).pushNamed('/log'),
           ),
           const SizedBox(height: 16),
-          _HydrionLifestyleRail(sex: settings.sex),
+          _HydrionLifestyleRail(
+            sex: settings.sex,
+            consumedMl: todayMl,
+            targetMl: targetMl,
+          ),
           const SizedBox(height: 16),
           _WeatherJourneyPanel(settings: settings),
           const SizedBox(height: 16),
@@ -321,12 +325,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _HydrionLifestyleRail extends StatelessWidget {
   final HydrionSex? sex;
+  final int consumedMl;
+  final int targetMl;
 
-  const _HydrionLifestyleRail({required this.sex});
+  const _HydrionLifestyleRail({
+    required this.sex,
+    required this.consumedMl,
+    required this.targetMl,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scenes = HydrionLifestyleArtResolver.homeRailScenes(sex);
+    final progress =
+        targetMl <= 0 ? 0.0 : (consumedMl / targetMl).clamp(0, 1).toDouble();
 
     return HydrionSurface(
       key: const Key('home-lifestyle-rail'),
@@ -348,7 +360,7 @@ class _HydrionLifestyleRail extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Today\'s hydration ritual',
+                    'Today\'s hydration rhythm',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w900,
                         ),
@@ -361,7 +373,7 @@ class _HydrionLifestyleRail extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Text(
-              'A few visual cues to make logging feel like a small lifestyle moment, not a spreadsheet chore.',
+              'Updates as you log water.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
@@ -374,7 +386,11 @@ class _HydrionLifestyleRail extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final scene = scenes[index];
-                return _LifestyleSceneCard(scene: scene);
+                return _LifestyleSceneCard(
+                  scene: scene,
+                  status: _rhythmStatusFor(index, scenes.length, progress),
+                  index: index,
+                );
               },
             ),
           ),
@@ -384,21 +400,53 @@ class _HydrionLifestyleRail extends StatelessWidget {
   }
 }
 
+_RhythmStatus _rhythmStatusFor(int index, int count, double progress) {
+  if (count <= 0) {
+    return _RhythmStatus.upNext;
+  }
+  final segmentStart = index / count;
+  final segmentEnd = (index + 1) / count;
+  if (progress >= segmentEnd) {
+    return _RhythmStatus.completed;
+  }
+  if (progress >= segmentStart) {
+    return _RhythmStatus.current;
+  }
+  return _RhythmStatus.upNext;
+}
+
+enum _RhythmStatus {
+  completed('Completed'),
+  current('Current'),
+  upNext('Up next');
+
+  final String label;
+
+  const _RhythmStatus(this.label);
+}
+
 class _LifestyleSceneCard extends StatelessWidget {
   final HydrionUiScene scene;
+  final _RhythmStatus status;
+  final int index;
 
-  const _LifestyleSceneCard({required this.scene});
+  const _LifestyleSceneCard({
+    required this.scene,
+    required this.status,
+    required this.index,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
+      key: Key('hydration-rhythm-card-$index'),
       width: 132,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: HydrionColors.foam.withValues(alpha: 0.62),
           borderRadius: BorderRadius.circular(HydrionRadii.sm),
           border: Border.all(
-            color: HydrionColors.current.withValues(alpha: 0.14),
+            color: HydrionColors.current.withValues(alpha: 0.08),
           ),
         ),
         child: ClipRRect(
@@ -417,14 +465,28 @@ class _LifestyleSceneCard extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(10),
-                child: Text(
-                  scene.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      scene.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      status.label,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: HydrionColors.abyss.withValues(
+                              alpha: 0.72,
+                            ),
+                          ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -666,6 +728,10 @@ class _WeatherJourneyPanel extends StatelessWidget {
       surface: HydrionLifestyleSurface.weather,
       sex: settings.sex,
     );
+    final assetPath =
+        active ? HydrionUiAssetManifest.hotSummerAssetPath : scene.assetPath;
+    final semanticLabel =
+        active ? 'Hydrion hot weather illustration.' : scene.description;
     return HydrionSurface(
       gradient: LinearGradient(
         colors: active
@@ -705,11 +771,11 @@ class _WeatherJourneyPanel extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Image.asset(
-                scene.assetPath,
+                assetPath,
                 width: 64,
                 height: 84,
                 fit: BoxFit.contain,
-                semanticLabel: scene.description,
+                semanticLabel: semanticLabel,
               ),
             ],
           ),

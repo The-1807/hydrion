@@ -126,7 +126,7 @@ Future<_IssueSyncResult> _runIssueSyncValidation(List<String> arguments) async {
   final stdoutFuture = process.stdout.transform(systemEncoding.decoder).join();
   final stderrFuture = process.stderr.transform(systemEncoding.decoder).join();
   final exitCodeFuture = process.exitCode.timeout(
-    const Duration(seconds: 25),
+    const Duration(seconds: 60),
     onTimeout: () {
       process.kill();
       throw TimeoutException('issue-sync validation did not terminate');

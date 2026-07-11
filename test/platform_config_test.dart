@@ -70,7 +70,9 @@ void main() {
     expect(hydAdRuntimeDirectory.existsSync(), isFalse);
     expect(humanAssets, isEmpty);
     expect(archivedHumanAssets, hasLength(19));
-    expect(uiAssets, hasLength(12));
+    expect(uiAssets, hasLength(18));
+    expect(File('assets/UI_BETA/sunny.png').existsSync(), isFalse);
+    expect(File('assets/UI_BETA/hot-summer.pnh').existsSync(), isFalse);
     for (final file in [...archivedHumanAssets, ...uiAssets]) {
       expect(file.path, isNot(contains('ChatGPT Image')));
       expect(file.path, isNot(contains(' ')));

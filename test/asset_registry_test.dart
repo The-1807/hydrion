@@ -34,6 +34,10 @@ void main() {
       _pngColorType(HydrionUiAssetManifest.successCheckAssetPath),
       anyOf(2, 6),
     );
+    expect(
+        File(HydrionUiAssetManifest.hotSummerAssetPath).existsSync(), isTrue);
+    expect(File('assets/UI_BETA/sunny.png').existsSync(), isFalse);
+    expect(File('assets/UI_BETA/hot-summer.pnh').existsSync(), isFalse);
   });
 
   test('runtime identifiers are unique and stale source assets stay unbundled',

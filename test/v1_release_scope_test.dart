@@ -44,9 +44,19 @@ void main() {
   });
 
   test('UI asset manifest separates lifestyle scenes from profile avatars', () {
-    expect(HydrionUiAssetManifest.lifestyleScenes, hasLength(11));
+    expect(HydrionUiAssetManifest.lifestyleScenes, hasLength(17));
     expect(HydrionUiAssetManifest.byId('sip-break').assetPath,
         'assets/UI_BETA/drinking-lady.png');
+    expect(HydrionUiAssetManifest.byId('challenge').assetPath,
+        'assets/UI_BETA/challenge.png');
+    expect(HydrionUiAssetManifest.byId('weather').assetPath,
+        'assets/UI_BETA/weather.png');
+    expect(HydrionUiAssetManifest.hotSummerAssetPath,
+        'assets/UI_BETA/hot-summer.png');
+    expect(HydrionUiAssetManifest.byId('men-goals').assetPath,
+        'assets/UI_BETA/men-goals.png');
+    expect(HydrionUiAssetManifest.byId('goals-lady').assetPath,
+        'assets/UI_BETA/goals-lady.png');
     expect(HydrionUiAssetManifest.successCheckAssetPath,
         'assets/UI_BETA/green-check.png');
     expect(

@@ -26,6 +26,11 @@ void main() {
       find.byKey(const Key('onboarding-nickname')),
       'Avery',
     );
+    await tester.enterText(find.byKey(const Key('onboarding-age')), '29');
+    await tester.tap(find.byKey(const Key('onboarding-sex')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Female').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('onboarding-next')));
     await tester.pumpAndSettle();
 
@@ -63,6 +68,8 @@ void main() {
 
     final reloaded = await UserSettingsRepository.load(store);
     expect(reloaded.settings.nickname, 'Avery');
+    expect(reloaded.settings.age, 29);
+    expect(reloaded.settings.sex, HydrionSex.female);
     expect(reloaded.settings.onboardingCompleted, isTrue);
     expect(reloaded.settings.legalAndHealthAcknowledged, isTrue);
     expect(

@@ -18,6 +18,7 @@ class HydrionUiScene {
 
 class HydrionUiAssetManifest {
   static const successCheckAssetPath = 'assets/UI_BETA/green-check.png';
+  static const hotSummerAssetPath = 'assets/UI_BETA/hot-summer.png';
 
   static const lifestyleScenes = <HydrionUiScene>[
     HydrionUiScene(
@@ -68,6 +69,48 @@ class HydrionUiAssetManifest {
       description: 'A local challenge community run illustration.',
       assetPath: 'assets/UI_BETA/community-run.png',
       intendedUse: 'Local challenge and social-coming-soon context.',
+    ),
+    HydrionUiScene(
+      id: 'challenge',
+      label: 'Challenge',
+      description: 'A Hydrion challenge illustration.',
+      assetPath: 'assets/UI_BETA/challenge.png',
+      intendedUse: 'Challenge dock and active challenge context.',
+    ),
+    HydrionUiScene(
+      id: 'goals',
+      label: 'Goals',
+      description: 'A Hydrion goals illustration.',
+      assetPath: 'assets/UI_BETA/goals.png',
+      intendedUse: 'Goal setup and hydration target context.',
+    ),
+    HydrionUiScene(
+      id: 'goals-lady',
+      label: 'Goals',
+      description: 'A Hydrion user reviewing hydration goals.',
+      assetPath: 'assets/UI_BETA/goals-lady.png',
+      intendedUse: 'Goal setup and hydration target context.',
+    ),
+    HydrionUiScene(
+      id: 'men-goals',
+      label: 'Goals',
+      description: 'A Hydrion user reviewing hydration goals.',
+      assetPath: 'assets/UI_BETA/men-goals.png',
+      intendedUse: 'Goal setup and hydration target context.',
+    ),
+    HydrionUiScene(
+      id: 'weather',
+      label: 'Weather',
+      description: 'A Hydrion weather illustration.',
+      assetPath: 'assets/UI_BETA/weather.png',
+      intendedUse: 'Weather goal and daily condition context.',
+    ),
+    HydrionUiScene(
+      id: 'hot-summer',
+      label: 'Hot Summer',
+      description: 'A Hydrion hot weather illustration.',
+      assetPath: hotSummerAssetPath,
+      intendedUse: 'Active heat/weather-adjusted goal context.',
     ),
     HydrionUiScene(
       id: 'runner',
@@ -165,15 +208,15 @@ class HydrionLifestyleArtResolver {
 
   static String _maleSceneId(HydrionLifestyleSurface surface) {
     return switch (surface) {
-      HydrionLifestyleSurface.homePrimary => 'app-check',
+      HydrionLifestyleSurface.homePrimary => 'men-goals',
       HydrionLifestyleSurface.homeSecondary => 'bottle-break',
       HydrionLifestyleSurface.homeTertiary => 'blue-kit',
       HydrionLifestyleSurface.homeQuaternary => 'cooldown',
-      HydrionLifestyleSurface.weather => 'app-check',
+      HydrionLifestyleSurface.weather => 'weather',
       HydrionLifestyleSurface.progress => 'blue-kit',
-      HydrionLifestyleSurface.challenges => 'runner',
+      HydrionLifestyleSurface.challenges => 'challenge',
       HydrionLifestyleSurface.profile => 'app-check',
-      HydrionLifestyleSurface.onboarding => 'app-check',
+      HydrionLifestyleSurface.onboarding => 'men-goals',
       HydrionLifestyleSurface.emptyState => 'blue-kit',
       HydrionLifestyleSurface.recommendation => 'bottle-break',
     };
@@ -182,14 +225,14 @@ class HydrionLifestyleArtResolver {
   static String _femaleSceneId(HydrionLifestyleSurface surface) {
     return switch (surface) {
       HydrionLifestyleSurface.homePrimary => 'sip-break',
-      HydrionLifestyleSurface.homeSecondary => 'plan-check',
+      HydrionLifestyleSurface.homeSecondary => 'goals-lady',
       HydrionLifestyleSurface.homeTertiary => 'runner-ready',
       HydrionLifestyleSurface.homeQuaternary => 'studio-bottle',
-      HydrionLifestyleSurface.weather => 'plan-check',
+      HydrionLifestyleSurface.weather => 'weather',
       HydrionLifestyleSurface.progress => 'runner-ready',
-      HydrionLifestyleSurface.challenges => 'runner-ready',
+      HydrionLifestyleSurface.challenges => 'challenge',
       HydrionLifestyleSurface.profile => 'studio-bottle',
-      HydrionLifestyleSurface.onboarding => 'portrait',
+      HydrionLifestyleSurface.onboarding => 'goals-lady',
       HydrionLifestyleSurface.emptyState => 'sip-break',
       HydrionLifestyleSurface.recommendation => 'plan-check',
     };
@@ -198,14 +241,14 @@ class HydrionLifestyleArtResolver {
   static String _neutralSceneId(HydrionLifestyleSurface surface) {
     return switch (surface) {
       HydrionLifestyleSurface.homePrimary => 'blue-kit',
-      HydrionLifestyleSurface.homeSecondary => 'cooldown',
+      HydrionLifestyleSurface.homeSecondary => 'goals',
       HydrionLifestyleSurface.homeTertiary => 'plan-check',
       HydrionLifestyleSurface.homeQuaternary => 'bottle-break',
-      HydrionLifestyleSurface.weather => 'plan-check',
+      HydrionLifestyleSurface.weather => 'weather',
       HydrionLifestyleSurface.progress => 'cooldown',
-      HydrionLifestyleSurface.challenges => 'community-run',
+      HydrionLifestyleSurface.challenges => 'challenge',
       HydrionLifestyleSurface.profile => 'blue-kit',
-      HydrionLifestyleSurface.onboarding => 'blue-kit',
+      HydrionLifestyleSurface.onboarding => 'goals',
       HydrionLifestyleSurface.emptyState => 'cooldown',
       HydrionLifestyleSurface.recommendation => 'plan-check',
     };

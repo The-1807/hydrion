@@ -39,20 +39,30 @@ replacement pass.
 | Asset | Scene | Product use |
 |---|---|---|
 | `assets/UI_BETA/green-check.png` | Success Check | Onboarding ready/completion state |
-| `assets/UI_BETA/drinking-lady.png` | Sip Break | Home ritual rail and hydration contexts |
+| `assets/UI_BETA/challenge.png` | Challenge | Challenge dock and active challenge context |
+| `assets/UI_BETA/drinking-lady.png` | Sip Break | Home hydration rhythm and hydration contexts |
 | `assets/UI_BETA/drinking-man.png` | Bottle Break | Home rail and routine-building contexts |
+| `assets/UI_BETA/goals.png` | Goals | Neutral goal setup and hydration target context |
+| `assets/UI_BETA/goals-lady.png` | Goals | Female-presented goal setup and hydration target context |
+| `assets/UI_BETA/hot-summer.png` | Hot Summer | Active heat/weather-adjusted goal context |
 | `assets/UI_BETA/workout-lady.png` | Workout Routine | Profile and active routine contexts |
 | `assets/UI_BETA/workout-man.png` | Cooldown | Progress dashboard and activity-adjacent moments |
 | `assets/UI_BETA/tracked_intake.png` | Tracked Intake | Progress, profile, or empty-state accent |
-| `assets/UI_BETA/man-checking-app.png` | App Check | Home, weather, and app-checking contexts |
-| `assets/UI_BETA/lady-checking-app.png` | Plan Check | Home daily-plan and weather-goal panels |
+| `assets/UI_BETA/man-checking-app.png` | App Check | Home and app-checking contexts |
+| `assets/UI_BETA/lady-checking-app.png` | Plan Check | Home daily-plan context |
+| `assets/UI_BETA/men-goals.png` | Goals | Male-presented goal setup and hydration target context |
 | `assets/UI_BETA/community-run.png` | Community Run | Local challenge and social-coming-soon context |
 | `assets/UI_BETA/running-lady.png` | Runner Ready | Challenges and active routine cards |
 | `assets/UI_BETA/running-man.png` | Runner | Active routine and challenge cards |
+| `assets/UI_BETA/weather.png` | Weather | Weather goal and daily condition context |
 | `assets/UI_BETA/ble_bottle.png` | BLE Bottle | Preserved for documented future/coming-soon visual use only; not active V1 smart-bottle support |
 
 No non-empty attribution text file was supplied with these PNGs. A zero-byte
 `assets/UI_BETA/attributions` placeholder was removed from the runtime bundle.
+`assets/UI_BETA/sunny.png` was expected in the product-scope notes but was not
+present in the repo during this pass, so no runtime surface maps to it.
+`assets/UI_BETA/hot-summer.pnh` is also absent; the checked-in heat asset is
+`assets/UI_BETA/hot-summer.png`.
 
 ## Profile-Aware Lifestyle Resolver
 

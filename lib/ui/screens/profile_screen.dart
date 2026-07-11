@@ -361,10 +361,8 @@ class _ProfileEditor extends StatefulWidget {
 
 class _ProfileEditorState extends State<_ProfileEditor> {
   late final TextEditingController _nicknameController;
-  late final TextEditingController _ageController;
   late final TextEditingController _containerController;
   late final TextEditingController _goalController;
-  late HydrionSex? _sex;
   late HydrionVolumeUnit _unit;
   late HydrionGoalMode _goalMode;
   late String _avatarId;
@@ -374,13 +372,10 @@ class _ProfileEditorState extends State<_ProfileEditor> {
     super.initState();
     final settings = widget.initialSettings;
     _nicknameController = TextEditingController(text: settings.nickname ?? '');
-    _ageController =
-        TextEditingController(text: settings.age?.toString() ?? '');
     _containerController =
         TextEditingController(text: settings.containerSizeMl.toString());
     _goalController =
         TextEditingController(text: settings.dailyGoalMl.toString());
-    _sex = settings.sex;
     _unit = settings.volumeUnit;
     _goalMode = settings.goalMode;
     _avatarId = settings.avatarId;
@@ -389,7 +384,6 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   @override
   void dispose() {
     _nicknameController.dispose();
-    _ageController.dispose();
     _containerController.dispose();
     _goalController.dispose();
     super.dispose();
@@ -398,15 +392,13 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   Future<void> _save() async {
     final repository = context.read<UserSettingsRepository>();
     final messenger = ScaffoldMessenger.of(context);
-    final ageText = _ageController.text.trim();
-    final age = ageText.isEmpty ? null : int.tryParse(ageText);
     final goal = int.tryParse(_goalController.text.trim());
     final container = int.tryParse(_containerController.text.trim());
 
     final profileSaved = await repository.setProfile(
       nickname: _nicknameController.text,
-      age: age,
-      sex: _sex,
+      age: repository.settings.age,
+      sex: repository.settings.sex,
     );
     if (!profileSaved || goal == null || container == null) {
       messenger.showSnackBar(
@@ -458,6 +450,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottom),
       child: ListView(
+        key: const Key('profile-editor-list'),
         shrinkWrap: true,
         children: [
           Row(
@@ -526,33 +519,6 @@ class _ProfileEditorState extends State<_ProfileEditor> {
               labelText: 'Display name',
               border: OutlineInputBorder(),
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('profile-edit-age'),
-            controller: _ageController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Age',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<HydrionSex>(
-            initialValue: _sex,
-            decoration: const InputDecoration(
-              labelText: 'Sex selection',
-              border: OutlineInputBorder(),
-            ),
-            items: HydrionSex.values
-                .map(
-                  (sex) => DropdownMenuItem(
-                    value: sex,
-                    child: Text(_sexLabel(sex)),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) => setState(() => _sex = value),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
@@ -629,17 +595,6 @@ class _ProfileEditorState extends State<_ProfileEditor> {
             key: const Key('profile-save'),
             onPressed: _save,
             child: const Text('Save profile'),
-          ),
-          TextButton(
-            key: const Key('profile-restart-guided-setup'),
-            onPressed: () async {
-              await context.read<UserSettingsRepository>().reopenOnboarding();
-              if (!context.mounted) {
-                return;
-              }
-              Navigator.of(context).pushReplacementNamed('/onboarding');
-            },
-            child: const Text('Restart guided setup'),
           ),
         ],
       ),
@@ -740,15 +695,6 @@ Uint8List? _decodePhoto(String? base64Data) {
   } on FormatException {
     return null;
   }
-}
-
-String _sexLabel(HydrionSex sex) {
-  return switch (sex) {
-    HydrionSex.female => 'Female',
-    HydrionSex.male => 'Male',
-    HydrionSex.intersex => 'Intersex',
-    HydrionSex.preferNotToSay => 'Prefer not to say',
-  };
 }
 
 String _avatarRelationshipLabel(HydrionAvatar avatar) {

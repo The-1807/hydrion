@@ -3,20 +3,21 @@
 Status: measured local pass on July 6, 2026.
 
 Corrective follow-ups on July 10, 2026 removed the unreferenced
-`assets/UI_BETA/hyd-ad/` runtime media folder and replaced boxed
-`hydrion-lifestyle-*.jpg` runtime character art with transparent PNG assets.
-Current measured media under the declared Flutter asset paths is 25 files,
-16,790,393 bytes. The retained `assets/buffer/Shark.lottie` source original is
-not declared in `pubspec.yaml`.
+`assets/UI_BETA/hyd-ad/` runtime media folder, replaced boxed
+`hydrion-lifestyle-*.jpg` runtime character art with transparent PNG assets,
+and wired the supplied weather, challenge, and goals PNGs. Current measured
+media under the declared Flutter asset paths is 31 files, 31,955,520 bytes.
+The retained `assets/buffer/Shark.lottie` source original is not declared in
+`pubspec.yaml`.
 
 ## Summary
 
 | Metric | Before | After |
 |---|---:|---:|
-| Runtime asset files under `assets/` | 44 | 25 |
-| Runtime asset bytes under `assets/` | 76,702,320 | 16,790,393 |
-| Runtime byte reduction |  | 59,911,927 bytes |
-| Runtime percentage reduction |  | 78.11% |
+| Runtime asset files under `assets/` | 44 | 31 |
+| Runtime asset bytes under `assets/` | 76,702,320 | 31,955,520 |
+| Runtime byte reduction |  | 44,746,800 bytes |
+| Runtime percentage reduction |  | 58.34% |
 | Source originals preserved |  | `assets_source_original/` |
 
 The before total is the measured pre-optimization `assets/` total from this pass. The after total is the current runtime-declared media asset set. Original owner assets were moved to `assets_source_original/assets/...` and are not declared in `pubspec.yaml`.
@@ -30,18 +31,23 @@ The before total is the measured pre-optimization `assets/` total from this pass
 
 ## Optimization Actions
 
-- Converted runtime PNG artwork to high-quality JPG derivatives because the original PNGs were RGB and did not require alpha.
-- Resized `UI_BETA` lifestyle scenes to a maximum long side of 768 px.
+- Replaced obsolete boxed runtime lifestyle JPGs with transparent PNG artwork
+  supplied for V1 runtime surfaces.
 - Resized profile avatars, shark companions, mascot, and app icon to a maximum long side of 640 px.
 - Moved the unused `assets/pfp_mascot/pfp/1000064425.mp4` out of the runtime bundle.
 - Moved generated human profile-avatar JPG derivatives out of the runtime bundle.
 - Deleted the unreferenced `assets/UI_BETA/hyd-ad/` runtime ad artifacts.
-- Updated Dart, tests, docs, and `pubspec.yaml` references from `.png` to `.jpg`.
+- Updated Dart, tests, docs, and `pubspec.yaml` references to the active runtime
+  media paths.
 - Preserved shark avatar IDs in code; removed human avatar IDs migrate to the default shark.
 
 ## Transparency Check
 
-All original PNG files in `assets_source_original/assets/...` were checked with `System.Drawing.Image.IsAlphaPixelFormat`. Every checked PNG reported `False`; no transparent runtime profile asset was flattened.
+The active `assets/UI_BETA/*.png` files are intentionally transparent runtime
+illustrations. The newly supplied `weather.png`, `hot-summer.png`,
+`challenge.png`, `goals.png`, `men-goals.png`, and `goals-lady.png` all decoded
+as PNGs with alpha. `sunny.png` was not present, and `hot-summer.pnh` was not
+present.
 
 ## 20 Largest Runtime Assets Before
 
@@ -72,6 +78,9 @@ All original PNG files in `assets_source_original/assets/...` were checked with 
 
 | Path | Dimensions | Bytes |
 |---|---:|---:|
+| `assets/UI_BETA/goals-lady.png` | 3000x4236 | 6,153,066 |
+| `assets/UI_BETA/goals.png` | 3840x2396 | 4,735,592 |
+| `assets/UI_BETA/men-goals.png` | 3216x3904 | 3,874,057 |
 | `assets/UI_BETA/drinking-man.png` | 3504x4128 | 3,180,564 |
 | `assets/UI_BETA/ble_bottle.png` | 3356x3356 | 2,321,833 |
 | `assets/UI_BETA/workout-lady.png` | 3208x3516 | 1,683,283 |
@@ -82,22 +91,21 @@ All original PNG files in `assets_source_original/assets/...` were checked with 
 | `assets/UI_BETA/workout-man.png` | 2124x3004 | 1,122,628 |
 | `assets/UI_BETA/community-run.png` | 2252x1636 | 992,936 |
 | `assets/UI_BETA/drinking-lady.png` | 2000x2000 | 213,693 |
+| `assets/UI_BETA/weather.png` | 1232x1140 | 212,717 |
+| `assets/UI_BETA/hot-summer.png` | 644x648 | 159,025 |
 | `assets/pfp_mascot/pfp/snss.jpg` | 640x640 | 115,351 |
 | `assets/pfp_mascot/pfp/strong_shark.jpg` | 640x640 | 111,407 |
 | `assets/pfp_mascot/pfp/smartty_shark.jpg` | 640x640 | 101,450 |
 | `assets/pfp_mascot/pfp/slicky_shark.jpg` | 640x640 | 101,016 |
 | `assets/pfp_mascot/pfp/scout_shark.jpg` | 640x640 | 100,681 |
-| `assets/pfp_mascot/pfp/supercool_shark.jpg` | 640x640 | 96,661 |
-| `assets/pfp_mascot/pfp/savvy-eco_shark.jpg` | 640x640 | 89,994 |
-| `assets/pfp_mascot/pfp/sensei_shark.jpg` | 640x640 | 83,795 |
-| `assets/icons/icon1807.jpg` | 640x640 | 81,889 |
-| `assets/pfp_mascot/pfp/superhappy_shark.jpg` | 640x640 | 80,708 |
 
 ## Runtime Inventory Notes
 
 - `assets/UI_BETA/*.png`: transparent runtime illustrations used by Home,
   Progress, Challenges, Profile, weather, and onboarding through
   `HydrionUiAssetManifest` and `HydrionLifestyleArtResolver`.
+- `assets/UI_BETA/ble_bottle.png`: retained as documented future/coming-soon
+  visual inventory only; it is not active BLE runtime support in V1.
 - `assets/pfp_mascot/pfp/*.jpg`: selectable shark companion avatars through `HydrionAvatarManifest`.
 - `assets/pfp_mascot/hydrion_mascot.jpg`: onboarding and fallback logo/brand moments.
 - `assets/icons/icon1807.jpg`: Hydrion logo component and app icon source reference.

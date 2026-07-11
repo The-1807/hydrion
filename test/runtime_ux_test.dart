@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
+import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/profile_photo_service.dart';
 
 void main() {
@@ -30,6 +31,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('0 ml / 2200 ml'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Today\'s hydration rhythm'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Today\'s hydration rhythm'), findsOneWidget);
+    expect(find.text('Updates as you log water.'), findsOneWidget);
+    expect(find.byKey(const Key('hydration-rhythm-card-0')), findsOneWidget);
+    expect(find.text('Current'), findsOneWidget);
+    expect(find.text('Up next'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('quick-volume-500')),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
 
     tester
         .widget<ChoiceChip>(find.byKey(const Key('quick-volume-500')))
@@ -42,6 +60,12 @@ void main() {
     logButton.onPressed();
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('500 ml / 2200 ml'),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('500 ml / 2200 ml'), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
@@ -401,11 +425,60 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('profile-edit-action')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('profile-edit-age')), findsNothing);
+    expect(find.text('Sex selection'), findsNothing);
+    expect(find.byKey(const Key('profile-restart-guided-setup')), findsNothing);
     await tester.tap(find.byKey(const Key('profile-pick-photo')));
     await tester.pumpAndSettle();
 
     expect(services.settingsRepository.settings.profilePhotoBase64, isNotNull);
     expect(find.text('Sign out'), findsNothing);
+  });
+
+  testWidgets('profile editor preserves locked age and sex on save',
+      (tester) async {
+    final services = HydrionServices.memory();
+    await services.settingsRepository.setProfile(
+      nickname: 'Avery',
+      age: 34,
+      sex: HydrionSex.female,
+    );
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    await openTab(tester, const Key('nav-profile'));
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('profile-edit-action')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const Key('profile-edit-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('profile-edit-age')), findsNothing);
+    expect(find.text('Sex selection'), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const Key('profile-edit-nickname')),
+      'Avery Reef',
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('profile-save')),
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('profile-editor-list')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(find.byKey(const Key('profile-save')));
+    await tester.pumpAndSettle();
+
+    expect(services.settingsRepository.settings.nickname, 'Avery Reef');
+    expect(services.settingsRepository.settings.age, 34);
+    expect(services.settingsRepository.settings.sex, HydrionSex.female);
   });
 
   testWidgets('legal screen opens bundled privacy terms and safety documents',
