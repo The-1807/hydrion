@@ -20,5 +20,8 @@ Status: draft, owner review required.
 - Social sync, connected devices, smart bottle sync, smartwatch sync, HealthKit,
   Health Connect, BLE, and AR are not active V1 capabilities.
 - Challenges are local-only.
+- Coach, weather personalization, badges, connected devices, wearables, cloud
+  services, social services, AR, and advanced coaching are outside the visible
+  V1 feature set.
 - Public release date, store listing, screenshots, rating questionnaire, support
   process, and public privacy-policy URL are still pending owner decisions.

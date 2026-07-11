@@ -296,8 +296,6 @@ class _HomeScreenState extends State<HomeScreen> {
             targetMl: targetMl,
           ),
           const SizedBox(height: 16),
-          _WeatherJourneyPanel(settings: settings),
-          const SizedBox(height: 16),
           _TodayMomentumGrid(
             entryCount: todayLogs.length,
             challengeRepository: challengeRepository,
@@ -964,13 +962,6 @@ class _LegacyRouteShortcuts extends StatelessWidget {
             icon: Icons.notifications_none,
             explanation:
                 'Reminder notification setup is coming soon on this platform.',
-          ),
-        if (!capabilities.bleSync && !capabilities.healthSync)
-          const _ComingSoonRouteChip(
-            label: 'Connected devices',
-            icon: Icons.devices_other_outlined,
-            explanation:
-                'Smart bottle and smartwatch sync are planned, but this build does not request Bluetooth or Health permissions.',
           ),
       ],
     );

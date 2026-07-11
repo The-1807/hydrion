@@ -116,46 +116,6 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           HydrionSurface(
-            gradient: LinearGradient(
-              colors: settings.goalMode == HydrionGoalMode.weatherInformed
-                  ? [
-                      HydrionColors.sunrise.withValues(alpha: 0.22),
-                      HydrionColors.glow.withValues(alpha: 0.16),
-                    ]
-                  : [
-                      Colors.white.withValues(alpha: 0.96),
-                      HydrionColors.foam,
-                    ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.wb_sunny_outlined),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Weather personalization',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(_weatherStatus(settings)),
-                if (settings.lastWeatherGoalExplanation != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    settings.lastWeatherGoalExplanation!,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          HydrionSurface(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -167,27 +127,12 @@ class ProfileScreen extends StatelessWidget {
                 const Text(
                   'Contact: ${HydrionCommunityConfig.contactEmail}',
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Hydrion has no sign-out action because this build does not use accounts or authentication.',
-                ),
               ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _weatherStatus(UserSettings settings) {
-    if (settings.goalMode != HydrionGoalMode.weatherInformed) {
-      return 'Manual mode is active. Enable weather goals when you want Hydrion to explain temperature-aware adjustments.';
-    }
-    if (settings.weatherAdjustedGoalActive) {
-      final adjustment = settings.dailyGoalMl - settings.baselineDailyGoalMl;
-      return 'Base goal: ${settings.baselineDailyGoalMl} ml. Weather adjustment: ${adjustment >= 0 ? '+' : ''}$adjustment ml. Today: ${settings.dailyGoalMl} ml.';
-    }
-    return 'Weather mode is enabled, but today has not applied a forecast adjustment yet.';
   }
 
   Future<void> _openEditor(BuildContext context, UserSettings settings) async {

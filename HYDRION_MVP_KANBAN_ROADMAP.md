@@ -1404,3 +1404,10 @@ OS notifications, or new provider SDKs.
   because they are inactive.
 - Do not let stale config files become runtime truth.
 - Keep Hydrion standalone-first.
+# V1 release cleanup (2026-07-11)
+
+- **Done:** Strip unfinished, technical, integration, and roadmap content from
+  user-facing V1 runtime surfaces.
+- **Post-V1:** Interactive Coach and advanced coaching.
+- **Post-V1:** Weather personalization, badges, BLE/smart bottles, wearables,
+  cloud services, social services, AR, and other integrations.

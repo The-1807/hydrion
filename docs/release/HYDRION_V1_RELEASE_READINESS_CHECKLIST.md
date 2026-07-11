@@ -11,7 +11,7 @@
 - **Release type:** Minimum Viable Product
 - **Platforms:** Android and iOS
 - **Status:** Not Ready
-- **Last reviewed:** 2026-07-07
+- **Last reviewed:** 2026-07-11
 - **Release candidate:** Not assigned
 - **Release commit:** Not assigned
 - **Android artifact:** Not assigned
@@ -28,6 +28,11 @@
 ---
 
 # 1. Product Scope
+
+- [x] Runtime content stripping for unfinished and developer-facing features is complete.
+- [x] Coach is non-interactive and clearly reserved for a future update.
+- [x] Weather, connected-device, integration, and diagnostic surfaces are hidden from V1.
+- [x] Badge and achievement placeholders remain absent from V1 runtime surfaces.
 
 - [ ] V1 scope is documented and frozen.
 - [ ] Every V1 feature is linked to an approved user story, acceptance criterion, defect, or release requirement.
