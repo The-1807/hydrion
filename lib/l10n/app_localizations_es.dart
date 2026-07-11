@@ -61,8 +61,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get savedLocally => 'Guardado localmente en este dispositivo.';
 
   @override
-  String savedLocallySyncDisabled(
-      {required Object syncNames, required Object verb}) {
+  String savedLocallySyncDisabled({required Object syncNames, required Object verb}) {
     return 'Guardado localmente en este dispositivo. La sincronización de $syncNames está desactivada.';
   }
 
@@ -87,31 +86,25 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get hydrationAdviceCardSemantics =>
-      'Tarjeta de consejo de hidratación';
+  String get hydrationAdviceCardSemantics => 'Tarjeta de consejo de hidratación';
 
   @override
   String get stayHydratedFallback => 'Mantente hidratado.';
 
   @override
-  String get homeAdviceStrong =>
-      'Llevas un ritmo de hidratación sólido. Sigue tomando sorbos pequeños durante el día.';
+  String get homeAdviceStrong => 'Llevas un ritmo de hidratación sólido. Sigue tomando sorbos pequeños durante el día.';
 
   @override
-  String get homeAdviceClose =>
-      'Estás cerca del objetivo. Añade un vaso de agua en la próxima hora para mantenerte estable.';
+  String get homeAdviceClose => 'Estás cerca del objetivo. Añade un vaso de agua en la próxima hora para mantenerte estable.';
 
   @override
-  String get homeAdviceStart =>
-      'Empieza con 300 a 500 ml ahora y vuelve a revisar después de tu próxima bebida.';
+  String get homeAdviceStart => 'Empieza con 300 a 500 ml ahora y vuelve a revisar después de tu próxima bebida.';
 
   @override
-  String get homeAdviceGoalReached =>
-      'Alcanzaste el objetivo de hoy. Las necesidades de hidratación varían, así que mantén un ritmo cómodo y bebe según tu sed.';
+  String get homeAdviceGoalReached => 'Alcanzaste el objetivo de hoy. Las necesidades de hidratación varían, así que mantén un ritmo cómodo y bebe según tu sed.';
 
   @override
-  String get homeAdviceHeat =>
-      'El calor aumenta tus necesidades de hidratación.';
+  String get homeAdviceHeat => 'El calor aumenta tus necesidades de hidratación.';
 
   @override
   String homeAdviceReliableEntries({required int count}) {
@@ -119,8 +112,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get homeAdviceAddEntries =>
-      'Añade entradas cuando bebas para que Hydrion pueda seguir el día con honestidad.';
+  String get homeAdviceAddEntries => 'Añade entradas cuando bebas para que Hydrion pueda seguir el día con honestidad.';
 
   @override
   String get failedToLoadAdvice => 'No se pudo cargar el consejo';
@@ -129,16 +121,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get retry => 'Reintentar';
 
   @override
-  String get osNotificationsAvailableSentence =>
-      'Las notificaciones del sistema están disponibles.';
+  String get osNotificationsAvailableSentence => 'Las notificaciones del sistema están disponibles.';
 
   @override
-  String get osNotificationsDisabledSentence =>
-      'Las notificaciones del sistema están desactivadas.';
+  String get osNotificationsDisabledSentence => 'Las notificaciones del sistema están desactivadas.';
 
   @override
-  String get noLocalReminderNeeded =>
-      'No se necesitó una definición local de recordatorio';
+  String get noLocalReminderNeeded => 'No se necesitó una definición local de recordatorio';
 
   @override
   String localReminderSaved({required Object notificationStatus}) {
@@ -157,24 +146,18 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String reminderTileSaved(
-      {required int count,
-      required Object time,
-      required Object notificationStatus}) {
+  String reminderTileSaved({required int count, required Object time, required Object notificationStatus}) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          '$count guardados localmente. Próxima definición: $time. $notificationStatus',
-      one:
-          '1 guardado localmente. Próxima definición: $time. $notificationStatus',
+      other: '$count guardados localmente. Próxima definición: $time. $notificationStatus',
+      one: '1 guardado localmente. Próxima definición: $time. $notificationStatus',
     );
     return '$_temp0';
   }
 
   @override
-  String get saveLocalReminderDefinitionTooltip =>
-      'Guardar definición local de recordatorio';
+  String get saveLocalReminderDefinitionTooltip => 'Guardar definición local de recordatorio';
 
   @override
   String get voiceInputAvailableSemantics => 'Entrada de voz disponible';
@@ -183,12 +166,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get voiceInputDisabledSemantics => 'Entrada de voz desactivada';
 
   @override
-  String get voiceCapabilityReportedNoAdapter =>
-      'La capacidad de voz está informada, pero no hay adaptador de voz conectado';
+  String get voiceCapabilityReportedNoAdapter => 'La capacidad de voz está informada, pero no hay adaptador de voz conectado';
 
   @override
-  String get voiceInputDisabledTooltip =>
-      'Entrada de voz desactivada por las capacidades de la app';
+  String get voiceInputDisabledTooltip => 'Entrada de voz desactivada por las capacidades de la app';
 
   @override
   String get standaloneLocalMode => 'Modo local independiente';
@@ -200,20 +181,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get geminiProviderConfiguredMode => 'Proveedor Gemini configurado';
 
   @override
-  String get localDataNoProviderRuntime =>
-      'Seguimiento privado en este dispositivo.';
+  String get localDataNoProviderRuntime => 'Seguimiento privado en este dispositivo.';
 
   @override
-  String get geminiProviderConfiguredDescription =>
-      'Gemini puede proponer acciones tipadas; Hydrion las valida antes de confiar en ellas.';
+  String get geminiProviderConfiguredDescription => 'Gemini puede proponer acciones tipadas; Hydrion las valida antes de confiar en ellas.';
 
   @override
-  String get geminiProviderConfiguredLocalDescription =>
-      'Gemini está configurado, pero deshabilitado hasta que se active el consentimiento de privacidad del proveedor.';
+  String get geminiProviderConfiguredLocalDescription => 'Gemini está configurado, pero deshabilitado hasta que se active el consentimiento de privacidad del proveedor.';
 
   @override
-  String get geminiProviderActiveDescription =>
-      'Gemini puede recibir contexto de hidratación tipado; Hydrion valida la salida del proveedor antes de confiar en ella.';
+  String get geminiProviderActiveDescription => 'Gemini puede recibir contexto de hidratación tipado; Hydrion valida la salida del proveedor antes de confiar en ella.';
 
   @override
   String get language => 'Idioma';
@@ -225,20 +202,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get languageUpdated => 'Idioma actualizado';
 
   @override
-  String get languageChoiceSaved =>
-      'La elección de idioma se guarda localmente.';
+  String get languageChoiceSaved => 'La elección de idioma se guarda localmente.';
 
   @override
-  String get localeCoverageComplete =>
-      'Las cadenas de Hydrion están disponibles para este idioma.';
+  String get localeCoverageComplete => 'Las cadenas de Hydrion están disponibles para este idioma.';
 
   @override
-  String get localeCoveragePartial =>
-      'Las cadenas de Hydrion están disponibles; el texto de plataforma no traducido usa una alternativa segura.';
+  String get localeCoveragePartial => 'Las cadenas de Hydrion están disponibles; el texto de plataforma no traducido usa una alternativa segura.';
 
   @override
-  String get futureLanguagesNote =>
-      'Los idiomas adicionales aparecerán solo cuando las traducciones estén completas.';
+  String get futureLanguagesNote => 'Los idiomas adicionales aparecerán solo cuando las traducciones estén completas.';
 
   @override
   String get localeNameEnglish => 'Inglés';
@@ -253,22 +226,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get permissions => 'Permisos';
 
   @override
-  String get standalonePermissionsExplanation =>
-      'El modo independiente no solicita permisos de Bluetooth, Salud, micrófono, cámara ni notificaciones.';
+  String get standalonePermissionsExplanation => 'El modo independiente no solicita permisos de Bluetooth, Salud, micrófono, cámara ni notificaciones.';
 
   @override
   String get check => 'Comprobar';
 
   @override
-  String get noPlatformPermissionsRequested =>
-      'No se solicitaron permisos de plataforma en modo independiente';
+  String get noPlatformPermissionsRequested => 'No se solicitaron permisos de plataforma en modo independiente';
 
   @override
   String get dailyGoalTitle => 'Objetivo diario de hidratación';
 
   @override
-  String get dailyGoalDescription =>
-      'Define el objetivo que Hydrion usa en Inicio, Analítica, Coach y desafíos locales. Las necesidades de hidratación varían por persona y día.';
+  String get dailyGoalDescription => 'Define el objetivo que Hydrion usa en Inicio, Analítica, Coach y desafíos locales. Las necesidades de hidratación varían por persona y día.';
 
   @override
   String get dailyGoalFieldLabel => 'Objetivo en ml';
@@ -288,26 +258,22 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reusableContainerTitle => 'Recipiente reutilizable';
 
   @override
-  String get reusableContainerDescription =>
-      'Estima plástico desechable evitado solo cuando las bebidas registradas suelen venir de una botella o vaso reutilizable.';
+  String get reusableContainerDescription => 'Estima plástico desechable evitado solo cuando las bebidas registradas suelen venir de una botella o vaso reutilizable.';
 
   @override
   String get localFirstPrivacyTitle => 'Privacidad local';
 
   @override
-  String get localFirstPrivacyDescription =>
-      'Hydrion funciona sin conexión y guarda registros, objetivos, idioma y progreso de desafíos en este dispositivo.';
+  String get localFirstPrivacyDescription => 'Hydrion funciona sin conexión y guarda registros, objetivos, idioma y progreso de desafíos en este dispositivo.';
 
   @override
-  String get optionalProviderConsumerDescription =>
-      'Las funciones opcionales con proveedor permanecen desactivadas hasta que decidas habilitarlas. Hydrion sigue funcionando sin conexión.';
+  String get optionalProviderConsumerDescription => 'Las funciones opcionales con proveedor permanecen desactivadas hasta que decidas habilitarlas. Hydrion sigue funcionando sin conexión.';
 
   @override
   String get debugDiagnosticsTitle => 'Diagnósticos de depuración';
 
   @override
-  String get debugDiagnosticsDescription =>
-      'Los detalles técnicos para desarrollo están disponibles solo en compilaciones de depuración.';
+  String get debugDiagnosticsDescription => 'Los detalles técnicos para desarrollo están disponibles solo en compilaciones de depuración.';
 
   @override
   String get runtimeFeatureStatus => 'Estado de funciones en ejecución';
@@ -346,8 +312,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get providerFallbackState => 'Estado de respaldo';
 
   @override
-  String get providerFallbackReady =>
-      'La guía en el dispositivo está disponible';
+  String get providerFallbackReady => 'La guía en el dispositivo está disponible';
 
   @override
   String get providerFallbackInUse => 'Usando guía en el dispositivo';
@@ -371,31 +336,25 @@ class AppLocalizationsEs extends AppLocalizations {
   String get providerPrivacyTitle => 'Privacidad del proveedor';
 
   @override
-  String get providerPrivacyLocalOnly =>
-      'La guía en el dispositivo mantiene el contexto de hidratación en este dispositivo.';
+  String get providerPrivacyLocalOnly => 'La guía en el dispositivo mantiene el contexto de hidratación en este dispositivo.';
 
   @override
-  String get providerPrivacyGeminiDisclosure =>
-      'Cuando Gemini está configurado, Hydrion puede enviar contexto de hidratación tipado a Gemini. No incluyas una clave compartida de Gemini en artefactos web o móviles.';
+  String get providerPrivacyGeminiDisclosure => 'Cuando Gemini está configurado, Hydrion puede enviar contexto de hidratación tipado a Gemini. No incluyas una clave compartida de Gemini en artefactos web o móviles.';
 
   @override
-  String get providerConsentRequired =>
-      'La IA no local requiere consentimiento explícito del usuario antes de producción.';
+  String get providerConsentRequired => 'La IA no local requiere consentimiento explícito del usuario antes de producción.';
 
   @override
   String get providerConsentStatus => 'Consentimiento del proveedor';
 
   @override
-  String get providerConsentToggleTitle =>
-      'Permitir procesamiento del proveedor Gemini';
+  String get providerConsentToggleTitle => 'Permitir procesamiento del proveedor Gemini';
 
   @override
-  String get providerConsentEnabled =>
-      'Habilitado. El contexto de hidratación tipado puede salir de este dispositivo para solicitudes de Gemini.';
+  String get providerConsentEnabled => 'Habilitado. El contexto de hidratación tipado puede salir de este dispositivo para solicitudes de Gemini.';
 
   @override
-  String get providerConsentDisabled =>
-      'Deshabilitado. Hydrion usa guía en el dispositivo y no envía contexto de hidratación a Gemini.';
+  String get providerConsentDisabled => 'Deshabilitado. Hydrion usa guía en el dispositivo y no envía contexto de hidratación a Gemini.';
 
   @override
   String get providerGeminiHealth => 'Estado de Gemini';
@@ -476,28 +435,22 @@ class AppLocalizationsEs extends AppLocalizations {
   String get providerNotAvailable => 'No disponible';
 
   @override
-  String get providerDiagnosticNoApiKey =>
-      'No hay clave API de Gemini configurada';
+  String get providerDiagnosticNoApiKey => 'No hay clave API de Gemini configurada';
 
   @override
-  String get providerDiagnosticConsentRequired =>
-      'Gemini está configurado, pero el consentimiento de privacidad del proveedor está deshabilitado';
+  String get providerDiagnosticConsentRequired => 'Gemini está configurado, pero el consentimiento de privacidad del proveedor está deshabilitado';
 
   @override
-  String get providerDiagnosticHealthy =>
-      'Gemini está saludable; la última respuesta pasó la validación';
+  String get providerDiagnosticHealthy => 'Gemini está saludable; la última respuesta pasó la validación';
 
   @override
-  String get providerDiagnosticFallbackActive =>
-      'La guía en el dispositivo está activa';
+  String get providerDiagnosticFallbackActive => 'La guía en el dispositivo está activa';
 
   @override
-  String get providerDiagnosticNotProven =>
-      'Gemini está configurado, pero aún no se ha comprobado como saludable';
+  String get providerDiagnosticNotProven => 'Gemini está configurado, pero aún no se ha comprobado como saludable';
 
   @override
-  String get providerDiagnosticLocalRules =>
-      'La guía en el dispositivo está activa';
+  String get providerDiagnosticLocalRules => 'La guía en el dispositivo está activa';
 
   @override
   String get yes => 'Sí';
@@ -515,8 +468,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get unavailable => 'No disponible';
 
   @override
-  String get localPersistenceDescription =>
-      'Los registros de hidratación, ajustes, recordatorios y estado de desafíos se almacenan localmente.';
+  String get localPersistenceDescription => 'Los registros de hidratación, ajustes, recordatorios y estado de desafíos se almacenan localmente.';
 
   @override
   String get elkaAdapter => 'Adaptador ELKA';
@@ -528,8 +480,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get unconfigured => 'Sin configurar';
 
   @override
-  String get elkaAdapterDescription =>
-      'El límite del adaptador existe, pero no hay runtime ELKA conectado.';
+  String get elkaAdapterDescription => 'El límite del adaptador existe, pero no hay runtime ELKA conectado.';
 
   @override
   String get cloudAi => 'IA en la nube';
@@ -541,16 +492,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get disabled => 'Desactivado';
 
   @override
-  String get cloudAiDescription =>
-      'No hay SDK de proveedor ni modelo en la nube conectado.';
+  String get cloudAiDescription => 'No hay SDK de proveedor ni modelo en la nube conectado.';
 
   @override
-  String get cloudAiConfiguredDescription =>
-      'Gemini está configurado como proveedor opcional; los proveedores no pueden modificar el estado de la app.';
+  String get cloudAiConfiguredDescription => 'Gemini está configurado como proveedor opcional; los proveedores no pueden modificar el estado de la app.';
 
   @override
-  String get cloudAiConsentRequiredDescription =>
-      'Gemini está configurado, pero no activo hasta que se habilite el consentimiento de privacidad del proveedor.';
+  String get cloudAiConsentRequiredDescription => 'Gemini está configurado, pero no activo hasta que se habilite el consentimiento de privacidad del proveedor.';
 
   @override
   String get voiceInput => 'Entrada de voz';
@@ -559,33 +507,28 @@ class AppLocalizationsEs extends AppLocalizations {
   String get available => 'Disponible';
 
   @override
-  String get voiceInputDescription =>
-      'Los comandos escritos se pueden analizar; la captura de micrófono no está disponible.';
+  String get voiceInputDescription => 'Los comandos escritos se pueden analizar; la captura de micrófono no está disponible.';
 
   @override
   String get bleBottleSync => 'Sincronización BLE de botella';
 
   @override
-  String get bleSyncDescription =>
-      'No se inicia ningún escaneo Bluetooth, conexión ni lectura de nivel de botella.';
+  String get bleSyncDescription => 'No se inicia ningún escaneo Bluetooth, conexión ni lectura de nivel de botella.';
 
   @override
   String get healthSync => 'Sincronización de salud';
 
   @override
-  String get healthSyncDescription =>
-      'No hay lectura activa de HealthKit, Google Fit ni wearables.';
+  String get healthSyncDescription => 'No hay lectura activa de HealthKit, Google Fit ni wearables.';
 
   @override
   String get osNotifications => 'Notificaciones del sistema';
 
   @override
-  String get osNotificationsDisabledTitle =>
-      'Notificaciones del sistema desactivadas';
+  String get osNotificationsDisabledTitle => 'Notificaciones del sistema desactivadas';
 
   @override
-  String get osNotificationsDescription =>
-      'Las definiciones de recordatorio se guardan localmente; no se programa ninguna notificación de plataforma.';
+  String get osNotificationsDescription => 'Las definiciones de recordatorio se guardan localmente; no se programa ninguna notificación de plataforma.';
 
   @override
   String get socialSync => 'Sincronización social';
@@ -594,8 +537,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get localOnly => 'Solo local';
 
   @override
-  String get socialSyncDescription =>
-      'Los desafíos son solo locales; no se comparte estado con un backend.';
+  String get socialSyncDescription => 'Los desafíos son solo locales; no se comparte estado con un backend.';
 
   @override
   String get hydrationLogUpdated => 'Registro de hidratación actualizado';
@@ -616,8 +558,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noLogs => 'No se encontraron registros de hidratación';
 
   @override
-  String get logEmptyDescription =>
-      'Usa Inicio para agregar una entrada local de hidratación. Los registros se guardan en este dispositivo.';
+  String get logEmptyDescription => 'Usa Inicio para agregar una entrada local de hidratación. Los registros se guardan en este dispositivo.';
 
   @override
   String get editLogTooltip => 'Editar registro';
@@ -641,8 +582,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get localEntry => 'Entrada local';
 
   @override
-  String logSourceTimestamp(
-      {required Object source, required Object timestamp}) {
+  String logSourceTimestamp({required Object source, required Object timestamp}) {
     return '$source - $timestamp';
   }
 
@@ -661,8 +601,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noAnalyticsYet => 'Aún no hay analítica';
 
   @override
-  String get analyticsEmptyDescription =>
-      'Registra hidratación en Inicio para crear tendencias locales.';
+  String get analyticsEmptyDescription => 'Registra hidratación en Inicio para crear tendencias locales.';
 
   @override
   String todayHydrationTitle({required int todayMl, required int targetMl}) {
@@ -674,8 +613,7 @@ class AppLocalizationsEs extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          '$count entradas locales hoy. Los datos permanecen en este dispositivo.',
+      other: '$count entradas locales hoy. Los datos permanecen en este dispositivo.',
       one: '1 entrada local hoy. Los datos permanecen en este dispositivo.',
     );
     return '$_temp0';
@@ -696,8 +634,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String reusableContainerEstimateFromLogs(
-      {required int lifetimeMl, required int eventCount}) {
+  String reusableContainerEstimateFromLogs({required int lifetimeMl, required int eventCount}) {
     String _temp0 = intl.Intl.pluralLogic(
       eventCount,
       locale: localeName,
@@ -708,8 +645,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get reusableContainerEstimateDisabled =>
-      'Activa el seguimiento de recipiente reutilizable en Ajustes antes de estimar plástico desechable evitado.';
+  String get reusableContainerEstimateDisabled => 'Activa el seguimiento de recipiente reutilizable en Ajustes antes de estimar plástico desechable evitado.';
 
   @override
   String get hydrationScoreTitle => 'Puntuación de hidratación';
@@ -737,20 +673,16 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get hydrationTipExcellent =>
-      'Objetivo alcanzado. Las necesidades varían; mantén el resto del día estable.';
+  String get hydrationTipExcellent => 'Objetivo alcanzado. Las necesidades varían; mantén el resto del día estable.';
 
   @override
-  String get hydrationTipGreat =>
-      'Buen ritmo. Mantén sorbos cómodos y constantes.';
+  String get hydrationTipGreat => 'Buen ritmo. Mantén sorbos cómodos y constantes.';
 
   @override
-  String get hydrationTipClose =>
-      'Estás cerca. Una bebida moderada puede ayudarte a llegar al objetivo.';
+  String get hydrationTipClose => 'Estás cerca. Una bebida moderada puede ayudarte a llegar al objetivo.';
 
   @override
-  String get hydrationTipStart =>
-      'Empieza con 300 a 500 ml ahora y configura un recordatorio.';
+  String get hydrationTipStart => 'Empieza con 300 a 500 ml ahora y configura un recordatorio.';
 
   @override
   String get achievementStatusUnlocked => 'desbloqueado';
@@ -759,8 +691,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get achievementStatusLocked => 'bloqueado';
 
   @override
-  String achievementBadgeSemantics(
-      {required Object badgeName, required Object status}) {
+  String achievementBadgeSemantics({required Object badgeName, required Object status}) {
     return 'Insignia de logro: $badgeName $status';
   }
 
@@ -793,11 +724,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get coachReplyMessageLabel => 'Coach';
 
   @override
-  String coachContextSnapshot(
-      {required int todayMl,
-      required int targetMl,
-      required int eventCount,
-      required Object activeProvider}) {
+  String coachContextSnapshot({required int todayMl, required int targetMl, required int eventCount, required Object activeProvider}) {
     String _temp0 = intl.Intl.pluralLogic(
       eventCount,
       locale: localeName,
@@ -813,23 +740,16 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get coachProviderFallbackActive =>
-      'Usando guía en el dispositivo. La salida del proveedor sigue siendo opcional.';
+  String get coachProviderFallbackActive => 'Usando guía en el dispositivo. La salida del proveedor sigue siendo opcional.';
 
   @override
-  String get coachProviderConsentRequired =>
-      'Gemini está configurado, pero deshabilitado hasta que se habilite el consentimiento de privacidad del proveedor. El contexto de hidratación permanece en este dispositivo.';
+  String get coachProviderConsentRequired => 'Gemini está configurado, pero deshabilitado hasta que se habilite el consentimiento de privacidad del proveedor. El contexto de hidratación permanece en este dispositivo.';
 
   @override
-  String get coachLocalProviderReady =>
-      'La guía en el dispositivo está activa. El contexto de hidratación queda en este dispositivo.';
+  String get coachLocalProviderReady => 'La guía en el dispositivo está activa. El contexto de hidratación queda en este dispositivo.';
 
   @override
-  String coachContextBanner(
-      {required Object mode,
-      required int todayMl,
-      required int lifetimeMl,
-      required int eventCount}) {
+  String coachContextBanner({required Object mode, required int todayMl, required int lifetimeMl, required int eventCount}) {
     String _temp0 = intl.Intl.pluralLogic(
       eventCount,
       locale: localeName,
@@ -840,11 +760,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String providerCoachContextBanner(
-      {required Object mode,
-      required int todayMl,
-      required int lifetimeMl,
-      required int eventCount}) {
+  String providerCoachContextBanner({required Object mode, required int todayMl, required int lifetimeMl, required int eventCount}) {
     String _temp0 = intl.Intl.pluralLogic(
       eventCount,
       locale: localeName,
@@ -855,8 +771,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get askCoachEmpty =>
-      'Pide una sugerencia de hidratación. Las respuestas son guía local determinista basada en registros guardados.';
+  String get askCoachEmpty => 'Pide una sugerencia de hidratación. Las respuestas son guía local determinista basada en registros guardados.';
 
   @override
   String get chatHint => 'Pregunta a tu coach...';
@@ -865,12 +780,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get coachFallbackNoticeLabel => 'Respaldo';
 
   @override
-  String get coachFallbackNotice =>
-      'La guía en el dispositivo respondió este mensaje.';
+  String get coachFallbackNotice => 'La guía en el dispositivo respondió este mensaje.';
 
   @override
-  String get suggestionHydrationLogTitle =>
-      'Sugerencia de registro de hidratación';
+  String get suggestionHydrationLogTitle => 'Sugerencia de registro de hidratación';
 
   @override
   String get suggestionReminderTitle => 'Sugerencia de recordatorio';
@@ -969,23 +882,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cloudSync => 'Sincronización en la nube';
 
   @override
-  String get osNotificationsCapabilityReported =>
-      'Capacidad de notificaciones del sistema informada';
+  String get osNotificationsCapabilityReported => 'Capacidad de notificaciones del sistema informada';
 
   @override
-  String get notificationsAdapterNotWired =>
-      'Aún no hay adaptador de notificaciones conectado. Las definiciones siguen siendo locales.';
+  String get notificationsAdapterNotWired => 'Aún no hay adaptador de notificaciones conectado. Las definiciones siguen siendo locales.';
 
   @override
-  String get standaloneRemindersLocalOnly =>
-      'El modo independiente almacena definiciones de recordatorio solo localmente. No se disparará ninguna notificación de plataforma.';
+  String get standaloneRemindersLocalOnly => 'El modo independiente almacena definiciones de recordatorio solo localmente. No se disparará ninguna notificación de plataforma.';
 
   @override
   String get noLocalRemindersSaved => 'No hay recordatorios locales guardados';
 
   @override
-  String get remindersEmptyDescription =>
-      'Usa la tarjeta de recordatorio de Inicio para guardar una definición local para revisar después.';
+  String get remindersEmptyDescription => 'Usa la tarjeta de recordatorio de Inicio para guardar una definición local para revisar después.';
 
   @override
   String reminderSubtitle({required Object timestamp, required int priority}) {
@@ -996,56 +905,42 @@ class AppLocalizationsEs extends AppLocalizations {
   String get deleteLocalReminderTooltip => 'Eliminar recordatorio local';
 
   @override
-  String get localReminderDeleted =>
-      'Definición local de recordatorio eliminada';
+  String get localReminderDeleted => 'Definición local de recordatorio eliminada';
 
   @override
   String get noChallengesAvailable => 'No hay desafíos disponibles';
 
   @override
-  String get socialChallengeCapabilityReported =>
-      'Capacidad de desafío social informada';
+  String get socialChallengeCapabilityReported => 'Capacidad de desafío social informada';
 
   @override
   String get localChallengeMode => 'Modo de desafío local';
 
   @override
-  String get socialCapabilityNoAdapter =>
-      'Aún no hay adaptador social conectado. El progreso se guarda en este dispositivo.';
+  String get socialCapabilityNoAdapter => 'Aún no hay adaptador social conectado. El progreso se guarda en este dispositivo.';
 
   @override
-  String get socialSyncNotConnected =>
-      'La sincronización social aún no está conectada. El progreso del desafío se guarda en este dispositivo.';
+  String get socialSyncNotConnected => 'La sincronización social aún no está conectada. El progreso del desafío se guarda en este dispositivo.';
 
   @override
   String get noActiveChallengeYet => 'Aún no hay desafío activo';
 
   @override
-  String get joinLocalChallengeDescription =>
-      'Únete al desafío local de abajo para empezar a seguir el progreso desde registros de hidratación guardados.';
+  String get joinLocalChallengeDescription => 'Únete al desafío local de abajo para empezar a seguir el progreso desde registros de hidratación guardados.';
 
   @override
-  String get challengeNameSevenDaySteadySip =>
-      'Sorbos constantes por siete días';
+  String get challengeNameSevenDaySteadySip => 'Sorbos constantes por siete días';
 
   @override
-  String get challengeDescriptionSevenDaySteadySip =>
-      'Alcanza tu objetivo diario de hidratación durante una semana.';
+  String get challengeDescriptionSevenDaySteadySip => 'Alcanza tu objetivo diario de hidratación durante una semana.';
 
   @override
-  String challengeDetails(
-      {required Object description,
-      required int targetMl,
-      required int durationDays}) {
+  String challengeDetails({required Object description, required int targetMl, required int durationDays}) {
     return '$description ($targetMl ml, $durationDays días)';
   }
 
   @override
-  String challengeProgress(
-      {required int completedDays,
-      required int durationDays,
-      required int todayMl,
-      required int targetMl}) {
+  String challengeProgress({required int completedDays, required int durationDays, required int todayMl, required int targetMl}) {
     return '$completedDays/$durationDays días completos. Hoy: $todayMl/$targetMl ml.';
   }
 
