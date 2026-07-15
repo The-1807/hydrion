@@ -137,6 +137,7 @@ class ChallengeRepository extends ChangeNotifier {
   final HydrionLocalStore _store;
   final List<StorageRecoveryEvent> _recoveryEvents;
   JoinedChallenge? _activeChallenge;
+  final Set<String> _inFlightHydrationActions = <String>{};
 
   ChallengeRepository._(
     this._store,
@@ -227,24 +228,39 @@ class ChallengeRepository extends ChangeNotifier {
       return null;
     }
 
-    final log = await hydrationRepository.addLog(
-      volumeMl: volumeMl,
-      timestamp: timestamp ?? DateTime.now(),
-      source: 'challenge:${challenge.id}:tile-$index',
-    );
-    if (log == null) {
+    final actionId = '${challenge.id}:tile-$index';
+    if (!_inFlightHydrationActions.add(actionId)) {
       return null;
     }
 
-    await _updateActiveChallenge(
-      challenge.copyWith(
-        bottleBingoCompletedTiles: Set<int>.unmodifiable({
-          ...challenge.bottleBingoCompletedTiles,
-          index,
-        }),
-      ),
-    );
-    return log;
+    try {
+      final log = await hydrationRepository.addLog(
+        volumeMl: volumeMl,
+        timestamp: timestamp ?? DateTime.now(),
+        source: 'challenge:${challenge.id}:tile-$index',
+        actionId: actionId,
+      );
+      if (log == null) {
+        return null;
+      }
+
+      try {
+        await _updateActiveChallenge(
+          challenge.copyWith(
+            bottleBingoCompletedTiles: Set<int>.unmodifiable({
+              ...challenge.bottleBingoCompletedTiles,
+              index,
+            }),
+          ),
+        );
+      } catch (_) {
+        await hydrationRepository.deleteLog(log.id);
+        rethrow;
+      }
+      return log;
+    } finally {
+      _inFlightHydrationActions.remove(actionId);
+    }
   }
 
   Future<bool> resetBottleBingoTiles() async {
@@ -273,8 +289,14 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<void> _updateActiveChallenge(JoinedChallenge challenge) async {
+    final previous = _activeChallenge;
     _activeChallenge = challenge;
-    await _store.writeString(storageKey, jsonEncode(challenge.toJson()));
+    try {
+      await _store.writeString(storageKey, jsonEncode(challenge.toJson()));
+    } catch (_) {
+      _activeChallenge = previous;
+      rethrow;
+    }
     notifyListeners();
   }
 

@@ -409,10 +409,49 @@ void main() {
     expect(hydrationRepository.logs, hasLength(1));
   });
 
+  test('rapid Bottle Bingo activation creates one log and one tile update',
+      () async {
+    final hydrationRepository = HydrationRepository.memory();
+    final challengeRepository = ChallengeRepository.memory();
+    final bottleBingo = HydrionChallengeCatalog.byId('bottle-bingo');
+    final timestamp = DateTime.now();
+
+    await challengeRepository.join(
+      id: bottleBingo.id,
+      name: bottleBingo.name,
+      description: bottleBingo.description,
+      targetMl: bottleBingo.targetMl,
+      durationDays: bottleBingo.durationDays,
+      joinedAt: timestamp,
+    );
+
+    final results = await Future.wait([
+      challengeRepository.completeBottleBingoHydrationTile(
+        index: 4,
+        hydrationRepository: hydrationRepository,
+        volumeMl: 250,
+        timestamp: timestamp,
+      ),
+      challengeRepository.completeBottleBingoHydrationTile(
+        index: 4,
+        hydrationRepository: hydrationRepository,
+        volumeMl: 250,
+        timestamp: timestamp,
+      ),
+    ]);
+
+    expect(results.whereType<HydrationLog>(), hasLength(1));
+    expect(hydrationRepository.logs, hasLength(1));
+    expect(
+      challengeRepository.activeChallenge?.bottleBingoCompletedTiles,
+      {4},
+    );
+  });
+
   test('release metadata keeps v1 identity and pending release date explicit',
       () {
     expect(HydrionReleaseMetadata.productName, 'Hydrion');
-    expect(HydrionReleaseMetadata.flutterVersionName, '1.0.0+1');
+    expect(HydrionReleaseMetadata.flutterVersionName, '1.0.0+2');
     expect(HydrionReleaseMetadata.releaseDateLabel, 'Release date pending');
     expect(HydrionReleaseMetadata.communityName, 'HydrionSharks');
     expect(HydrionReleaseMetadata.contactEmail, 'hydrionsharks@gmail.com');

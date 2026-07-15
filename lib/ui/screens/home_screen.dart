@@ -28,16 +28,35 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedVolumeMl = 250;
+  bool _isLogging = false;
   Future<void> _logWater(int volumeMl) async {
+    if (_isLogging) {
+      return;
+    }
+    setState(() => _isLogging = true);
     final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    await repository.addLog(
-      volumeMl: volumeMl,
-      timestamp: DateTime.now(),
-      source: 'local',
-    );
-    if (!mounted) {
+    var succeeded = false;
+    try {
+      await repository.addLog(
+        volumeMl: volumeMl,
+        timestamp: DateTime.now(),
+        source: 'quick-add',
+      );
+      succeeded = true;
+    } catch (_) {
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Water was not logged. Please retry.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLogging = false);
+      }
+    }
+    if (!mounted || !succeeded) {
       return;
     }
     messenger.showSnackBar(

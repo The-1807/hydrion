@@ -386,12 +386,25 @@ class _BottleBingoBoard extends StatelessWidget {
                                 : () async {
                                     final messenger =
                                         ScaffoldMessenger.of(context);
-                                    final log = await challengeRepository
-                                        .completeBottleBingoHydrationTile(
-                                      index: index,
-                                      hydrationRepository: hydrationRepository,
-                                      volumeMl: hydrationVolumeMl,
-                                    );
+                                    HydrationLog? log;
+                                    try {
+                                      log = await challengeRepository
+                                          .completeBottleBingoHydrationTile(
+                                        index: index,
+                                        hydrationRepository:
+                                            hydrationRepository,
+                                        volumeMl: hydrationVolumeMl,
+                                      );
+                                    } catch (_) {
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Water was not logged. Please retry.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
                                     if (log != null) {
                                       messenger.showSnackBar(
                                         SnackBar(
