@@ -137,6 +137,7 @@ class ChallengeRepository extends ChangeNotifier {
   final HydrionLocalStore _store;
   final List<StorageRecoveryEvent> _recoveryEvents;
   JoinedChallenge? _activeChallenge;
+  final Set<String> _inFlightHydrationActions = <String>{};
 
   ChallengeRepository._(
     this._store,
@@ -223,28 +224,44 @@ class ChallengeRepository extends ChangeNotifier {
       return null;
     }
     final challenge = _activeChallenge!;
-    if (challenge.bottleBingoCompletedTiles.contains(index)) {
+    final actionTime = timestamp ?? DateTime.now();
+    final localDay = '${actionTime.year.toString().padLeft(4, '0')}-'
+        '${actionTime.month.toString().padLeft(2, '0')}-'
+        '${actionTime.day.toString().padLeft(2, '0')}';
+    final challengeInstance = challenge.joinedAt.microsecondsSinceEpoch;
+    final actionId = '${challenge.id}:$challengeInstance:$localDay:tile-$index';
+    if (!_inFlightHydrationActions.add(actionId)) {
       return null;
     }
 
-    final log = await hydrationRepository.addLog(
-      volumeMl: volumeMl,
-      timestamp: timestamp ?? DateTime.now(),
-      source: 'challenge:${challenge.id}:tile-$index',
-    );
-    if (log == null) {
-      return null;
-    }
+    try {
+      final log = await hydrationRepository.addLog(
+        volumeMl: volumeMl,
+        timestamp: actionTime,
+        source: 'challenge:${challenge.id}:tile-$index',
+        actionId: actionId,
+      );
+      if (log == null) {
+        return null;
+      }
 
-    await _updateActiveChallenge(
-      challenge.copyWith(
-        bottleBingoCompletedTiles: Set<int>.unmodifiable({
-          ...challenge.bottleBingoCompletedTiles,
-          index,
-        }),
-      ),
-    );
-    return log;
+      try {
+        await _updateActiveChallenge(
+          challenge.copyWith(
+            bottleBingoCompletedTiles: Set<int>.unmodifiable({
+              ...challenge.bottleBingoCompletedTiles,
+              index,
+            }),
+          ),
+        );
+      } catch (_) {
+        await hydrationRepository.deleteLog(log.id);
+        rethrow;
+      }
+      return log;
+    } finally {
+      _inFlightHydrationActions.remove(actionId);
+    }
   }
 
   Future<bool> resetBottleBingoTiles() async {
@@ -268,13 +285,38 @@ class ChallengeRepository extends ChangeNotifier {
     return _activeChallenge?.bottleBingoCompletedTiles.contains(index) == true;
   }
 
+  bool isBottleBingoHydrationTileCompleteForDay(
+    int index,
+    HydrationRepository hydrationRepository,
+    DateTime day,
+  ) {
+    final challenge = _activeChallenge;
+    if (challenge?.id != 'bottle-bingo' ||
+        !bottleBingoHydrationTileIndexes.contains(index)) {
+      return false;
+    }
+    final source = 'challenge:${challenge!.id}:tile-$index';
+    return hydrationRepository.logs.any((log) =>
+        log.source == source &&
+        !log.timestamp.isBefore(challenge.joinedAt) &&
+        log.timestamp.year == day.year &&
+        log.timestamp.month == day.month &&
+        log.timestamp.day == day.day);
+  }
+
   bool _canPersistBottleBingoTile(int index) {
     return _activeChallenge?.id == 'bottle-bingo' && index >= 1 && index <= 5;
   }
 
   Future<void> _updateActiveChallenge(JoinedChallenge challenge) async {
+    final previous = _activeChallenge;
     _activeChallenge = challenge;
-    await _store.writeString(storageKey, jsonEncode(challenge.toJson()));
+    try {
+      await _store.writeString(storageKey, jsonEncode(challenge.toJson()));
+    } catch (_) {
+      _activeChallenge = previous;
+      rethrow;
+    }
     notifyListeners();
   }
 

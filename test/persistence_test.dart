@@ -58,6 +58,47 @@ void main() {
     expect(repository.totalForDay(today), 350);
   });
 
+  test('stable action identifiers make hydration writes idempotent', () async {
+    final repository = HydrationRepository.memory();
+    final timestamp = DateTime(2026, 7, 15, 10);
+
+    final results = await Future.wait([
+      repository.addLog(
+        volumeMl: 250,
+        timestamp: timestamp,
+        source: 'quick-add',
+        actionId: 'quick-add-1',
+      ),
+      repository.addLog(
+        volumeMl: 250,
+        timestamp: timestamp,
+        source: 'quick-add',
+        actionId: 'quick-add-1',
+      ),
+    ]);
+
+    expect(results.whereType<HydrationLog>(), hasLength(1));
+    expect(repository.logs, hasLength(1));
+    expect(repository.totalForDay(timestamp), 250);
+  });
+
+  test('failed hydration persistence does not change in-memory truth',
+      () async {
+    final repository = await HydrationRepository.load(_FailingStore());
+
+    await expectLater(
+      repository.addLog(
+        volumeMl: 250,
+        timestamp: DateTime(2026, 7, 15, 10),
+        actionId: 'failed-write',
+      ),
+      throwsStateError,
+    );
+
+    expect(repository.logs, isEmpty);
+    expect(repository.totalMl, 0);
+  });
+
   test('hydration logs can be edited and deleted', () async {
     final store = await SharedPreferencesHydrionStore.create();
     final repository = await HydrationRepository.load(store);
@@ -106,6 +147,28 @@ void main() {
     final secondRepository = await UserSettingsRepository.load(secondStore);
 
     expect(secondRepository.settings.locale, const Locale('fr', 'FR'));
+  });
+
+  test('system day and night theme preferences persist across restart',
+      () async {
+    final store = await SharedPreferencesHydrionStore.create();
+    var repository = await UserSettingsRepository.load(store);
+
+    expect(
+      repository.settings.themePreference,
+      HydrionThemePreference.system,
+    );
+    await repository.setThemePreference(HydrionThemePreference.dark);
+    repository = await UserSettingsRepository.load(
+      await SharedPreferencesHydrionStore.create(),
+    );
+    expect(repository.settings.themePreference, HydrionThemePreference.dark);
+
+    await repository.setThemePreference(HydrionThemePreference.light);
+    repository = await UserSettingsRepository.load(
+      await SharedPreferencesHydrionStore.create(),
+    );
+    expect(repository.settings.themePreference, HydrionThemePreference.light);
   });
 
   test('user hydration preferences persist across repository reloads',
@@ -295,4 +358,17 @@ void main() {
     expect(services.elkaAdapter.isConfigured, isFalse);
     expect(BLEService().isAvailable, isFalse);
   });
+}
+
+class _FailingStore implements HydrionLocalStore {
+  @override
+  Future<String?> readString(String key) async => null;
+
+  @override
+  Future<void> remove(String key) async {}
+
+  @override
+  Future<void> writeString(String key, String value) async {
+    throw StateError('simulated persistence failure');
+  }
 }

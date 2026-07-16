@@ -4,14 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/avatar_manifest.dart';
-import '../../domain/companion_state.dart';
 import '../../domain/challenge_catalog.dart';
 import '../../domain/hydration_contracts.dart';
-import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
-import '../../repositories/reminder_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../components/intake_ring.dart';
 import '../components/voice_input_widget.dart';
@@ -28,20 +25,47 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedVolumeMl = 250;
+  bool _isLogging = false;
   Future<void> _logWater(int volumeMl) async {
+    if (_isLogging) {
+      return;
+    }
+    setState(() => _isLogging = true);
     final repository = context.read<HydrationRepository>();
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    await repository.addLog(
-      volumeMl: volumeMl,
-      timestamp: DateTime.now(),
-      source: 'local',
-    );
-    if (!mounted) {
+    final volumeUnit =
+        context.read<UserSettingsRepository>().settings.volumeUnit;
+    var succeeded = false;
+    try {
+      await repository.addLog(
+        volumeMl: volumeMl,
+        timestamp: DateTime.now(),
+        source: 'quick-add',
+      );
+      succeeded = true;
+    } catch (_) {
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Water was not logged. Please retry.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLogging = false);
+      }
+    }
+    if (!mounted || !succeeded) {
       return;
     }
     messenger.showSnackBar(
-      SnackBar(content: Text(l10n.loggedVolume(volumeMl: volumeMl))),
+      SnackBar(
+        content: Text(
+          volumeUnit == HydrionVolumeUnit.milliliters
+              ? l10n.loggedVolume(volumeMl: volumeMl)
+              : 'Logged ${HydrationVolumeFormatter.format(volumeMl, volumeUnit)}',
+        ),
+      ),
     );
   }
 
@@ -52,7 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final settings = context.watch<UserSettingsRepository>().settings;
     final hydrationRepository = context.watch<HydrationRepository>();
     final challengeRepository = context.watch<ChallengeRepository>();
-    final reminderRepository = context.watch<ReminderRepository>();
     final now = DateTime.now();
     final todayMl = hydrationRepository.totalForDay(now);
     final targetMl = settings.dailyGoalMl;
@@ -62,22 +85,17 @@ class _HomeScreenState extends State<HomeScreen> {
       DateTime(now.year, now.month, now.day),
       DateTime(now.year, now.month, now.day + 1),
     );
-    final companion = const HydrionCompanionDirector().select(
-      hydrationPercent: percent,
-      entryCount: todayLogs.length,
-      settings: settings,
-      now: now,
-      hasActiveChallenge: challengeRepository.activeChallenge != null,
-      reminderDue: reminderRepository.reminders.isNotEmpty,
-    );
-    final localizedAdvice = _homeAdvice(
+    final hydrationStatus = _hydrationStatus(
       l10n,
       hydrationPercent: percent,
       entryCount: todayLogs.length,
+      now: now,
+      mostRecentLog: todayLogs.isEmpty ? null : todayLogs.first,
+      remainingMl: remainingMl,
+      containerSizeMl: settings.usableContainerSizeMl,
+      volumeUnit: settings.volumeUnit,
     );
     final profileAvatar = HydrionAvatarManifest.byId(settings.avatarId);
-    final companionAvatar =
-        HydrionAvatarManifest.companionByProfileAvatarId(settings.avatarId);
     final progress = (percent / 100).clamp(0.0, 1.0);
 
     return Scaffold(
@@ -140,9 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
           _HeroHydrationScene(
-            avatar: companionAvatar,
-            companion: companion,
-            localizedAdvice: localizedAdvice,
+            avatar: profileAvatar,
+            statusText: hydrationStatus,
             consumedMl: todayMl,
             targetMl: targetMl,
             remainingMl: remainingMl,
@@ -152,18 +169,16 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 16),
           _QuickLogPanel(
             title: l10n.logHydration,
-            logLabel: l10n.logVolume(volumeMl: _selectedVolumeMl),
+            logLabel: settings.volumeUnit == HydrionVolumeUnit.milliliters
+                ? l10n.logVolume(volumeMl: _selectedVolumeMl)
+                : '${l10n.logHydration} ${HydrationVolumeFormatter.format(_selectedVolumeMl, settings.volumeUnit)}',
             selectedVolumeMl: _selectedVolumeMl,
+            defaultContainerSizeMl: settings.usableContainerSizeMl,
+            volumeUnit: settings.volumeUnit,
             onVolumeChanged: (value) =>
                 setState(() => _selectedVolumeMl = value),
             onLog: () => _logWater(_selectedVolumeMl),
             onHistory: () => Navigator.of(context).pushNamed('/log'),
-          ),
-          const SizedBox(height: 16),
-          _HydrionLifestyleRail(
-            sex: settings.sex,
-            consumedMl: todayMl,
-            targetMl: targetMl,
           ),
           const SizedBox(height: 16),
           _TodayMomentumGrid(
@@ -191,184 +206,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HydrionLifestyleRail extends StatelessWidget {
-  final HydrionSex? sex;
-  final int consumedMl;
-  final int targetMl;
-
-  const _HydrionLifestyleRail({
-    required this.sex,
-    required this.consumedMl,
-    required this.targetMl,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scenes = HydrionLifestyleArtResolver.homeRailScenes(sex);
-    final progress =
-        targetMl <= 0 ? 0.0 : (consumedMl / targetMl).clamp(0, 1).toDouble();
-
-    return HydrionSurface(
-      key: const Key('home-lifestyle-rail'),
-      padding: const EdgeInsets.fromLTRB(16, 16, 0, 16),
-      gradient: LinearGradient(
-        colors: [
-          Colors.white.withValues(alpha: 0.98),
-          HydrionColors.foam,
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Row(
-              children: [
-                const Icon(Icons.auto_awesome_outlined),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Today\'s hydration rhythm',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Text(
-              'Updates as you log water.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 178,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: scenes.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final scene = scenes[index];
-                return _LifestyleSceneCard(
-                  scene: scene,
-                  status: _rhythmStatusFor(index, scenes.length, progress),
-                  index: index,
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-_RhythmStatus _rhythmStatusFor(int index, int count, double progress) {
-  if (count <= 0) {
-    return _RhythmStatus.upNext;
-  }
-  final segmentStart = index / count;
-  final segmentEnd = (index + 1) / count;
-  if (progress >= segmentEnd) {
-    return _RhythmStatus.completed;
-  }
-  if (progress >= segmentStart) {
-    return _RhythmStatus.current;
-  }
-  return _RhythmStatus.upNext;
-}
-
-enum _RhythmStatus {
-  completed('Completed'),
-  current('Current'),
-  upNext('Up next');
-
-  final String label;
-
-  const _RhythmStatus(this.label);
-}
-
-class _LifestyleSceneCard extends StatelessWidget {
-  final HydrionUiScene scene;
-  final _RhythmStatus status;
-  final int index;
-
-  const _LifestyleSceneCard({
-    required this.scene,
-    required this.status,
-    required this.index,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      key: Key('hydration-rhythm-card-$index'),
-      width: 132,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: HydrionColors.foam.withValues(alpha: 0.62),
-          borderRadius: BorderRadius.circular(HydrionRadii.sm),
-          border: Border.all(
-            color: HydrionColors.current.withValues(alpha: 0.08),
-          ),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(HydrionRadii.sm),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Image.asset(
-                    scene.assetPath,
-                    fit: BoxFit.contain,
-                    semanticLabel: scene.description,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      scene.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      status.label,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: HydrionColors.abyss.withValues(
-                              alpha: 0.72,
-                            ),
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _HeroHydrationScene extends StatelessWidget {
   final HydrionAvatar avatar;
-  final HydrionCompanionState companion;
-  final String localizedAdvice;
+  final String statusText;
   final int consumedMl;
   final int targetMl;
   final int remainingMl;
@@ -377,8 +217,7 @@ class _HeroHydrationScene extends StatelessWidget {
 
   const _HeroHydrationScene({
     required this.avatar,
-    required this.companion,
-    required this.localizedAdvice,
+    required this.statusText,
     required this.consumedMl,
     required this.targetMl,
     required this.remainingMl,
@@ -409,7 +248,7 @@ class _HeroHydrationScene extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        companion.title,
+                        _hydrationStatusTitle(consumedMl, targetMl),
                         style:
                             Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   color: Colors.white,
@@ -417,10 +256,8 @@ class _HeroHydrationScene extends StatelessWidget {
                                 ),
                       ),
                       const SizedBox(height: 8),
-                      Text(companion.message),
-                      const SizedBox(height: 6),
                       Text(
-                        localizedAdvice,
+                        statusText,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.86),
                         ),
@@ -443,17 +280,14 @@ class _HeroHydrationScene extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Transform.rotate(
-                  angle: _companionTilt(companion.mood),
-                  child: ClipOval(
-                    child: SizedBox.square(
-                      dimension: 116,
-                      child: Image.asset(
-                        avatar.assetPath,
-                        key: const Key('home-logo'),
-                        fit: BoxFit.cover,
-                        semanticLabel: avatar.displayName,
-                      ),
+                ClipOval(
+                  child: SizedBox.square(
+                    dimension: 116,
+                    child: Image.asset(
+                      avatar.assetPath,
+                      key: const Key('home-logo'),
+                      fit: BoxFit.cover,
+                      semanticLabel: avatar.displayName,
                     ),
                   ),
                 ),
@@ -486,6 +320,8 @@ class _QuickLogPanel extends StatelessWidget {
   final String title;
   final String logLabel;
   final int selectedVolumeMl;
+  final int? defaultContainerSizeMl;
+  final HydrionVolumeUnit volumeUnit;
   final ValueChanged<int> onVolumeChanged;
   final VoidCallback onLog;
   final VoidCallback onHistory;
@@ -494,6 +330,8 @@ class _QuickLogPanel extends StatelessWidget {
     required this.title,
     required this.logLabel,
     required this.selectedVolumeMl,
+    required this.defaultContainerSizeMl,
+    required this.volumeUnit,
     required this.onVolumeChanged,
     required this.onLog,
     required this.onHistory,
@@ -501,7 +339,16 @@ class _QuickLogPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const favorites = [150, 250, 350, 500, 750, 1000];
+    final favorites = <int>{
+      150,
+      250,
+      350,
+      500,
+      750,
+      1000,
+      if (defaultContainerSizeMl case final amount?) amount,
+    }.toList()
+      ..sort();
     return HydrionSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,12 +382,21 @@ class _QuickLogPanel extends StatelessWidget {
                     child: ChoiceChip(
                       key: Key('quick-volume-$amount'),
                       selected: selectedVolumeMl == amount,
-                      label: Text('$amount ml'),
+                      label: Text(
+                        HydrationVolumeFormatter.format(amount, volumeUnit),
+                      ),
                       onSelected: (_) => onVolumeChanged(amount),
                     ),
                   ),
               ],
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            defaultContainerSizeMl == null
+                ? 'No reusable container saved. Add one in Settings to use it here and in Bottle Bingo.'
+                : 'Saved container: ${HydrationVolumeFormatter.format(defaultContainerSizeMl!, volumeUnit)}. Select it here to use the same amount as Bottle Bingo.',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<int>(
@@ -556,7 +412,9 @@ class _QuickLogPanel extends StatelessWidget {
                 .map(
                   (amount) => DropdownMenuItem<int>(
                     value: amount,
-                    child: Text('$amount ml'),
+                    child: Text(
+                      HydrationVolumeFormatter.format(amount, volumeUnit),
+                    ),
                   ),
                 )
                 .toList(),
@@ -717,8 +575,6 @@ class _LegacyRouteShortcuts extends StatelessWidget {
         const _RouteButton(
             label: 'Log history', icon: Icons.list_alt, route: '/log'),
         const _RouteButton(
-            label: 'Coach', icon: Icons.chat_bubble_outline, route: '/chat'),
-        const _RouteButton(
             label: 'Challenges',
             icon: Icons.emoji_events,
             route: '/challenges'),
@@ -766,30 +622,42 @@ String _greeting(UserSettings settings, DateTime now) {
   return '$dayPart, $displayName';
 }
 
-String _homeAdvice(
+String _hydrationStatus(
   AppLocalizations l10n, {
   required double hydrationPercent,
   required int entryCount,
+  required DateTime now,
+  required HydrationLog? mostRecentLog,
+  required int remainingMl,
+  required int? containerSizeMl,
+  required HydrionVolumeUnit volumeUnit,
 }) {
   final hydration = hydrationPercent.clamp(0.0, 100.0);
-  final advice = switch (hydration) {
-    >= 100.0 => l10n.homeAdviceGoalReached,
-    >= 85.0 => l10n.homeAdviceStrong,
-    >= 65.0 => l10n.homeAdviceClose,
-    _ => l10n.homeAdviceStart,
-  };
-  final entryNote = entryCount >= 3
-      ? ' ${l10n.homeAdviceReliableEntries(count: entryCount)}'
-      : ' ${l10n.homeAdviceAddEntries}';
-  return '$advice$entryNote';
+  if (hydration >= 100) return l10n.homeAdviceGoalReached;
+
+  if (mostRecentLog != null &&
+      now.difference(mostRecentLog.timestamp).abs() <=
+          const Duration(minutes: 30)) {
+    return 'Your recent ${HydrationVolumeFormatter.format(mostRecentLog.volumeMl, volumeUnit)} log is counted. Give your routine time before deciding what comes next.';
+  }
+  if (hydration >= 85) return l10n.homeAdviceStrong;
+  if (hydration >= 65) return l10n.homeAdviceClose;
+
+  if (entryCount == 0) {
+    return now.hour < 12
+        ? l10n.homeAdviceStart
+        : 'No water is logged yet today. Add what you have actually consumed when you are ready.';
+  }
+
+  final remaining = HydrationVolumeFormatter.format(remainingMl, volumeUnit);
+  final container = containerSizeMl == null
+      ? ''
+      : '; your ${HydrationVolumeFormatter.format(containerSizeMl, volumeUnit)} container is available as a quick-log amount';
+  return 'You have $entryCount ${entryCount == 1 ? 'log' : 'logs'} today. About $remaining remains$container.';
 }
 
-double _companionTilt(HydrionCompanionMood mood) {
-  return switch (mood) {
-    HydrionCompanionMood.goalComplete => -0.08,
-    HydrionCompanionMood.nearlyComplete => 0.06,
-    HydrionCompanionMood.hotWeather => -0.04,
-    HydrionCompanionMood.recovery => 0.02,
-    _ => 0,
-  };
+String _hydrationStatusTitle(int consumedMl, int targetMl) {
+  if (targetMl > 0 && consumedMl >= targetMl) return 'Goal completed';
+  if (consumedMl == 0) return 'No hydration logged today';
+  return 'Today’s hydration';
 }

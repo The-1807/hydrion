@@ -10,12 +10,14 @@ class HydrationLog {
   final int volumeMl;
   final DateTime timestamp;
   final String source;
+  final String? actionId;
 
   const HydrationLog({
     required this.id,
     required this.volumeMl,
     required this.timestamp,
     required this.source,
+    this.actionId,
   });
 
   Map<String, dynamic> toJson() {
@@ -24,6 +26,7 @@ class HydrationLog {
       'volumeMl': volumeMl,
       'timestamp': timestamp.toIso8601String(),
       'source': source,
+      if (actionId != null) 'actionId': actionId,
     };
   }
 
@@ -49,6 +52,7 @@ class HydrationLog {
       volumeMl: volume.round(),
       timestamp: timestamp,
       source: source.trim().isEmpty ? 'local' : source,
+      actionId: (value['actionId'] as Object?)?.toString(),
     );
   }
 }
@@ -61,6 +65,7 @@ class HydrationRepository extends ChangeNotifier {
   final HydrionLocalStore _store;
   final List<HydrationLog> _logs;
   final List<StorageRecoveryEvent> _recoveryEvents;
+  final Set<String> _inFlightActionIds = <String>{};
 
   HydrationRepository._(
     this._store,
@@ -88,22 +93,46 @@ class HydrationRepository extends ChangeNotifier {
     required int volumeMl,
     required DateTime timestamp,
     String source = 'local',
+    String? actionId,
   }) async {
     if (volumeMl <= 0) {
       return null;
     }
 
+    final normalizedActionId = actionId?.trim();
+    if (normalizedActionId != null && normalizedActionId.isNotEmpty) {
+      if (_inFlightActionIds.contains(normalizedActionId) ||
+          _logs.any((log) => log.actionId == normalizedActionId)) {
+        return null;
+      }
+      _inFlightActionIds.add(normalizedActionId);
+    }
+
     final log = HydrationLog(
-      id: 'log-${timestamp.microsecondsSinceEpoch}-$volumeMl',
+      id: normalizedActionId != null && normalizedActionId.isNotEmpty
+          ? 'log-$normalizedActionId'
+          : 'log-${timestamp.microsecondsSinceEpoch}-$volumeMl',
       volumeMl: volumeMl,
       timestamp: timestamp,
       source: source.trim().isEmpty ? 'local' : source,
+      actionId: normalizedActionId?.isEmpty == true ? null : normalizedActionId,
     );
-    _logs.add(log);
-    _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    await _persist();
-    notifyListeners();
-    return log;
+    try {
+      _logs.add(log);
+      _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      try {
+        await _persist();
+      } catch (_) {
+        _logs.removeWhere((candidate) => candidate.id == log.id);
+        rethrow;
+      }
+      notifyListeners();
+      return log;
+    } finally {
+      if (normalizedActionId != null) {
+        _inFlightActionIds.remove(normalizedActionId);
+      }
+    }
   }
 
   Future<bool> updateLog({
@@ -127,6 +156,7 @@ class HydrationRepository extends ChangeNotifier {
       volumeMl: nextVolume,
       timestamp: timestamp ?? _logs[index].timestamp,
       source: source ?? _logs[index].source,
+      actionId: _logs[index].actionId,
     );
     _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     await _persist();

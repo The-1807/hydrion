@@ -7,6 +7,7 @@ import '../../repositories/settings_repository.dart';
 import '../../utils/i18n_resolver.dart';
 import '../../utils/permissions.dart';
 import '../components/hydrion_logo.dart';
+import '../components/intake_ring.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -54,6 +55,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           const SizedBox(height: 12),
+          _ThemeCard(settings: settings),
+          const SizedBox(height: 12),
           _DailyGoalCard(settings: settings),
           const SizedBox(height: 12),
           _ReusableContainerCard(settings: settings),
@@ -62,6 +65,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           const _LegalAboutCard(),
         ],
+      ),
+    );
+  }
+}
+
+class _ThemeCard extends StatelessWidget {
+  final UserSettings settings;
+
+  const _ThemeCard({required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: DropdownButtonFormField<HydrionThemePreference>(
+          key: const Key('settings-theme-picker'),
+          initialValue: settings.themePreference,
+          decoration: const InputDecoration(
+            labelText: 'Appearance',
+            prefixIcon: Icon(Icons.brightness_6_outlined),
+          ),
+          items: const [
+            DropdownMenuItem(
+              value: HydrionThemePreference.system,
+              child: Text('Use device setting'),
+            ),
+            DropdownMenuItem(
+              value: HydrionThemePreference.light,
+              child: Text('Day'),
+            ),
+            DropdownMenuItem(
+              value: HydrionThemePreference.dark,
+              child: Text('Night'),
+            ),
+          ],
+          onChanged: (preference) async {
+            if (preference == null) return;
+            await context
+                .read<UserSettingsRepository>()
+                .setThemePreference(preference);
+          },
+        ),
       ),
     );
   }
@@ -216,11 +262,83 @@ class _ReusableContainerCard extends StatelessWidget {
       child: ListTile(
         leading: const Icon(Icons.local_drink_outlined),
         title: const Text('Reusable container'),
-        subtitle: Text('${settings.containerSizeMl} ml'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).pushNamed('/profile'),
+        subtitle: Text(
+          settings.usableContainerSizeMl == null
+              ? 'Not set'
+              : HydrationVolumeFormatter.format(
+                  settings.containerSizeMl,
+                  settings.volumeUnit,
+                ),
+        ),
+        trailing: const Icon(Icons.edit_outlined),
+        onTap: () => _editContainer(context),
       ),
     );
+  }
+
+  Future<void> _editContainer(BuildContext context) async {
+    final repository = context.read<UserSettingsRepository>();
+    final unit = settings.volumeUnit;
+    final initial = HydrationVolumeFormatter.fromMilliliters(
+      settings.containerSizeMl,
+      unit,
+    );
+    final controller = TextEditingController(
+      text: unit == HydrionVolumeUnit.ounces
+          ? initial.toStringAsFixed(1)
+          : initial.round().toString(),
+    );
+    final value = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reusable container'),
+        content: TextField(
+          key: const Key('reusable-container-input'),
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: unit == HydrionVolumeUnit.ounces
+                ? 'Amount in oz'
+                : 'Amount in ml',
+            helperText: 'One saved amount is used by Home and Bottle Bingo.',
+          ),
+        ),
+        actions: [
+          if (settings.usableContainerSizeMl != null)
+            TextButton(
+              key: const Key('clear-reusable-container'),
+              onPressed: () => Navigator.pop(dialogContext, -1.0),
+              child: const Text('Clear'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('save-reusable-container'),
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              double.tryParse(controller.text.trim()),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null) return;
+    if (value < 0) {
+      await repository.clearContainerSize();
+      return;
+    }
+    final ml = HydrationVolumeFormatter.toMilliliters(value, unit);
+    final saved = await repository.setContainerSizeMl(ml);
+    if (!saved && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter an amount from 100 to 2000 ml.')),
+      );
+    }
   }
 }
 

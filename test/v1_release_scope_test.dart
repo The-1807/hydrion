@@ -106,6 +106,7 @@ void main() {
     expect(second.settings.goalMode, HydrionGoalMode.weatherInformed);
     expect(second.settings.volumeUnit, HydrionVolumeUnit.ounces);
     expect(second.settings.containerSizeMl, 750);
+    expect(second.settings.usableContainerSizeMl, 750);
     expect(second.settings.onboardingCompleted, isTrue);
     expect(second.settings.legalAndHealthAcknowledged, isTrue);
     expect(
@@ -154,6 +155,18 @@ void main() {
       'avatarId': 'hydrion-human-river',
     });
     expect(migrated.avatarId, HydrionAvatarManifest.defaultAvatarId);
+  });
+
+  test('one reusable container can be saved, used, and cleared', () async {
+    final repository = await UserSettingsRepository.load(MemoryHydrionStore());
+
+    expect(repository.settings.usableContainerSizeMl, isNull);
+    expect(await repository.setContainerSizeMl(710), isTrue);
+    expect(repository.settings.usableContainerSizeMl, 710);
+
+    await repository.clearContainerSize();
+    expect(repository.settings.usableContainerSizeMl, isNull);
+    expect(repository.settings.containerSizeMl, 710);
   });
 
   test('companion state reacts to weather and completed goals', () {
@@ -409,10 +422,93 @@ void main() {
     expect(hydrationRepository.logs, hasLength(1));
   });
 
+  test('rapid Bottle Bingo activation creates one log and one tile update',
+      () async {
+    final hydrationRepository = HydrationRepository.memory();
+    final challengeRepository = ChallengeRepository.memory();
+    final bottleBingo = HydrionChallengeCatalog.byId('bottle-bingo');
+    final timestamp = DateTime.now();
+
+    await challengeRepository.join(
+      id: bottleBingo.id,
+      name: bottleBingo.name,
+      description: bottleBingo.description,
+      targetMl: bottleBingo.targetMl,
+      durationDays: bottleBingo.durationDays,
+      joinedAt: timestamp,
+    );
+
+    final results = await Future.wait([
+      challengeRepository.completeBottleBingoHydrationTile(
+        index: 4,
+        hydrationRepository: hydrationRepository,
+        volumeMl: 250,
+        timestamp: timestamp,
+      ),
+      challengeRepository.completeBottleBingoHydrationTile(
+        index: 4,
+        hydrationRepository: hydrationRepository,
+        volumeMl: 250,
+        timestamp: timestamp,
+      ),
+    ]);
+
+    expect(results.whereType<HydrationLog>(), hasLength(1));
+    expect(hydrationRepository.logs, hasLength(1));
+    expect(
+      challengeRepository.activeChallenge?.bottleBingoCompletedTiles,
+      {4},
+    );
+  });
+
+  test('Bottle Bingo hydration idempotency is scoped by day and instance',
+      () async {
+    final hydration = HydrationRepository.memory();
+    final challenges = ChallengeRepository.memory();
+    final bottleBingo = HydrionChallengeCatalog.byId('bottle-bingo');
+
+    Future<void> joinAt(DateTime joinedAt) => challenges.join(
+          id: bottleBingo.id,
+          name: bottleBingo.name,
+          description: bottleBingo.description,
+          targetMl: bottleBingo.targetMl,
+          durationDays: bottleBingo.durationDays,
+          joinedAt: joinedAt,
+        );
+
+    await joinAt(DateTime(2026, 7, 15, 8));
+    final firstDay = await challenges.completeBottleBingoHydrationTile(
+      index: 4,
+      hydrationRepository: hydration,
+      volumeMl: 150,
+      timestamp: DateTime(2026, 7, 15, 10),
+    );
+    final nextDay = await challenges.completeBottleBingoHydrationTile(
+      index: 4,
+      hydrationRepository: hydration,
+      volumeMl: 150,
+      timestamp: DateTime(2026, 7, 16, 10),
+    );
+
+    await challenges.leave();
+    await joinAt(DateTime(2026, 7, 16, 12));
+    final newInstance = await challenges.completeBottleBingoHydrationTile(
+      index: 4,
+      hydrationRepository: hydration,
+      volumeMl: 150,
+      timestamp: DateTime(2026, 7, 16, 13),
+    );
+
+    expect(firstDay, isNotNull);
+    expect(nextDay, isNotNull);
+    expect(newInstance, isNotNull);
+    expect(hydration.logs, hasLength(3));
+  });
+
   test('release metadata keeps v1 identity and pending release date explicit',
       () {
     expect(HydrionReleaseMetadata.productName, 'Hydrion');
-    expect(HydrionReleaseMetadata.flutterVersionName, '1.0.0+1');
+    expect(HydrionReleaseMetadata.flutterVersionName, '1.0.0+2');
     expect(HydrionReleaseMetadata.releaseDateLabel, 'Release date pending');
     expect(HydrionReleaseMetadata.communityName, 'HydrionSharks');
     expect(HydrionReleaseMetadata.contactEmail, 'hydrionsharks@gmail.com');

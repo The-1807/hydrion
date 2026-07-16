@@ -29,7 +29,6 @@ import 'services/voice_llm_bridge.dart';
 import 'services/wearable_service.dart';
 import 'services/weather_goal_service.dart';
 import 'ui/screens/analytics_screen.dart';
-import 'ui/screens/chat_coach_screen.dart';
 import 'ui/screens/hydrion_shell.dart';
 import 'ui/screens/legal_about_screen.dart';
 import 'ui/screens/log_screen.dart';
@@ -82,6 +81,9 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
     HydrionStartupTrace.log('HydrionBootstrapApp.warmup started');
     final services = await _servicesFuture;
     _loadedServices = services;
+    if (mounted) {
+      setState(() {});
+    }
     await Future.wait([
       services.hydrationSummaryService.getHydrationSummary(),
       services.hydrationContextProvider.getHydrationContext(),
@@ -130,9 +132,18 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
       );
     }
 
+    final startupThemeMode = switch (
+        _loadedServices?.settingsRepository.settings.themePreference ??
+            HydrionThemePreference.system) {
+      HydrionThemePreference.light => ThemeMode.light,
+      HydrionThemePreference.dark => ThemeMode.dark,
+      HydrionThemePreference.system => ThemeMode.system,
+    };
     return MaterialApp(
       title: 'Hydrion',
       theme: buildHydrionTheme(),
+      darkTheme: buildHydrionTheme(brightness: Brightness.dark),
+      themeMode: startupThemeMode,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: const [
         AppLocalizations.delegate,
@@ -201,7 +212,6 @@ class HydrionApp extends StatelessWidget {
       '/home': (_) => const HydrionShell(),
       '/onboarding': (_) => const OnboardingScreen(),
       '/analytics': (_) => const AnalyticsScreen(),
-      '/chat': (_) => const ChatCoachScreen(),
       '/log': (_) => const LogScreen(),
       if (services.capabilityReporter.capabilities.osNotifications)
         '/reminders': (_) => const RemindersScreen(),
@@ -258,11 +268,19 @@ class HydrionApp extends StatelessWidget {
         Provider.value(value: services.wearables),
         Provider.value(value: services.ecoTracker),
       ],
-      child: Consumer<I18nResolver>(
-        builder: (context, i18n, _) {
+      child: Consumer2<I18nResolver, UserSettingsRepository>(
+        builder: (context, i18n, settingsRepository, _) {
+          final themeMode =
+              switch (settingsRepository.settings.themePreference) {
+            HydrionThemePreference.light => ThemeMode.light,
+            HydrionThemePreference.dark => ThemeMode.dark,
+            HydrionThemePreference.system => ThemeMode.system,
+          };
           return MaterialApp(
             title: 'Hydrion',
             theme: buildHydrionTheme(),
+            darkTheme: buildHydrionTheme(brightness: Brightness.dark),
+            themeMode: themeMode,
             debugShowCheckedModeBanner: false,
             localizationsDelegates: const [
               AppLocalizations.delegate,

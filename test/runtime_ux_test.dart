@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
+import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/profile_photo_service.dart';
 
@@ -31,17 +32,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('0 ml / 2200 ml'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Today\'s hydration rhythm'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Today\'s hydration rhythm'), findsOneWidget);
-    expect(find.text('Updates as you log water.'), findsOneWidget);
-    expect(find.byKey(const Key('hydration-rhythm-card-0')), findsOneWidget);
-    expect(find.text('Current'), findsOneWidget);
-    expect(find.text('Up next'), findsWidgets);
+    expect(find.text('Today\'s hydration rhythm'), findsNothing);
+    expect(find.byKey(const Key('hydration-rhythm-card-0')), findsNothing);
     await tester.scrollUntilVisible(
       find.byKey(const Key('quick-volume-500')),
       -300,
@@ -91,6 +83,34 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(reusableEstimate, findsOneWidget);
+  });
+
+  testWidgets('Home hydration immediately updates the active challenge truth',
+      (tester) async {
+    final services = HydrionServices.memory();
+    final challenge = HydrionChallengeCatalog.byId('temperature-roulette');
+    await services.challengeRepository.join(
+      id: challenge.id,
+      name: challenge.name,
+      description: challenge.description,
+      targetMl: challenge.targetMl,
+      durationDays: challenge.durationDays,
+    );
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+    final logButton = tester.widget<FilledButton>(
+      find.byKey(const Key('log-water-button')),
+    );
+    logButton.onPressed?.call();
+    await tester.pumpAndSettle();
+
+    await openTab(tester, const Key('nav-challenges'));
+    expect(find.text("Today's total hydration: 250 ml"), findsOneWidget);
+    expect(
+      find.text('Hydration counted toward this challenge: 250 ml / 2200 ml'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('persisted log entries can be edited and deleted',
@@ -284,6 +304,7 @@ void main() {
   testWidgets('Bottle Bingo hydration action writes one normal log',
       (tester) async {
     final services = HydrionServices.memory();
+    await services.settingsRepository.setContainerSizeMl(500);
 
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
@@ -340,6 +361,70 @@ void main() {
     expect(find.text('500 ml / 2200 ml'), findsOneWidget);
     await openLogHistory(tester);
     expect(find.text('500 ml'), findsOneWidget);
+  });
+
+  testWidgets('Settings applies and persists day night and system themes',
+      (tester) async {
+    final services = HydrionServices.memory();
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    await services.settingsRepository
+        .setThemePreference(HydrionThemePreference.dark);
+    await tester.pumpAndSettle();
+    var app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.dark);
+    expect(app.darkTheme, isNotNull);
+
+    await services.settingsRepository
+        .setThemePreference(HydrionThemePreference.light);
+    await tester.pumpAndSettle();
+    app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.light);
+
+    await services.settingsRepository
+        .setThemePreference(HydrionThemePreference.system);
+    await tester.pumpAndSettle();
+    app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.system);
+  });
+
+  testWidgets('weather assistance shows location and profile based metrics',
+      (tester) async {
+    final services = HydrionServices.memory();
+    await services.settingsRepository.setProfile(
+      nickname: 'Weather tester',
+      age: 30,
+      sex: HydrionSex.female,
+    );
+    await services.settingsRepository.setGoalMode(
+      HydrionGoalMode.weatherInformed,
+    );
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text("Today's weather hydration suggestion"),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Test clear'), findsOneWidget);
+    expect(find.text('Humidity: 45%'), findsOneWidget);
+    expect(find.text('Standard goal: 2200 ml'), findsOneWidget);
+    expect(find.text('Weather adjustment: +0 ml'), findsOneWidget);
+    expect(find.text("Today's suggested goal: 2200 ml"), findsOneWidget);
+    expect(
+      find.textContaining(
+          'saved profile, location permission, and local weather'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Use suggestion'));
+    await tester.pumpAndSettle();
+    expect(
+      services.settingsRepository.settings.weatherAdjustedGoalActive,
+      isTrue,
+    );
   });
 
   testWidgets(
@@ -466,8 +551,7 @@ int _tabIndex(Key key) {
     const Key('nav-home') => 0,
     const Key('nav-challenges') => 1,
     const Key('nav-progress') => 2,
-    const Key('nav-coach') => 3,
-    const Key('nav-profile') => 4,
+    const Key('nav-profile') => 3,
     _ => throw ArgumentError('Unknown tab key: $key'),
   };
 }
