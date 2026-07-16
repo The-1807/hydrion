@@ -224,11 +224,12 @@ class ChallengeRepository extends ChangeNotifier {
       return null;
     }
     final challenge = _activeChallenge!;
-    if (challenge.bottleBingoCompletedTiles.contains(index)) {
-      return null;
-    }
-
-    final actionId = '${challenge.id}:tile-$index';
+    final actionTime = timestamp ?? DateTime.now();
+    final localDay = '${actionTime.year.toString().padLeft(4, '0')}-'
+        '${actionTime.month.toString().padLeft(2, '0')}-'
+        '${actionTime.day.toString().padLeft(2, '0')}';
+    final challengeInstance = challenge.joinedAt.microsecondsSinceEpoch;
+    final actionId = '${challenge.id}:$challengeInstance:$localDay:tile-$index';
     if (!_inFlightHydrationActions.add(actionId)) {
       return null;
     }
@@ -236,7 +237,7 @@ class ChallengeRepository extends ChangeNotifier {
     try {
       final log = await hydrationRepository.addLog(
         volumeMl: volumeMl,
-        timestamp: timestamp ?? DateTime.now(),
+        timestamp: actionTime,
         source: 'challenge:${challenge.id}:tile-$index',
         actionId: actionId,
       );
@@ -282,6 +283,25 @@ class ChallengeRepository extends ChangeNotifier {
 
   bool isBottleBingoTileManuallyComplete(int index) {
     return _activeChallenge?.bottleBingoCompletedTiles.contains(index) == true;
+  }
+
+  bool isBottleBingoHydrationTileCompleteForDay(
+    int index,
+    HydrationRepository hydrationRepository,
+    DateTime day,
+  ) {
+    final challenge = _activeChallenge;
+    if (challenge?.id != 'bottle-bingo' ||
+        !bottleBingoHydrationTileIndexes.contains(index)) {
+      return false;
+    }
+    final source = 'challenge:${challenge!.id}:tile-$index';
+    return hydrationRepository.logs.any((log) =>
+        log.source == source &&
+        !log.timestamp.isBefore(challenge.joinedAt) &&
+        log.timestamp.year == day.year &&
+        log.timestamp.month == day.month &&
+        log.timestamp.day == day.day);
   }
 
   bool _canPersistBottleBingoTile(int index) {

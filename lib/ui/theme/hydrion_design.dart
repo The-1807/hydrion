@@ -56,24 +56,28 @@ class HydrionGradients {
   );
 }
 
-ThemeData buildHydrionTheme() {
+ThemeData buildHydrionTheme({Brightness brightness = Brightness.light}) {
+  final isDark = brightness == Brightness.dark;
   final scheme = ColorScheme.fromSeed(
     seedColor: HydrionColors.current,
     primary: HydrionColors.deep,
     secondary: HydrionColors.glow,
     tertiary: HydrionColors.kelp,
     error: HydrionColors.coral,
-    brightness: Brightness.light,
+    brightness: brightness,
   );
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: HydrionColors.foam,
+    scaffoldBackgroundColor:
+        isDark ? const Color(0xFF061923) : HydrionColors.foam,
     visualDensity: VisualDensity.adaptivePlatformDensity,
     cardTheme: CardThemeData(
       elevation: 0,
-      color: Colors.white.withValues(alpha: 0.92),
+      color: isDark
+          ? const Color(0xFF0D2A38)
+          : Colors.white.withValues(alpha: 0.92),
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(HydrionRadii.md),
@@ -81,7 +85,9 @@ ThemeData buildHydrionTheme() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       elevation: 0,
-      backgroundColor: Colors.white.withValues(alpha: 0.94),
+      backgroundColor: isDark
+          ? const Color(0xFF092331)
+          : Colors.white.withValues(alpha: 0.94),
       indicatorColor: HydrionColors.glow.withValues(alpha: 0.18),
       labelTextStyle: const WidgetStatePropertyAll(
         TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
@@ -156,14 +162,18 @@ class HydrionSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: color ?? Colors.white.withValues(alpha: 0.94),
+        color: color ??
+            (isDark
+                ? const Color(0xFF0D2A38)
+                : Colors.white.withValues(alpha: 0.94)),
         gradient: gradient,
         borderRadius: BorderRadius.circular(radius),
         boxShadow: [
           BoxShadow(
-            color: HydrionColors.deep.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.08),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),

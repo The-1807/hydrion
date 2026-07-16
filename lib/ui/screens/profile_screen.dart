@@ -102,7 +102,9 @@ class ProfileScreen extends StatelessWidget {
                 _ProfileStat(
                   icon: Icons.local_drink_outlined,
                   label: 'Preferred container',
-                  value: '${settings.containerSizeMl} ml',
+                  value: settings.usableContainerSizeMl == null
+                      ? 'Not set'
+                      : '${settings.containerSizeMl} ml',
                 ),
                 _ProfileStat(
                   icon: Icons.notifications_none,

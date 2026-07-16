@@ -24,6 +24,12 @@ enum HydrionVolumeUnit {
   ounces,
 }
 
+enum HydrionThemePreference {
+  system,
+  light,
+  dark,
+}
+
 class UserSettings {
   static const fallbackLocale = Locale('en');
   static const supportedLanguageCodes = <String>{'en', 'es', 'fr'};
@@ -48,7 +54,11 @@ class UserSettings {
   final String avatarId;
   final HydrionGoalMode goalMode;
   final HydrionVolumeUnit volumeUnit;
+  final HydrionThemePreference themePreference;
   final int containerSizeMl;
+
+  int? get usableContainerSizeMl =>
+      reusableContainerEnabled ? containerSizeMl : null;
   final bool onboardingCompleted;
   final bool legalAndHealthAcknowledged;
   final String? acceptedTermsVersion;
@@ -81,6 +91,7 @@ class UserSettings {
     this.avatarId = 'savvy-eco_shark',
     this.goalMode = HydrionGoalMode.manual,
     this.volumeUnit = HydrionVolumeUnit.milliliters,
+    this.themePreference = HydrionThemePreference.system,
     this.containerSizeMl = defaultContainerSizeMl,
     this.onboardingCompleted = false,
     this.legalAndHealthAcknowledged = false,
@@ -119,6 +130,7 @@ class UserSettings {
     String? avatarId,
     HydrionGoalMode? goalMode,
     HydrionVolumeUnit? volumeUnit,
+    HydrionThemePreference? themePreference,
     int? containerSizeMl,
     bool? onboardingCompleted,
     bool? legalAndHealthAcknowledged,
@@ -168,6 +180,7 @@ class UserSettings {
       avatarId: avatarId ?? this.avatarId,
       goalMode: goalMode ?? this.goalMode,
       volumeUnit: volumeUnit ?? this.volumeUnit,
+      themePreference: themePreference ?? this.themePreference,
       containerSizeMl: containerSizeMl ?? this.containerSizeMl,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       legalAndHealthAcknowledged:
@@ -255,6 +268,7 @@ class UserSettings {
       'avatarId': avatarId,
       'goalMode': goalMode.name,
       'volumeUnit': volumeUnit.name,
+      'themePreference': themePreference.name,
       'containerSizeMl': containerSizeMl,
       'onboardingCompleted': onboardingCompleted,
       'legalAndHealthAcknowledged': legalAndHealthAcknowledged,
@@ -303,6 +317,7 @@ class UserSettings {
         avatarId: _safeAvatarId(value['avatarId']),
         goalMode: _safeGoalMode(value['goalMode']),
         volumeUnit: _safeVolumeUnit(value['volumeUnit']),
+        themePreference: _safeThemePreference(value['themePreference']),
         containerSizeMl: _safeContainerSize(value['containerSizeMl']),
         onboardingCompleted: _safeOnboardingCompleted(value),
         legalAndHealthAcknowledged: value['legalAndHealthAcknowledged'] == true,
@@ -349,6 +364,7 @@ class UserSettings {
       avatarId: _safeAvatarId(value['avatarId']),
       goalMode: _safeGoalMode(value['goalMode']),
       volumeUnit: _safeVolumeUnit(value['volumeUnit']),
+      themePreference: _safeThemePreference(value['themePreference']),
       containerSizeMl: _safeContainerSize(value['containerSizeMl']),
       onboardingCompleted: _safeOnboardingCompleted(value),
       legalAndHealthAcknowledged: value['legalAndHealthAcknowledged'] == true,
@@ -575,6 +591,15 @@ class UserSettings {
     return size;
   }
 
+  static HydrionThemePreference _safeThemePreference(Object? value) {
+    for (final preference in HydrionThemePreference.values) {
+      if (preference.name == value) {
+        return preference;
+      }
+    }
+    return HydrionThemePreference.system;
+  }
+
   static DateTime? _safeDateTime(Object? value) {
     if (value is! String) {
       return null;
@@ -752,15 +777,30 @@ class UserSettingsRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setThemePreference(HydrionThemePreference preference) async {
+    _settings = _settings.copyWith(themePreference: preference);
+    await _persist();
+    notifyListeners();
+  }
+
   Future<bool> setContainerSizeMl(int value) async {
     if (value < UserSettings.minContainerSizeMl ||
         value > UserSettings.maxContainerSizeMl) {
       return false;
     }
-    _settings = _settings.copyWith(containerSizeMl: value);
+    _settings = _settings.copyWith(
+      containerSizeMl: value,
+      reusableContainerEnabled: true,
+    );
     await _persist();
     notifyListeners();
     return true;
+  }
+
+  Future<void> clearContainerSize() async {
+    _settings = _settings.copyWith(reusableContainerEnabled: false);
+    await _persist();
+    notifyListeners();
   }
 
   Future<void> setWeatherGoalAutoApplyEnabled(bool value) async {

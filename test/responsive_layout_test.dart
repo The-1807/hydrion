@@ -52,7 +52,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('weekly-hydration-strip')), findsOneWidget);
 
-    navigationBar.onDestinationSelected?.call(4);
+    navigationBar.onDestinationSelected?.call(3);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const Key('profile-legal-action')),
@@ -96,8 +96,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.getTopLeft(safeStack).dy, greaterThanOrEqualTo(36));
-    expect(find.byKey(const Key('coach-coming-soon')), findsOneWidget);
-    expect(find.byKey(const Key('coach-message-input')), findsNothing);
+    expect(find.byKey(const Key('nav-coach')), findsNothing);
     expect(find.byKey(const Key('hydrion-bottom-nav')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

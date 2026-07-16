@@ -17,6 +17,21 @@ class HydrationVolumeFormatter {
     };
   }
 
+  static double fromMilliliters(num volumeMl, HydrionVolumeUnit unit) {
+    final safeMl = volumeMl.isFinite ? math.max(0, volumeMl.toDouble()) : 0.0;
+    return unit == HydrionVolumeUnit.ounces
+        ? safeMl / _mlPerOunce
+        : safeMl.toDouble();
+  }
+
+  static int toMilliliters(num value, HydrionVolumeUnit unit) {
+    final safeValue = value.isFinite ? math.max(0, value.toDouble()) : 0.0;
+    return (unit == HydrionVolumeUnit.ounces
+            ? safeValue * _mlPerOunce
+            : safeValue)
+        .round();
+  }
+
   static String _formatOunces(double value) {
     if (value >= 10 || value == value.roundToDouble()) {
       return value.round().toString();

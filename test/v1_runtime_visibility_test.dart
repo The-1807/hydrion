@@ -5,14 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   String source(String path) => File(path).readAsStringSync();
 
-  test('Coach is a non-interactive future-update notice', () {
-    final coach = source('lib/ui/screens/chat_coach_screen.dart');
-    expect(coach, contains("key: const Key('coach-coming-soon')"));
-    expect(coach, contains('Hydrion Coach is being prepared'));
-    expect(coach, isNot(contains('TextField(')));
-    expect(coach, isNot(contains('coach-message-input')));
-    expect(coach.toLowerCase(), isNot(contains('provider')));
-    expect(coach.toLowerCase(), isNot(contains('runtime')));
+  test('deferred coaching has no V1 route navigation or Home surface', () {
+    final main = source('lib/main.dart');
+    final shell = source('lib/ui/screens/hydrion_shell.dart');
+    final home = source('lib/ui/screens/home_screen.dart');
+    expect(main, isNot(contains("'/chat':")));
+    expect(shell, isNot(contains("label: 'Coach'")));
+    expect(shell, isNot(contains("Key('nav-coach')")));
+    expect(home, isNot(contains('          _HydrionLifestyleRail(')));
+    expect(home, isNot(contains("route: '/chat'")));
   });
 
   test('V1 surfaces do not mount deferred feature cards', () {

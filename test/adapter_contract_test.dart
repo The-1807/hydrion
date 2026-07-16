@@ -224,12 +224,8 @@ void main() {
     final navigationBar = tester.widget<NavigationBar>(
       find.byKey(const Key('hydrion-bottom-nav')),
     );
-    navigationBar.onDestinationSelected?.call(3);
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('coach-coming-soon')), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
-    expect(find.byKey(const Key('coach-send-button')), findsNothing);
+    expect(navigationBar.destinations, hasLength(4));
+    expect(find.byKey(const Key('nav-coach')), findsNothing);
   });
 }
 

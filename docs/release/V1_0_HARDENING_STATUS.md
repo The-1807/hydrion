@@ -1,8 +1,8 @@
 # Hydrion V1.0 hardening status
 
-Date: 2026-07-15
+Date: 2026-07-16
 
-Status: **PARTIALLY COMPLETE WITH DOCUMENTED BLOCKERS**
+Status: **SOURCE COMPLETE AND LOCALLY VERIFIED**
 
 ## Release protection
 
@@ -11,7 +11,11 @@ tag, change a release, modify `main`, or alter the Android application ID.
 The existing tester release and its artifact remain immutable. A new candidate
 must use a new tag after all manual gates pass.
 
-The product version remains `1.0.0`; the candidate build number is now `2`.
+The protected tester release `v1.0.0-rc.1` points to commit `5b3e306` and its
+source declares `1.0.0+1`. Its APK SHA-256 is
+`92e14ff0e8f87ad6131449e0267c0e503ab7babee96c7d9c9a977635888e5fea`,
+matching GitHub release metadata. The product version remains `1.0.0`; the
+candidate build number is now `2`.
 The application ID remains `com.the1807.hydrion`.
 
 Signing continuity is not verified. `android/app/build.gradle.kts` loads the
@@ -48,7 +52,8 @@ total daily hydration.
 
 ## Correctness changes in this pass
 
-- Added stable persisted action identifiers and repository duplicate detection.
+- Added persisted action identifiers and repository duplicate detection scoped
+  to challenge instance, local day, and tile occurrence.
 - Added in-flight guards for rapid/retried Bottle Bingo hydration actions.
 - Roll back in-memory hydration when persistence fails.
 - Roll back challenge state when challenge persistence fails.
@@ -56,17 +61,30 @@ total daily hydration.
 - Home and Bottle Bingo show a retryable error instead of false success.
 - Home quick-add uses explicit `quick-add` origin metadata.
 - Preserved local calendar-day aggregation and historical records.
+- Challenges display total daily hydration separately from qualified challenge
+  hydration, both derived from canonical logs and formatted in the chosen unit.
+- Added persistent System, Day, and Night themes and dark theme surfaces.
+- Added one reusable-container amount with set, edit, clear, Home quick-log,
+  and Bottle Bingo behavior; a missing amount never creates an inferred log.
+- Added shared millilitre/ounce formatting and conversion for the completed V1
+  hydration paths while retaining canonical millilitre storage.
+- Added an app-open local-midnight refresh timer so current-day surfaces and
+  weather eligibility roll over without an application restart.
+- Added an explicit local-weather decision dialog showing condition,
+  temperature, humidity, freshness, base goal, adjustment, final goal, and
+  opt-in choice using profile and location prerequisites.
+- Added a manually triggered, non-publishing signed release workflow.
 
 ## Audit decisions
 
 - Weather remains active because the existing Open-Meteo path is bounded,
   explainable, cached, permission-aware, and tested not to block manual logging.
-- The existing single reusable-container size is retained. Full multi-preset
-  CRUD and legacy migration are not implemented and remain a release gap.
-- Theme architecture already supports application theme behavior, but the full
-  system/light/dark persistence acceptance matrix was not completed here.
-- Coaching is intentionally exposed as a non-interactive future-update notice;
-  dynamic coaching is therefore not release-ready.
+- The existing single reusable-container amount is the complete V1 scope.
+  Multiple presets remain deferred and are not exposed.
+- System, Day, and Night theme selection is implemented, persisted, and covered
+  by repository and widget tests.
+- Coaching, coaching navigation, preview cards, and the misleading hydration
+  rhythm are removed from the V1 runtime. Factual hydration status remains.
 
 ## Validation evidence
 
@@ -77,8 +95,8 @@ total daily hydration.
 | `flutter pub get` | Pass (34 constrained updates reported) |
 | `dart format --output=none --set-exit-if-changed .` | Baseline pass, 96 files, 0 changed |
 | `flutter analyze` | Pass, no issues |
-| `flutter test` (baseline) | Pass, 212 tests |
-| Focused persistence and V1 scope tests | Pass, 25 tests |
+| `flutter test` | Pass, 221 tests |
+| Focused synchronization/theme/weather tests | Pass, 55 tests |
 | `flutter build web --release` | Pass |
 | `flutter build apk --release` | Blocked: Android SDK not installed |
 | `flutter build appbundle --release` | Blocked: Android SDK not installed |
@@ -89,14 +107,14 @@ total daily hydration.
 |---|---|---|---|---|---|
 | Manual and quick logging | Shared repository; automated tests pass | Build blocked | Built | Ship after Android gates | APK not produced here |
 | Bottle Bingo hydration | Canonical log, explicit amount, idempotent; tests pass | Build blocked | Built | Ship after Android gates | Device smoke test pending |
-| Daily totals/history/analytics | Shared logs and local-day totals; tests pass | Build blocked | Built | Ship after Android gates | Midnight live-screen timer not proven |
+| Daily totals/history/analytics | Shared logs, local-day totals, and app-open midnight refresh; tests pass | Build blocked | Built | Ship after Android gates | Device smoke test pending |
 | Streaks/scores | Derived achievement logic tested | Build blocked | Built | Ship with limitation | Full product matrix incomplete |
-| Container | One local persisted size | Build blocked | Built | Ship with limitation | Multi-preset CRUD/migration deferred |
-| Units | Shared formatter exists; partial tests pass | Build blocked | Built | Ship with limitation | Whole-app unit audit incomplete |
+| Container | One persisted set/edit/clear amount shared by Home and Bottle Bingo | Build blocked | Built | Ship after Android gates | Multiple presets intentionally deferred |
+| Units | Canonical ml storage with shared ml/oz formatting and conversion; tests pass | Build blocked | Built | Ship after Android gates | Device smoke test pending |
 | Notifications | Repository/service tests pass | Build blocked | Platform-limited | Ship with limitation | Real-device delivery pending |
 | Weather | Bounded/cached/fallback tests pass | Build blocked | Built | Ship with limitation | Permission/device validation pending |
-| Coaching | Static future-update notice | N/A | N/A | Hidden/deferred | Dynamic policy not shipped |
-| Theme | Existing theme coverage partial | Build blocked | Built | Ship with limitation | Persistence matrix incomplete |
+| Coaching | No V1 route, navigation destination, card, or rhythm surface | N/A | N/A | Hidden/deferred | Dynamic coaching not shipped |
+| Theme | System/Day/Night persistence and widget tests pass | Build blocked | Built | Ship after Android gates | Device contrast smoke pending |
 | Persistence/migration | Existing-data recovery tests pass | Build blocked | Built | Ship after upgrade test | Tester-APK upgrade not executed |
 | Startup/onboarding/legal | Automated tests pass | Build blocked | Built | Ship after Android smoke | Owner legal approval pending |
 | APK/AAB | Not built | Blocked | N/A | Blocked | Android SDK unavailable |
@@ -111,8 +129,7 @@ total daily hydration.
 2. Verify the candidate certificate matches the tester APK certificate.
 3. Build APK and AAB with the Android SDK and production signing environment.
 4. Run clean-install Android smoke tests on a supported small device/emulator.
-5. Complete container-preset, unit-consistency, theme-persistence, dynamic
-   coaching, and live-midnight acceptance work or explicitly hide/defer it.
+5. Run the owner-controlled Android update-install and day-boundary smoke tests.
 6. Obtain product-owner legal and final release approval.
 
 No GitHub release or tag was created or changed by this pass.

@@ -149,6 +149,28 @@ void main() {
     expect(secondRepository.settings.locale, const Locale('fr', 'FR'));
   });
 
+  test('system day and night theme preferences persist across restart',
+      () async {
+    final store = await SharedPreferencesHydrionStore.create();
+    var repository = await UserSettingsRepository.load(store);
+
+    expect(
+      repository.settings.themePreference,
+      HydrionThemePreference.system,
+    );
+    await repository.setThemePreference(HydrionThemePreference.dark);
+    repository = await UserSettingsRepository.load(
+      await SharedPreferencesHydrionStore.create(),
+    );
+    expect(repository.settings.themePreference, HydrionThemePreference.dark);
+
+    await repository.setThemePreference(HydrionThemePreference.light);
+    repository = await UserSettingsRepository.load(
+      await SharedPreferencesHydrionStore.create(),
+    );
+    expect(repository.settings.themePreference, HydrionThemePreference.light);
+  });
+
   test('user hydration preferences persist across repository reloads',
       () async {
     final firstStore = await SharedPreferencesHydrionStore.create();

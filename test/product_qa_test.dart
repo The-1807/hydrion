@@ -22,15 +22,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('product QA: Coach is a static V1 notice', (tester) async {
+  testWidgets('product QA: deferred Coach is absent from V1', (tester) async {
     await pumpApp(tester);
-    await openTab(tester, 3);
-
-    expect(find.byKey(const Key('coach-coming-soon')), findsOneWidget);
-    expect(find.textContaining('future update'), findsOneWidget);
-    expect(find.byKey(const Key('coach-message-input')), findsNothing);
-    expect(find.byKey(const Key('coach-send-button')), findsNothing);
-    expect(find.byType(TextField), findsNothing);
+    expect(find.byKey(const Key('nav-coach')), findsNothing);
+    expect(find.byKey(const Key('coach-coming-soon')), findsNothing);
   });
 
   testWidgets('product QA: Settings expose working V1 controls only',
