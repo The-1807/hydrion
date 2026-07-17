@@ -36,16 +36,6 @@ class HydrionChallengeCatalog {
       dailyTask: 'Include a water-rich food and log drinks as usual.',
     ),
     HydrationChallenge(
-      id: 'front-loader-challenge',
-      name: 'Front-Loader Challenge',
-      description:
-          'Move a comfortable share of your usual goal earlier in the day without forcing fluids.',
-      targetMl: 2200,
-      durationDays: 3,
-      category: 'Timing',
-      dailyTask: 'Aim for steady morning logs, then drink to thirst later.',
-    ),
-    HydrationChallenge(
       id: 'pomodoro-sip',
       name: 'Pomodoro Sip',
       description:

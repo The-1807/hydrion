@@ -98,6 +98,17 @@ void main() {
       description: challenge.description,
       targetMl: challenge.targetMl,
       durationDays: challenge.durationDays,
+      parameters: const {
+        'amountMl': 250,
+        'weatherOrdering': 'disabled',
+        'temperatureSchedule': [
+          'Cool',
+          'Room temperature',
+          'Comfortably warm',
+          'Cool',
+          'Room temperature',
+        ],
+      },
     );
 
     await tester.pumpWidget(HydrionApp(services: services));
@@ -111,7 +122,7 @@ void main() {
     await openTab(tester, const Key('nav-challenges'));
     expect(find.text("Today's total hydration: 250 ml"), findsOneWidget);
     expect(
-      find.text('Hydration counted toward this challenge: 250 ml / 2200 ml'),
+      find.text('Hydration counted toward this challenge: 0 ml / 2200 ml'),
       findsOneWidget,
     );
   });
@@ -265,45 +276,43 @@ void main() {
   testWidgets('local challenge join state is persisted in app services',
       (tester) async {
     final services = HydrionServices.memory();
+    await services.challengeRepository.join(
+      id: 'around-the-world-infusion-week',
+      name: 'Around the World Infusion Week',
+      description: 'No-added-sugar infusion themes',
+      targetMl: 2200,
+      durationDays: 7,
+      parameters: const {'amountMl': 500, 'noAddedSugar': 'confirmed'},
+    );
 
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
 
     await openTab(tester, const Key('nav-challenges'));
 
-    expect(find.text('Challenge dock'), findsOneWidget);
-    final joinButton =
-        find.byKey(const Key('join-around-the-world-infusion-week'));
-    await tester.scrollUntilVisible(
-      joinButton,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(joinButton);
-    await tester.pumpAndSettle();
-
     expect(services.challengeRepository.activeChallenge, isNotNull);
+    expect(
+      services.challengeRepository.activeChallenge?.parameters['amountMl'],
+      500,
+    );
   });
 
   testWidgets('non-Bottle active challenge card stays at the top',
       (tester) async {
     final services = HydrionServices.memory();
+    await services.challengeRepository.join(
+      id: 'temperature-roulette',
+      name: 'Temperature Roulette',
+      description: 'Preference experiment',
+      targetMl: 2200,
+      durationDays: 5,
+      parameters: const {'amountMl': 250, 'weatherOrdering': 'disabled'},
+    );
 
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
 
     await openTab(tester, const Key('nav-challenges'));
-    final joinButton = find.byKey(const Key('join-temperature-roulette'));
-    await tester.scrollUntilVisible(
-      joinButton,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    final dynamic join = tester.widget(joinButton);
-    join.onPressed();
-    await tester.pumpAndSettle();
-
     final activeCard =
         find.byKey(const Key('challenge-card-temperature-roulette'));
     final firstCatalogCard = find.byKey(
@@ -331,24 +340,19 @@ void main() {
       (tester) async {
     final services = HydrionServices.memory();
     await services.settingsRepository.setContainerSizeMl(500);
+    await services.challengeRepository.join(
+      id: 'bottle-bingo',
+      name: 'Bottle Bingo',
+      description: 'Explicit hydration and check-in tiles',
+      targetMl: 2200,
+      durationDays: 7,
+      parameters: const {'cutoffHour': 12},
+    );
 
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
 
     await openTab(tester, const Key('nav-challenges'));
-    expect(find.byKey(const Key('bottle-bingo-board')), findsNothing);
-
-    final joinBottleBingo = find.byKey(const Key('join-bottle-bingo'));
-    await tester.scrollUntilVisible(
-      joinBottleBingo,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.ensureVisible(joinBottleBingo);
-    await tester.pumpAndSettle();
-    await tester.tap(joinBottleBingo);
-    await tester.pumpAndSettle();
-
     expect(services.challengeRepository.activeChallenge?.id, 'bottle-bingo');
     await tester.scrollUntilVisible(
       find.byKey(const Key('bottle-bingo-tile-1')),

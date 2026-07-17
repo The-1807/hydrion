@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/challenge_catalog.dart';
+import '../../domain/challenge_visual_registry.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
@@ -11,6 +12,7 @@ import '../../repositories/settings_repository.dart';
 import '../../services/app_refresh_controller.dart';
 import '../theme/hydrion_design.dart';
 import '../components/intake_ring.dart';
+import 'challenge_experience_screen.dart';
 
 class SocialChallengesScreen extends StatefulWidget {
   final bool embedded;
@@ -614,146 +616,147 @@ class _ChallengeCard extends StatelessWidget {
       hydrationRepository,
       targetMlOverride: targetMl,
     );
+    final visual = ChallengeVisualRegistry.forId(challenge.id);
 
-    return HydrionSurface(
-      key: Key('challenge-card-${challenge.id}'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    void openDetails() {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ChallengeExperienceScreen(challenge: challenge),
+        ),
+      );
+    }
+
+    return Semantics(
+      button: true,
+      label: '${challenge.name}. Open challenge details.',
+      child: InkWell(
+        key: Key('challenge-card-${challenge.id}'),
+        onTap: openDetails,
+        borderRadius: BorderRadius.circular(HydrionRadii.lg),
+        child: HydrionSurface(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                backgroundColor: HydrionColors.glow.withValues(alpha: 0.16),
-                foregroundColor: HydrionColors.deep,
-                child: Icon(_challengeIcon(challenge)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      challenge.name,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 92,
+                    height: 92,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          visual.primary.withValues(alpha: 0.20),
+                          visual.secondary.withValues(alpha: 0.08),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(HydrionRadii.md),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: visual.cardAsset == null
+                        ? Icon(visual.icon, color: visual.primary, size: 40)
+                        : Image.asset(
+                            visual.cardAsset!,
+                            fit: BoxFit.contain,
+                            alignment: visual.imageAlignment,
+                            excludeFromSemantics: true,
                           ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      challenge.category,
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(challenge.description),
-          const SizedBox(height: 8),
-          Text(
-            challenge.dailyTask,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 12),
-          if (joined) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(HydrionRadii.pill),
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(end: progress.dailyHydrationPercent),
-                duration: MediaQuery.disableAnimationsOf(context)
-                    ? Duration.zero
-                    : const Duration(milliseconds: 320),
-                builder: (context, value, _) => LinearProgressIndicator(
-                  key: const Key('challenge-daily-progress'),
-                  value: value,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Today's challenge hydration: "
-              '${HydrationVolumeFormatter.format(progress.todayMl, context.read<UserSettingsRepository>().settings.volumeUnit)} / '
-              '${HydrationVolumeFormatter.format(progress.targetMl, context.read<UserSettingsRepository>().settings.volumeUnit)}',
-            ),
-            const SizedBox(height: 12),
-          ],
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _StatusChip(
-                label: l10n.challengeTargetPerDay(targetMl: targetMl),
-                active: false,
-              ),
-              _StatusChip(
-                label: l10n.challengeDurationDays(
-                  durationDays: challenge.durationDays,
-                ),
-                active: false,
-              ),
-              if (joined)
-                _StatusChip(
-                  label: l10n.joined,
-                  active: true,
-                ),
-              if (joined)
-                OutlinedButton.icon(
-                  key: Key('leave-${challenge.id}'),
-                  onPressed: () async {
-                    await challengeRepository.leave();
-                  },
-                  icon: const Icon(Icons.close),
-                  label: const Text('Leave'),
-                )
-              else
-                Tooltip(
-                  message: hasOtherActive
-                      ? 'Leave the active challenge before joining another.'
-                      : l10n.join,
-                  child: FilledButton.icon(
-                    key: Key('join-${challenge.id}'),
-                    onPressed: hasOtherActive
-                        ? null
-                        : () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            await challengeRepository.join(
-                              id: challenge.id,
-                              name: challenge.name,
-                              description: challenge.description,
-                              targetMl: targetMl,
-                              durationDays: challenge.durationDays,
-                            );
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  l10n.challengeJoinedLocally(
-                                    message: l10n.challengeJoined,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          challenge.name,
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w900,
                                   ),
-                                ),
-                              ),
-                            );
-                          },
-                    icon: const Icon(Icons.play_arrow),
-                    label: Text(
-                      hasOtherActive ? 'Leave current first' : l10n.join,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          challenge.category,
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(challenge.description),
+              const SizedBox(height: 8),
+              Text(
+                challenge.dailyTask,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              if (joined) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(HydrionRadii.pill),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(end: progress.dailyHydrationPercent),
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 320),
+                    builder: (context, value, _) => LinearProgressIndicator(
+                      key: const Key('challenge-daily-progress'),
+                      value: value,
                     ),
                   ),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  "Today's challenge hydration: "
+                  '${HydrationVolumeFormatter.format(progress.todayMl, context.read<UserSettingsRepository>().settings.volumeUnit)} / '
+                  '${HydrationVolumeFormatter.format(progress.targetMl, context.read<UserSettingsRepository>().settings.volumeUnit)}',
+                ),
+                const SizedBox(height: 12),
+              ],
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _StatusChip(
+                    label: l10n.challengeTargetPerDay(targetMl: targetMl),
+                    active: false,
+                  ),
+                  _StatusChip(
+                    label: l10n.challengeDurationDays(
+                      durationDays: challenge.durationDays,
+                    ),
+                    active: false,
+                  ),
+                  if (joined)
+                    _StatusChip(
+                      label: l10n.joined,
+                      active: true,
+                    ),
+                  FilledButton.icon(
+                    key: Key(joined
+                        ? 'continue-${challenge.id}'
+                        : 'join-${challenge.id}'),
+                    onPressed: openDetails,
+                    icon: Icon(
+                        joined ? Icons.dashboard_outlined : Icons.info_outline),
+                    label: Text(joined ? 'Continue' : 'View setup'),
+                  ),
+                ],
+              ),
+              if (hasOtherActive && !joined) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Leave the active challenge before joining another.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ],
           ),
-          if (hasOtherActive && !joined) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Leave the active challenge before joining another.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -837,18 +840,5 @@ int? _hydrationVolumeMlFor(_BingoTileData tile, int? containerSizeMl) {
     _BingoHydrationAction.bottle => containerSizeMl,
     _BingoHydrationAction.sip => 150,
     null => null,
-  };
-}
-
-IconData _challengeIcon(HydrationChallenge challenge) {
-  return switch (challenge.id) {
-    'around-the-world-infusion-week' => Icons.public,
-    'temperature-roulette' => Icons.device_thermostat,
-    'eat-your-water-day' => Icons.restaurant,
-    'front-loader-challenge' => Icons.wb_twilight_outlined,
-    'pomodoro-sip' => Icons.timer_outlined,
-    'plant-twin-challenge' => Icons.local_florist_outlined,
-    'bottle-bingo' => Icons.grid_view_rounded,
-    _ => Icons.emoji_events_outlined,
   };
 }

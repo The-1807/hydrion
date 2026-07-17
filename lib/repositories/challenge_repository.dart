@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../domain/challenge_catalog.dart';
+import '../domain/challenge_experience.dart';
 import '../domain/hydration_contracts.dart';
 import '../storage/local_store.dart';
 import 'hydration_repository.dart';
@@ -16,6 +17,8 @@ class JoinedChallenge {
   final int durationDays;
   final DateTime joinedAt;
   final Set<int> bottleBingoCompletedTiles;
+  final Map<String, Object?> parameters;
+  final Set<String> completedActionIds;
 
   const JoinedChallenge({
     required this.id,
@@ -25,7 +28,19 @@ class JoinedChallenge {
     required this.durationDays,
     required this.joinedAt,
     this.bottleBingoCompletedTiles = const <int>{},
+    this.parameters = const <String, Object?>{},
+    this.completedActionIds = const <String>{},
   });
+
+  bool get needsSetup {
+    final definition = HydrionChallengeExperiences.findById(id);
+    if (definition == null) return true;
+    final required = definition.requiredParameters;
+    return required.any((key) {
+      final value = parameters[key];
+      return value == null || value.toString().trim().isEmpty;
+    });
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -37,11 +52,15 @@ class JoinedChallenge {
       'durationDays': durationDays,
       'joinedAt': joinedAt.toIso8601String(),
       'bottleBingoCompletedTiles': bottleBingoCompletedTiles.toList()..sort(),
+      'parameters': parameters,
+      'completedActionIds': completedActionIds.toList()..sort(),
     };
   }
 
   JoinedChallenge copyWith({
     Set<int>? bottleBingoCompletedTiles,
+    Map<String, Object?>? parameters,
+    Set<String>? completedActionIds,
   }) {
     return JoinedChallenge(
       id: id,
@@ -52,6 +71,8 @@ class JoinedChallenge {
       joinedAt: joinedAt,
       bottleBingoCompletedTiles:
           bottleBingoCompletedTiles ?? this.bottleBingoCompletedTiles,
+      parameters: parameters ?? this.parameters,
+      completedActionIds: completedActionIds ?? this.completedActionIds,
     );
   }
 
@@ -68,6 +89,15 @@ class JoinedChallenge {
     final joinedAt = DateTime.tryParse((value['joinedAt'] ?? '').toString());
     final bottleBingoCompletedTiles =
         _safeBottleBingoCompletedTiles(value['bottleBingoCompletedTiles']);
+    final parameters = value['parameters'] is Map
+        ? Map<String, Object?>.from(value['parameters'] as Map)
+        : const <String, Object?>{};
+    final completedActionIds = value['completedActionIds'] is List
+        ? (value['completedActionIds'] as List)
+            .map((item) => item.toString())
+            .where((item) => item.isNotEmpty)
+            .toSet()
+        : const <String>{};
 
     if (id.isEmpty ||
         name.isEmpty ||
@@ -90,6 +120,8 @@ class JoinedChallenge {
       durationDays: durationDays.round(),
       joinedAt: joinedAt,
       bottleBingoCompletedTiles: bottleBingoCompletedTiles,
+      parameters: Map<String, Object?>.unmodifiable(parameters),
+      completedActionIds: Set<String>.unmodifiable(completedActionIds),
     );
   }
 
@@ -103,7 +135,7 @@ class JoinedChallenge {
         continue;
       }
       final index = item.round();
-      if (index >= 1 && index <= 5) {
+      if (index >= 0 && index < 25 && index != 12) {
         tiles.add(index);
       }
     }
@@ -135,7 +167,7 @@ class ChallengeRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.joined_challenge.v1';
   static const bottleBingoHydrationTileIndexes = <int>{1, 4};
   static const _category = 'active_challenge';
-  static const _currentSchemaVersion = 2;
+  static const _currentSchemaVersion = 3;
 
   final HydrionLocalStore _store;
   final List<StorageRecoveryEvent> _recoveryEvents;
@@ -186,6 +218,7 @@ class ChallengeRepository extends ChangeNotifier {
     required int targetMl,
     required int durationDays,
     DateTime? joinedAt,
+    Map<String, Object?> parameters = const <String, Object?>{},
   }) async {
     _activeChallenge = JoinedChallenge(
       id: id,
@@ -194,6 +227,7 @@ class ChallengeRepository extends ChangeNotifier {
       targetMl: targetMl,
       durationDays: durationDays,
       joinedAt: joinedAt ?? DateTime.now(),
+      parameters: Map<String, Object?>.unmodifiable(parameters),
     );
     await _store.writeString(
         storageKey, jsonEncode(_activeChallenge!.toJson()));
@@ -204,6 +238,71 @@ class ChallengeRepository extends ChangeNotifier {
     _activeChallenge = null;
     await _store.remove(storageKey);
     notifyListeners();
+  }
+
+  Future<void> updateParameters(Map<String, Object?> parameters) async {
+    final challenge = _activeChallenge;
+    if (challenge == null) return;
+    await _updateActiveChallenge(
+      challenge.copyWith(
+        parameters: Map<String, Object?>.unmodifiable(parameters),
+      ),
+    );
+  }
+
+  Future<bool> completeCheckIn(String actionId) async {
+    final challenge = _activeChallenge;
+    if (challenge == null || actionId.trim().isEmpty) return false;
+    if (challenge.completedActionIds.contains(actionId)) return false;
+    await _updateActiveChallenge(
+      challenge.copyWith(
+        completedActionIds: Set<String>.unmodifiable({
+          ...challenge.completedActionIds,
+          actionId,
+        }),
+      ),
+    );
+    return true;
+  }
+
+  Future<HydrationLog?> completeHydrationAction({
+    required HydrationRepository hydrationRepository,
+    required int volumeMl,
+    required String actionKey,
+    DateTime? timestamp,
+  }) async {
+    final challenge = _activeChallenge;
+    if (challenge == null || challenge.needsSetup || volumeMl <= 0) return null;
+    final time = timestamp ?? DateTime.now();
+    final day = '${time.year}-${time.month}-${time.day}';
+    final instance = challenge.joinedAt.microsecondsSinceEpoch;
+    final actionId = '${challenge.id}:$instance:$day:$actionKey';
+    if (!_inFlightHydrationActions.add(actionId)) return null;
+    try {
+      final log = await hydrationRepository.addLog(
+        volumeMl: volumeMl,
+        timestamp: time,
+        source: 'challenge:${challenge.id}:$actionKey',
+        actionId: actionId,
+      );
+      if (log == null) return null;
+      try {
+        await _updateActiveChallenge(
+          challenge.copyWith(
+            completedActionIds: Set<String>.unmodifiable({
+              ...challenge.completedActionIds,
+              actionId,
+            }),
+          ),
+        );
+      } catch (_) {
+        await hydrationRepository.deleteLog(log.id);
+        rethrow;
+      }
+      return log;
+    } finally {
+      _inFlightHydrationActions.remove(actionId);
+    }
   }
 
   Future<bool> toggleBottleBingoTile(int index) async {
@@ -277,14 +376,17 @@ class ChallengeRepository extends ChangeNotifier {
     if (_activeChallenge?.id != 'bottle-bingo') {
       return false;
     }
-    final retainedHydrationTiles = _activeChallenge!.bottleBingoCompletedTiles
-        .where(bottleBingoHydrationTileIndexes.contains)
-        .toSet();
+    final usesLiveBoard =
+        (_activeChallenge!.parameters['bingoBoardVersion'] as num?) == 2;
+    final retainedLegacyHydrationTiles = usesLiveBoard
+        ? const <int>{}
+        : _activeChallenge!.bottleBingoCompletedTiles
+            .where(bottleBingoHydrationTileIndexes.contains)
+            .toSet();
     await _updateActiveChallenge(
       _activeChallenge!.copyWith(
-        bottleBingoCompletedTiles: Set<int>.unmodifiable(
-          retainedHydrationTiles,
-        ),
+        bottleBingoCompletedTiles:
+            Set<int>.unmodifiable(retainedLegacyHydrationTiles),
       ),
     );
     return true;
@@ -314,7 +416,10 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   bool _canPersistBottleBingoTile(int index) {
-    return _activeChallenge?.id == 'bottle-bingo' && index >= 1 && index <= 5;
+    return _activeChallenge?.id == 'bottle-bingo' &&
+        index >= 0 &&
+        index < 25 &&
+        index != 12;
   }
 
   Future<void> _updateActiveChallenge(JoinedChallenge challenge) async {
@@ -346,12 +451,14 @@ class ChallengeRepository extends ChangeNotifier {
     final today = DateTime.now();
     final catalogChallenge = HydrionChallengeCatalog.byId(challenge.id);
     final objectiveType = catalogChallenge.objectiveType;
-    final todayMl = _objectiveTodayValue(
+    final mainGoalMl = targetMlOverride ?? challenge.targetMl;
+    final targetMl = mainGoalMl;
+    final todayMl = _qualifiedValueForChallenge(
+      challenge,
       hydrationRepository,
       today,
       objectiveType,
     );
-    final targetMl = targetMlOverride ?? challenge.targetMl;
     var completedDays = 0;
 
     for (var offset = 0; offset < challenge.durationDays; offset += 1) {
@@ -364,6 +471,7 @@ class ChallengeRepository extends ChangeNotifier {
         break;
       }
       if (_objectiveCompleteForDay(
+        challenge,
         hydrationRepository,
         day,
         objectiveType,
@@ -382,40 +490,109 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   bool _objectiveCompleteForDay(
+    JoinedChallenge challenge,
     HydrationRepository hydrationRepository,
     DateTime day,
     ChallengeObjectiveType objectiveType,
     int targetMl,
   ) {
+    if (_usesChallengeHydrationEvidence(challenge.id)) {
+      final requiredActions = challenge.id == 'pomodoro-sip'
+          ? ((challenge.parameters['sessionsPerDay'] as num?) ?? 1).round()
+          : 1;
+      return _challengeHydrationLogsForDay(
+            challenge,
+            hydrationRepository,
+            day,
+          ).length >=
+          requiredActions;
+    }
+    if (objectiveType == ChallengeObjectiveType.manualCheckIn) {
+      final dayToken = _localDayToken(day);
+      return challenge.completedActionIds.any(
+        (action) =>
+            action.contains(':$dayToken:') || action.startsWith('$dayToken:'),
+      );
+    }
     return switch (objectiveType) {
-      ChallengeObjectiveType.dailyGoalFromLogs =>
-        hydrationRepository.totalForDay(day) >= targetMl,
+      ChallengeObjectiveType.dailyGoalFromLogs => _qualifiedValueForChallenge(
+            challenge,
+            hydrationRepository,
+            day,
+            objectiveType,
+          ) >=
+          targetMl,
       ChallengeObjectiveType.loggedWaterBeforeLunch =>
-        _waterBeforeLunchMl(hydrationRepository, day) > 0,
+        _qualifiedValueForChallenge(
+              challenge,
+              hydrationRepository,
+              day,
+              objectiveType,
+            ) >
+            0,
       ChallengeObjectiveType.manualCheckIn => false,
     };
   }
 
-  int _objectiveTodayValue(
+  int _qualifiedValueForChallenge(
+    JoinedChallenge challenge,
     HydrationRepository hydrationRepository,
     DateTime day,
     ChallengeObjectiveType objectiveType,
   ) {
+    if (_usesChallengeHydrationEvidence(challenge.id)) {
+      return _challengeHydrationLogsForDay(
+        challenge,
+        hydrationRepository,
+        day,
+      ).fold(0, (total, log) => total + log.volumeMl);
+    }
     return switch (objectiveType) {
-      ChallengeObjectiveType.loggedWaterBeforeLunch =>
-        _waterBeforeLunchMl(hydrationRepository, day),
+      ChallengeObjectiveType.loggedWaterBeforeLunch => _waterBeforeCutoffMl(
+          hydrationRepository,
+          day,
+          ((challenge.parameters['cutoffHour'] as num?) ?? 12).round(),
+        ),
       ChallengeObjectiveType.dailyGoalFromLogs ||
       ChallengeObjectiveType.manualCheckIn =>
         hydrationRepository.totalForDay(day),
     };
   }
 
-  int _waterBeforeLunchMl(
+  bool _usesChallengeHydrationEvidence(String challengeId) => const {
+        'around-the-world-infusion-week',
+        'temperature-roulette',
+        'pomodoro-sip',
+      }.contains(challengeId);
+
+  List<HydrationLog> _challengeHydrationLogsForDay(
+    JoinedChallenge challenge,
     HydrationRepository hydrationRepository,
     DateTime day,
   ) {
+    final sourcePrefix = 'challenge:${challenge.id}:';
+    return hydrationRepository.logs
+        .where((log) =>
+            log.source.startsWith(sourcePrefix) &&
+            !log.timestamp.isBefore(challenge.joinedAt) &&
+            log.timestamp.year == day.year &&
+            log.timestamp.month == day.month &&
+            log.timestamp.day == day.day)
+        .toList(growable: false);
+  }
+
+  String _localDayToken(DateTime day) =>
+      '${day.year.toString().padLeft(4, '0')}-'
+      '${day.month.toString().padLeft(2, '0')}-'
+      '${day.day.toString().padLeft(2, '0')}';
+
+  int _waterBeforeCutoffMl(
+    HydrationRepository hydrationRepository,
+    DateTime day,
+    int cutoffHour,
+  ) {
     final start = DateTime(day.year, day.month, day.day);
-    final lunch = DateTime(day.year, day.month, day.day, 12);
+    final lunch = DateTime(day.year, day.month, day.day, cutoffHour);
     return hydrationRepository.totalBetween(start, lunch);
   }
 
@@ -463,6 +640,9 @@ class ChallengeRepository extends ChangeNotifier {
             ),
           ],
         );
+      }
+      if (challenge.id == 'front-loader-challenge') {
+        return const _ChallengeDecodeResult(shouldClearStorage: true);
       }
       return _ChallengeDecodeResult(challenge: challenge);
     } on FormatException {
