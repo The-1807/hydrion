@@ -70,7 +70,17 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(join);
     await tester.pumpAndSettle();
-    expect(services.challengeRepository.activeChallenge?.id, 'bottle-bingo');
+    expect(find.text('What this challenge is'), findsOneWidget);
+    final setup = find.text('Required setup');
+    await tester.scrollUntilVisible(
+      setup,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(setup, findsOneWidget);
+    expect(find.byKey(const Key('challenge-parameter-difficulty')),
+        findsOneWidget);
+    expect(services.challengeRepository.activeChallenge, isNull);
   });
 
   testWidgets('product QA: Legal and support information remains reachable',

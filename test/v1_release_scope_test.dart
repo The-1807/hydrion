@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/avatar_manifest.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
+import 'package:hydrion/domain/challenge_experience.dart';
 import 'package:hydrion/domain/companion_state.dart';
 import 'package:hydrion/domain/legal_document_registry.dart';
 import 'package:hydrion/domain/release_metadata.dart';
@@ -294,14 +295,13 @@ void main() {
   });
 
   test('challenge catalogue contains safe local v1 challenges', () {
-    expect(HydrionChallengeCatalog.challenges, hasLength(7));
+    expect(HydrionChallengeCatalog.challenges, hasLength(6));
     expect(
       HydrionChallengeCatalog.challenges.map((challenge) => challenge.name),
       containsAll([
         'Around the World Infusion Week',
         'Temperature Roulette',
         'Eat Your Water Day',
-        'Front-Loader Challenge',
         'Pomodoro Sip',
         'Plant Twin Challenge',
         'Bottle Bingo',
@@ -321,6 +321,35 @@ void main() {
     expect(
         bottleBingo.description.toLowerCase(), isNot(contains('peed clear')));
     expect(bottleBingo.description.toLowerCase(), isNot(contains('wager')));
+  });
+
+  test('every catalogue challenge has complete actionable experience metadata',
+      () {
+    for (final challenge in HydrionChallengeCatalog.challenges) {
+      final definition = HydrionChallengeExperiences.byId(challenge.id);
+      expect(definition.purpose, isNotEmpty, reason: challenge.id);
+      expect(definition.actions, isNotEmpty, reason: challenge.id);
+      expect(definition.whatCounts, isNotEmpty, reason: challenge.id);
+      expect(definition.whatDoesNotCount, isNotEmpty, reason: challenge.id);
+      expect(definition.requiredParameters, isNotEmpty, reason: challenge.id);
+    }
+  });
+
+  test('legacy active challenge is preserved and marked as needing setup',
+      () async {
+    final store = MemoryHydrionStore();
+    await store.writeString(
+      ChallengeRepository.storageKey,
+      '{"schemaVersion":2,"id":"temperature-roulette","name":"Temperature Roulette","description":"Legacy","targetMl":2200,"durationDays":5,"joinedAt":"2026-07-16T08:00:00.000"}',
+    );
+
+    final repository = await ChallengeRepository.load(store);
+    expect(repository.activeChallenge?.id, 'temperature-roulette');
+    expect(repository.activeChallenge?.needsSetup, isTrue);
+    expect(
+      HydrionChallengeExperiences.byId('temperature-roulette').schedule,
+      isNotEmpty,
+    );
   });
 
   test('Bottle Bingo progress comes from water logged before lunch', () async {
@@ -375,10 +404,10 @@ void main() {
     expect(await first.toggleBottleBingoTile(2), isTrue);
     expect(await first.toggleBottleBingoTile(5), isTrue);
     expect(await first.toggleBottleBingoTile(1), isFalse);
-    expect(await first.toggleBottleBingoTile(0), isFalse);
+    expect(await first.toggleBottleBingoTile(0), isTrue);
 
     final second = await ChallengeRepository.load(store);
-    expect(second.activeChallenge?.bottleBingoCompletedTiles, {2, 5});
+    expect(second.activeChallenge?.bottleBingoCompletedTiles, {0, 2, 5});
 
     expect(await second.resetBottleBingoTiles(), isTrue);
     final third = await ChallengeRepository.load(store);

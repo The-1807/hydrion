@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrion/domain/challenge_catalog.dart';
+import 'package:hydrion/domain/challenge_visual_registry.dart';
 
 void main() {
   test('Android identity and signing workflow are install-ready', () {
@@ -59,7 +61,8 @@ void main() {
     final archivedHumanAssets = Directory(
       'assets_source_original/removed_runtime_assets/assets/pfp_mascot/hpfp',
     ).listSync().whereType<File>().toList();
-    final uiAssets = Directory('assets/UI_BETA').listSync().whereType<File>();
+    final uiAssets =
+        Directory('assets/UI_BETA').listSync().whereType<File>().toList();
     final hydAdRuntimeDirectory = Directory('assets/UI_BETA/hyd-ad');
 
     expect(pubspec, contains('assets/UI_BETA/'));
@@ -70,16 +73,38 @@ void main() {
     expect(hydAdRuntimeDirectory.existsSync(), isFalse);
     expect(humanAssets, isEmpty);
     expect(archivedHumanAssets, hasLength(19));
-    expect(uiAssets, hasLength(18));
+    expect(uiAssets, hasLength(33));
     expect(File('assets/UI_BETA/sunny.png').existsSync(), isFalse);
     expect(File('assets/UI_BETA/hot-summer.pnh').existsSync(), isFalse);
+    expect(File('assets/UI_BETA/frontloader.png').existsSync(), isFalse);
+    expect(
+      uiAssets.map((file) => file.path.toLowerCase()),
+      isNot(contains('frontloader')),
+    );
+    expect(
+      uiAssets.map((file) => file.path.toLowerCase()),
+      isNot(contains('hydration-bingo')),
+    );
     for (final file in [...archivedHumanAssets, ...uiAssets]) {
       expect(file.path, isNot(contains('ChatGPT Image')));
       expect(file.path, isNot(contains(' ')));
     }
     for (final file in uiAssets) {
-      expect(file.path, endsWith('.png'));
+      expect(file.path, matches(RegExp(r'\.(png|jpg)$')));
       expect(file.path, isNot(contains('hydrion-lifestyle-')));
+    }
+    final mapped = <String>[];
+    for (final challenge in HydrionChallengeCatalog.challenges) {
+      final visual = ChallengeVisualRegistry.forId(challenge.id);
+      if (visual.cardAsset != null) mapped.add(visual.cardAsset!);
+      if (visual.neutralAsset != null) mapped.add(visual.neutralAsset!);
+      if (visual.maleAsset != null) mapped.add(visual.maleAsset!);
+      if (visual.femaleAsset != null) mapped.add(visual.femaleAsset!);
+    }
+    expect(mapped, isNotEmpty);
+    expect(mapped.toSet(), hasLength(mapped.length));
+    for (final path in mapped) {
+      expect(File(path).existsSync(), isTrue, reason: path);
     }
   });
 
