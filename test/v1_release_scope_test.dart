@@ -169,6 +169,38 @@ void main() {
     expect(repository.settings.containerSizeMl, 710);
   });
 
+  test('challenge daily hydration progress is incremental and clamped', () {
+    const zero = ChallengeProgress(
+      completedDays: 0,
+      durationDays: 7,
+      todayMl: 0,
+      targetMl: 2200,
+    );
+    const partial = ChallengeProgress(
+      completedDays: 0,
+      durationDays: 7,
+      todayMl: 250,
+      targetMl: 2200,
+    );
+    const later = ChallengeProgress(
+      completedDays: 0,
+      durationDays: 7,
+      todayMl: 1000,
+      targetMl: 2200,
+    );
+    const over = ChallengeProgress(
+      completedDays: 1,
+      durationDays: 7,
+      todayMl: 2500,
+      targetMl: 2200,
+    );
+
+    expect(zero.dailyHydrationPercent, 0);
+    expect(partial.dailyHydrationPercent, closeTo(250 / 2200, 0.0001));
+    expect(later.dailyHydrationPercent, closeTo(1000 / 2200, 0.0001));
+    expect(over.dailyHydrationPercent, 1);
+  });
+
   test('companion state reacts to weather and completed goals', () {
     const director = HydrionCompanionDirector();
     const weatherSettings = UserSettings(

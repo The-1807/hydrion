@@ -28,6 +28,8 @@ import 'services/voice_client.dart';
 import 'services/voice_llm_bridge.dart';
 import 'services/wearable_service.dart';
 import 'services/weather_goal_service.dart';
+import 'services/app_refresh_controller.dart';
+import 'services/dynamic_theme_clock.dart';
 import 'ui/screens/analytics_screen.dart';
 import 'ui/screens/hydrion_shell.dart';
 import 'ui/screens/legal_about_screen.dart';
@@ -135,9 +137,8 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
     final startupThemeMode = switch (
         _loadedServices?.settingsRepository.settings.themePreference ??
             HydrionThemePreference.system) {
-      HydrionThemePreference.light => ThemeMode.light,
-      HydrionThemePreference.dark => ThemeMode.dark,
-      HydrionThemePreference.system => ThemeMode.system,
+      final preference =>
+        DynamicThemeClock.themeModeFor(preference, DateTime.now()),
     };
     return MaterialApp(
       title: 'Hydrion',
@@ -230,6 +231,14 @@ class HydrionApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: services.settingsRepository),
         ChangeNotifierProvider.value(value: services.reminderRepository),
         ChangeNotifierProvider.value(value: services.challengeRepository),
+        Provider(
+          create: (_) => AppRefreshController(
+            hydrationRepository: services.hydrationRepository,
+            challengeRepository: services.challengeRepository,
+            settingsRepository: services.settingsRepository,
+          ),
+        ),
+        ChangeNotifierProvider(create: (_) => DynamicThemeClock()),
         Provider.value(value: services.coreBridge),
         Provider.value(value: services.permissions),
         ChangeNotifierProvider.value(value: services.i18n),
@@ -268,14 +277,11 @@ class HydrionApp extends StatelessWidget {
         Provider.value(value: services.wearables),
         Provider.value(value: services.ecoTracker),
       ],
-      child: Consumer2<I18nResolver, UserSettingsRepository>(
-        builder: (context, i18n, settingsRepository, _) {
-          final themeMode =
-              switch (settingsRepository.settings.themePreference) {
-            HydrionThemePreference.light => ThemeMode.light,
-            HydrionThemePreference.dark => ThemeMode.dark,
-            HydrionThemePreference.system => ThemeMode.system,
-          };
+      child: Consumer3<I18nResolver, UserSettingsRepository, DynamicThemeClock>(
+        builder: (context, i18n, settingsRepository, themeClock, _) {
+          final themeMode = themeClock.resolve(
+            settingsRepository.settings.themePreference,
+          );
           return MaterialApp(
             title: 'Hydrion',
             theme: buildHydrionTheme(),

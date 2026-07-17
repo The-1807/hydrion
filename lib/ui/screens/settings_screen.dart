@@ -93,6 +93,10 @@ class _ThemeCard extends StatelessWidget {
               child: Text('Use device setting'),
             ),
             DropdownMenuItem(
+              value: HydrionThemePreference.automatic,
+              child: Text('Automatic day/night'),
+            ),
+            DropdownMenuItem(
               value: HydrionThemePreference.light,
               child: Text('Day'),
             ),

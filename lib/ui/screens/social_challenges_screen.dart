@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
+import '../../services/app_refresh_controller.dart';
 import '../theme/hydrion_design.dart';
 import '../components/intake_ring.dart';
 
@@ -45,6 +46,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
     final mediaPadding = MediaQuery.paddingOf(context);
     final bottomPadding = widget.embedded ? 96.0 + mediaPadding.bottom : 28.0;
     final listView = ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPadding),
       children: [
         _ChallengeHero(
@@ -108,7 +110,11 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
               title: Text(l10n.challengesTitle),
               centerTitle: true,
             ),
-      body: widget.embedded ? listView : listView,
+      body: RefreshIndicator(
+        key: const Key('challenges-refresh-indicator'),
+        onRefresh: () => refreshHydrionData(context),
+        child: listView,
+      ),
     );
   }
 
@@ -214,12 +220,19 @@ class _ChallengeHero extends StatelessWidget {
             if (hasActive) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(HydrionRadii.pill),
-                child: LinearProgressIndicator(
-                  value: progress.percent,
-                  minHeight: 12,
-                  backgroundColor: Colors.white.withValues(alpha: 0.18),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    HydrionColors.sunrise,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(end: progress.dailyHydrationPercent),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 320),
+                  builder: (context, value, _) => LinearProgressIndicator(
+                    key: const Key('active-challenge-daily-progress'),
+                    value: value,
+                    minHeight: 12,
+                    backgroundColor: Colors.white.withValues(alpha: 0.18),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      HydrionColors.sunrise,
+                    ),
                   ),
                 ),
               ),
@@ -649,16 +662,22 @@ class _ChallengeCard extends StatelessWidget {
           if (joined) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(HydrionRadii.pill),
-              child: LinearProgressIndicator(value: progress.percent),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(end: progress.dailyHydrationPercent),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 320),
+                builder: (context, value, _) => LinearProgressIndicator(
+                  key: const Key('challenge-daily-progress'),
+                  value: value,
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              l10n.challengeProgress(
-                completedDays: progress.completedDays,
-                durationDays: progress.durationDays,
-                todayMl: progress.todayMl,
-                targetMl: progress.targetMl,
-              ),
+              "Today's challenge hydration: "
+              '${HydrationVolumeFormatter.format(progress.todayMl, context.read<UserSettingsRepository>().settings.volumeUnit)} / '
+              '${HydrationVolumeFormatter.format(progress.targetMl, context.read<UserSettingsRepository>().settings.volumeUnit)}',
             ),
             const SizedBox(height: 12),
           ],

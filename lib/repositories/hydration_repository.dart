@@ -89,6 +89,16 @@ class HydrationRepository extends ChangeNotifier {
 
   List<StorageRecoveryEvent> get recoveryEvents => _recoveryEvents;
 
+  Future<void> refreshFromStore() async {
+    final raw = await _store.readString(storageKey);
+    final refreshed = _decodeLogs(raw).logs;
+    _logs
+      ..clear()
+      ..addAll(refreshed)
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    notifyListeners();
+  }
+
   Future<HydrationLog?> addLog({
     required int volumeMl,
     required DateTime timestamp,

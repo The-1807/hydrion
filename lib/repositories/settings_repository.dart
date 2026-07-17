@@ -26,6 +26,7 @@ enum HydrionVolumeUnit {
 
 enum HydrionThemePreference {
   system,
+  automatic,
   light,
   dark,
 }
@@ -673,6 +674,12 @@ class UserSettingsRepository extends ChangeNotifier {
   UserSettings get settings => _settings;
 
   List<StorageRecoveryEvent> get recoveryEvents => _recoveryEvents;
+
+  Future<void> refreshFromStore() async {
+    final raw = await _store.readString(storageKey);
+    _settings = _decodeSettings(raw).settings;
+    notifyListeners();
+  }
 
   Future<void> setLocale(Locale locale) async {
     _settings = _settings.copyWith(locale: locale);

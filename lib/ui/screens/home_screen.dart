@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
+import '../../services/app_refresh_controller.dart';
 import '../components/intake_ring.dart';
 import '../components/voice_input_widget.dart';
 import '../theme/hydrion_design.dart';
@@ -154,43 +155,48 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-        children: [
-          _HeroHydrationScene(
-            avatar: profileAvatar,
-            statusText: hydrationStatus,
-            consumedMl: todayMl,
-            targetMl: targetMl,
-            remainingMl: remainingMl,
-            progress: progress,
-            settings: settings,
-          ),
-          const SizedBox(height: 16),
-          _QuickLogPanel(
-            title: l10n.logHydration,
-            logLabel: settings.volumeUnit == HydrionVolumeUnit.milliliters
-                ? l10n.logVolume(volumeMl: _selectedVolumeMl)
-                : '${l10n.logHydration} ${HydrationVolumeFormatter.format(_selectedVolumeMl, settings.volumeUnit)}',
-            selectedVolumeMl: _selectedVolumeMl,
-            defaultContainerSizeMl: settings.usableContainerSizeMl,
-            volumeUnit: settings.volumeUnit,
-            onVolumeChanged: (value) =>
-                setState(() => _selectedVolumeMl = value),
-            onLog: () => _logWater(_selectedVolumeMl),
-            onHistory: () => Navigator.of(context).pushNamed('/log'),
-          ),
-          const SizedBox(height: 16),
-          _TodayMomentumGrid(
-            entryCount: todayLogs.length,
-            challengeRepository: challengeRepository,
-            targetMl: targetMl,
-          ),
-          if (widget.showRouteShortcuts) ...[
+      body: RefreshIndicator(
+        key: const Key('home-refresh-indicator'),
+        onRefresh: () => refreshHydrionData(context),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+          children: [
+            _HeroHydrationScene(
+              avatar: profileAvatar,
+              statusText: hydrationStatus,
+              consumedMl: todayMl,
+              targetMl: targetMl,
+              remainingMl: remainingMl,
+              progress: progress,
+              settings: settings,
+            ),
             const SizedBox(height: 16),
-            _LegacyRouteShortcuts(capabilities: capabilities),
+            _QuickLogPanel(
+              title: l10n.logHydration,
+              logLabel: settings.volumeUnit == HydrionVolumeUnit.milliliters
+                  ? l10n.logVolume(volumeMl: _selectedVolumeMl)
+                  : '${l10n.logHydration} ${HydrationVolumeFormatter.format(_selectedVolumeMl, settings.volumeUnit)}',
+              selectedVolumeMl: _selectedVolumeMl,
+              defaultContainerSizeMl: settings.usableContainerSizeMl,
+              volumeUnit: settings.volumeUnit,
+              onVolumeChanged: (value) =>
+                  setState(() => _selectedVolumeMl = value),
+              onLog: () => _logWater(_selectedVolumeMl),
+              onHistory: () => Navigator.of(context).pushNamed('/log'),
+            ),
+            const SizedBox(height: 16),
+            _TodayMomentumGrid(
+              entryCount: todayLogs.length,
+              challengeRepository: challengeRepository,
+              targetMl: targetMl,
+            ),
+            if (widget.showRouteShortcuts) ...[
+              const SizedBox(height: 16),
+              _LegacyRouteShortcuts(capabilities: capabilities),
+            ],
           ],
-        ],
+        ),
       ),
       floatingActionButton: capabilities.voiceInput
           ? VoiceInputWidget(
