@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../repositories/hydration_repository.dart';
+import '../../services/app_refresh_controller.dart';
 
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
@@ -98,7 +99,8 @@ class _LogScreenState extends State<LogScreen> {
         centerTitle: true,
       ),
       body: RefreshIndicator(
-        onRefresh: () async {},
+        key: const Key('history-refresh-indicator'),
+        onRefresh: () => refreshHydrionData(context),
         child: data.isEmpty
             ? ListView(
                 physics: const AlwaysScrollableScrollPhysics(),

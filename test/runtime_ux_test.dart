@@ -70,7 +70,10 @@ void main() {
     await openTab(tester, const Key('nav-progress'));
 
     expect(find.byKey(const Key('weekly-hydration-strip')), findsOneWidget);
-    expect(find.text('500 / 2200 ml today'), findsOneWidget);
+    expect(
+      find.text("Today's hydration: 500 ml / 2200 ml"),
+      findsOneWidget,
+    );
     expect(find.text('Achievements'), findsNothing);
     expect(find.text('Daily Goal'), findsNothing);
     final reusableEstimate = find.text(
@@ -236,6 +239,29 @@ void main() {
     expect(find.textContaining('adapter'), findsNothing);
   });
 
+  testWidgets('top-level hydration data screens support pull to refresh',
+      (tester) async {
+    final services = HydrionServices.memory();
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('home-refresh-indicator')), findsOneWidget);
+    await openTab(tester, const Key('nav-challenges'));
+    expect(
+      find.byKey(const Key('challenges-refresh-indicator')),
+      findsOneWidget,
+    );
+    await openTab(tester, const Key('nav-progress'));
+    expect(find.byKey(const Key('progress-refresh-indicator')), findsOneWidget);
+
+    Navigator.of(
+      tester.element(find.byKey(const Key('hydrion-bottom-nav'))),
+    ).pushNamed('/log');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('history-refresh-indicator')), findsOneWidget);
+    expect(services.hydrationRepository.logs, isEmpty);
+  });
+
   testWidgets('local challenge join state is persisted in app services',
       (tester) async {
     final services = HydrionServices.memory();
@@ -363,7 +389,7 @@ void main() {
     expect(find.text('500 ml'), findsOneWidget);
   });
 
-  testWidgets('Settings applies and persists day night and system themes',
+  testWidgets('Settings applies system automatic day and night themes',
       (tester) async {
     final services = HydrionServices.memory();
     await tester.pumpWidget(HydrionApp(services: services));
@@ -381,6 +407,17 @@ void main() {
     await tester.pumpAndSettle();
     app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.light);
+
+    await services.settingsRepository
+        .setThemePreference(HydrionThemePreference.automatic);
+    await tester.pumpAndSettle();
+    app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(
+      app.themeMode,
+      DateTime.now().hour >= 7 && DateTime.now().hour < 19
+          ? ThemeMode.light
+          : ThemeMode.dark,
+    );
 
     await services.settingsRepository
         .setThemePreference(HydrionThemePreference.system);

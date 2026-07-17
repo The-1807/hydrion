@@ -126,6 +126,9 @@ class ChallengeProgress {
 
   double get percent =>
       durationDays <= 0 ? 0 : (completedDays / durationDays).clamp(0.0, 1.0);
+
+  double get dailyHydrationPercent =>
+      targetMl <= 0 ? 0 : (todayMl / targetMl).clamp(0.0, 1.0).toDouble();
 }
 
 class ChallengeRepository extends ChangeNotifier {
@@ -165,6 +168,12 @@ class ChallengeRepository extends ChangeNotifier {
   JoinedChallenge? get activeChallenge => _activeChallenge;
 
   List<StorageRecoveryEvent> get recoveryEvents => _recoveryEvents;
+
+  Future<void> refreshFromStore() async {
+    final raw = await _store.readString(storageKey);
+    _activeChallenge = _decodeChallenge(raw).challenge;
+    notifyListeners();
+  }
 
   bool isJoined(String challengeId) {
     return _activeChallenge?.id == challengeId;

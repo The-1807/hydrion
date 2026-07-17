@@ -6,6 +6,7 @@ import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/reminder_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
+import 'package:hydrion/services/dynamic_theme_clock.dart';
 import 'package:hydrion/services/achievement_service.dart';
 import 'package:hydrion/services/ble_service.dart';
 import 'package:hydrion/storage/local_store.dart';
@@ -169,6 +170,32 @@ void main() {
       await SharedPreferencesHydrionStore.create(),
     );
     expect(repository.settings.themePreference, HydrionThemePreference.light);
+  });
+
+  test(
+      'automatic theme follows local day and night while system stays device based',
+      () {
+    expect(
+      DynamicThemeClock.themeModeFor(
+        HydrionThemePreference.automatic,
+        DateTime(2026, 7, 16, 10),
+      ),
+      ThemeMode.light,
+    );
+    expect(
+      DynamicThemeClock.themeModeFor(
+        HydrionThemePreference.automatic,
+        DateTime(2026, 7, 16, 22),
+      ),
+      ThemeMode.dark,
+    );
+    expect(
+      DynamicThemeClock.themeModeFor(
+        HydrionThemePreference.system,
+        DateTime(2026, 7, 16, 22),
+      ),
+      ThemeMode.system,
+    );
   });
 
   test('user hydration preferences persist across repository reloads',

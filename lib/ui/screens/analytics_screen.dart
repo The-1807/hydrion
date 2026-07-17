@@ -6,6 +6,8 @@ import '../../domain/ui_asset_manifest.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/eco_tracker.dart';
+import '../../services/app_refresh_controller.dart';
+import '../components/intake_ring.dart';
 import '../components/hydration_score_card.dart';
 import '../theme/hydrion_design.dart';
 
@@ -41,89 +43,94 @@ class AnalyticsScreen extends StatelessWidget {
               title: Text(l10n.analyticsTitle),
               centerTitle: true,
             ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (hydrationRepository.logs.isEmpty) ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.insights,
-                      size: 40,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.noAnalyticsYet,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.analyticsEmptyDescription,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          HydrationScoreCard(
-            hydrationPercent: hydrationPercent,
-            entryCount: todayLogs.length,
-          ),
-          const SizedBox(height: 12),
-          _WeeklyHydrationStrip(
-            totals: weeklyTotals,
-            targetMl: targetMl,
-            sex: settings.sex,
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.water_drop),
-              title: Text(
-                l10n.todayHydrationTitle(
-                  todayMl: todayMl,
-                  targetMl: targetMl,
-                ),
-              ),
-              subtitle: Text(l10n.localEntriesToday(count: todayLogs.length)),
-            ),
-          ),
-          Text(
-            l10n.ecoImpactTitle,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          FutureBuilder<double>(
-            future: ecoTracker.getTotalPlasticSavedKg(),
-            builder: (context, ecoSnapshot) {
-              final value = (ecoSnapshot.data ?? 0.0).toStringAsFixed(2);
-              return Card(
-                child: ListTile(
-                  leading: const Icon(Icons.eco),
-                  title: Text(l10n.plasticEstimateTitle(value: value)),
-                  subtitle: Text(
-                    settings.reusableContainerEnabled
-                        ? l10n.reusableContainerEstimateFromLogs(
-                            lifetimeMl: lifetimeMl,
-                            eventCount: eventCount,
-                          )
-                        : l10n.reusableContainerEstimateDisabled,
+      body: RefreshIndicator(
+        key: const Key('progress-refresh-indicator'),
+        onRefresh: () => refreshHydrionData(context),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (hydrationRepository.logs.isEmpty) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.insights,
+                        size: 40,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.noAnalyticsYet,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.analyticsEmptyDescription,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
-        ],
+              ),
+              const SizedBox(height: 12),
+            ],
+            HydrationScoreCard(
+              hydrationPercent: hydrationPercent,
+              entryCount: todayLogs.length,
+            ),
+            const SizedBox(height: 12),
+            _WeeklyHydrationStrip(
+              totals: weeklyTotals,
+              targetMl: targetMl,
+              sex: settings.sex,
+              volumeUnit: settings.volumeUnit,
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.water_drop),
+                title: Text(
+                  "Today's hydration: "
+                  '${HydrationVolumeFormatter.format(todayMl, settings.volumeUnit)} / '
+                  '${HydrationVolumeFormatter.format(targetMl, settings.volumeUnit)}',
+                ),
+                subtitle: Text(l10n.localEntriesToday(count: todayLogs.length)),
+              ),
+            ),
+            Text(
+              l10n.ecoImpactTitle,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            FutureBuilder<double>(
+              future: ecoTracker.getTotalPlasticSavedKg(),
+              builder: (context, ecoSnapshot) {
+                final value = (ecoSnapshot.data ?? 0.0).toStringAsFixed(2);
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.eco),
+                    title: Text(l10n.plasticEstimateTitle(value: value)),
+                    subtitle: Text(
+                      settings.reusableContainerEnabled
+                          ? l10n.reusableContainerEstimateFromLogs(
+                              lifetimeMl: lifetimeMl,
+                              eventCount: eventCount,
+                            )
+                          : l10n.reusableContainerEstimateDisabled,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -133,11 +140,13 @@ class _WeeklyHydrationStrip extends StatelessWidget {
   final List<int> totals;
   final int targetMl;
   final HydrionSex? sex;
+  final HydrionVolumeUnit volumeUnit;
 
   const _WeeklyHydrationStrip({
     required this.totals,
     required this.targetMl,
     required this.sex,
+    required this.volumeUnit,
   });
 
   @override
@@ -155,10 +164,9 @@ class _WeeklyHydrationStrip extends StatelessWidget {
         : (totals.reduce((a, b) => a + b) / totals.length).round();
     final loggedDays = totals.where((value) => value > 0).length;
     final rhythmSummary = loggedDays == 0
-        ? 'Log a drink to start the rhythm.'
-        : loggedDays < 2
-            ? 'Building rhythm from today\'s logs.'
-            : 'Average: $average ml/day. Target: $targetMl ml.';
+        ? 'No hydration recorded in the last 7 days.'
+        : '${HydrationVolumeFormatter.format(average, volumeUnit)} daily average. '
+            'Target: ${HydrationVolumeFormatter.format(targetMl, volumeUnit)}.';
     return HydrionSurface(
       key: const Key('weekly-hydration-strip'),
       child: Row(
@@ -169,7 +177,7 @@ class _WeeklyHydrationStrip extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '7-day rhythm',
+                  'Last 7 days',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w900,
                       ),
@@ -178,8 +186,8 @@ class _WeeklyHydrationStrip extends StatelessWidget {
                 Text(rhythmSummary),
                 const SizedBox(height: 16),
                 Semantics(
-                  label:
-                      'Seven day hydration chart. Daily totals: ${totals.join(', ')} milliliters.',
+                  label: 'Seven day hydration chart. Daily totals: '
+                      '${totals.map((value) => HydrationVolumeFormatter.format(value, volumeUnit)).join(', ')}.',
                   child: SizedBox(
                     height: 112,
                     child: Row(
@@ -195,6 +203,7 @@ class _WeeklyHydrationStrip extends StatelessWidget {
                                 maxMl: maxValue,
                                 targetMl: targetMl,
                                 isToday: index == totals.length - 1,
+                                volumeUnit: volumeUnit,
                               ),
                             ),
                           ),
@@ -230,20 +239,23 @@ class _DayBar extends StatelessWidget {
   final int maxMl;
   final int targetMl;
   final bool isToday;
+  final HydrionVolumeUnit volumeUnit;
 
   const _DayBar({
     required this.valueMl,
     required this.maxMl,
     required this.targetMl,
     required this.isToday,
+    required this.volumeUnit,
   });
 
   @override
   Widget build(BuildContext context) {
     final percent = maxMl <= 0 ? 0.0 : (valueMl / maxMl).clamp(0.0, 1.0);
     final goalMet = valueMl >= targetMl;
-    final label = isToday ? 'Today' : _compactLiters(valueMl);
-    final subLabel = isToday ? _compactLiters(valueMl) : '';
+    final formatted = HydrationVolumeFormatter.format(valueMl, volumeUnit);
+    final label = isToday ? 'Today' : formatted;
+    final subLabel = isToday ? formatted : '';
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -293,12 +305,4 @@ class _DayBar extends StatelessWidget {
       ],
     );
   }
-}
-
-String _compactLiters(int valueMl) {
-  if (valueMl <= 0) {
-    return '0';
-  }
-  final liters = valueMl / 1000;
-  return '${liters.toStringAsFixed(1)}L';
 }
