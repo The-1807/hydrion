@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../repositories/settings_repository.dart';
+import '../../repositories/challenge_repository.dart';
 import '../../services/notifications.dart';
 import '../../services/weather_goal_service.dart';
 import '../components/guided_tour_overlay.dart';
@@ -71,6 +72,7 @@ class _HydrionShellState extends State<HydrionShell>
     _scheduleDayRollover();
     final notificationService = context.read<NotificationService>();
     final settings = context.read<UserSettingsRepository>().settings;
+    await context.read<ChallengeRepository>().reconcileLocalDay();
     await notificationService.reconcileSchedules();
     if (!mounted) {
       return;
@@ -92,6 +94,7 @@ class _HydrionShellState extends State<HydrionShell>
       if (!mounted) return;
       setState(() {});
       _scheduleDayRollover();
+      context.read<ChallengeRepository>().reconcileLocalDay();
       _evaluateWeatherAssistance();
     });
   }

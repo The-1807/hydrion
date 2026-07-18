@@ -10,6 +10,7 @@ class GuidedTourState {
   final bool skipped;
   final int currentStep;
   final Set<String> completedContextualTours;
+  final Map<String, int> contextualCurrentSteps;
 
   const GuidedTourState({
     required this.version,
@@ -17,6 +18,7 @@ class GuidedTourState {
     this.skipped = false,
     this.currentStep = 0,
     this.completedContextualTours = const <String>{},
+    this.contextualCurrentSteps = const <String, int>{},
   });
 
   GuidedTourState copyWith({
@@ -25,6 +27,7 @@ class GuidedTourState {
     bool? skipped,
     int? currentStep,
     Set<String>? completedContextualTours,
+    Map<String, int>? contextualCurrentSteps,
   }) {
     return GuidedTourState(
       version: version ?? this.version,
@@ -33,6 +36,8 @@ class GuidedTourState {
       currentStep: currentStep ?? this.currentStep,
       completedContextualTours:
           completedContextualTours ?? this.completedContextualTours,
+      contextualCurrentSteps:
+          contextualCurrentSteps ?? this.contextualCurrentSteps,
     );
   }
 
@@ -42,6 +47,7 @@ class GuidedTourState {
         'skipped': skipped,
         'currentStep': currentStep,
         'completedContextualTours': completedContextualTours.toList()..sort(),
+        'contextualCurrentSteps': contextualCurrentSteps,
       };
 
   static GuidedTourState fromJson(Object? value, String currentVersion) {
@@ -54,6 +60,7 @@ class GuidedTourState {
     }
     final currentStep = value['currentStep'];
     final contextual = value['completedContextualTours'];
+    final rawContextualSteps = value['contextualCurrentSteps'];
     return GuidedTourState(
       version: currentVersion,
       completed: value['completed'] == true,
@@ -67,6 +74,14 @@ class GuidedTourState {
               .where((item) => item.trim().isNotEmpty)
               .toSet()
           : const <String>{},
+      contextualCurrentSteps: rawContextualSteps is Map
+          ? {
+              for (final entry in rawContextualSteps.entries)
+                if (entry.value is num)
+                  entry.key.toString():
+                      (entry.value as num).round().clamp(0, 6).toInt(),
+            }
+          : const <String, int>{},
     );
   }
 }
@@ -74,17 +89,32 @@ class GuidedTourState {
 class GuidedTourRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.guided_tour.v1';
   static const currentVersion = 'release18-core-tour';
+  static const release18ContextualTourIds = <String>{
+    'bottle-bingo:release18-v1',
+    'pomodoro-sip:release18-v1',
+    'temperature-roulette:release18-v1',
+    'around-the-world-infusion-week:release18-v1',
+  };
 
   final HydrionLocalStore _store;
   GuidedTourState _state;
   bool _replayRequested = false;
+  final Set<String> _contextualReplayRequests = <String>{};
 
   GuidedTourRepository._(this._store, this._state);
 
-  GuidedTourRepository.memory({bool completed = true})
-      : this._(
+  GuidedTourRepository.memory({
+    bool completed = true,
+    bool contextualToursCompleted = true,
+  }) : this._(
           MemoryHydrionStore(),
-          GuidedTourState(version: currentVersion, completed: completed),
+          GuidedTourState(
+            version: currentVersion,
+            completed: completed,
+            completedContextualTours: contextualToursCompleted
+                ? release18ContextualTourIds
+                : const <String>{},
+          ),
         );
 
   static Future<GuidedTourRepository> load(HydrionLocalStore store) async {
@@ -139,15 +169,53 @@ class GuidedTourRepository extends ChangeNotifier {
   bool isContextualTourComplete(String id) =>
       _state.completedContextualTours.contains(id);
 
+  bool shouldShowContextualTour(String id) =>
+      id.trim().isNotEmpty &&
+      (_contextualReplayRequests.contains(id) ||
+          !_state.completedContextualTours.contains(id));
+
+  int contextualCurrentStep(String id) =>
+      _state.contextualCurrentSteps[id] ?? 0;
+
+  Future<void> setContextualCurrentStep(String id, int step) async {
+    if (id.trim().isEmpty) return;
+    _state = _state.copyWith(
+      contextualCurrentSteps: {
+        ..._state.contextualCurrentSteps,
+        id: step.clamp(0, 6).toInt(),
+      },
+    );
+    await _persist();
+    notifyListeners();
+  }
+
   Future<void> completeContextualTour(String id) async {
     if (id.trim().isEmpty) return;
+    _contextualReplayRequests.remove(id);
+    final nextSteps = <String, int>{..._state.contextualCurrentSteps}
+      ..remove(id);
     _state = _state.copyWith(
       completedContextualTours: {
         ..._state.completedContextualTours,
         id,
       },
+      contextualCurrentSteps: nextSteps,
     );
     await _persist();
+    notifyListeners();
+  }
+
+  Future<void> skipContextualTour(String id) => completeContextualTour(id);
+
+  void replayContextualTour(String id) {
+    if (id.trim().isEmpty) return;
+    _contextualReplayRequests.add(id);
+    _state = _state.copyWith(
+      contextualCurrentSteps: {
+        ..._state.contextualCurrentSteps,
+        id: 0,
+      },
+    );
     notifyListeners();
   }
 

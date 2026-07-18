@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/guided_tour_repository.dart';
@@ -67,6 +69,38 @@ void main() {
 
       expect(challenges.activeChallenges, hasLength(1));
       expect(challenges.activeChallenge?.id, 'temperature-roulette');
+    });
+
+    test('migration keeps two active attempts and pauses visible overflow',
+        () async {
+      final store = MemoryHydrionStore();
+      JoinedChallenge legacy(String id, int hour) => JoinedChallenge(
+            id: id,
+            name: 'Friendly $id',
+            description: 'A preserved challenge attempt.',
+            targetMl: 2200,
+            durationDays: 5,
+            joinedAt: DateTime(2026, 7, 18, hour),
+          );
+      await store.writeString(
+        ChallengeRepository.storageKey,
+        jsonEncode({
+          'schemaVersion': 4,
+          'activeChallenges': [
+            legacy('temperature-roulette', 7).toJson(),
+            legacy('pomodoro-sip', 8).toJson(),
+            legacy('bottle-bingo', 9).toJson(),
+          ],
+        }),
+      );
+
+      final challenges = await ChallengeRepository.load(store);
+
+      expect(challenges.activeChallenges, hasLength(2));
+      expect(challenges.pausedChallenges, hasLength(1));
+      expect(challenges.pausedChallenges.single.id, 'bottle-bingo');
+      expect(challenges.pausedChallenges.single.lifecycleStatus,
+          ChallengeLifecycleStatus.paused);
     });
   });
 

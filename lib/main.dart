@@ -426,6 +426,7 @@ class HydrionServices {
     HydrionNotificationAdapter? notificationAdapter,
     DailyWeatherProvider? weatherProvider,
     HydrionProfilePhotoPicker? profilePhotoPicker,
+    GuidedTourRepository? guidedTourRepository,
   }) {
     final store = MemoryHydrionStore();
     return _build(
@@ -434,7 +435,8 @@ class HydrionServices {
       settingsRepository: UserSettingsRepository.memory(),
       reminderRepository: ReminderRepository.memory(),
       challengeRepository: ChallengeRepository.memory(),
-      guidedTourRepository: GuidedTourRepository.memory(),
+      guidedTourRepository:
+          guidedTourRepository ?? GuidedTourRepository.memory(),
       aiRuntimeConfig: aiRuntimeConfig,
       locationService: locationService ?? FakeHydrionLocationService(),
       notificationAdapter: notificationAdapter ??
@@ -459,6 +461,7 @@ class HydrionServices {
     DailyWeatherProvider? weatherProvider,
     HydrionProfilePhotoPicker? profilePhotoPicker,
   }) {
+    challengeRepository.bindHydrationRepository(hydrationRepository);
     final coreBridge = CoreBridge(hydrationRepository: hydrationRepository);
     final permissions = Permissions();
     final location =

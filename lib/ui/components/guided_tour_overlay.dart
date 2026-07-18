@@ -37,6 +37,7 @@ class GuidedTourOverlay extends StatelessWidget {
             child,
             if (show)
               _TourStepOverlay(
+                tourLabel: 'Hydrion app tour',
                 step: steps[index],
                 index: index,
                 total: steps.length,
@@ -55,7 +56,62 @@ class GuidedTourOverlay extends StatelessWidget {
   }
 }
 
+class ContextualGuidedTourOverlay extends StatelessWidget {
+  final String tourId;
+  final String semanticsLabel;
+  final List<GuidedTourStep> steps;
+  final Widget child;
+
+  const ContextualGuidedTourOverlay({
+    super.key,
+    required this.tourId,
+    required this.semanticsLabel,
+    required this.steps,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<GuidedTourRepository>(
+      builder: (context, repository, _) {
+        final show =
+            steps.isNotEmpty && repository.shouldShowContextualTour(tourId);
+        final index = repository
+            .contextualCurrentStep(tourId)
+            .clamp(0, steps.length - 1)
+            .toInt();
+        return Stack(
+          children: [
+            child,
+            if (show)
+              _TourStepOverlay(
+                tourLabel: semanticsLabel,
+                step: steps[index],
+                index: index,
+                total: steps.length,
+                onBack: index == 0
+                    ? null
+                    : () => repository.setContextualCurrentStep(
+                          tourId,
+                          index - 1,
+                        ),
+                onNext: index == steps.length - 1
+                    ? () => repository.completeContextualTour(tourId)
+                    : () => repository.setContextualCurrentStep(
+                          tourId,
+                          index + 1,
+                        ),
+                onSkip: () => repository.skipContextualTour(tourId),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _TourStepOverlay extends StatelessWidget {
+  final String tourLabel;
   final GuidedTourStep step;
   final int index;
   final int total;
@@ -64,6 +120,7 @@ class _TourStepOverlay extends StatelessWidget {
   final VoidCallback onSkip;
 
   const _TourStepOverlay({
+    required this.tourLabel,
     required this.step,
     required this.index,
     required this.total,
@@ -90,7 +147,7 @@ class _TourStepOverlay extends StatelessWidget {
     return Semantics(
       scopesRoute: true,
       explicitChildNodes: true,
-      label: 'Hydrion app tour step ${index + 1} of $total',
+      label: '$tourLabel step ${index + 1} of $total',
       child: Material(
         color: Colors.transparent,
         child: Stack(
@@ -152,14 +209,17 @@ class _TourStepOverlay extends StatelessWidget {
                         const SizedBox(height: 8),
                         Text(step.body),
                         const SizedBox(height: 12),
-                        Row(
+                        OverflowBar(
+                          alignment: MainAxisAlignment.end,
+                          overflowAlignment: OverflowBarAlignment.end,
+                          spacing: 4,
+                          overflowSpacing: 4,
                           children: [
                             TextButton(
                               key: const Key('tour-skip'),
                               onPressed: onSkip,
                               child: const Text('Skip'),
                             ),
-                            const Spacer(),
                             TextButton(
                               key: const Key('tour-back'),
                               onPressed: onBack,
