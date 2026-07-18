@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
+import 'package:hydrion/domain/bottle_bingo.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/profile_photo_service.dart';
@@ -346,7 +347,13 @@ void main() {
       description: 'Explicit hydration and check-in tiles',
       targetMl: 2200,
       durationDays: 7,
-      parameters: const {'cutoffHour': 12},
+      parameters: const {
+        'cutoffHour': 12,
+        'difficulty': 'balanced',
+        'reminderPreference': 'enabled',
+        'amountMl': 500,
+        'bingoBoardVersion': 2,
+      },
     );
 
     await tester.pumpWidget(HydrionApp(services: services));
@@ -354,15 +361,36 @@ void main() {
 
     await openTab(tester, const Key('nav-challenges'));
     expect(services.challengeRepository.activeChallenge?.id, 'bottle-bingo');
+    final card = find.byKey(const Key('challenge-card-bottle-bingo'));
     await tester.scrollUntilVisible(
-      find.byKey(const Key('bottle-bingo-tile-1')),
+      card,
       -300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('bottle-bingo-board')), findsOneWidget);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('live-bottle-bingo-board')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('bottle-bingo-tile-1')));
+    final active = services.challengeRepository.activeChallenge!;
+    final board = BottleBingoBoard.forInstance(
+      active.joinedAt.microsecondsSinceEpoch,
+    );
+    final hydrationIndex = board.tiles.indexWhere(
+      (tile) => tile.kind == BingoTileKind.hydrationAction,
+    );
+    final tile = board.tiles[hydrationIndex];
+
+    final hydrationTile = find.byKey(Key('live-bingo-tile-$hydrationIndex'));
+    await tester.scrollUntilVisible(
+      hydrationTile,
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(hydrationTile);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Log 500 ml'));
     await tester.pumpAndSettle();
 
     expect(services.hydrationRepository.logs, hasLength(1));
@@ -372,21 +400,24 @@ void main() {
     );
     expect(
       services.hydrationRepository.logs.single.source,
-      'challenge:bottle-bingo:tile-1',
+      'challenge:bottle-bingo:${tile.id}',
     );
     expect(
       services.hydrationRepository.totalForDay(DateTime.now()),
       services.settingsRepository.settings.containerSizeMl,
     );
     expect(
-      services.challengeRepository.activeChallenge?.bottleBingoCompletedTiles,
-      contains(1),
+      services.challengeRepository.activeChallenge?.completedActionIds.any(
+        (action) => action.endsWith(':${tile.id}'),
+      ),
+      isTrue,
     );
 
-    await tester.tap(find.byKey(const Key('bottle-bingo-tile-1')));
+    Navigator.of(
+      tester.element(find.byKey(const Key('live-bottle-bingo-board'))),
+      rootNavigator: true,
+    ).popUntil((route) => route.isFirst);
     await tester.pumpAndSettle();
-    expect(services.hydrationRepository.logs, hasLength(1));
-
     await openTab(tester, const Key('nav-home'));
     expect(find.text('500 ml / 2200 ml'), findsOneWidget);
     await openLogHistory(tester);

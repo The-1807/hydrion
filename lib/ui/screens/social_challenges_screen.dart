@@ -59,19 +59,6 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
           sex: settings.sex,
         ),
         const SizedBox(height: 16),
-        if (activeChallenge?.id == 'bottle-bingo') ...[
-          _BottleBingoBoard(
-            activeChallenge: activeChallenge,
-            progress: progress,
-            challengeRepository: challengeRepository,
-            hydrationRepository: hydrationRepository,
-            containerSizeMl: settings.usableContainerSizeMl,
-            volumeUnit: settings.volumeUnit,
-            onTileToggled: challengeRepository.toggleBottleBingoTile,
-            onReset: () => _confirmBottleBingoReset(context),
-          ),
-          const SizedBox(height: 16),
-        ],
         const HydrionSurface(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,34 +105,6 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
         child: listView,
       ),
     );
-  }
-
-  Future<void> _confirmBottleBingoReset(BuildContext context) async {
-    final repository = context.read<ChallengeRepository>();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Reset Bottle Bingo?'),
-          content: const Text(
-            'This clears manually checked Bottle Bingo tiles. Water logged before lunch still comes from your hydration history.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Reset'),
-            ),
-          ],
-        );
-      },
-    );
-    if (confirmed == true) {
-      await repository.resetBottleBingoTiles();
-    }
   }
 }
 
@@ -266,6 +225,8 @@ class _ChallengeHero extends StatelessWidget {
   }
 }
 
+// Kept only to decode and present pre-redesign Bingo state during migration.
+// ignore: unused_element
 class _BottleBingoBoard extends StatelessWidget {
   static const _tiles = [
     _BingoTileData(
