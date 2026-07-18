@@ -165,24 +165,28 @@ class ChallengeProgress {
 
 class ChallengeRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.joined_challenge.v1';
+  static const maxActiveChallenges = 2;
   static const bottleBingoHydrationTileIndexes = <int>{1, 4};
   static const _category = 'active_challenge';
-  static const _currentSchemaVersion = 3;
+  static const _currentSchemaVersion = 4;
 
   final HydrionLocalStore _store;
   final List<StorageRecoveryEvent> _recoveryEvents;
-  JoinedChallenge? _activeChallenge;
+  List<JoinedChallenge> _activeChallenges;
   final Set<String> _inFlightHydrationActions = <String>{};
 
   ChallengeRepository._(
     this._store,
-    this._activeChallenge, [
+    List<JoinedChallenge> activeChallenges, [
     List<StorageRecoveryEvent> recoveryEvents = const <StorageRecoveryEvent>[],
-  ]) : _recoveryEvents = List<StorageRecoveryEvent>.unmodifiable(
+  ])  : _activeChallenges = List<JoinedChallenge>.unmodifiable(
+          activeChallenges.take(maxActiveChallenges),
+        ),
+        _recoveryEvents = List<StorageRecoveryEvent>.unmodifiable(
           recoveryEvents,
         );
 
-  ChallengeRepository.memory() : this._(MemoryHydrionStore(), null);
+  ChallengeRepository.memory() : this._(MemoryHydrionStore(), const []);
 
   static Future<ChallengeRepository> load(HydrionLocalStore store) async {
     final raw = await store.readString(storageKey);
@@ -192,26 +196,39 @@ class ChallengeRepository extends ChangeNotifier {
     }
     return ChallengeRepository._(
       store,
-      result.challenge,
+      result.challenges,
       result.recoveryEvents,
     );
   }
 
-  JoinedChallenge? get activeChallenge => _activeChallenge;
+  JoinedChallenge? get activeChallenge =>
+      _activeChallenges.isEmpty ? null : _activeChallenges.first;
+
+  List<JoinedChallenge> get activeChallenges => _activeChallenges;
+
+  bool get hasRoomForAnotherChallenge =>
+      _activeChallenges.length < maxActiveChallenges;
+
+  JoinedChallenge? activeChallengeFor(String challengeId) {
+    for (final challenge in _activeChallenges) {
+      if (challenge.id == challengeId) return challenge;
+    }
+    return null;
+  }
 
   List<StorageRecoveryEvent> get recoveryEvents => _recoveryEvents;
 
   Future<void> refreshFromStore() async {
     final raw = await _store.readString(storageKey);
-    _activeChallenge = _decodeChallenge(raw).challenge;
+    _activeChallenges = _decodeChallenge(raw).challenges;
     notifyListeners();
   }
 
   bool isJoined(String challengeId) {
-    return _activeChallenge?.id == challengeId;
+    return activeChallengeFor(challengeId) != null;
   }
 
-  Future<void> join({
+  Future<bool> join({
     required String id,
     required String name,
     required String description,
@@ -220,7 +237,7 @@ class ChallengeRepository extends ChangeNotifier {
     DateTime? joinedAt,
     Map<String, Object?> parameters = const <String, Object?>{},
   }) async {
-    _activeChallenge = JoinedChallenge(
+    final joined = JoinedChallenge(
       id: id,
       name: name,
       description: description,
@@ -229,19 +246,47 @@ class ChallengeRepository extends ChangeNotifier {
       joinedAt: joinedAt ?? DateTime.now(),
       parameters: Map<String, Object?>.unmodifiable(parameters),
     );
-    await _store.writeString(
-        storageKey, jsonEncode(_activeChallenge!.toJson()));
-    notifyListeners();
+    final existingIndex =
+        _activeChallenges.indexWhere((challenge) => challenge.id == id);
+    if (existingIndex == -1 &&
+        _activeChallenges.length >= maxActiveChallenges) {
+      return false;
+    }
+    final next = <JoinedChallenge>[..._activeChallenges];
+    if (existingIndex == -1) {
+      next.add(joined);
+    } else {
+      next[existingIndex] = joined;
+    }
+    await _replaceActiveChallenges(next);
+    return true;
+  }
+
+  Future<bool> pauseOrLeave(String challengeId) async {
+    final next = _activeChallenges
+        .where((challenge) => challenge.id != challengeId)
+        .toList(growable: false);
+    if (next.length == _activeChallenges.length) return false;
+    await _replaceActiveChallenges(next);
+    return true;
+  }
+
+  Future<void> leaveChallenge(String challengeId) async {
+    await pauseOrLeave(challengeId);
   }
 
   Future<void> leave() async {
-    _activeChallenge = null;
+    _activeChallenges = const [];
     await _store.remove(storageKey);
     notifyListeners();
   }
 
-  Future<void> updateParameters(Map<String, Object?> parameters) async {
-    final challenge = _activeChallenge;
+  Future<void> updateParameters(
+    Map<String, Object?> parameters, {
+    String? challengeId,
+  }) async {
+    final challenge =
+        challengeId == null ? activeChallenge : activeChallengeFor(challengeId);
     if (challenge == null) return;
     await _updateActiveChallenge(
       challenge.copyWith(
@@ -250,8 +295,9 @@ class ChallengeRepository extends ChangeNotifier {
     );
   }
 
-  Future<bool> completeCheckIn(String actionId) async {
-    final challenge = _activeChallenge;
+  Future<bool> completeCheckIn(String actionId, {String? challengeId}) async {
+    final challenge =
+        challengeId == null ? activeChallenge : activeChallengeFor(challengeId);
     if (challenge == null || actionId.trim().isEmpty) return false;
     if (challenge.completedActionIds.contains(actionId)) return false;
     await _updateActiveChallenge(
@@ -270,8 +316,10 @@ class ChallengeRepository extends ChangeNotifier {
     required int volumeMl,
     required String actionKey,
     DateTime? timestamp,
+    String? challengeId,
   }) async {
-    final challenge = _activeChallenge;
+    final challenge =
+        challengeId == null ? activeChallenge : activeChallengeFor(challengeId);
     if (challenge == null || challenge.needsSetup || volumeMl <= 0) return null;
     final time = timestamp ?? DateTime.now();
     final day = '${time.year}-${time.month}-${time.day}';
@@ -310,12 +358,13 @@ class ChallengeRepository extends ChangeNotifier {
         bottleBingoHydrationTileIndexes.contains(index)) {
       return false;
     }
-    final tiles = <int>{..._activeChallenge!.bottleBingoCompletedTiles};
+    final challenge = activeChallengeFor('bottle-bingo')!;
+    final tiles = <int>{...challenge.bottleBingoCompletedTiles};
     if (!tiles.add(index)) {
       tiles.remove(index);
     }
     await _updateActiveChallenge(
-      _activeChallenge!.copyWith(
+      challenge.copyWith(
         bottleBingoCompletedTiles: Set<int>.unmodifiable(tiles),
       ),
     );
@@ -331,7 +380,7 @@ class ChallengeRepository extends ChangeNotifier {
     if (!_canPersistBottleBingoTile(index) || volumeMl <= 0) {
       return null;
     }
-    final challenge = _activeChallenge!;
+    final challenge = activeChallengeFor('bottle-bingo')!;
     final actionTime = timestamp ?? DateTime.now();
     final localDay = '${actionTime.year.toString().padLeft(4, '0')}-'
         '${actionTime.month.toString().padLeft(2, '0')}-'
@@ -373,18 +422,19 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<bool> resetBottleBingoTiles() async {
-    if (_activeChallenge?.id != 'bottle-bingo') {
+    final challenge = activeChallengeFor('bottle-bingo');
+    if (challenge == null) {
       return false;
     }
     final usesLiveBoard =
-        (_activeChallenge!.parameters['bingoBoardVersion'] as num?) == 2;
+        (challenge.parameters['bingoBoardVersion'] as num?) == 2;
     final retainedLegacyHydrationTiles = usesLiveBoard
         ? const <int>{}
-        : _activeChallenge!.bottleBingoCompletedTiles
+        : challenge.bottleBingoCompletedTiles
             .where(bottleBingoHydrationTileIndexes.contains)
             .toSet();
     await _updateActiveChallenge(
-      _activeChallenge!.copyWith(
+      challenge.copyWith(
         bottleBingoCompletedTiles:
             Set<int>.unmodifiable(retainedLegacyHydrationTiles),
       ),
@@ -393,7 +443,10 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   bool isBottleBingoTileManuallyComplete(int index) {
-    return _activeChallenge?.bottleBingoCompletedTiles.contains(index) == true;
+    return activeChallengeFor('bottle-bingo')
+            ?.bottleBingoCompletedTiles
+            .contains(index) ==
+        true;
   }
 
   bool isBottleBingoHydrationTileCompleteForDay(
@@ -401,7 +454,7 @@ class ChallengeRepository extends ChangeNotifier {
     HydrationRepository hydrationRepository,
     DateTime day,
   ) {
-    final challenge = _activeChallenge;
+    final challenge = activeChallengeFor('bottle-bingo');
     if (challenge?.id != 'bottle-bingo' ||
         !bottleBingoHydrationTileIndexes.contains(index)) {
       return false;
@@ -416,29 +469,67 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   bool _canPersistBottleBingoTile(int index) {
-    return _activeChallenge?.id == 'bottle-bingo' &&
+    return activeChallengeFor('bottle-bingo') != null &&
         index >= 0 &&
         index < 25 &&
         index != 12;
   }
 
   Future<void> _updateActiveChallenge(JoinedChallenge challenge) async {
-    final previous = _activeChallenge;
-    _activeChallenge = challenge;
+    final previous = _activeChallenges;
+    final index =
+        _activeChallenges.indexWhere((item) => item.id == challenge.id);
+    if (index == -1) return;
+    final next = <JoinedChallenge>[..._activeChallenges];
+    next[index] = challenge;
+    _activeChallenges = List<JoinedChallenge>.unmodifiable(next);
     try {
-      await _store.writeString(storageKey, jsonEncode(challenge.toJson()));
+      await _persistActiveChallenges();
     } catch (_) {
-      _activeChallenge = previous;
+      _activeChallenges = previous;
       rethrow;
     }
     notifyListeners();
   }
 
+  Future<void> _replaceActiveChallenges(
+      List<JoinedChallenge> challenges) async {
+    final previous = _activeChallenges;
+    _activeChallenges = List<JoinedChallenge>.unmodifiable(
+      challenges.take(maxActiveChallenges),
+    );
+    try {
+      await _persistActiveChallenges();
+    } catch (_) {
+      _activeChallenges = previous;
+      rethrow;
+    }
+    notifyListeners();
+  }
+
+  Future<void> _persistActiveChallenges() async {
+    if (_activeChallenges.isEmpty) {
+      await _store.remove(storageKey);
+      return;
+    }
+    await _store.writeString(
+      storageKey,
+      jsonEncode({
+        'schemaVersion': _currentSchemaVersion,
+        'activeChallenges': [
+          for (final challenge in _activeChallenges) challenge.toJson(),
+        ],
+      }),
+    );
+  }
+
   ChallengeProgress progressFor(
     HydrationRepository hydrationRepository, {
     int? targetMlOverride,
+    String? challengeId,
   }) {
-    final challenge = _activeChallenge;
+    final challenge =
+        challengeId == null ? activeChallenge : activeChallengeFor(challengeId);
     if (challenge == null) {
       return const ChallengeProgress(
         completedDays: 0,
@@ -500,6 +591,14 @@ class ChallengeRepository extends ChangeNotifier {
       final requiredActions = challenge.id == 'pomodoro-sip'
           ? ((challenge.parameters['sessionsPerDay'] as num?) ?? 1).round()
           : 1;
+      if (challenge.id == 'pomodoro-sip') {
+        return _pomodoroEvidenceForDay(
+              challenge,
+              hydrationRepository,
+              day,
+            ) >=
+            requiredActions;
+      }
       return _challengeHydrationLogsForDay(
             challenge,
             hydrationRepository,
@@ -581,6 +680,24 @@ class ChallengeRepository extends ChangeNotifier {
         .toList(growable: false);
   }
 
+  int _pomodoroEvidenceForDay(
+    JoinedChallenge challenge,
+    HydrationRepository hydrationRepository,
+    DateTime day,
+  ) {
+    final dayToken = _localDayToken(day);
+    final checkIns = challenge.completedActionIds.where(
+      (action) =>
+          action.contains(':$dayToken:') || action.startsWith('$dayToken:'),
+    );
+    return checkIns.length +
+        _challengeHydrationLogsForDay(
+          challenge,
+          hydrationRepository,
+          day,
+        ).length;
+  }
+
   String _localDayToken(DateTime day) =>
       '${day.year.toString().padLeft(4, '0')}-'
       '${day.month.toString().padLeft(2, '0')}-'
@@ -628,8 +745,8 @@ class ChallengeRepository extends ChangeNotifier {
           ],
         );
       }
-      final challenge = JoinedChallenge.fromJson(decoded);
-      if (challenge == null) {
+      final challenges = _activeChallengesFrom(decoded);
+      if (challenges == null) {
         return const _ChallengeDecodeResult(
           shouldClearStorage: true,
           recoveryEvents: <StorageRecoveryEvent>[
@@ -641,10 +758,17 @@ class ChallengeRepository extends ChangeNotifier {
           ],
         );
       }
-      if (challenge.id == 'front-loader-challenge') {
+      final filtered = challenges
+          .where((challenge) => challenge.id != 'front-loader-challenge')
+          .take(maxActiveChallenges)
+          .toList(growable: false);
+      if (filtered.isEmpty) {
         return const _ChallengeDecodeResult(shouldClearStorage: true);
       }
-      return _ChallengeDecodeResult(challenge: challenge);
+      if (filtered.length != challenges.length) {
+        return _ChallengeDecodeResult(challenges: filtered);
+      }
+      return _ChallengeDecodeResult(challenges: filtered);
     } on FormatException {
       return const _ChallengeDecodeResult(
         shouldClearStorage: true,
@@ -659,15 +783,29 @@ class ChallengeRepository extends ChangeNotifier {
       );
     }
   }
+
+  static List<JoinedChallenge>? _activeChallengesFrom(Map decoded) {
+    final rawChallenges = decoded['activeChallenges'];
+    if (rawChallenges is List) {
+      final challenges = rawChallenges
+          .map(JoinedChallenge.fromJson)
+          .whereType<JoinedChallenge>()
+          .toList(growable: false);
+      if (challenges.isEmpty && rawChallenges.isNotEmpty) return null;
+      return challenges;
+    }
+    final legacy = JoinedChallenge.fromJson(decoded);
+    return legacy == null ? null : <JoinedChallenge>[legacy];
+  }
 }
 
 class _ChallengeDecodeResult {
-  final JoinedChallenge? challenge;
+  final List<JoinedChallenge> challenges;
   final bool shouldClearStorage;
   final List<StorageRecoveryEvent> recoveryEvents;
 
   const _ChallengeDecodeResult({
-    this.challenge,
+    this.challenges = const <JoinedChallenge>[],
     this.shouldClearStorage = false,
     this.recoveryEvents = const <StorageRecoveryEvent>[],
   });

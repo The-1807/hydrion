@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../repositories/settings_repository.dart';
 import '../../services/notifications.dart';
 import '../../services/weather_goal_service.dart';
+import '../components/guided_tour_overlay.dart';
 import '../theme/hydrion_design.dart';
 import '../components/intake_ring.dart';
 import 'analytics_screen.dart';
@@ -22,6 +24,12 @@ class HydrionShell extends StatefulWidget {
 
 class _HydrionShellState extends State<HydrionShell>
     with WidgetsBindingObserver {
+  static final _homeTargetKey = GlobalKey();
+  static final _logTargetKey = GlobalKey();
+  static final _historyTargetKey = GlobalKey();
+  static final _challengesTargetKey = GlobalKey();
+  static final _progressTargetKey = GlobalKey();
+
   int _selectedIndex = 0;
   Timer? _dayRolloverTimer;
 
@@ -47,6 +55,12 @@ class _HydrionShellState extends State<HydrionShell>
     if (state == AppLifecycleState.resumed) {
       _refreshLocalLifecycleState();
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _applySystemBars();
   }
 
   Future<void> _refreshLocalLifecycleState() async {
@@ -166,69 +180,126 @@ class _HydrionShellState extends State<HydrionShell>
     }
   }
 
+  void _applySystemBars() {
+    final brightness = Theme.of(context).brightness;
+    final dark = brightness == Brightness.dark;
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+        systemNavigationBarIconBrightness:
+            dark ? Brightness.light : Brightness.dark,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: isDark
-              ? const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF041621), Color(0xFF0A3040)],
-                )
-              : HydrionGradients.lagoon,
+    return GuidedTourOverlay(
+      steps: [
+        GuidedTourStep(
+          targetKey: _homeTargetKey,
+          title: "Today's hydration",
+          body: 'Your daily hydration and remaining amount appear here.',
         ),
-        child: SafeArea(
-          top: true,
-          bottom: false,
-          child: IndexedStack(
-            key: const Key('hydrion-tab-safe-stack'),
-            index: _selectedIndex,
-            children: const [
-              HomeScreen(showRouteShortcuts: false),
-              SocialChallengesScreen(embedded: true),
-              AnalyticsScreen(embedded: true),
-              ProfileScreen(embedded: true),
-            ],
+        GuidedTourStep(
+          targetKey: _logTargetKey,
+          title: 'Log water',
+          body:
+              'Log the amount you actually drink. Use a saved container or choose another amount.',
+        ),
+        GuidedTourStep(
+          targetKey: _historyTargetKey,
+          title: 'Review and correct',
+          body:
+              'Review, edit, or remove a hydration entry if you make a mistake.',
+        ),
+        GuidedTourStep(
+          targetKey: _challengesTargetKey,
+          title: 'Challenges',
+          body:
+              'Challenges add optional habits and tasks. Challenge water still counts normally.',
+        ),
+        GuidedTourStep(
+          targetKey: _progressTargetKey,
+          title: 'Progress and refresh',
+          body:
+              'Review daily progress here. Pull down on supported screens to refresh.',
+        ),
+      ],
+      child: Scaffold(
+        extendBody: true,
+        extendBodyBehindAppBar: true,
+        body: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF041621), Color(0xFF0A3040)],
+                  )
+                : HydrionGradients.lagoon,
+          ),
+          child: SafeArea(
+            top: true,
+            bottom: false,
+            child: IndexedStack(
+              key: const Key('hydrion-tab-safe-stack'),
+              index: _selectedIndex,
+              children: [
+                HomeScreen(
+                  showRouteShortcuts: false,
+                  hydrationTargetKey: _homeTargetKey,
+                  logTargetKey: _logTargetKey,
+                  historyTargetKey: _historyTargetKey,
+                ),
+                const SocialChallengesScreen(embedded: true),
+                const AnalyticsScreen(embedded: true),
+                const ProfileScreen(embedded: true),
+              ],
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: NavigationBar(
-          key: const Key('hydrion-bottom-nav'),
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) {
-            setState(() => _selectedIndex = index);
-          },
-          destinations: const [
-            NavigationDestination(
-              key: Key('nav-home'),
-              icon: Icon(Icons.water_drop_outlined),
-              selectedIcon: Icon(Icons.water_drop),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              key: Key('nav-challenges'),
-              icon: Icon(Icons.emoji_events_outlined),
-              selectedIcon: Icon(Icons.emoji_events),
-              label: 'Challenges',
-            ),
-            NavigationDestination(
-              key: Key('nav-progress'),
-              icon: Icon(Icons.insights_outlined),
-              selectedIcon: Icon(Icons.insights),
-              label: 'Progress',
-            ),
-            NavigationDestination(
-              key: Key('nav-profile'),
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: NavigationBar(
+            key: const Key('hydrion-bottom-nav'),
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (index) {
+              setState(() => _selectedIndex = index);
+            },
+            destinations: [
+              const NavigationDestination(
+                key: Key('nav-home'),
+                icon: Icon(Icons.water_drop_outlined),
+                selectedIcon: Icon(Icons.water_drop),
+                label: 'Home',
+              ),
+              NavigationDestination(
+                key: const Key('nav-challenges'),
+                icon: Icon(Icons.emoji_events_outlined,
+                    key: _challengesTargetKey),
+                selectedIcon: const Icon(Icons.emoji_events),
+                label: 'Challenges',
+              ),
+              NavigationDestination(
+                key: const Key('nav-progress'),
+                icon: Icon(Icons.insights_outlined, key: _progressTargetKey),
+                selectedIcon: const Icon(Icons.insights),
+                label: 'Progress',
+              ),
+              const NavigationDestination(
+                key: Key('nav-profile'),
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
+          ),
         ),
       ),
     );

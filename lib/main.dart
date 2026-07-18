@@ -9,6 +9,7 @@ import 'domain/hydration_contracts.dart';
 import 'domain/legal_document_registry.dart';
 import 'l10n/app_localizations.dart';
 import 'repositories/challenge_repository.dart';
+import 'repositories/guided_tour_repository.dart';
 import 'repositories/hydration_repository.dart';
 import 'repositories/reminder_repository.dart';
 import 'repositories/settings_repository.dart';
@@ -231,6 +232,7 @@ class HydrionApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: services.settingsRepository),
         ChangeNotifierProvider.value(value: services.reminderRepository),
         ChangeNotifierProvider.value(value: services.challengeRepository),
+        ChangeNotifierProvider.value(value: services.guidedTourRepository),
         Provider(
           create: (_) => AppRefreshController(
             hydrationRepository: services.hydrationRepository,
@@ -321,6 +323,7 @@ class HydrionServices {
   final UserSettingsRepository settingsRepository;
   final ReminderRepository reminderRepository;
   final ChallengeRepository challengeRepository;
+  final GuidedTourRepository guidedTourRepository;
   final CoreBridge coreBridge;
   final Permissions permissions;
   final I18nResolver i18n;
@@ -352,6 +355,7 @@ class HydrionServices {
     required this.settingsRepository,
     required this.reminderRepository,
     required this.challengeRepository,
+    required this.guidedTourRepository,
     required this.coreBridge,
     required this.permissions,
     required this.i18n,
@@ -400,12 +404,14 @@ class HydrionServices {
     final settingsRepository = await UserSettingsRepository.load(store);
     final reminderRepository = await ReminderRepository.load(store);
     final challengeRepository = await ChallengeRepository.load(store);
+    final guidedTourRepository = await GuidedTourRepository.load(store);
     return _build(
       store: store,
       hydrationRepository: hydrationRepository,
       settingsRepository: settingsRepository,
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
+      guidedTourRepository: guidedTourRepository,
       aiRuntimeConfig: aiRuntimeConfig,
       locationService: locationService,
       notificationAdapter: notificationAdapter,
@@ -428,6 +434,7 @@ class HydrionServices {
       settingsRepository: UserSettingsRepository.memory(),
       reminderRepository: ReminderRepository.memory(),
       challengeRepository: ChallengeRepository.memory(),
+      guidedTourRepository: GuidedTourRepository.memory(),
       aiRuntimeConfig: aiRuntimeConfig,
       locationService: locationService ?? FakeHydrionLocationService(),
       notificationAdapter: notificationAdapter ??
@@ -445,6 +452,7 @@ class HydrionServices {
     required UserSettingsRepository settingsRepository,
     required ReminderRepository reminderRepository,
     required ChallengeRepository challengeRepository,
+    required GuidedTourRepository guidedTourRepository,
     required HydrionAiRuntimeConfig aiRuntimeConfig,
     HydrionLocationService? locationService,
     HydrionNotificationAdapter? notificationAdapter,
@@ -564,6 +572,7 @@ class HydrionServices {
       settingsRepository: settingsRepository,
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
+      guidedTourRepository: guidedTourRepository,
       coreBridge: coreBridge,
       permissions: permissions,
       i18n: i18n,

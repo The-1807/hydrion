@@ -30,20 +30,22 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
     final challengeRepository = context.watch<ChallengeRepository>();
     final hydrationRepository = context.watch<HydrationRepository>();
     final settings = context.watch<UserSettingsRepository>().settings;
-    final activeChallenge = challengeRepository.activeChallenge;
+    final activeChallenges = challengeRepository.activeChallenges;
+    final activeChallenge =
+        activeChallenges.isEmpty ? null : activeChallenges.first;
     final progress = challengeRepository.progressFor(
       hydrationRepository,
       targetMlOverride: settings.dailyGoalMl,
+      challengeId: activeChallenge?.id,
     );
     final todayTotalMl = hydrationRepository.totalForDay(DateTime.now());
-    final orderedChallenges = [
-      if (activeChallenge != null)
-        ...HydrionChallengeCatalog.challenges
-            .where((challenge) => challenge.id == activeChallenge.id),
-      ...HydrionChallengeCatalog.challenges.where(
-        (challenge) => challenge.id != activeChallenge?.id,
-      ),
-    ];
+    final activeIds = activeChallenges.map((challenge) => challenge.id).toSet();
+    final activeCatalogChallenges = HydrionChallengeCatalog.challenges
+        .where((challenge) => activeIds.contains(challenge.id))
+        .toList(growable: false);
+    final availableChallenges = HydrionChallengeCatalog.challenges
+        .where((challenge) => !activeIds.contains(challenge.id))
+        .toList(growable: false);
 
     final mediaPadding = MediaQuery.paddingOf(context);
     final bottomPadding = widget.embedded ? 96.0 + mediaPadding.bottom : 28.0;
@@ -72,14 +74,38 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        if (activeChallenge == null) ...[
+        if (activeChallenges.isEmpty) ...[
           _NoChallengeCard(
             title: l10n.noActiveChallengeYet,
             body: l10n.joinLocalChallengeDescription,
           ),
           const SizedBox(height: 12),
+        ] else ...[
+          Text(
+            'Active challenges',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 8),
+          for (final challenge in activeCatalogChallenges) ...[
+            _ChallengeCard(
+              challenge: challenge,
+              challengeRepository: challengeRepository,
+              hydrationRepository: hydrationRepository,
+              targetMl: settings.dailyGoalMl,
+            ),
+            const SizedBox(height: 12),
+          ],
+          Text(
+            'Other challenges',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 8),
         ],
-        for (final challenge in orderedChallenges) ...[
+        for (final challenge in availableChallenges) ...[
           _ChallengeCard(
             challenge: challenge,
             challengeRepository: challengeRepository,
@@ -571,11 +597,12 @@ class _ChallengeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final joined = challengeRepository.isJoined(challenge.id);
-    final hasOtherActive =
-        challengeRepository.activeChallenge != null && !joined;
+    final joinBlocked =
+        !joined && !challengeRepository.hasRoomForAnotherChallenge;
     final progress = challengeRepository.progressFor(
       hydrationRepository,
       targetMlOverride: targetMl,
+      challengeId: challenge.id,
     );
     final visual = ChallengeVisualRegistry.forId(challenge.id);
 
@@ -708,10 +735,10 @@ class _ChallengeCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (hasOtherActive && !joined) ...[
+              if (joinBlocked) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'Leave the active challenge before joining another.',
+                  'You already have two active challenges. Pause or leave one before starting another.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

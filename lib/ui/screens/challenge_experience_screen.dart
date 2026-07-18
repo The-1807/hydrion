@@ -41,7 +41,9 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final active = context.read<ChallengeRepository>().activeChallenge;
+    final active = context
+        .read<ChallengeRepository>()
+        .activeChallengeFor(widget.challenge.id);
     final unit = context.read<UserSettingsRepository>().settings.volumeUnit;
     for (final key in definition.requiredParameters) {
       final storedValue =
@@ -69,15 +71,15 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
   @override
   Widget build(BuildContext context) {
     final challengeRepository = context.watch<ChallengeRepository>();
-    final active = challengeRepository.activeChallenge;
-    final isActive = active?.id == widget.challenge.id;
+    final active = challengeRepository.activeChallengeFor(widget.challenge.id);
+    final isActive = active != null;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.challenge.name),
         actions: [
           if (isActive)
             TextButton(
-              onPressed: () => _leaveChallenge(context, active!),
+              onPressed: () => _leaveChallenge(context, active),
               child: const Text('Leave'),
             ),
         ],
@@ -97,9 +99,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
   }
 
   List<Widget> _previewAndSetup(BuildContext context) {
-    final active = context.watch<ChallengeRepository>().activeChallenge;
-    final completingSetup = active?.id == widget.challenge.id;
-    final otherActive = active != null && !completingSetup;
+    final repository = context.watch<ChallengeRepository>();
+    final active = repository.activeChallengeFor(widget.challenge.id);
+    final completingSetup = active != null;
+    final joinBlocked =
+        !completingSetup && !repository.hasRoomForAnotherChallenge;
     final settings = context.read<UserSettingsRepository>().settings;
     return [
       _ChallengeImageHero(
@@ -174,14 +178,32 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
               ],
               FilledButton.icon(
                 key: Key('activate-challenge-${widget.challenge.id}'),
-                onPressed: otherActive ? null : () => _activate(context),
+                onPressed: joinBlocked ? null : () => _activate(context),
                 icon: const Icon(Icons.play_arrow),
-                label: Text(!otherActive
+                label: Text(!joinBlocked
                     ? completingSetup
                         ? 'Complete setup'
                         : 'Join challenge'
-                    : 'Leave current challenge first'),
+                    : 'Pause or leave one challenge first'),
               ),
+              if (joinBlocked) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'You already have two active challenges. Pause or leave one before starting another.',
+                ),
+                const SizedBox(height: 8),
+                for (final activeChallenge in repository.activeChallenges)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.emoji_events_outlined),
+                    title: Text(activeChallenge.name),
+                    trailing: TextButton(
+                      onPressed: () =>
+                          repository.leaveChallenge(activeChallenge.id),
+                      child: const Text('Leave'),
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
@@ -204,6 +226,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     final qualified = repository.progressFor(
       hydration,
       targetMlOverride: settings.dailyGoalMl,
+      challengeId: active.id,
     );
     final instruction = _instruction(active, day);
     return [
@@ -306,6 +329,17 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   : Icons.water_drop),
               label: Text(_primaryActionLabel(active)),
             ),
+            if (widget.challenge.id == 'pomodoro-sip') ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                key: const Key('pomodoro-log-measured-drink'),
+                onPressed: challengeComplete
+                    ? null
+                    : () => _logPomodoroMeasuredDrink(context, active, day),
+                icon: const Icon(Icons.water_drop_outlined),
+                label: Text(_pomodoroMeasuredDrinkLabel(active)),
+              ),
+            ],
           ],
         ),
       ),
@@ -409,11 +443,14 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     if (widget.challenge.id == 'bottle-bingo') {
       parameters['bingoBoardVersion'] = 2;
     }
-    if (repository.activeChallenge?.id == widget.challenge.id) {
-      await repository.updateParameters(parameters);
+    if (repository.activeChallengeFor(widget.challenge.id) != null) {
+      await repository.updateParameters(
+        parameters,
+        challengeId: widget.challenge.id,
+      );
       return;
     }
-    await repository.join(
+    final joined = await repository.join(
       id: widget.challenge.id,
       name: widget.challenge.name,
       description: widget.challenge.description,
@@ -423,6 +460,15 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
           : widget.challenge.durationDays,
       parameters: parameters,
     );
+    if (!joined && context.mounted) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'You already have two active challenges. Pause or leave one before starting another.',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _performPrimaryAction(
@@ -454,7 +500,13 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         '${now.day.toString().padLeft(2, '0')}';
     final key = '$localDay:day-${day + 1}-${widget.challenge.id}$sessionSuffix';
     if (definition.actionKind == ChallengeActionKind.checkIn) {
-      await repository.completeCheckIn(key);
+      final completed =
+          await repository.completeCheckIn(key, challengeId: active.id);
+      if (completed &&
+          widget.challenge.id == 'pomodoro-sip' &&
+          context.mounted) {
+        await _setPomodoroComplete(context, active);
+      }
       return;
     }
     if (definition.actionKind == ChallengeActionKind.automaticQualification) {
@@ -471,6 +523,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       hydrationRepository: context.read<HydrationRepository>(),
       volumeMl: amount,
       actionKey: key,
+      challengeId: active.id,
     );
     if (log != null && widget.challenge.id == 'pomodoro-sip') {
       final session =
@@ -486,14 +539,15 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
             ((active.parameters['sessionMinutes'] as num?) ?? 25).round();
         final now = DateTime.now();
         final nextEnd = now.add(Duration(minutes: minutes));
+        final latest = repository.activeChallengeFor(active.id) ?? active;
         await repository.updateParameters({
-          ...repository.activeChallenge!.parameters,
+          ...latest.parameters,
           'timerSession': next,
           'timerStatus': autoStart ? 'running' : 'stopped',
           'timerStartedAt': autoStart ? now.toIso8601String() : '',
           'timerEndsAt': autoStart ? nextEnd.toIso8601String() : '',
           'timerReminderId': '',
-        });
+        }, challengeId: active.id);
         if (autoStart &&
             active.parameters['notifications']?.toString().toLowerCase() ==
                 'enabled') {
@@ -505,20 +559,61 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
             requestPermissionIfNeeded: true,
           );
           if (scheduled.reminder != null) {
+            final latest = repository.activeChallengeFor(active.id) ?? active;
             await repository.updateParameters({
-              ...repository.activeChallenge!.parameters,
+              ...latest.parameters,
               'timerReminderId': scheduled.reminder!.id,
-            });
+            }, challengeId: active.id);
           }
         }
       } else {
+        final latest = repository.activeChallengeFor(active.id) ?? active;
         await repository.updateParameters({
-          ...repository.activeChallenge!.parameters,
+          ...latest.parameters,
           'timerStatus': 'complete',
           'timerEndsAt': '',
-        });
+        }, challengeId: active.id);
       }
     }
+  }
+
+  Future<void> _logPomodoroMeasuredDrink(
+    BuildContext context,
+    JoinedChallenge active,
+    int day,
+  ) async {
+    final amount = active.parameters['amountMl'];
+    if (amount is! int || amount <= 0) return;
+    final now = DateTime.now();
+    final localDay = '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+    final actionKey =
+        '$localDay:day-${day + 1}-${widget.challenge.id}-measured-${active.completedActionIds.length + 1}';
+    final log =
+        await context.read<ChallengeRepository>().completeHydrationAction(
+              hydrationRepository: context.read<HydrationRepository>(),
+              volumeMl: amount,
+              actionKey: actionKey,
+              challengeId: active.id,
+            );
+    if (log != null && context.mounted) {
+      await _setPomodoroComplete(context, active);
+    }
+  }
+
+  Future<void> _setPomodoroComplete(
+    BuildContext context,
+    JoinedChallenge active,
+  ) async {
+    final repository = context.read<ChallengeRepository>();
+    final latest = repository.activeChallengeFor(active.id) ?? active;
+    await repository.updateParameters({
+      ...latest.parameters,
+      'timerStatus': 'complete',
+      'timerEndsAt': '',
+      'timerReminderId': '',
+    }, challengeId: active.id);
   }
 
   String _instruction(JoinedChallenge active, int day) {
@@ -535,7 +630,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       'eat-your-water-day' =>
         'Include ${active.parameters['food']} with ${active.parameters['meal']}, then confirm the food task. No hydration volume will be added.',
       'pomodoro-sip' =>
-        'After each ${active.parameters['sessionMinutes']}-minute focus session, manually confirm the break and log $amountText. Complete ${active.parameters['sessionsPerDay']} sessions today.',
+        'After each ${active.parameters['sessionMinutes']}-minute focus session, choose Took a sip for a check-in or log a measured $amountText drink.',
       'bottle-bingo' =>
         'Review a Bingo tile, follow its exact amount or check-in rule, and complete it once.',
       _ =>
@@ -545,7 +640,9 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
 
   String _primaryActionLabel(JoinedChallenge active) {
     if (definition.actionKind == ChallengeActionKind.checkIn) {
-      return 'Confirm task complete';
+      return widget.challenge.id == 'pomodoro-sip'
+          ? 'Took a sip'
+          : 'Confirm task complete';
     }
     if (definition.actionKind == ChallengeActionKind.automaticQualification) {
       return 'Review qualifying rule';
@@ -554,6 +651,13 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     return amount is int
         ? 'Log ${HydrationVolumeFormatter.format(amount, context.read<UserSettingsRepository>().settings.volumeUnit)}'
         : 'Choose amount';
+  }
+
+  String _pomodoroMeasuredDrinkLabel(JoinedChallenge active) {
+    final amount = active.parameters['amountMl'];
+    return amount is int
+        ? 'Log measured drink · ${HydrationVolumeFormatter.format(amount, context.read<UserSettingsRepository>().settings.volumeUnit)}'
+        : 'Log a measured drink';
   }
 
   Future<void> _leaveChallenge(
@@ -589,7 +693,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         await notifications.deleteReminder(reminderId);
       }
     }
-    await repository.leave();
+    await repository.leaveChallenge(active.id);
     if (mounted) navigator.pop();
   }
 }
@@ -1078,6 +1182,7 @@ class _LiveBingoBoard extends StatelessWidget {
                       hydrationRepository: hydrationRepository,
                       volumeMl: amount,
                       actionKey: tile.id,
+                      challengeId: active.id,
                     );
                     if (log != null) {
                       await HapticFeedback.selectionClick();

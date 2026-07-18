@@ -17,8 +17,17 @@ import '../theme/hydrion_design.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool showRouteShortcuts;
+  final Key? hydrationTargetKey;
+  final Key? logTargetKey;
+  final Key? historyTargetKey;
 
-  const HomeScreen({super.key, this.showRouteShortcuts = true});
+  const HomeScreen({
+    super.key,
+    this.showRouteShortcuts = true,
+    this.hydrationTargetKey,
+    this.logTargetKey,
+    this.historyTargetKey,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -163,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
             _HeroHydrationScene(
+              key: widget.hydrationTargetKey,
               avatar: profileAvatar,
               statusText: hydrationStatus,
               consumedMl: todayMl,
@@ -173,6 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             _QuickLogPanel(
+              key: widget.logTargetKey,
               title: l10n.logHydration,
               logLabel: settings.volumeUnit == HydrionVolumeUnit.milliliters
                   ? l10n.logVolume(volumeMl: _selectedVolumeMl)
@@ -183,6 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onVolumeChanged: (value) =>
                   setState(() => _selectedVolumeMl = value),
               onLog: () => _logWater(_selectedVolumeMl),
+              historyTargetKey: widget.historyTargetKey,
               onHistory: () => Navigator.of(context).pushNamed('/log'),
             ),
             const SizedBox(height: 16),
@@ -222,6 +234,7 @@ class _HeroHydrationScene extends StatelessWidget {
   final UserSettings settings;
 
   const _HeroHydrationScene({
+    super.key,
     required this.avatar,
     required this.statusText,
     required this.consumedMl,
@@ -331,8 +344,10 @@ class _QuickLogPanel extends StatelessWidget {
   final ValueChanged<int> onVolumeChanged;
   final VoidCallback onLog;
   final VoidCallback onHistory;
+  final Key? historyTargetKey;
 
   const _QuickLogPanel({
+    super.key,
     required this.title,
     required this.logLabel,
     required this.selectedVolumeMl,
@@ -341,6 +356,7 @@ class _QuickLogPanel extends StatelessWidget {
     required this.onVolumeChanged,
     required this.onLog,
     required this.onHistory,
+    this.historyTargetKey,
   });
 
   @override
@@ -369,11 +385,14 @@ class _QuickLogPanel extends StatelessWidget {
                       ),
                 ),
               ),
-              TextButton.icon(
-                key: const Key('home-log-history'),
-                onPressed: onHistory,
-                icon: const Icon(Icons.history),
-                label: const Text('History'),
+              KeyedSubtree(
+                key: historyTargetKey,
+                child: TextButton.icon(
+                  key: const Key('home-log-history'),
+                  onPressed: onHistory,
+                  icon: const Icon(Icons.history),
+                  label: const Text('History'),
+                ),
               ),
             ],
           ),
