@@ -34,6 +34,7 @@ class HydrionChallengeCatalog {
       durationDays: 1,
       category: 'Food support',
       dailyTask: 'Include a water-rich food and log drinks as usual.',
+      objectiveType: ChallengeObjectiveType.manualCheckIn,
     ),
     HydrationChallenge(
       id: 'pomodoro-sip',
@@ -54,6 +55,7 @@ class HydrionChallengeCatalog {
       durationDays: 7,
       category: 'Cue building',
       dailyTask: 'Use the plant cue once and log your normal intake.',
+      objectiveType: ChallengeObjectiveType.manualCheckIn,
     ),
     HydrationChallenge(
       id: 'bottle-bingo',
