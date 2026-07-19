@@ -188,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             _QuickLogPanel(
-              key: widget.logTargetKey,
+              logTargetKey: widget.logTargetKey,
               title: l10n.logHydration,
               logLabel: settings.volumeUnit == HydrionVolumeUnit.milliliters
                   ? l10n.logVolume(volumeMl: _selectedVolumeMl)
@@ -461,9 +461,9 @@ class _QuickLogPanel extends StatelessWidget {
   final VoidCallback onLog;
   final VoidCallback onHistory;
   final Key? historyTargetKey;
+  final Key? logTargetKey;
 
   const _QuickLogPanel({
-    super.key,
     required this.title,
     required this.logLabel,
     required this.selectedVolumeMl,
@@ -473,6 +473,7 @@ class _QuickLogPanel extends StatelessWidget {
     required this.onLog,
     required this.onHistory,
     this.historyTargetKey,
+    this.logTargetKey,
   });
 
   @override
@@ -568,11 +569,14 @@ class _QuickLogPanel extends StatelessWidget {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
-              key: const Key('log-water-button'),
-              onPressed: onLog,
-              icon: const Icon(Icons.water_drop),
-              label: Text(logLabel),
+            child: KeyedSubtree(
+              key: logTargetKey,
+              child: FilledButton.icon(
+                key: const Key('log-water-button'),
+                onPressed: onLog,
+                icon: const Icon(Icons.water_drop),
+                label: Text(logLabel),
+              ),
             ),
           ),
         ],

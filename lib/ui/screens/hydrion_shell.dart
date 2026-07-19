@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../repositories/settings_repository.dart';
+import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../services/notifications.dart';
 import '../../services/weather_goal_service.dart';
@@ -202,108 +203,188 @@ class _HydrionShellState extends State<HydrionShell>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tourRepository = context.watch<GuidedTourRepository>();
+    final scaffold = Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF041621), Color(0xFF0A3040)],
+                )
+              : HydrionGradients.lagoon,
+        ),
+        child: SafeArea(
+          top: true,
+          bottom: false,
+          child: IndexedStack(
+            key: const Key('hydrion-tab-safe-stack'),
+            index: _selectedIndex,
+            children: [
+              HomeScreen(
+                showRouteShortcuts: false,
+                hydrationTargetKey: _homeTargetKey,
+                logTargetKey: _logTargetKey,
+                historyTargetKey: _historyTargetKey,
+              ),
+              SocialChallengesScreen(
+                embedded: true,
+                tourTargetKey: _challengesTargetKey,
+              ),
+              AnalyticsScreen(
+                embedded: true,
+                tourTargetKey: _progressTargetKey,
+              ),
+              const ProfileScreen(embedded: true),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: NavigationBar(
+          key: const Key('hydrion-bottom-nav'),
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) {
+            setState(() => _selectedIndex = index);
+          },
+          destinations: const [
+            NavigationDestination(
+              key: Key('nav-home'),
+              icon: Icon(Icons.water_drop_outlined),
+              selectedIcon: Icon(Icons.water_drop),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              key: Key('nav-challenges'),
+              icon: Icon(Icons.emoji_events_outlined),
+              selectedIcon: Icon(Icons.emoji_events),
+              label: 'Challenges',
+            ),
+            NavigationDestination(
+              key: Key('nav-progress'),
+              icon: Icon(Icons.insights_outlined),
+              selectedIcon: Icon(Icons.insights),
+              label: 'Progress',
+            ),
+            NavigationDestination(
+              key: Key('nav-profile'),
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+        ),
+      ),
+    );
     return GuidedTourOverlay(
+      onDestinationRequested: (index) {
+        if (mounted && _selectedIndex != index) {
+          setState(() => _selectedIndex = index);
+        }
+      },
+      onFinished: () {
+        if (mounted && _selectedIndex != 0) {
+          setState(() => _selectedIndex = 0);
+        }
+      },
       steps: [
         GuidedTourStep(
           targetKey: _homeTargetKey,
+          destinationIndex: 0,
           title: "Today's hydration",
           body: 'Your daily hydration and remaining amount appear here.',
         ),
         GuidedTourStep(
           targetKey: _logTargetKey,
+          destinationIndex: 0,
           title: 'Log water',
           body:
               'Log the amount you actually drink. Use a saved container or choose another amount.',
         ),
         GuidedTourStep(
           targetKey: _historyTargetKey,
+          destinationIndex: 0,
           title: 'Review and correct',
           body:
               'Review, edit, or remove a hydration entry if you make a mistake.',
         ),
         GuidedTourStep(
           targetKey: _challengesTargetKey,
+          destinationIndex: 1,
           title: 'Challenges',
           body:
               'Challenges add optional habits and tasks. Challenge water still counts normally.',
         ),
         GuidedTourStep(
           targetKey: _progressTargetKey,
+          destinationIndex: 2,
+          demonstratesPullToRefresh: true,
           title: 'Progress and refresh',
           body:
-              'Review daily progress here. Pull down on supported screens to refresh.',
+              'Review your latest totals here. Pull down to refresh hydration and challenge progress.',
         ),
       ],
-      child: Scaffold(
-        extendBody: true,
-        extendBodyBehindAppBar: true,
-        body: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: isDark
-                ? const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFF041621), Color(0xFF0A3040)],
-                  )
-                : HydrionGradients.lagoon,
-          ),
-          child: SafeArea(
-            top: true,
-            bottom: false,
-            child: IndexedStack(
-              key: const Key('hydrion-tab-safe-stack'),
-              index: _selectedIndex,
-              children: [
-                HomeScreen(
-                  showRouteShortcuts: false,
-                  hydrationTargetKey: _homeTargetKey,
-                  logTargetKey: _logTargetKey,
-                  historyTargetKey: _historyTargetKey,
+      child: Stack(
+        children: [
+          scaffold,
+          if (tourRepository.shouldOfferWhatsNew)
+            Positioned(
+              key: const Key('whats-new-tour-prompt'),
+              top: MediaQuery.paddingOf(context).top + 12,
+              left: 16,
+              right: 16,
+              child: SafeArea(
+                child: Card(
+                  elevation: 8,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'See what\u2019s new',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Take a short tour of hydration, challenges, and progress.',
+                        ),
+                        const SizedBox(height: 8),
+                        OverflowBar(
+                          alignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              key: const Key('whats-new-not-now'),
+                              onPressed: tourRepository.dismissWhatsNew,
+                              child: const Text('Not now'),
+                            ),
+                            FilledButton(
+                              key: const Key('whats-new-show-me'),
+                              onPressed: () async {
+                                await tourRepository.showWhatsNewTour();
+                                if (mounted && _selectedIndex != 0) {
+                                  setState(() => _selectedIndex = 0);
+                                }
+                              },
+                              child: const Text('Show me'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SocialChallengesScreen(embedded: true),
-                const AnalyticsScreen(embedded: true),
-                const ProfileScreen(embedded: true),
-              ],
+              ),
             ),
-          ),
-        ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: NavigationBar(
-            key: const Key('hydrion-bottom-nav'),
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              setState(() => _selectedIndex = index);
-            },
-            destinations: [
-              const NavigationDestination(
-                key: Key('nav-home'),
-                icon: Icon(Icons.water_drop_outlined),
-                selectedIcon: Icon(Icons.water_drop),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                key: const Key('nav-challenges'),
-                icon: Icon(Icons.emoji_events_outlined,
-                    key: _challengesTargetKey),
-                selectedIcon: const Icon(Icons.emoji_events),
-                label: 'Challenges',
-              ),
-              NavigationDestination(
-                key: const Key('nav-progress'),
-                icon: Icon(Icons.insights_outlined, key: _progressTargetKey),
-                selectedIcon: const Icon(Icons.insights),
-                label: 'Progress',
-              ),
-              const NavigationDestination(
-                key: Key('nav-profile'),
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'Profile',
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

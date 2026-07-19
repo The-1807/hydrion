@@ -17,8 +17,13 @@ import 'challenge_experience_screen.dart';
 
 class SocialChallengesScreen extends StatefulWidget {
   final bool embedded;
+  final Key? tourTargetKey;
 
-  const SocialChallengesScreen({super.key, this.embedded = false});
+  const SocialChallengesScreen({
+    super.key,
+    this.embedded = false,
+    this.tourTargetKey,
+  });
 
   @override
   State<SocialChallengesScreen> createState() => _SocialChallengesScreenState();
@@ -47,11 +52,14 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPadding),
       children: [
-        _ChallengeHero(
-          activeChallengeCount: activeChallenges.length,
-          todayTotalMl: todayTotalMl,
-          volumeUnit: settings.volumeUnit,
-          sex: settings.sex,
+        KeyedSubtree(
+          key: widget.tourTargetKey,
+          child: _ChallengeHero(
+            activeChallengeCount: activeChallenges.length,
+            todayTotalMl: todayTotalMl,
+            volumeUnit: settings.volumeUnit,
+            sex: settings.sex,
+          ),
         ),
         const SizedBox(height: 16),
         const HydrionSurface(

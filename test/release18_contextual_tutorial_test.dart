@@ -57,6 +57,9 @@ void main() {
 
   testWidgets('first activation supports next, back, finish and no replay',
       (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.reset);
     final repository =
         GuidedTourRepository.memory(contextualToursCompleted: false);
     final target = GlobalKey();
@@ -90,6 +93,9 @@ void main() {
   });
 
   testWidgets('skip persists and explicit replay works', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.reset);
     final repository =
         GuidedTourRepository.memory(contextualToursCompleted: false);
     final target = GlobalKey();
@@ -107,6 +113,9 @@ void main() {
   testWidgets(
       'missing target, compact layout, large text and reduced motion work',
       (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 568);
+    addTearDown(tester.view.reset);
     final repository =
         GuidedTourRepository.memory(contextualToursCompleted: false);
     await tester.pumpWidget(
@@ -120,11 +129,18 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Open a tile'), findsOneWidget);
+    expect(find.text('Open a tile'), findsNothing);
+    expect(
+      repository.isContextualTourComplete('bottle-bingo:release18-v1'),
+      isTrue,
+    );
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('expanded layout anchors without overflow', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 800);
+    addTearDown(tester.view.reset);
     final repository =
         GuidedTourRepository.memory(contextualToursCompleted: false);
     final target = GlobalKey();

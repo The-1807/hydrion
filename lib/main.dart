@@ -404,7 +404,11 @@ class HydrionServices {
     final settingsRepository = await UserSettingsRepository.load(store);
     final reminderRepository = await ReminderRepository.load(store);
     final challengeRepository = await ChallengeRepository.load(store);
-    final guidedTourRepository = await GuidedTourRepository.load(store);
+    final guidedTourRepository = await GuidedTourRepository.load(
+      store,
+      establishedUser: settingsRepository.settings.onboardingCompleted ||
+          hydrationRepository.eventCount > 0,
+    );
     return _build(
       store: store,
       hydrationRepository: hydrationRepository,

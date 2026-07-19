@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -13,8 +14,13 @@ import '../theme/hydrion_design.dart';
 
 class AnalyticsScreen extends StatelessWidget {
   final bool embedded;
+  final Key? tourTargetKey;
 
-  const AnalyticsScreen({super.key, this.embedded = false});
+  const AnalyticsScreen({
+    super.key,
+    this.embedded = false,
+    this.tourTargetKey,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -78,13 +84,20 @@ class AnalyticsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
             ],
-            HydrationScoreCard(
-              hydrationPercent: hydrationPercent,
-              entryCount: todayLogs.length,
+            KeyedSubtree(
+              key: tourTargetKey,
+              child: HydrationScoreCard(
+                hydrationPercent: hydrationPercent,
+                entryCount: todayLogs.length,
+                todayMl: todayMl,
+                targetMl: targetMl,
+                volumeUnit: settings.volumeUnit,
+              ),
             ),
             const SizedBox(height: 12),
             _WeeklyHydrationStrip(
               totals: weeklyTotals,
+              endDate: today,
               targetMl: targetMl,
               sex: settings.sex,
               volumeUnit: settings.volumeUnit,
@@ -138,12 +151,14 @@ class AnalyticsScreen extends StatelessWidget {
 
 class _WeeklyHydrationStrip extends StatelessWidget {
   final List<int> totals;
+  final DateTime endDate;
   final int targetMl;
   final HydrionSex? sex;
   final HydrionVolumeUnit volumeUnit;
 
   const _WeeklyHydrationStrip({
     required this.totals,
+    required this.endDate,
     required this.targetMl,
     required this.sex,
     required this.volumeUnit,
@@ -169,83 +184,105 @@ class _WeeklyHydrationStrip extends StatelessWidget {
             'Target: ${HydrationVolumeFormatter.format(targetMl, volumeUnit)}.';
     return HydrionSurface(
       key: const Key('weekly-hydration-strip'),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Last 7 days',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(rhythmSummary),
-                const SizedBox(height: 16),
-                Semantics(
-                  label: 'Seven day hydration chart. Daily totals: '
-                      '${totals.map((value) => HydrationVolumeFormatter.format(value, volumeUnit)).join(', ')}.',
-                  child: SizedBox(
-                    height: 112,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        for (var index = 0; index < totals.length; index += 1)
-                          Expanded(
-                            child: Padding(
-                              padding:
-                                  EdgeInsets.only(right: index == 6 ? 0 : 8),
-                              child: _DayBar(
-                                valueMl: totals[index],
-                                maxMl: maxValue,
-                                targetMl: targetMl,
-                                isToday: index == totals.length - 1,
-                                volumeUnit: volumeUnit,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 520;
+          final chart = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Last 7 days',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(rhythmSummary),
+              const SizedBox(height: 16),
+              Semantics(
+                label: 'Seven day hydration chart. '
+                    '${List.generate(totals.length, (index) {
+                  final day = endDate.subtract(
+                    Duration(days: totals.length - index - 1),
+                  );
+                  return '${MaterialLocalizations.of(context).formatFullDate(day)}: '
+                      '${HydrationVolumeFormatter.format(totals[index], volumeUnit)}';
+                }).join('. ')}.',
+                child: SizedBox(
+                  height: 128,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (var index = 0; index < totals.length; index += 1)
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(right: index == 6 ? 0 : 8),
+                            child: _DayBar(
+                              key: ValueKey('weekly-day-$index'),
+                              date: endDate.subtract(
+                                Duration(days: totals.length - index - 1),
                               ),
+                              valueMl: totals[index],
+                              maxMl: maxValue,
+                              targetMl: targetMl,
+                              isToday: index == totals.length - 1,
+                              showLabel: !compact ||
+                                  index.isEven ||
+                                  index == totals.length - 1,
+                              volumeUnit: volumeUnit,
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(HydrionRadii.sm),
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Image.asset(
-                scene.assetPath,
-                width: 76,
-                height: 120,
-                fit: BoxFit.contain,
-                semanticLabel: scene.description,
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+          if (compact) return chart;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(child: chart),
+              const SizedBox(width: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(HydrionRadii.sm),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Image.asset(
+                    scene.assetPath,
+                    width: 76,
+                    height: 120,
+                    fit: BoxFit.contain,
+                    semanticLabel: scene.description,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
 class _DayBar extends StatelessWidget {
+  final DateTime date;
   final int valueMl;
   final int maxMl;
   final int targetMl;
   final bool isToday;
+  final bool showLabel;
   final HydrionVolumeUnit volumeUnit;
 
   const _DayBar({
+    super.key,
+    required this.date,
     required this.valueMl,
     required this.maxMl,
     required this.targetMl,
     required this.isToday,
+    required this.showLabel,
     required this.volumeUnit,
   });
 
@@ -254,55 +291,67 @@ class _DayBar extends StatelessWidget {
     final percent = maxMl <= 0 ? 0.0 : (valueMl / maxMl).clamp(0.0, 1.0);
     final goalMet = valueMl >= targetMl;
     final formatted = HydrationVolumeFormatter.format(valueMl, volumeUnit);
-    final label = isToday ? 'Today' : formatted;
-    final subLabel = isToday ? formatted : '';
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Expanded(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: HydrionColors.current.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(HydrionRadii.pill),
-            ),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: FractionallySizedBox(
-                heightFactor: percent,
-                widthFactor: 1,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: goalMet
-                        ? HydrionColors.kelp
-                        : isToday
-                            ? HydrionColors.deep
-                            : HydrionColors.current.withValues(alpha: 0.72),
-                    borderRadius: BorderRadius.circular(HydrionRadii.pill),
+    final localizations = MaterialLocalizations.of(context);
+    final label = isToday
+        ? 'Today'
+        : DateFormat.E(
+            Localizations.localeOf(context).toLanguageTag(),
+          ).format(date);
+    final fullDate = localizations.formatFullDate(date);
+    return Semantics(
+      label: '$fullDate, $formatted${isToday ? ', today' : ''}',
+      child: Tooltip(
+        message: '$fullDate \u00b7 $formatted',
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Expanded(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: HydrionColors.current.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(HydrionRadii.pill),
+                ),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: FractionallySizedBox(
+                    heightFactor: percent,
+                    widthFactor: 1,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: goalMet
+                            ? HydrionColors.kelp
+                            : isToday
+                                ? HydrionColors.deep
+                                : HydrionColors.current.withValues(alpha: 0.72),
+                        borderRadius: BorderRadius.circular(HydrionRadii.pill),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 18,
+              child: showLabel
+                  ? Text(
+                      label,
+                      key: Key(
+                        'weekly-day-label-'
+                        '${date.toIso8601String().substring(0, 10)}',
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.clip,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontWeight:
+                                isToday ? FontWeight.w900 : FontWeight.w600,
+                          ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelSmall,
-        ),
-        SizedBox(
-          height: 14,
-          child: Text(
-            subLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
