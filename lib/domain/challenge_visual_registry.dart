@@ -99,6 +99,8 @@ class ChallengeVisualRegistry {
       primary: Color(0xFF126E82),
       secondary: Color(0xFF67C9B8),
       icon: Icons.grid_view_rounded,
+      cardAsset: 'assets/UI_BETA/ble_bottle.png',
+      neutralAsset: 'assets/UI_BETA/ble_bottle.png',
       imageAlignment: Alignment.centerRight,
     ),
   };

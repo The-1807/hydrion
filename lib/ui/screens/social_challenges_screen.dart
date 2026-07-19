@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/bottle_bingo.dart';
 import '../../domain/challenge_catalog.dart';
 import '../../domain/challenge_visual_registry.dart';
 import '../../domain/hydration_contracts.dart';
@@ -652,6 +653,18 @@ class _ChallengeCard extends StatelessWidget {
       challengeId: challenge.id,
     );
     final visual = ChallengeVisualRegistry.forId(challenge.id);
+    final isBottleBingo = challenge.id == 'bottle-bingo';
+    final bingoCompleted = active == null
+        ? const <int>{BottleBingoBoard.centerIndex}
+        : challengeRepository.bottleBingoCompletedIndexes(
+            hydrationRepository,
+            challenge: active,
+            dailyGoalMl: targetMl,
+          );
+    final bingoLines = active == null
+        ? const <int>{}
+        : BottleBingoBoard.forInstance(active.joinedAt.microsecondsSinceEpoch)
+            .completedLines(bingoCompleted);
 
     void openDetails() {
       Navigator.of(context).push(
@@ -672,88 +685,107 @@ class _ChallengeCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 92,
-                    height: 92,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          visual.primary.withValues(alpha: 0.20),
-                          visual.secondary.withValues(alpha: 0.08),
+              if (isBottleBingo)
+                _BottleBingoCatalogueHeader(
+                  asset: visual.cardAsset!,
+                  primary: visual.primary,
+                  secondary: visual.secondary,
+                  completedTiles: bingoCompleted.length,
+                  completedLines: bingoLines.length,
+                  active: joined,
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 92,
+                      height: 92,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            visual.primary.withValues(alpha: 0.20),
+                            visual.secondary.withValues(alpha: 0.08),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(HydrionRadii.md),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: visual.cardAsset == null
+                          ? Icon(visual.icon, color: visual.primary, size: 40)
+                          : Image.asset(
+                              visual.cardAsset!,
+                              fit: BoxFit.contain,
+                              alignment: visual.imageAlignment,
+                              cacheWidth: 300,
+                              excludeFromSemantics: true,
+                            ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            challenge.name,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            challenge.category,
+                            style: Theme.of(context).textTheme.labelMedium,
+                          ),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(HydrionRadii.md),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: visual.cardAsset == null
-                        ? Icon(visual.icon, color: visual.primary, size: 40)
-                        : Image.asset(
-                            visual.cardAsset!,
-                            fit: BoxFit.contain,
-                            alignment: visual.imageAlignment,
-                            excludeFromSemantics: true,
-                          ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          challenge.name,
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          challenge.category,
-                          style: Theme.of(context).textTheme.labelMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(challenge.description),
-              const SizedBox(height: 8),
-              Text(
-                challenge.dailyTask,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              if (joined) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(HydrionRadii.pill),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(
-                      end: hydrationMetric
-                          ? progress.dailyHydrationPercent
-                          : progress.percent,
-                    ),
-                    duration: MediaQuery.disableAnimationsOf(context)
-                        ? Duration.zero
-                        : const Duration(milliseconds: 320),
-                    builder: (context, value, _) => LinearProgressIndicator(
-                      key: const Key('challenge-daily-progress'),
-                      value: value,
-                    ),
-                  ),
+                  ],
                 ),
+              const SizedBox(height: 12),
+              Text(isBottleBingo
+                  ? 'Complete hydration habits and build a five-tile line.'
+                  : challenge.description),
+              if (!isBottleBingo) ...[
                 const SizedBox(height: 8),
                 Text(
-                  hydrationMetric
-                      ? challenge.id == 'pomodoro-sip'
-                          ? '${progress.completedDays}/${progress.durationDays} days \u00b7 ${active?.completedActionIds.length ?? 0} sip check-ins \u00b7 ${HydrationVolumeFormatter.format(progress.todayMl, volumeUnit)} measured'
-                          : "Today's challenge hydration: ${HydrationVolumeFormatter.format(progress.todayMl, volumeUnit)}"
-                      : '${progress.completedDays}/${progress.durationDays} days checked in',
+                  challenge.dailyTask,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              if (joined) ...[
+                if (!isBottleBingo) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(HydrionRadii.pill),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(
+                        end: hydrationMetric
+                            ? progress.dailyHydrationPercent
+                            : progress.percent,
+                      ),
+                      duration: MediaQuery.disableAnimationsOf(context)
+                          ? Duration.zero
+                          : const Duration(milliseconds: 320),
+                      builder: (context, value, _) => LinearProgressIndicator(
+                        key: const Key('challenge-daily-progress'),
+                        value: value,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                Text(
+                  isBottleBingo
+                      ? '${bingoCompleted.length} of 25 tiles · ${bingoLines.length} of 12 lines'
+                      : hydrationMetric
+                          ? challenge.id == 'pomodoro-sip'
+                              ? '${progress.completedDays}/${progress.durationDays} days \u00b7 ${active?.completedActionIds.length ?? 0} sip check-ins \u00b7 ${HydrationVolumeFormatter.format(progress.todayMl, volumeUnit)} measured'
+                              : "Today's challenge hydration: ${HydrationVolumeFormatter.format(progress.todayMl, volumeUnit)}"
+                          : '${progress.completedDays}/${progress.durationDays} days checked in',
                 ),
                 const SizedBox(height: 12),
               ],
@@ -762,11 +794,12 @@ class _ChallengeCard extends StatelessWidget {
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  _StatusChip(
-                    label:
-                        '${HydrationVolumeFormatter.format(targetMl, volumeUnit)}/day',
-                    active: false,
-                  ),
+                  if (!isBottleBingo)
+                    _StatusChip(
+                      label:
+                          '${HydrationVolumeFormatter.format(targetMl, volumeUnit)}/day',
+                      active: false,
+                    ),
                   _StatusChip(
                     label: l10n.challengeDurationDays(
                       durationDays: challenge.durationDays,
@@ -799,6 +832,136 @@ class _ChallengeCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BottleBingoCatalogueHeader extends StatelessWidget {
+  final String asset;
+  final Color primary;
+  final Color secondary;
+  final int completedTiles;
+  final int completedLines;
+  final bool active;
+
+  const _BottleBingoCatalogueHeader({
+    required this.asset,
+    required this.primary,
+    required this.secondary,
+    required this.completedTiles,
+    required this.completedLines,
+    required this.active,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final largeText = MediaQuery.textScalerOf(context).scale(14) / 14 > 1.2;
+    return Container(
+      key: const Key('bottle-bingo-catalogue-header'),
+      height: 176,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(HydrionRadii.md),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            isDark ? const Color(0xFF061F30) : primary,
+            isDark
+                ? secondary.withValues(alpha: 0.44)
+                : secondary.withValues(alpha: 0.78),
+          ],
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned(
+            key: const Key('bottle-bingo-catalogue-artwork'),
+            top: -16,
+            right: -8,
+            bottom: -18,
+            width: 158,
+            child: Image.asset(
+              asset,
+              fit: BoxFit.contain,
+              alignment: Alignment.centerRight,
+              cacheWidth: 420,
+              excludeFromSemantics: true,
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                stops: const [0, 0.58, 1],
+                colors: [
+                  Colors.black.withValues(alpha: isDark ? 0.30 : 0.20),
+                  primary.withValues(alpha: 0.56),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: 0.72,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: DefaultTextStyle(
+                  style: const TextStyle(color: Colors.white),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        width: constraints.maxWidth,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Bottle Bingo',
+                              style: (largeText
+                                      ? Theme.of(context).textTheme.titleMedium
+                                      : Theme.of(context).textTheme.titleLarge)
+                                  ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            if (!largeText) ...[
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Build a line with everyday hydration habits.',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            Text(
+                              largeText
+                                  ? active
+                                      ? 'Board active'
+                                      : 'Open board'
+                                  : active
+                                      ? '$completedTiles of 25 tiles · $completedLines of 12 lines'
+                                      : 'Open the board preview',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
