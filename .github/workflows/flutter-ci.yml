@@ -259,6 +259,12 @@ jobs:
                           event_type = event.get("type")
 
                           if not isinstance(event_type, str):
+                              event_name = event.get("event")
+                              if event_name == "test.startedProcess":
+                                  all_output.append(
+                                      "PROCESS: Flutter test process started"
+                                  )
+                                  continue
                               unsupported_values.append(
                                   f"Line {line_number}: event without string type: "
                                   f"{json.dumps(event, ensure_ascii=False)}"
