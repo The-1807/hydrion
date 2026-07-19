@@ -94,15 +94,26 @@ void main() {
       expect(file.path, isNot(contains('hydrion-lifestyle-')));
     }
     final mapped = <String>[];
+    final ownersByAsset = <String, Set<String>>{};
     for (final challenge in HydrionChallengeCatalog.challenges) {
       final visual = ChallengeVisualRegistry.forId(challenge.id);
-      if (visual.cardAsset != null) mapped.add(visual.cardAsset!);
-      if (visual.neutralAsset != null) mapped.add(visual.neutralAsset!);
-      if (visual.maleAsset != null) mapped.add(visual.maleAsset!);
-      if (visual.femaleAsset != null) mapped.add(visual.femaleAsset!);
+      for (final path in [
+        visual.cardAsset,
+        visual.neutralAsset,
+        visual.maleAsset,
+        visual.femaleAsset,
+      ].whereType<String>()) {
+        mapped.add(path);
+        ownersByAsset.putIfAbsent(path, () => <String>{}).add(challenge.id);
+      }
     }
     expect(mapped, isNotEmpty);
-    expect(mapped.toSet(), hasLength(mapped.length));
+    expect(
+      ownersByAsset.values.every((owners) => owners.length == 1),
+      isTrue,
+      reason: 'Artwork may serve multiple surfaces for one challenge but '
+          'must not be shared across different challenges.',
+    );
     for (final path in mapped) {
       expect(File(path).existsSync(), isTrue, reason: path);
     }

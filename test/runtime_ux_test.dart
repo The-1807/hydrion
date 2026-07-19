@@ -382,13 +382,19 @@ void main() {
     final hydrationTile = find.byKey(Key('live-bingo-tile-$hydrationIndex'));
     await tester.scrollUntilVisible(
       hydrationTile,
-      -300,
+      260,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(hydrationTile);
     await tester.pumpAndSettle();
     await tester.tap(hydrationTile);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Log 500 ml'));
+    final action = find.byKey(
+      const Key('bottle-bingo-tile-primary-action'),
+    );
+    await tester.ensureVisible(action);
+    await tester.pumpAndSettle();
+    await tester.tap(action);
     await tester.pumpAndSettle();
 
     expect(services.hydrationRepository.logs, hasLength(1));

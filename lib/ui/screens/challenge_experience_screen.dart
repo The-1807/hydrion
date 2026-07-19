@@ -504,6 +504,16 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       challengeId: active.id,
     );
     final instruction = _instruction(active, day);
+    if (widget.challenge.id == 'bottle-bingo') {
+      return _bottleBingoDashboard(
+        context,
+        active: active,
+        hydration: hydration,
+        settings: settings,
+        repository: repository,
+        todayTotalMl: total,
+      );
+    }
     return [
       _ChallengeImageHero(
         challengeName: widget.challenge.name,
@@ -536,14 +546,6 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         _EatYourWaterPanel(active: active),
       if (widget.challenge.id == 'plant-twin-challenge')
         _PlantCuePanel(active: active),
-      if (widget.challenge.id == 'bottle-bingo')
-        _LiveBingoBoard(
-          key: _tutorialPrimaryTarget,
-          active: active,
-          repository: repository,
-          hydrationRepository: hydration,
-          settings: settings,
-        ),
       if (widget.challenge.id == 'pomodoro-sip')
         _PomodoroTimerCard(key: _tutorialPrimaryTarget, active: active),
       KeyedSubtree(
@@ -677,6 +679,135 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         ),
       ),
     ];
+  }
+
+  List<Widget> _bottleBingoDashboard(
+    BuildContext context, {
+    required JoinedChallenge active,
+    required HydrationRepository hydration,
+    required UserSettings settings,
+    required ChallengeRepository repository,
+    required int todayTotalMl,
+  }) {
+    final board = BottleBingoBoard.forInstance(
+      active.joinedAt.microsecondsSinceEpoch,
+    );
+    final completed = repository.bottleBingoCompletedIndexes(
+      hydration,
+      challenge: active,
+      dailyGoalMl: settings.dailyGoalMl,
+    );
+    final lines = board.completedLines(completed);
+    final history = ChallengeHistoryPresenter.present(
+      challenge: active,
+      hydrationLogs: hydration.logs,
+      unit: settings.volumeUnit,
+      hydrationLogQualifies: (log) =>
+          repository.hydrationLogQualifies(active, log),
+    );
+    final recent = history.take(4).toList(growable: false);
+    return [
+      _BottleBingoDashboardHero(
+        asset: ChallengeVisualRegistry.forId('bottle-bingo')
+            .dashboardAssetFor(settings.sex)!,
+        completedTiles: completed.length,
+        completedLines: lines.length,
+      ),
+      _BottleBingoMetrics(
+        completedTiles: completed.length,
+        completedLines: lines.length,
+        todayMl: todayTotalMl,
+        unit: settings.volumeUnit,
+      ),
+      _LiveBingoBoard(
+        key: _tutorialPrimaryTarget,
+        active: active,
+        repository: repository,
+        hydrationRepository: hydration,
+        settings: settings,
+        onConfigureAmount: () => _showChallengeSettings(context, active),
+      ),
+      _Section(
+        title: 'Recent activity',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ChallengeHistoryView(items: recent),
+            if (history.length > recent.length)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: const Key('bottle-bingo-see-all-activity'),
+                  onPressed: () => _showAllBingoActivity(context, history),
+                  icon: const Icon(Icons.history),
+                  label: const Text('See all activity'),
+                ),
+              ),
+          ],
+        ),
+      ),
+      const _BottleBingoInformation(),
+      _Section(
+        title: 'Challenge settings',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OutlinedButton.icon(
+              style: _challengeOutlinedStyle(context),
+              key: _tutorialHelpTarget,
+              onPressed: () => context
+                  .read<GuidedTourRepository>()
+                  .replayContextualTour(_contextualTutorial(active)!.id),
+              icon: const Icon(Icons.help_outline),
+              label: const Text('Replay board guide'),
+            ),
+            OutlinedButton.icon(
+              style: _challengeOutlinedStyle(context),
+              key: Key('challenge-edit-settings-${active.id}'),
+              onPressed: () => _showChallengeSettings(context, active),
+              icon: const Icon(Icons.tune),
+              label: const Text('Edit challenge settings'),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Pause or leave this challenge from the options menu above. Your hydration records remain intact.',
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  Future<void> _showAllBingoActivity(
+    BuildContext context,
+    List<ChallengeHistoryItem> history,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.78,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bottle Bingo activity',
+                  style: Theme.of(sheetContext).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                ChallengeHistoryView(items: history),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _activate(BuildContext context) async {
@@ -1671,11 +1802,293 @@ class _PlantCuePanel extends StatelessWidget {
       );
 }
 
-class _LiveBingoBoard extends StatelessWidget {
+class _BottleBingoDashboardHero extends StatelessWidget {
+  final String asset;
+  final int completedTiles;
+  final int completedLines;
+
+  const _BottleBingoDashboardHero({
+    required this.asset,
+    required this.completedTiles,
+    required this.completedLines,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final shortViewport = MediaQuery.sizeOf(context).height < 500;
+    final compactWidth = MediaQuery.sizeOf(context).width < 380;
+    final largeText = MediaQuery.textScalerOf(context).scale(14) / 14 > 1.2;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        key: const Key('bottle-bingo-dashboard-hero'),
+        height: shortViewport ? 166 : 224,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(HydrionRadii.lg),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF073B55),
+              colors.primary,
+              const Color(0xFF49B9AC),
+            ],
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned(
+              key: const Key('bottle-bingo-dashboard-artwork'),
+              top: -26,
+              right: -6,
+              bottom: -28,
+              width: shortViewport ? 180 : 214,
+              child: Image.asset(
+                asset,
+                fit: BoxFit.contain,
+                alignment: Alignment.centerRight,
+                cacheWidth: 640,
+                excludeFromSemantics: true,
+              ),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  stops: const [0, 0.62, 1],
+                  colors: [
+                    const Color(0xFF04243A).withValues(alpha: 0.96),
+                    const Color(0xFF126E82).withValues(alpha: 0.72),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: 0.72,
+                child: Padding(
+                  padding: EdgeInsets.all(shortViewport ? 14 : 20),
+                  child: DefaultTextStyle(
+                    style: const TextStyle(color: Colors.white),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          width: constraints.maxWidth,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Bottle Bingo',
+                                style: (largeText
+                                        ? Theme.of(context).textTheme.titleLarge
+                                        : Theme.of(context)
+                                            .textTheme
+                                            .headlineSmall)
+                                    ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              if (!shortViewport && !largeText) ...[
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Complete hydration habits. Build a line. Keep the board moving.',
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                              const SizedBox(height: 10),
+                              Text(
+                                largeText
+                                    ? '$completedTiles/25 tiles · $completedLines/12 lines'
+                                    : '$completedTiles of 25 tiles · $completedLines of 12 lines',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w900),
+                              ),
+                              if (!largeText && !compactWidth) ...[
+                                const SizedBox(height: 6),
+                                const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.touch_app_outlined,
+                                        color: Colors.white, size: 18),
+                                    SizedBox(width: 6),
+                                    Flexible(
+                                        child: Text('Choose a tile below')),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottleBingoMetrics extends StatelessWidget {
+  final int completedTiles;
+  final int completedLines;
+  final int todayMl;
+  final HydrionVolumeUnit unit;
+
+  const _BottleBingoMetrics({
+    required this.completedTiles,
+    required this.completedLines,
+    required this.todayMl,
+    required this.unit,
+  });
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Semantics(
+          liveRegion: true,
+          label:
+              '$completedTiles of 25 tiles, $completedLines of 12 lines, ${HydrationVolumeFormatter.format(todayMl, unit)} today',
+          child: HydrionSurface(
+            key: const Key('bottle-bingo-metrics'),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                _BingoMetric(
+                  key: const Key('bottle-bingo-tiles-metric'),
+                  icon: Icons.grid_view_rounded,
+                  label: 'Tiles',
+                  value: '$completedTiles / 25',
+                ),
+                _BingoMetric(
+                  key: const Key('bottle-bingo-lines-metric'),
+                  icon: Icons.linear_scale,
+                  label: 'Lines',
+                  value: '$completedLines / 12',
+                ),
+                _BingoMetric(
+                  key: const Key('bottle-bingo-today-metric'),
+                  icon: Icons.water_drop_outlined,
+                  label: 'Today',
+                  value: HydrationVolumeFormatter.format(todayMl, unit),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _BingoMetric extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _BingoMetric({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 96),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18),
+            const SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: Theme.of(context).textTheme.labelSmall),
+                Text(value,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelLarge
+                        ?.copyWith(fontWeight: FontWeight.w900)),
+              ],
+            ),
+          ],
+        ),
+      );
+}
+
+class _BottleBingoInformation extends StatelessWidget {
+  const _BottleBingoInformation();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+        padding: EdgeInsets.only(bottom: 12),
+        child: HydrionSurface(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              ExpansionTile(
+                key: Key('bottle-bingo-how-it-works'),
+                leading: Icon(Icons.info_outline),
+                title: Text('How it works'),
+                childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Automatic tiles respond to normal hydration logs. Measured-drink tiles add one canonical hydration record. Habit check-ins never add water.',
+                  ),
+                ],
+              ),
+              Divider(height: 1),
+              ExpansionTile(
+                key: Key('bottle-bingo-rules'),
+                leading: Icon(Icons.rule_outlined),
+                title: Text('Rules'),
+                childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'The board has 25 tiles with one completed Free Drop in the center. Complete five across a row, column, or diagonal to build a line.',
+                  ),
+                ],
+              ),
+              Divider(height: 1),
+              ExpansionTile(
+                key: Key('bottle-bingo-safety'),
+                leading: Icon(Icons.health_and_safety_outlined),
+                title: Text('Hydration safety'),
+                childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Keep intake comfortable. Do not force fluids to finish a tile or line, and stop if you feel unwell.',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _LiveBingoBoard extends StatefulWidget {
   final JoinedChallenge active;
   final ChallengeRepository repository;
   final HydrationRepository hydrationRepository;
   final UserSettings settings;
+  final Future<void> Function() onConfigureAmount;
 
   const _LiveBingoBoard({
     super.key,
@@ -1683,263 +2096,667 @@ class _LiveBingoBoard extends StatelessWidget {
     required this.repository,
     required this.hydrationRepository,
     required this.settings,
+    required this.onConfigureAmount,
   });
 
   @override
+  State<_LiveBingoBoard> createState() => _LiveBingoBoardState();
+}
+
+class _LiveBingoBoardState extends State<_LiveBingoBoard> {
+  int _selectedIndex = 0;
+
+  BottleBingoBoard get _board => BottleBingoBoard.forInstance(
+        widget.active.joinedAt.microsecondsSinceEpoch,
+      );
+
+  Set<int> get _completed => widget.repository.bottleBingoCompletedIndexes(
+        widget.hydrationRepository,
+        challenge: widget.active,
+        dailyGoalMl: widget.settings.dailyGoalMl,
+      );
+
+  @override
   Widget build(BuildContext context) {
-    final board = BottleBingoBoard.forInstance(
-      active.joinedAt.microsecondsSinceEpoch,
+    final board = _board;
+    final completed = _completed;
+    final completedLines = board.completedLines(completed);
+    final todayLogs = _todayLogs;
+    final lineTiles = <int>{
+      for (final line in completedLines) ...BottleBingoBoard.lineIndexes[line],
+    };
+    final selectedTile = board.tiles[_selectedIndex];
+    final selectedProgress = _progressFor(
+      selectedTile,
+      _selectedIndex,
+      completed,
+      todayLogs,
     );
-    final completed = <int>{BottleBingoBoard.centerIndex};
-    for (var index = 0; index < board.tiles.length; index++) {
-      if (_isComplete(board.tiles[index], index)) completed.add(index);
-    }
-    final lines = board.completedLines(completed);
     return _Section(
-      title: 'Your Bottle Bingo board',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${completed.length} of 25 tiles · ${lines.length} of 12 lines'),
-          const SizedBox(height: 12),
-          GridView.builder(
-            key: const Key('live-bottle-bingo-board'),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 25,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              crossAxisSpacing: 5,
-              mainAxisSpacing: 5,
-              childAspectRatio: .82,
-            ),
-            itemBuilder: (context, index) {
-              final tile = board.tiles[index];
-              final done = completed.contains(index);
-              return Semantics(
-                button: tile.kind != BingoTileKind.free,
-                label: '${tile.title}. ${done ? 'Completed' : 'Available'}.',
-                child: InkWell(
-                  key: Key('live-bingo-tile-$index'),
-                  onTap: tile.kind == BingoTileKind.free
-                      ? null
-                      : () => _showTile(context, tile, index, done),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Ink(
-                    decoration: BoxDecoration(
-                      color: done
-                          ? Theme.of(context).colorScheme.primaryContainer
-                          : Theme.of(context).colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: done
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(5),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            tile.kind == BingoTileKind.free
-                                ? Icons.water_drop
-                                : done
-                                    ? Icons.check_circle
-                                    : Icons.circle_outlined,
-                            size: 18,
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            tile.title,
-                            textAlign: TextAlign.center,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.labelSmall,
-                          ),
-                          if (!done && tile.kind == BingoTileKind.automatic)
-                            Text(
-                              _progressLabel(context, tile),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelSmall,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
+      title: 'Live board',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final expanded = constraints.maxWidth >= 640;
+          final grid = _buildGrid(
+            context,
+            board: board,
+            completed: completed,
+            lineTiles: lineTiles,
+            todayLogs: todayLogs,
+            expanded: expanded,
+          );
+          final details = _BingoTileDetails(
+            key: const Key('bottle-bingo-selected-tile-details'),
+            tile: selectedTile,
+            progress: selectedProgress,
+            amountMl: _configuredAmount,
+            unit: widget.settings.volumeUnit,
+            onAction: selectedTile.kind == BingoTileKind.automatic ||
+                    selectedTile.kind == BingoTileKind.free ||
+                    selectedProgress.state == _BingoTileState.completed
+                ? null
+                : selectedProgress.state == _BingoTileState.needsSetup
+                    ? widget.onConfigureAmount
+                    : () => _performTileAction(
+                          selectedTile,
+                          _selectedIndex,
+                        ),
+          );
+          if (!expanded) return grid;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 6, child: grid),
+              const SizedBox(width: 16),
+              Expanded(flex: 4, child: details),
+            ],
+          );
+        },
       ),
     );
   }
 
-  bool _isComplete(BingoTileDefinition tile, int index) {
-    if (tile.kind == BingoTileKind.free) return true;
-    if (tile.kind == BingoTileKind.checkIn) {
-      return active.bottleBingoCompletedTiles.contains(index);
-    }
-    if (tile.kind == BingoTileKind.hydrationAction) {
-      return hydrationRepository.logs.any((log) =>
-          !log.timestamp.isBefore(active.joinedAt) &&
-          log.metadata.bingoTileSource == tile.id);
-    }
-    final now = DateTime.now();
-    final logs = hydrationRepository.logs
-        .where((log) =>
-            log.timestamp.year == now.year &&
-            log.timestamp.month == now.month &&
-            log.timestamp.day == now.day)
-        .toList();
-    if (tile.goalFraction != null) {
-      final total = logs.fold<int>(0, (sum, log) => sum + log.volumeMl);
-      return total >= (settings.dailyGoalMl * tile.goalFraction!).round();
-    }
-    if (tile.logCount != null) return logs.length >= tile.logCount!;
-    if (tile.id == 'afternoon-water') {
-      return logs
-          .any((log) => log.timestamp.hour >= 12 && log.timestamp.hour < 17);
-    }
-    final cutoff = ((active.parameters['cutoffHour'] as num?) ?? 12).round();
-    return logs.any((log) => log.timestamp.hour < cutoff);
+  Widget _buildGrid(
+    BuildContext context, {
+    required BottleBingoBoard board,
+    required Set<int> completed,
+    required Set<int> lineTiles,
+    required List<HydrationLog> todayLogs,
+    required bool expanded,
+  }) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: AspectRatio(
+          aspectRatio: 1,
+          child: GridView.builder(
+            key: const Key('live-bottle-bingo-board'),
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 25,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 5,
+              crossAxisSpacing: 4,
+              mainAxisSpacing: 4,
+              childAspectRatio: 1,
+            ),
+            itemBuilder: (context, index) {
+              final tile = board.tiles[index];
+              final progress = _progressFor(tile, index, completed, todayLogs);
+              final inLine = lineTiles.contains(index);
+              return _BottleBingoCell(
+                key: Key('live-bingo-tile-$index'),
+                tile: tile,
+                progress: progress,
+                selected: expanded && index == _selectedIndex,
+                inCompletedLine: inLine,
+                onTap: tile.kind == BingoTileKind.free
+                    ? null
+                    : () {
+                        if (expanded) {
+                          setState(() => _selectedIndex = index);
+                        } else {
+                          _showTileSheet(context, tile, index, progress);
+                        }
+                      },
+              );
+            },
+          ),
+        ),
+      ),
+    );
   }
 
-  String _progressLabel(BuildContext context, BingoTileDefinition tile) {
+  int get _configuredAmount =>
+      ((widget.active.parameters['amountMl'] as num?) ?? 0).round();
+
+  List<HydrationLog> get _todayLogs {
     final now = DateTime.now();
-    final logs = hydrationRepository.logs
+    return widget.hydrationRepository.logs
         .where((log) =>
             log.timestamp.year == now.year &&
             log.timestamp.month == now.month &&
             log.timestamp.day == now.day)
-        .toList();
+        .toList(growable: false);
+  }
+
+  _BingoTileProgress _progressFor(
+    BingoTileDefinition tile,
+    int index,
+    Set<int> completed,
+    List<HydrationLog> logs,
+  ) {
+    if (tile.kind == BingoTileKind.free) {
+      return const _BingoTileProgress(
+        state: _BingoTileState.free,
+        compactLabel: 'Free',
+        detailLabel: 'Free center tile · completed',
+      );
+    }
+    if (completed.contains(index)) {
+      return const _BingoTileProgress(
+        state: _BingoTileState.completed,
+        compactLabel: 'Done',
+        detailLabel: 'Completed',
+      );
+    }
+    if (tile.kind == BingoTileKind.hydrationAction && _configuredAmount <= 0) {
+      return const _BingoTileProgress(
+        state: _BingoTileState.needsSetup,
+        compactLabel: 'Set up',
+        detailLabel: 'Needs a measured drink amount',
+      );
+    }
     if (tile.goalFraction != null) {
       final total = logs.fold<int>(0, (sum, log) => sum + log.volumeMl);
-      final target = (settings.dailyGoalMl * tile.goalFraction!).round();
-      return '${HydrationVolumeFormatter.format(total, settings.volumeUnit)} / ${HydrationVolumeFormatter.format(target, settings.volumeUnit)}';
+      final target = (widget.settings.dailyGoalMl * tile.goalFraction!).round();
+      final label =
+          '${HydrationVolumeFormatter.format(total, widget.settings.volumeUnit)} / ${HydrationVolumeFormatter.format(target, widget.settings.volumeUnit)}';
+      return _BingoTileProgress(
+        state:
+            total > 0 ? _BingoTileState.inProgress : _BingoTileState.available,
+        compactLabel: total > 0
+            ? '${((total / target) * 100).clamp(0, 99).round()}%'
+            : '${(tile.goalFraction! * 100).round()}%',
+        detailLabel: label,
+      );
     }
     if (tile.logCount != null) {
-      return '${logs.length} of ${tile.logCount} logs';
+      final count = logs.length.clamp(0, tile.logCount!);
+      return _BingoTileProgress(
+        state:
+            count > 0 ? _BingoTileState.inProgress : _BingoTileState.available,
+        compactLabel: '$count / ${tile.logCount}',
+        detailLabel: '$count of ${tile.logCount} hydration logs today',
+      );
     }
-    if (tile.id == 'afternoon-water') return '12 PM–5 PM';
-    final cutoff = ((active.parameters['cutoffHour'] as num?) ?? 12).round();
-    if (now.hour >= cutoff && !logs.any((log) => log.timestamp.hour < cutoff)) {
-      return 'Missed today';
+    final now = DateTime.now();
+    final cutoff =
+        ((widget.active.parameters['cutoffHour'] as num?) ?? 12).round();
+    if (tile.id == 'afternoon-water') {
+      final missed = now.hour >= 17;
+      return _BingoTileProgress(
+        state: missed ? _BingoTileState.missed : _BingoTileState.available,
+        compactLabel: missed ? 'Missed' : '12–5',
+        detailLabel: missed
+            ? 'Today’s noon-to-5 PM window has ended'
+            : 'Available from noon to 5 PM',
+      );
     }
-    return 'Before ${TimeOfDay(hour: cutoff, minute: 0).format(context)}';
+    if (tile.id == 'before-lunch' || tile.id == 'morning-water') {
+      final endHour = tile.id == 'morning-water' ? 12 : cutoff;
+      final missed = now.hour >= endHour;
+      return _BingoTileProgress(
+        state: missed ? _BingoTileState.missed : _BingoTileState.available,
+        compactLabel: missed ? 'Missed' : 'Before $endHour',
+        detailLabel: missed
+            ? 'Today’s time window has ended'
+            : 'Available before ${TimeOfDay(hour: endHour, minute: 0).format(context)}',
+      );
+    }
+    return const _BingoTileProgress(
+      state: _BingoTileState.available,
+      compactLabel: 'Ready',
+      detailLabel: 'Available',
+    );
   }
 
-  Future<void> _showTile(
+  Future<void> _showTileSheet(
     BuildContext context,
     BingoTileDefinition tile,
     int index,
-    bool completed,
+    _BingoTileProgress progress,
   ) async {
-    final amount = ((active.parameters['amountMl'] as num?) ?? 250).round();
-    final notifications = context.read<NotificationService>();
+    setState(() => _selectedIndex = index);
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(tile.title,
-                  style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 8),
-              Text(tile.instruction),
-              const SizedBox(height: 8),
-              Text(completed
-                  ? 'Completed. Your board will update if the supporting water record changes.'
-                  : tile.kind == BingoTileKind.automatic
-                      ? 'Water logged from Home or anywhere in Hydrion can complete this tile.'
-                      : tile.kind == BingoTileKind.hydrationAction
-                          ? 'This will log ${HydrationVolumeFormatter.format(amount, settings.volumeUnit)}.'
-                          : 'This check-in does not add water.'),
-              const SizedBox(height: 16),
-              if (!completed && tile.kind == BingoTileKind.checkIn)
-                FilledButton(
-                  onPressed: () async {
-                    await repository.toggleBottleBingoTile(index);
-                    if (repository.isChallengeComplete(
-                      active.id,
-                      hydrationRepository,
-                      dailyGoalMl: settings.dailyGoalMl,
-                    )) {
-                      final change =
-                          await repository.completeChallenge(active.id);
-                      for (final reminderId in change.obsoleteReminderIds) {
-                        await notifications.deleteReminder(reminderId);
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: _BingoTileDetails(
+            tile: tile,
+            progress: progress,
+            amountMl: _configuredAmount,
+            unit: widget.settings.volumeUnit,
+            onAction: tile.kind == BingoTileKind.automatic ||
+                    progress.state == _BingoTileState.completed
+                ? null
+                : progress.state == _BingoTileState.needsSetup
+                    ? () async {
+                        if (sheetContext.mounted) Navigator.pop(sheetContext);
+                        await widget.onConfigureAmount();
                       }
-                    }
-                    await HapticFeedback.selectionClick();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${tile.title} completed.')),
-                      );
-                    }
-                    if (sheetContext.mounted) Navigator.pop(sheetContext);
-                  },
-                  child: const Text('Mark complete'),
-                ),
-              if (!completed && tile.kind == BingoTileKind.hydrationAction)
-                FilledButton(
-                  onPressed: () async {
-                    final log = await repository.completeHydrationAction(
-                      hydrationRepository: hydrationRepository,
-                      volumeMl: amount,
-                      actionKey: tile.id,
-                      challengeId: active.id,
-                      metadata: HydrationMetadata(
-                        bingoTileSource: tile.id,
-                        mealContext:
-                            tile.id == 'meal-drink' ? 'with meal' : null,
-                        timeWindow: tile.id == 'evening-sip' ? 'evening' : null,
-                      ),
-                    );
-                    if (log != null) {
-                      if (repository.isChallengeComplete(
-                        active.id,
-                        hydrationRepository,
-                        dailyGoalMl: settings.dailyGoalMl,
-                      )) {
-                        final change =
-                            await repository.completeChallenge(active.id);
-                        for (final reminderId in change.obsoleteReminderIds) {
-                          await notifications.deleteReminder(reminderId);
-                        }
-                      }
-                      await HapticFeedback.selectionClick();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${tile.title} completed and added to your hydration log.',
+                    : () async {
+                        await _performTileAction(tile, index);
+                        if (sheetContext.mounted) Navigator.pop(sheetContext);
+                      },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _performTileAction(
+    BingoTileDefinition tile,
+    int index,
+  ) async {
+    final beforeLines = _board.completedLines(_completed);
+    var changed = false;
+    if (tile.kind == BingoTileKind.checkIn) {
+      changed = await widget.repository.toggleBottleBingoTile(index);
+    } else if (tile.kind == BingoTileKind.hydrationAction &&
+        _configuredAmount > 0) {
+      final log = await widget.repository.completeHydrationAction(
+        hydrationRepository: widget.hydrationRepository,
+        volumeMl: _configuredAmount,
+        actionKey: tile.id,
+        challengeId: widget.active.id,
+        metadata: HydrationMetadata(
+          bingoTileSource: tile.id,
+          mealContext: tile.id == 'meal-drink' ? 'with meal' : null,
+          timeWindow: tile.id == 'evening-sip' ? 'evening' : null,
+        ),
+      );
+      changed = log != null;
+    }
+    if (!changed || !mounted) return;
+    final afterLines = _board.completedLines(_completed);
+    final newLineCount = afterLines.difference(beforeLines).length;
+    final complete = widget.repository.isChallengeComplete(
+      widget.active.id,
+      widget.hydrationRepository,
+      dailyGoalMl: widget.settings.dailyGoalMl,
+    );
+    if (complete) {
+      final notifications = context.read<NotificationService>();
+      final change =
+          await widget.repository.completeChallenge(widget.active.id);
+      for (final reminderId in change.obsoleteReminderIds) {
+        await notifications.deleteReminder(reminderId);
+      }
+    }
+    await HapticFeedback.selectionClick();
+    if (!mounted) return;
+    final message = newLineCount > 0
+        ? 'Bingo! ${newLineCount == 1 ? 'A new line is complete.' : '$newLineCount new lines are complete.'}'
+        : tile.kind == BingoTileKind.hydrationAction
+            ? '${tile.title} completed and added once to hydration.'
+            : '${tile.title} completed.';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+    setState(() {});
+  }
+}
+
+enum _BingoTileState {
+  free,
+  available,
+  inProgress,
+  completed,
+  needsSetup,
+  missed,
+}
+
+class _BingoTileProgress {
+  final _BingoTileState state;
+  final String compactLabel;
+  final String detailLabel;
+
+  const _BingoTileProgress({
+    required this.state,
+    required this.compactLabel,
+    required this.detailLabel,
+  });
+}
+
+class _BottleBingoCell extends StatelessWidget {
+  final BingoTileDefinition tile;
+  final _BingoTileProgress progress;
+  final bool selected;
+  final bool inCompletedLine;
+  final VoidCallback? onTap;
+
+  const _BottleBingoCell({
+    super.key,
+    required this.tile,
+    required this.progress,
+    required this.selected,
+    required this.inCompletedLine,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final stateColor = switch (progress.state) {
+      _BingoTileState.free => colors.tertiary,
+      _BingoTileState.completed => colors.primary,
+      _BingoTileState.inProgress => colors.secondary,
+      _BingoTileState.needsSetup => colors.error,
+      _BingoTileState.missed => colors.outline,
+      _BingoTileState.available => colors.outlineVariant,
+    };
+    final fill = switch (progress.state) {
+      _BingoTileState.free => colors.tertiaryContainer,
+      _BingoTileState.completed => colors.primaryContainer,
+      _BingoTileState.inProgress => colors.secondaryContainer,
+      _BingoTileState.needsSetup => colors.errorContainer,
+      _BingoTileState.missed => colors.surfaceContainerHighest,
+      _BingoTileState.available => colors.surfaceContainerHigh,
+    };
+    final icon = switch (progress.state) {
+      _BingoTileState.free => Icons.water_drop,
+      _BingoTileState.completed => Icons.check_circle,
+      _BingoTileState.inProgress => Icons.timelapse,
+      _BingoTileState.needsSetup => Icons.build_circle_outlined,
+      _BingoTileState.missed => Icons.schedule,
+      _BingoTileState.available => _iconForTile(tile),
+    };
+    final largeText = MediaQuery.textScalerOf(context).scale(14) / 14 > 1.2;
+    final status = _stateLabel(progress.state);
+    return Semantics(
+      button: onTap != null,
+      selected: selected,
+      label:
+          '${tile.title}. $status. ${progress.detailLabel}.${inCompletedLine ? ' Part of a completed Bingo line.' : ''}${onTap == null ? '' : ' Double tap for details.'}',
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Ink(
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: inCompletedLine
+                    ? colors.tertiary
+                    : selected
+                        ? colors.primary
+                        : stateColor,
+                width: inCompletedLine || selected ? 2.5 : 1.2,
+              ),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final dense = constraints.maxHeight < 60 || largeText;
+                return Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!dense) Icon(icon, size: 16, color: colors.onSurface),
+                      if (!dense) const SizedBox(height: 2),
+                      Text(
+                        _shortTitle(tile),
+                        textAlign: TextAlign.center,
+                        maxLines: dense ? 1 : 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              height: 1,
                             ),
-                          ),
-                        );
-                      }
-                    }
-                    if (sheetContext.mounted) Navigator.pop(sheetContext);
-                  },
-                  child: Text(
-                    'Log ${HydrationVolumeFormatter.format(amount, settings.volumeUnit)}',
+                      ),
+                      if (progress.state != _BingoTileState.available) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          progress.compactLabel,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    height: 0.95,
+                                  ),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-            ],
+                );
+              },
+            ),
           ),
         ),
       ),
     );
   }
 }
+
+class _BingoTileDetails extends StatelessWidget {
+  final BingoTileDefinition tile;
+  final _BingoTileProgress progress;
+  final int amountMl;
+  final HydrionVolumeUnit unit;
+  final Future<void> Function()? onAction;
+
+  const _BingoTileDetails({
+    super.key,
+    required this.tile,
+    required this.progress,
+    required this.amountMl,
+    required this.unit,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final completed = progress.state == _BingoTileState.completed ||
+        progress.state == _BingoTileState.free;
+    return Semantics(
+      container: true,
+      label: '${tile.title} details',
+      child: HydrionSurface(
+        key: const Key('bottle-bingo-tile-detail-surface'),
+        padding: const EdgeInsets.all(14),
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(child: Icon(_iconForTile(tile))),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tile.title,
+                        key: const Key('bottle-bingo-selected-tile-title'),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 4),
+                      Chip(
+                        avatar: Icon(_stateIcon(progress.state), size: 18),
+                        label: Text(_stateLabel(progress.state)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _BingoDetailLine(label: 'What to do', value: tile.instruction),
+            _BingoDetailLine(
+              label: 'Why it counts',
+              value: _whyItCounts(tile),
+            ),
+            _BingoDetailLine(
+              label: 'Home hydration',
+              value: tile.kind == BingoTileKind.automatic
+                  ? 'Can satisfy this tile automatically.'
+                  : 'Does not directly complete this tile.',
+            ),
+            _BingoDetailLine(
+              label: 'Adds hydration',
+              value: tile.kind == BingoTileKind.hydrationAction
+                  ? amountMl > 0
+                      ? 'Yes · ${HydrationVolumeFormatter.format(amountMl, unit)} is recorded once.'
+                      : 'Set a measured challenge amount before logging.'
+                  : 'No new hydration record is added.',
+            ),
+            if (_timeWindow(tile) != null)
+              _BingoDetailLine(
+                label: 'Time window',
+                value: _timeWindow(tile)!,
+              ),
+            _BingoDetailLine(
+              label: 'Current progress',
+              value: progress.detailLabel,
+            ),
+            if (!completed && onAction != null) ...[
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                key: const Key('bottle-bingo-tile-primary-action'),
+                onPressed: onAction,
+                icon: Icon(tile.kind == BingoTileKind.hydrationAction
+                    ? progress.state == _BingoTileState.needsSetup
+                        ? Icons.tune
+                        : Icons.water_drop_outlined
+                    : Icons.check_circle_outline),
+                label: Text(
+                  progress.state == _BingoTileState.needsSetup
+                      ? 'Set up challenge amount'
+                      : tile.kind == BingoTileKind.hydrationAction
+                          ? 'Log ${HydrationVolumeFormatter.format(amountMl, unit)}'
+                          : 'Complete check-in',
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BingoDetailLine extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _BingoDetailLine({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style: Theme.of(context)
+                    .textTheme
+                    .labelMedium
+                    ?.copyWith(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 2),
+            Text(value),
+          ],
+        ),
+      );
+}
+
+String _shortTitle(BingoTileDefinition tile) => switch (tile.id) {
+      'goal-25' => 'First quarter',
+      'goal-50' => 'Halfway',
+      'goal-75' => 'Three quarters',
+      'goal-100' => 'Goal reached',
+      'logs-2' => 'Two logs',
+      'logs-3' => 'Three logs',
+      'logs-4' => 'Four logs',
+      'morning-water' => 'Morning',
+      'afternoon-water' => 'Afternoon',
+      'meal-drink' => 'Meal drink',
+      'water-rich-food' => 'Water-rich food',
+      _ => tile.title,
+    };
+
+IconData _iconForTile(BingoTileDefinition tile) => switch (tile.id) {
+      'free-drop' => Icons.water_drop,
+      'goal-25' || 'goal-50' || 'goal-75' || 'goal-100' => Icons.donut_large,
+      'logs-2' || 'logs-3' || 'logs-4' => Icons.format_list_numbered,
+      'before-lunch' || 'morning-water' => Icons.wb_twilight_outlined,
+      'afternoon-water' => Icons.wb_sunny_outlined,
+      'meal-drink' || 'food' || 'meal-plan' => Icons.restaurant_outlined,
+      'evening-sip' => Icons.nightlight_outlined,
+      'refill' ||
+      'bottle-visible' ||
+      'wash-bottle' ||
+      'bottle-check' =>
+        Icons.local_drink_outlined,
+      'prepare-infusion' => Icons.local_florist_outlined,
+      'review' => Icons.insights_outlined,
+      'desk-reset' => Icons.table_restaurant_outlined,
+      'plan-tomorrow' => Icons.event_available_outlined,
+      _ => tile.kind == BingoTileKind.hydrationAction
+          ? Icons.water_drop_outlined
+          : Icons.check_circle_outline,
+    };
+
+IconData _stateIcon(_BingoTileState state) => switch (state) {
+      _BingoTileState.free => Icons.water_drop,
+      _BingoTileState.available => Icons.radio_button_unchecked,
+      _BingoTileState.inProgress => Icons.timelapse,
+      _BingoTileState.completed => Icons.check_circle,
+      _BingoTileState.needsSetup => Icons.build_circle_outlined,
+      _BingoTileState.missed => Icons.schedule,
+    };
+
+String _stateLabel(_BingoTileState state) => switch (state) {
+      _BingoTileState.free => 'Free · completed',
+      _BingoTileState.available => 'Available',
+      _BingoTileState.inProgress => 'In progress',
+      _BingoTileState.completed => 'Completed',
+      _BingoTileState.needsSetup => 'Needs setup',
+      _BingoTileState.missed => 'Missed today',
+    };
+
+String _whyItCounts(BingoTileDefinition tile) => switch (tile.kind) {
+      BingoTileKind.automatic =>
+        'It recognizes qualifying hydration you already logged without duplicating it.',
+      BingoTileKind.hydrationAction =>
+        'It records the measured drink once and links that evidence to this tile.',
+      BingoTileKind.checkIn =>
+        'It confirms a real-world hydration habit without inventing water.',
+      BingoTileKind.free =>
+        'The center Free Drop starts complete for every board.',
+    };
+
+String? _timeWindow(BingoTileDefinition tile) => switch (tile.id) {
+      'before-lunch' => 'Before your configured lunch cutoff.',
+      'morning-water' => 'Before noon.',
+      'afternoon-water' => 'Between noon and 5 PM.',
+      'evening-sip' => 'During your comfortable evening routine.',
+      _ => null,
+    };
 
 class _PomodoroTimerCard extends StatefulWidget {
   final JoinedChallenge active;
