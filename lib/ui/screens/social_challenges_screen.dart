@@ -30,20 +30,15 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
     final challengeRepository = context.watch<ChallengeRepository>();
     final hydrationRepository = context.watch<HydrationRepository>();
     final settings = context.watch<UserSettingsRepository>().settings;
-    final activeChallenge = challengeRepository.activeChallenge;
-    final progress = challengeRepository.progressFor(
-      hydrationRepository,
-      targetMlOverride: settings.dailyGoalMl,
-    );
+    final activeChallenges = challengeRepository.activeChallenges;
     final todayTotalMl = hydrationRepository.totalForDay(DateTime.now());
-    final orderedChallenges = [
-      if (activeChallenge != null)
-        ...HydrionChallengeCatalog.challenges
-            .where((challenge) => challenge.id == activeChallenge.id),
-      ...HydrionChallengeCatalog.challenges.where(
-        (challenge) => challenge.id != activeChallenge?.id,
-      ),
-    ];
+    final activeIds = activeChallenges.map((challenge) => challenge.id).toSet();
+    final activeCatalogChallenges = HydrionChallengeCatalog.challenges
+        .where((challenge) => activeIds.contains(challenge.id))
+        .toList(growable: false);
+    final availableChallenges = HydrionChallengeCatalog.challenges
+        .where((challenge) => !activeIds.contains(challenge.id))
+        .toList(growable: false);
 
     final mediaPadding = MediaQuery.paddingOf(context);
     final bottomPadding = widget.embedded ? 96.0 + mediaPadding.bottom : 28.0;
@@ -52,8 +47,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
       padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPadding),
       children: [
         _ChallengeHero(
-          activeChallenge: activeChallenge,
-          progress: progress,
+          activeChallengeCount: activeChallenges.length,
           todayTotalMl: todayTotalMl,
           volumeUnit: settings.volumeUnit,
           sex: settings.sex,
@@ -72,14 +66,38 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        if (activeChallenge == null) ...[
+        if (activeChallenges.isEmpty) ...[
           _NoChallengeCard(
             title: l10n.noActiveChallengeYet,
             body: l10n.joinLocalChallengeDescription,
           ),
           const SizedBox(height: 12),
+        ] else ...[
+          Text(
+            'Active challenges',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 8),
+          for (final challenge in activeCatalogChallenges) ...[
+            _ChallengeCard(
+              challenge: challenge,
+              challengeRepository: challengeRepository,
+              hydrationRepository: hydrationRepository,
+              targetMl: settings.dailyGoalMl,
+            ),
+            const SizedBox(height: 12),
+          ],
+          Text(
+            'Other challenges',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 8),
         ],
-        for (final challenge in orderedChallenges) ...[
+        for (final challenge in availableChallenges) ...[
           _ChallengeCard(
             challenge: challenge,
             challengeRepository: challengeRepository,
@@ -87,6 +105,63 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             targetMl: settings.dailyGoalMl,
           ),
           const SizedBox(height: 12),
+        ],
+        if (challengeRepository.pausedChallenges.isNotEmpty) ...[
+          Text(
+            'Paused',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 8),
+          for (final paused in challengeRepository.pausedChallenges)
+            Card(
+              child: ListTile(
+                key: Key('paused-challenge-${paused.id}'),
+                leading: const Icon(Icons.pause_circle_outline),
+                title: Text(paused.name),
+                subtitle:
+                    const Text('Progress saved. New logs are not evaluated.'),
+                trailing: TextButton(
+                  onPressed: challengeRepository.hasRoomForAnotherChallenge
+                      ? () =>
+                          challengeRepository.resumeChallenge(paused.instanceId)
+                      : null,
+                  child: const Text('Resume'),
+                ),
+                onTap: () => _openChallenge(context, paused.id),
+              ),
+            ),
+          const SizedBox(height: 12),
+        ],
+        if (challengeRepository.challengeHistory.any((challenge) =>
+            challenge.lifecycleStatus != ChallengeLifecycleStatus.paused)) ...[
+          Text(
+            'Challenge history',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 8),
+          for (final past in challengeRepository.challengeHistory.where(
+            (challenge) =>
+                challenge.lifecycleStatus != ChallengeLifecycleStatus.paused,
+          ))
+            Card(
+              child: ListTile(
+                key: Key('challenge-history-${past.instanceId}'),
+                leading: Icon(
+                  past.lifecycleStatus == ChallengeLifecycleStatus.completed ||
+                          past.lifecycleStatus ==
+                              ChallengeLifecycleStatus.archived
+                      ? Icons.emoji_events_outlined
+                      : Icons.history,
+                ),
+                title: Text(past.name),
+                subtitle: Text(_friendlyHistoryStatus(context, past)),
+                onTap: () => _openChallenge(context, past.id),
+              ),
+            ),
         ],
       ],
     );
@@ -106,18 +181,41 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
       ),
     );
   }
+
+  void _openChallenge(BuildContext context, String challengeId) {
+    final challenge = HydrionChallengeCatalog.byId(challengeId);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChallengeExperienceScreen(challenge: challenge),
+      ),
+    );
+  }
+
+  String _friendlyHistoryStatus(
+    BuildContext context,
+    JoinedChallenge challenge,
+  ) {
+    final date = challenge.endedAt ?? challenge.joinedAt;
+    final dateLabel = MaterialLocalizations.of(context).formatMediumDate(date);
+    final status = switch (challenge.lifecycleStatus) {
+      ChallengeLifecycleStatus.completed => 'Completed',
+      ChallengeLifecycleStatus.left => 'Left',
+      ChallengeLifecycleStatus.archived => 'Completed',
+      ChallengeLifecycleStatus.paused => 'Paused',
+      ChallengeLifecycleStatus.active => 'Active',
+    };
+    return '$status \u00b7 $dateLabel';
+  }
 }
 
 class _ChallengeHero extends StatelessWidget {
-  final JoinedChallenge? activeChallenge;
-  final ChallengeProgress progress;
+  final int activeChallengeCount;
   final int todayTotalMl;
   final HydrionVolumeUnit volumeUnit;
   final HydrionSex? sex;
 
   const _ChallengeHero({
-    required this.activeChallenge,
-    required this.progress,
+    required this.activeChallengeCount,
     required this.todayTotalMl,
     required this.volumeUnit,
     required this.sex,
@@ -125,7 +223,7 @@ class _ChallengeHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasActive = activeChallenge != null;
+    final hasActive = activeChallengeCount > 0;
     final scene = HydrionLifestyleArtResolver.sceneFor(
       surface: HydrionLifestyleSurface.challenges,
       sex: sex,
@@ -153,7 +251,10 @@ class _ChallengeHero extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    hasActive ? activeChallenge!.name : 'Challenge dock',
+                    hasActive
+                        ? '$activeChallengeCount active '
+                            '${activeChallengeCount == 1 ? 'challenge' : 'challenges'}'
+                        : 'Challenge dock',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,
@@ -175,48 +276,14 @@ class _ChallengeHero extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(hasActive
-                ? activeChallenge!.description
+                ? 'Your active challenges are listed once below with their own progress and actions.'
                 : 'Pick a local challenge that adds texture to the routine without turning hydration into pressure.'),
-            const SizedBox(height: 14),
             if (hasActive) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(HydrionRadii.pill),
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(end: progress.dailyHydrationPercent),
-                  duration: MediaQuery.disableAnimationsOf(context)
-                      ? Duration.zero
-                      : const Duration(milliseconds: 320),
-                  builder: (context, value, _) => LinearProgressIndicator(
-                    key: const Key('active-challenge-daily-progress'),
-                    value: value,
-                    minHeight: 12,
-                    backgroundColor: Colors.white.withValues(alpha: 0.18),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      HydrionColors.sunrise,
-                    ),
-                  ),
-                ),
-              ),
               const SizedBox(height: 8),
-              Text(
-                '${progress.completedDays}/${progress.durationDays} days complete.',
-              ),
-              const SizedBox(height: 4),
               Text(
                 "Today's total hydration: "
                 '${HydrationVolumeFormatter.format(todayTotalMl, volumeUnit)}',
               ),
-              if (activeChallenge!.id == 'bottle-bingo')
-                Text(
-                  'Challenge-qualified hydration before lunch: '
-                  '${HydrationVolumeFormatter.format(progress.todayMl, volumeUnit)}',
-                )
-              else
-                Text(
-                  'Hydration counted toward this challenge: '
-                  '${HydrationVolumeFormatter.format(progress.todayMl, volumeUnit)} / '
-                  '${HydrationVolumeFormatter.format(progress.targetMl, volumeUnit)}',
-                ),
             ],
           ],
         ),
@@ -570,12 +637,19 @@ class _ChallengeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final volumeUnit =
+        context.watch<UserSettingsRepository>().settings.volumeUnit;
     final joined = challengeRepository.isJoined(challenge.id);
-    final hasOtherActive =
-        challengeRepository.activeChallenge != null && !joined;
+    final active = challengeRepository.activeChallengeFor(challenge.id);
+    final hydrationMetric =
+        challenge.objectiveType != ChallengeObjectiveType.manualCheckIn ||
+            challenge.id == 'pomodoro-sip';
+    final joinBlocked =
+        !joined && !challengeRepository.hasRoomForAnotherChallenge;
     final progress = challengeRepository.progressFor(
       hydrationRepository,
       targetMlOverride: targetMl,
+      challengeId: challenge.id,
     );
     final visual = ChallengeVisualRegistry.forId(challenge.id);
 
@@ -659,7 +733,11 @@ class _ChallengeCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(HydrionRadii.pill),
                   child: TweenAnimationBuilder<double>(
-                    tween: Tween(end: progress.dailyHydrationPercent),
+                    tween: Tween(
+                      end: hydrationMetric
+                          ? progress.dailyHydrationPercent
+                          : progress.percent,
+                    ),
                     duration: MediaQuery.disableAnimationsOf(context)
                         ? Duration.zero
                         : const Duration(milliseconds: 320),
@@ -671,9 +749,11 @@ class _ChallengeCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Today's challenge hydration: "
-                  '${HydrationVolumeFormatter.format(progress.todayMl, context.read<UserSettingsRepository>().settings.volumeUnit)} / '
-                  '${HydrationVolumeFormatter.format(progress.targetMl, context.read<UserSettingsRepository>().settings.volumeUnit)}',
+                  hydrationMetric
+                      ? challenge.id == 'pomodoro-sip'
+                          ? '${progress.completedDays}/${progress.durationDays} days \u00b7 ${active?.completedActionIds.length ?? 0} sip check-ins \u00b7 ${HydrationVolumeFormatter.format(progress.todayMl, volumeUnit)} measured'
+                          : "Today's challenge hydration: ${HydrationVolumeFormatter.format(progress.todayMl, volumeUnit)}"
+                      : '${progress.completedDays}/${progress.durationDays} days checked in',
                 ),
                 const SizedBox(height: 12),
               ],
@@ -683,7 +763,8 @@ class _ChallengeCard extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   _StatusChip(
-                    label: l10n.challengeTargetPerDay(targetMl: targetMl),
+                    label:
+                        '${HydrationVolumeFormatter.format(targetMl, volumeUnit)}/day',
                     active: false,
                   ),
                   _StatusChip(
@@ -708,10 +789,10 @@ class _ChallengeCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (hasOtherActive && !joined) ...[
+              if (joinBlocked) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'Leave the active challenge before joining another.',
+                  'You already have two active challenges. Pause or leave one before starting another.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

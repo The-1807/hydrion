@@ -17,8 +17,17 @@ import '../theme/hydrion_design.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool showRouteShortcuts;
+  final Key? hydrationTargetKey;
+  final Key? logTargetKey;
+  final Key? historyTargetKey;
 
-  const HomeScreen({super.key, this.showRouteShortcuts = true});
+  const HomeScreen({
+    super.key,
+    this.showRouteShortcuts = true,
+    this.hydrationTargetKey,
+    this.logTargetKey,
+    this.historyTargetKey,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -27,6 +36,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedVolumeMl = 250;
   bool _isLogging = false;
+  HydrationMetadata _pendingMetadata = const HydrationMetadata();
   Future<void> _logWater(int volumeMl) async {
     if (_isLogging) {
       return;
@@ -43,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
         volumeMl: volumeMl,
         timestamp: DateTime.now(),
         source: 'quick-add',
+        metadata: _pendingMetadata,
       );
       succeeded = true;
     } catch (_) {
@@ -53,7 +64,10 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isLogging = false);
+        setState(() {
+          _isLogging = false;
+          if (succeeded) _pendingMetadata = const HydrationMetadata();
+        });
       }
     }
     if (!mounted || !succeeded) {
@@ -163,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
             _HeroHydrationScene(
+              key: widget.hydrationTargetKey,
               avatar: profileAvatar,
               statusText: hydrationStatus,
               consumedMl: todayMl,
@@ -173,6 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             _QuickLogPanel(
+              key: widget.logTargetKey,
               title: l10n.logHydration,
               logLabel: settings.volumeUnit == HydrionVolumeUnit.milliliters
                   ? l10n.logVolume(volumeMl: _selectedVolumeMl)
@@ -183,8 +199,26 @@ class _HomeScreenState extends State<HomeScreen> {
               onVolumeChanged: (value) =>
                   setState(() => _selectedVolumeMl = value),
               onLog: () => _logWater(_selectedVolumeMl),
+              historyTargetKey: widget.historyTargetKey,
               onHistory: () => Navigator.of(context).pushNamed('/log'),
             ),
+            if (challengeRepository.activeChallenges.any((challenge) =>
+                challenge.id == 'temperature-roulette' ||
+                challenge.id == 'around-the-world-infusion-week')) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                key: const Key('home-challenge-context'),
+                onPressed: () => _editChallengeContext(challengeRepository),
+                icon: const Icon(Icons.tune),
+                label: Text(_pendingMetadata.isEmpty
+                    ? 'Add challenge details'
+                    : 'Challenge details added'),
+              ),
+              const Text(
+                'All water counts toward your daily goal. Challenge details record what today\u2019s task needs.',
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: 16),
             _TodayMomentumGrid(
               entryCount: todayLogs.length,
@@ -210,6 +244,100 @@ class _HomeScreenState extends State<HomeScreen> {
           : null,
     );
   }
+
+  Future<void> _editChallengeContext(
+    ChallengeRepository challengeRepository,
+  ) async {
+    final temperature =
+        challengeRepository.activeChallengeFor('temperature-roulette');
+    final infusion = challengeRepository
+        .activeChallengeFor('around-the-world-infusion-week');
+    final today = DateTime.now();
+    var selectedTemperature = _pendingMetadata.temperatureStyle ??
+        (temperature == null
+            ? null
+            : challengeRepository.temperatureForDay(temperature.id, today));
+    var selectedInfusion = _pendingMetadata.infusionTheme ??
+        (infusion == null
+            ? null
+            : challengeRepository.infusionThemeForDay(infusion.id, today));
+    var noAddedSugar = _pendingMetadata.noAddedSugar ?? false;
+    final metadata = await showDialog<HydrationMetadata>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Challenge details'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (temperature != null)
+                  DropdownButtonFormField<String>(
+                    key: const Key('home-temperature-context'),
+                    initialValue: selectedTemperature,
+                    decoration:
+                        const InputDecoration(labelText: 'Temperature style'),
+                    items: const [
+                      DropdownMenuItem(value: 'Cool', child: Text('Cool')),
+                      DropdownMenuItem(
+                        value: 'Room temperature',
+                        child: Text('Room temperature'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Comfortably warm',
+                        child: Text('Comfortably warm'),
+                      ),
+                    ],
+                    onChanged: (value) =>
+                        setDialogState(() => selectedTemperature = value),
+                  ),
+                if (infusion != null) ...[
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    key: const Key('home-infusion-context'),
+                    initialValue: selectedInfusion,
+                    decoration:
+                        const InputDecoration(labelText: 'Infusion theme'),
+                    onChanged: (value) => selectedInfusion = value.trim(),
+                  ),
+                  CheckboxListTile(
+                    key: const Key('home-no-added-sugar-context'),
+                    contentPadding: EdgeInsets.zero,
+                    value: noAddedSugar,
+                    title: const Text('No added sugar'),
+                    onChanged: (value) => setDialogState(
+                      () => noAddedSugar = value ?? false,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const Key('home-save-challenge-context'),
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                HydrationMetadata(
+                  temperatureStyle: selectedTemperature,
+                  infusionTheme: selectedInfusion,
+                  noAddedSugar: infusion == null ? null : noAddedSugar,
+                ),
+              ),
+              child: const Text('Use details'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (metadata != null && mounted) {
+      setState(() => _pendingMetadata = metadata);
+    }
+  }
 }
 
 class _HeroHydrationScene extends StatelessWidget {
@@ -222,6 +350,7 @@ class _HeroHydrationScene extends StatelessWidget {
   final UserSettings settings;
 
   const _HeroHydrationScene({
+    super.key,
     required this.avatar,
     required this.statusText,
     required this.consumedMl,
@@ -331,8 +460,10 @@ class _QuickLogPanel extends StatelessWidget {
   final ValueChanged<int> onVolumeChanged;
   final VoidCallback onLog;
   final VoidCallback onHistory;
+  final Key? historyTargetKey;
 
   const _QuickLogPanel({
+    super.key,
     required this.title,
     required this.logLabel,
     required this.selectedVolumeMl,
@@ -341,6 +472,7 @@ class _QuickLogPanel extends StatelessWidget {
     required this.onVolumeChanged,
     required this.onLog,
     required this.onHistory,
+    this.historyTargetKey,
   });
 
   @override
@@ -369,11 +501,14 @@ class _QuickLogPanel extends StatelessWidget {
                       ),
                 ),
               ),
-              TextButton.icon(
-                key: const Key('home-log-history'),
-                onPressed: onHistory,
-                icon: const Icon(Icons.history),
-                label: const Text('History'),
+              KeyedSubtree(
+                key: historyTargetKey,
+                child: TextButton.icon(
+                  key: const Key('home-log-history'),
+                  onPressed: onHistory,
+                  icon: const Icon(Icons.history),
+                  label: const Text('History'),
+                ),
               ),
             ],
           ),

@@ -21,6 +21,7 @@ class ChallengeHistoryPresenter {
     required JoinedChallenge challenge,
     required Iterable<HydrationLog> hydrationLogs,
     required HydrionVolumeUnit unit,
+    bool Function(HydrationLog log)? hydrationLogQualifies,
   }) {
     final logsByAction = <String, HydrationLog>{
       for (final log in hydrationLogs)
@@ -30,6 +31,17 @@ class ChallengeHistoryPresenter {
       for (final action in challenge.completedActionIds)
         _actionItem(challenge, action, logsByAction[action], unit),
     ];
+    final actionLogIds = <String>{
+      for (final action in challenge.completedActionIds)
+        if (logsByAction[action] case final log?) log.id,
+    };
+    if (hydrationLogQualifies != null) {
+      for (final log in hydrationLogs) {
+        if (!actionLogIds.contains(log.id) && hydrationLogQualifies(log)) {
+          items.add(_qualifiedHydrationItem(challenge, log, unit));
+        }
+      }
+    }
 
     if (challenge.id == 'bottle-bingo') {
       final board = BottleBingoBoard.forInstance(
@@ -84,11 +96,12 @@ class ChallengeHistoryPresenter {
     switch (challenge.id) {
       case 'temperature-roulette':
         final schedule = challenge.parameters['temperatureSchedule'];
-        final style = schedule is List && schedule.isNotEmpty
-            ? schedule[
-                    _dayIndex(challenge.joinedAt, timestamp) % schedule.length]
-                .toString()
-            : 'assigned temperature';
+        final style = log?.metadata.temperatureStyle ??
+            (schedule is List && schedule.isNotEmpty
+                ? schedule[_dayIndex(challenge.joinedAt, timestamp) %
+                        schedule.length]
+                    .toString()
+                : 'assigned temperature');
         description = 'Logged a $style drink$amount';
       case 'around-the-world-infusion-week':
         const themes = [
@@ -100,7 +113,7 @@ class ChallengeHistoryPresenter {
           'Spice',
           'Favorite'
         ];
-        final theme =
+        final theme = log?.metadata.infusionTheme ??
             themes[_dayIndex(challenge.joinedAt, timestamp) % themes.length];
         description = 'Tried the $theme infusion$amount';
       case 'pomodoro-sip':
@@ -128,6 +141,28 @@ class ChallengeHistoryPresenter {
             : 'Logged a challenge drink$amount';
     }
     return ChallengeHistoryItem(description: description, timestamp: timestamp);
+  }
+
+  static ChallengeHistoryItem _qualifiedHydrationItem(
+    JoinedChallenge challenge,
+    HydrationLog log,
+    HydrionVolumeUnit unit,
+  ) {
+    final amount = HydrationVolumeFormatter.format(log.volumeMl, unit);
+    final metadata = log.metadata;
+    final description = switch (challenge.id) {
+      'temperature-roulette' =>
+        'Logged a ${_friendlyValue(metadata.temperatureStyle, 'scheduled temperature')} drink · $amount',
+      'around-the-world-infusion-week' =>
+        'Tried the ${_friendlyValue(metadata.infusionTheme, 'daily')} infusion · $amount',
+      'pomodoro-sip' => 'Logged a measured focus-session drink · $amount',
+      'bottle-bingo' => 'Logged a Bottle Bingo drink · $amount',
+      _ => 'Logged a challenge drink · $amount',
+    };
+    return ChallengeHistoryItem(
+      description: description,
+      timestamp: log.timestamp,
+    );
   }
 
   static BingoTileDefinition? _bingoTile(String action, DateTime joinedAt) {

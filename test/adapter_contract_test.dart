@@ -189,6 +189,7 @@ void main() {
       settingsRepository: base.settingsRepository,
       reminderRepository: base.reminderRepository,
       challengeRepository: base.challengeRepository,
+      guidedTourRepository: base.guidedTourRepository,
       coreBridge: base.coreBridge,
       permissions: base.permissions,
       i18n: base.i18n,

@@ -121,11 +121,9 @@ void main() {
     await tester.pumpAndSettle();
 
     await openTab(tester, const Key('nav-challenges'));
+    expect(find.text('1 active challenge'), findsOneWidget);
     expect(find.text("Today's total hydration: 250 ml"), findsOneWidget);
-    expect(
-      find.text('Hydration counted toward this challenge: 0 ml / 2200 ml'),
-      findsOneWidget,
-    );
+    expect(find.text('Temperature Roulette'), findsOneWidget);
   });
 
   testWidgets('persisted log entries can be edited and deleted',

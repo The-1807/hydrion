@@ -96,12 +96,12 @@ class HydrionChallengeExperiences {
       actions: [
         'Complete a configured focus session.',
         'Confirm the session ended.',
-        'Log the configured sip amount.'
+        'Choose Took a sip or log a measured drink.'
       ],
       whatCounts:
-          'A persisted sip hydration action after a confirmed focus session.',
+          'A persisted sip check-in or measured drink after a confirmed focus session.',
       whatDoesNotCount:
-          'The timer never adds water until the planned sip is confirmed.',
+          'The timer never adds water automatically or guesses a sip volume.',
       requiredParameters: [
         'sessionMinutes',
         'sessionsPerDay',
@@ -111,7 +111,7 @@ class HydrionChallengeExperiences {
         'autoStartNext',
         'challengeDurationDays'
       ],
-      actionKind: ChallengeActionKind.hydration,
+      actionKind: ChallengeActionKind.checkIn,
     ),
     ChallengeExperienceDefinition(
       id: 'bottle-bingo',

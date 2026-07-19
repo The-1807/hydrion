@@ -5,12 +5,121 @@ import 'package:flutter/foundation.dart';
 import '../storage/local_store.dart';
 import 'storage_recovery.dart';
 
+/// Context attached to one canonical hydration record. Challenge progress is
+/// derived from this context; the volume itself is never copied per challenge.
+class HydrationMetadata {
+  final String? temperatureStyle;
+  final String? infusionTheme;
+  final bool? noAddedSugar;
+  final bool? savedContainerUsed;
+  final String? mealContext;
+  final String? timeWindow;
+  final String? challengeActionSource;
+  final String? bingoTileSource;
+
+  const HydrationMetadata({
+    this.temperatureStyle,
+    this.infusionTheme,
+    this.noAddedSugar,
+    this.savedContainerUsed,
+    this.mealContext,
+    this.timeWindow,
+    this.challengeActionSource,
+    this.bingoTileSource,
+  });
+
+  bool get isEmpty =>
+      temperatureStyle == null &&
+      infusionTheme == null &&
+      noAddedSugar == null &&
+      savedContainerUsed == null &&
+      mealContext == null &&
+      timeWindow == null &&
+      challengeActionSource == null &&
+      bingoTileSource == null;
+
+  HydrationMetadata copyWith({
+    String? temperatureStyle,
+    String? infusionTheme,
+    bool? noAddedSugar,
+    bool? savedContainerUsed,
+    String? mealContext,
+    String? timeWindow,
+    String? challengeActionSource,
+    String? bingoTileSource,
+    bool clearTemperatureStyle = false,
+    bool clearInfusionTheme = false,
+    bool clearNoAddedSugar = false,
+    bool clearSavedContainerUsed = false,
+    bool clearMealContext = false,
+    bool clearTimeWindow = false,
+    bool clearChallengeActionSource = false,
+    bool clearBingoTileSource = false,
+  }) {
+    return HydrationMetadata(
+      temperatureStyle: clearTemperatureStyle
+          ? null
+          : temperatureStyle ?? this.temperatureStyle,
+      infusionTheme:
+          clearInfusionTheme ? null : infusionTheme ?? this.infusionTheme,
+      noAddedSugar:
+          clearNoAddedSugar ? null : noAddedSugar ?? this.noAddedSugar,
+      savedContainerUsed: clearSavedContainerUsed
+          ? null
+          : savedContainerUsed ?? this.savedContainerUsed,
+      mealContext: clearMealContext ? null : mealContext ?? this.mealContext,
+      timeWindow: clearTimeWindow ? null : timeWindow ?? this.timeWindow,
+      challengeActionSource: clearChallengeActionSource
+          ? null
+          : challengeActionSource ?? this.challengeActionSource,
+      bingoTileSource:
+          clearBingoTileSource ? null : bingoTileSource ?? this.bingoTileSource,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        if (temperatureStyle != null) 'temperatureStyle': temperatureStyle,
+        if (infusionTheme != null) 'infusionTheme': infusionTheme,
+        if (noAddedSugar != null) 'noAddedSugar': noAddedSugar,
+        if (savedContainerUsed != null)
+          'savedContainerUsed': savedContainerUsed,
+        if (mealContext != null) 'mealContext': mealContext,
+        if (timeWindow != null) 'timeWindow': timeWindow,
+        if (challengeActionSource != null)
+          'challengeActionSource': challengeActionSource,
+        if (bingoTileSource != null) 'bingoTileSource': bingoTileSource,
+      };
+
+  static HydrationMetadata fromJson(Object? value) {
+    if (value is! Map) return const HydrationMetadata();
+    String? text(String key) {
+      final result = value[key]?.toString().trim();
+      return result == null || result.isEmpty ? null : result;
+    }
+
+    return HydrationMetadata(
+      temperatureStyle: text('temperatureStyle'),
+      infusionTheme: text('infusionTheme'),
+      noAddedSugar:
+          value['noAddedSugar'] is bool ? value['noAddedSugar'] as bool : null,
+      savedContainerUsed: value['savedContainerUsed'] is bool
+          ? value['savedContainerUsed'] as bool
+          : null,
+      mealContext: text('mealContext'),
+      timeWindow: text('timeWindow'),
+      challengeActionSource: text('challengeActionSource'),
+      bingoTileSource: text('bingoTileSource'),
+    );
+  }
+}
+
 class HydrationLog {
   final String id;
   final int volumeMl;
   final DateTime timestamp;
   final String source;
   final String? actionId;
+  final HydrationMetadata metadata;
 
   const HydrationLog({
     required this.id,
@@ -18,6 +127,7 @@ class HydrationLog {
     required this.timestamp,
     required this.source,
     this.actionId,
+    this.metadata = const HydrationMetadata(),
   });
 
   Map<String, dynamic> toJson() {
@@ -27,6 +137,7 @@ class HydrationLog {
       'timestamp': timestamp.toIso8601String(),
       'source': source,
       if (actionId != null) 'actionId': actionId,
+      if (!metadata.isEmpty) 'metadata': metadata.toJson(),
     };
   }
 
@@ -53,6 +164,7 @@ class HydrationLog {
       timestamp: timestamp,
       source: source.trim().isEmpty ? 'local' : source,
       actionId: (value['actionId'] as Object?)?.toString(),
+      metadata: HydrationMetadata.fromJson(value['metadata']),
     );
   }
 }
@@ -104,6 +216,7 @@ class HydrationRepository extends ChangeNotifier {
     required DateTime timestamp,
     String source = 'local',
     String? actionId,
+    HydrationMetadata metadata = const HydrationMetadata(),
   }) async {
     if (volumeMl <= 0) {
       return null;
@@ -126,6 +239,7 @@ class HydrationRepository extends ChangeNotifier {
       timestamp: timestamp,
       source: source.trim().isEmpty ? 'local' : source,
       actionId: normalizedActionId?.isEmpty == true ? null : normalizedActionId,
+      metadata: metadata,
     );
     try {
       _logs.add(log);
@@ -150,6 +264,7 @@ class HydrationRepository extends ChangeNotifier {
     int? volumeMl,
     DateTime? timestamp,
     String? source,
+    HydrationMetadata? metadata,
   }) async {
     final index = _logs.indexWhere((log) => log.id == id);
     if (index == -1) {
@@ -161,26 +276,43 @@ class HydrationRepository extends ChangeNotifier {
       return false;
     }
 
+    final previous = List<HydrationLog>.of(_logs);
     _logs[index] = HydrationLog(
       id: _logs[index].id,
       volumeMl: nextVolume,
       timestamp: timestamp ?? _logs[index].timestamp,
       source: source ?? _logs[index].source,
       actionId: _logs[index].actionId,
+      metadata: metadata ?? _logs[index].metadata,
     );
     _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    await _persist();
+    try {
+      await _persist();
+    } catch (_) {
+      _logs
+        ..clear()
+        ..addAll(previous);
+      rethrow;
+    }
     notifyListeners();
     return true;
   }
 
   Future<bool> deleteLog(String id) async {
+    final previous = List<HydrationLog>.of(_logs);
     final before = _logs.length;
     _logs.removeWhere((log) => log.id == id);
     if (_logs.length == before) {
       return false;
     }
-    await _persist();
+    try {
+      await _persist();
+    } catch (_) {
+      _logs
+        ..clear()
+        ..addAll(previous);
+      rethrow;
+    }
     notifyListeners();
     return true;
   }
@@ -191,7 +323,12 @@ class HydrationRepository extends ChangeNotifier {
     }
     _logs.add(log);
     _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    await _persist();
+    try {
+      await _persist();
+    } catch (_) {
+      _logs.removeWhere((existing) => existing.id == log.id);
+      rethrow;
+    }
     notifyListeners();
     return true;
   }

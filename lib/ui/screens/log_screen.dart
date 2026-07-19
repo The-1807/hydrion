@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../repositories/hydration_repository.dart';
+import '../../repositories/settings_repository.dart';
 import '../../services/app_refresh_controller.dart';
+import '../components/intake_ring.dart';
 
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
@@ -20,18 +22,24 @@ class _LogScreenState extends State<LogScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
 
-    final volumeMl = await showDialog<int>(
+    final settings = context.read<UserSettingsRepository>().settings;
+    final result = await showDialog<_EditLogResult>(
       context: context,
-      builder: (context) => _EditLogDialog(initialVolumeMl: log.volumeMl),
+      builder: (context) => _EditLogDialog(
+        log: log,
+        unit: settings.volumeUnit,
+      ),
     );
 
-    if (volumeMl == null) {
+    if (result == null) {
       return;
     }
 
     final updated = await repository.updateLog(
       id: log.id,
-      volumeMl: volumeMl,
+      volumeMl: result.volumeMl,
+      timestamp: result.timestamp,
+      metadata: result.metadata,
     );
     if (!mounted) {
       return;
@@ -89,6 +97,7 @@ class _LogScreenState extends State<LogScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final repository = context.watch<HydrationRepository>();
+    final settings = context.watch<UserSettingsRepository>().settings;
     final now = DateTime.now();
     final start = now.subtract(const Duration(days: 7));
     final data = repository.fetch(start, now);
@@ -139,14 +148,17 @@ class _LogScreenState extends State<LogScreen> {
                   return ListTile(
                     leading: const Icon(Icons.local_drink),
                     title: Text(
-                      '${log.volumeMl} ml',
+                      HydrationVolumeFormatter.format(
+                        log.volumeMl,
+                        settings.volumeUnit,
+                      ),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     subtitle: Text(
-                      l10n.logSourceTimestamp(
+                      '${l10n.logSourceTimestamp(
                         source: _sourceLabel(log.source, l10n),
                         timestamp: timestamp,
-                      ),
+                      )}${_metadataSummary(log.metadata)}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     trailing: Wrap(
@@ -193,17 +205,41 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   String _sourceLabel(String source, AppLocalizations l10n) {
+    if (source.startsWith('challenge:')) {
+      final id = source.split(':').elementAtOrNull(1);
+      return switch (id) {
+        'temperature-roulette' => 'Temperature Roulette',
+        'around-the-world-infusion-week' => 'Infusion Week',
+        'pomodoro-sip' => 'Pomodoro Sip',
+        'bottle-bingo' => 'Bottle Bingo',
+        _ => 'Challenge drink',
+      };
+    }
     return switch (source) {
       'local' => l10n.localEntry,
-      _ => source,
+      'quick-add' => 'Quick log',
+      'wearable' => 'Wearable log',
+      'voice' => 'Voice log',
+      _ => 'Hydration entry',
     };
+  }
+
+  String _metadataSummary(HydrationMetadata metadata) {
+    final details = <String>[
+      if (metadata.temperatureStyle != null) metadata.temperatureStyle!,
+      if (metadata.infusionTheme != null) metadata.infusionTheme!,
+      if (metadata.noAddedSugar == true) 'No added sugar',
+      if (metadata.mealContext != null) metadata.mealContext!,
+    ];
+    return details.isEmpty ? '' : '\n${details.join(' \u00b7 ')}';
   }
 }
 
 class _EditLogDialog extends StatefulWidget {
-  final int initialVolumeMl;
+  final HydrationLog log;
+  final HydrionVolumeUnit unit;
 
-  const _EditLogDialog({required this.initialVolumeMl});
+  const _EditLogDialog({required this.log, required this.unit});
 
   @override
   State<_EditLogDialog> createState() => _EditLogDialogState();
@@ -211,18 +247,31 @@ class _EditLogDialog extends StatefulWidget {
 
 class _EditLogDialogState extends State<_EditLogDialog> {
   late final TextEditingController _controller;
+  late final TextEditingController _infusionController;
+  late DateTime _timestamp;
+  String? _temperatureStyle;
+  bool _noAddedSugar = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(
-      text: widget.initialVolumeMl.toString(),
+      text: HydrationVolumeFormatter.fromMilliliters(
+        widget.log.volumeMl,
+        widget.unit,
+      ).toStringAsFixed(widget.unit == HydrionVolumeUnit.ounces ? 1 : 0),
     );
+    _infusionController =
+        TextEditingController(text: widget.log.metadata.infusionTheme);
+    _timestamp = widget.log.timestamp;
+    _temperatureStyle = widget.log.metadata.temperatureStyle;
+    _noAddedSugar = widget.log.metadata.noAddedSugar ?? false;
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _infusionController.dispose();
     super.dispose();
   }
 
@@ -232,14 +281,65 @@ class _EditLogDialogState extends State<_EditLogDialog> {
 
     return AlertDialog(
       title: Text(l10n.editHydrationLog),
-      content: TextField(
-        key: const Key('edit-log-volume-field'),
-        controller: _controller,
-        autofocus: true,
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          labelText: l10n.amountInMl,
-          border: const OutlineInputBorder(),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              key: const Key('edit-log-volume-field'),
+              controller: _controller,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: widget.unit == HydrionVolumeUnit.ounces
+                    ? 'Amount in fluid ounces'
+                    : l10n.amountInMl,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              key: const Key('edit-log-timestamp'),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.schedule),
+              title: const Text('Date and time'),
+              subtitle: Text(MaterialLocalizations.of(context)
+                  .formatFullDate(_timestamp.toLocal())),
+              onTap: _chooseTimestamp,
+            ),
+            DropdownButtonFormField<String?>(
+              key: const Key('edit-log-temperature'),
+              initialValue: _temperatureStyle,
+              decoration: const InputDecoration(labelText: 'Temperature style'),
+              items: const [
+                DropdownMenuItem(value: null, child: Text('Not specified')),
+                DropdownMenuItem(value: 'Cool', child: Text('Cool')),
+                DropdownMenuItem(
+                  value: 'Room temperature',
+                  child: Text('Room temperature'),
+                ),
+                DropdownMenuItem(
+                  value: 'Comfortably warm',
+                  child: Text('Comfortably warm'),
+                ),
+              ],
+              onChanged: (value) => setState(() => _temperatureStyle = value),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('edit-log-infusion'),
+              controller: _infusionController,
+              decoration: const InputDecoration(labelText: 'Infusion theme'),
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _noAddedSugar,
+              title: const Text('No added sugar'),
+              onChanged: (value) =>
+                  setState(() => _noAddedSugar = value ?? false),
+            ),
+          ],
         ),
       ),
       actions: [
@@ -250,14 +350,70 @@ class _EditLogDialogState extends State<_EditLogDialog> {
         FilledButton(
           key: const Key('save-log-edit-button'),
           onPressed: () {
-            final parsed = int.tryParse(_controller.text.trim());
-            Navigator.of(context).pop(parsed == null || parsed <= 0
-                ? null
-                : parsed.clamp(1, 5000).toInt());
+            final parsed = double.tryParse(_controller.text.trim());
+            if (parsed == null || parsed <= 0) {
+              Navigator.of(context).pop();
+              return;
+            }
+            final volumeMl = HydrationVolumeFormatter.toMilliliters(
+              parsed,
+              widget.unit,
+            ).clamp(1, 5000);
+            final infusion = _infusionController.text.trim();
+            Navigator.of(context).pop(
+              _EditLogResult(
+                volumeMl: volumeMl,
+                timestamp: _timestamp,
+                metadata: widget.log.metadata.copyWith(
+                  temperatureStyle: _temperatureStyle,
+                  clearTemperatureStyle: _temperatureStyle == null,
+                  infusionTheme: infusion.isEmpty ? null : infusion,
+                  clearInfusionTheme: infusion.isEmpty,
+                  noAddedSugar: infusion.isEmpty ? null : _noAddedSugar,
+                  clearNoAddedSugar: infusion.isEmpty,
+                ),
+              ),
+            );
           },
           child: Text(l10n.save),
         ),
       ],
     );
   }
+
+  Future<void> _chooseTimestamp() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _timestamp,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_timestamp),
+    );
+    if (time == null) return;
+    setState(() {
+      _timestamp = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+}
+
+class _EditLogResult {
+  final int volumeMl;
+  final DateTime timestamp;
+  final HydrationMetadata metadata;
+
+  const _EditLogResult({
+    required this.volumeMl,
+    required this.timestamp,
+    required this.metadata,
+  });
 }

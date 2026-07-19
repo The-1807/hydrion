@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../domain/avatar_manifest.dart';
 import '../../l10n/app_localizations.dart';
+import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../utils/i18n_resolver.dart';
 import '../../utils/permissions.dart';
@@ -63,8 +64,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           const _PermissionsCard(),
           const SizedBox(height: 12),
+          const _HelpCard(),
+          const SizedBox(height: 12),
           const _LegalAboutCard(),
         ],
+      ),
+    );
+  }
+}
+
+class _HelpCard extends StatelessWidget {
+  const _HelpCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        key: const Key('settings-replay-app-tour'),
+        leading: const Icon(Icons.help_outline),
+        title: const Text('Help'),
+        subtitle: const Text('Replay the app tour'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          context.read<GuidedTourRepository>().replayCoreTour();
+          Navigator.of(context)
+              .pushNamedAndRemoveUntil('/home', (route) => false);
+        },
       ),
     );
   }
