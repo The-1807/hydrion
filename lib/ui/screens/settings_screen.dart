@@ -83,7 +83,7 @@ class _HelpCard extends StatelessWidget {
         key: const Key('settings-replay-app-tour'),
         leading: const Icon(Icons.help_outline),
         title: const Text('Help'),
-        subtitle: const Text('Replay the app tour'),
+        subtitle: const Text('App tour \u00b7 Replay the quick guide'),
         trailing: const Icon(Icons.chevron_right),
         onTap: () {
           context.read<GuidedTourRepository>().replayCoreTour();

@@ -1,16 +1,45 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../repositories/settings_repository.dart';
+import 'intake_ring.dart';
+
+String hydrationProgressStatus({
+  required int todayMl,
+  required int targetMl,
+  required int entryCount,
+  required HydrionVolumeUnit volumeUnit,
+  required String emptyStatus,
+}) {
+  if (entryCount <= 0 || todayMl <= 0) return emptyStatus;
+  final amount = HydrationVolumeFormatter.format(todayMl, volumeUnit);
+  final logLabel = entryCount == 1 ? 'log' : 'logs';
+  final recorded = '$amount recorded across $entryCount $logLabel today.';
+  if (todayMl >= targetMl) {
+    return 'Daily goal completed. $recorded';
+  }
+  final remaining = HydrationVolumeFormatter.format(
+    (targetMl - todayMl).clamp(0, targetMl),
+    volumeUnit,
+  );
+  return '$recorded $remaining remaining.';
+}
 
 class HydrationScoreCard extends StatelessWidget {
   final double hydrationPercent;
   final int entryCount;
+  final int? todayMl;
+  final int? targetMl;
+  final HydrionVolumeUnit volumeUnit;
 
   const HydrationScoreCard({
     super.key,
     required this.hydrationPercent,
     int? entryCount,
     int? activityMinutes,
+    this.todayMl,
+    this.targetMl,
+    this.volumeUnit = HydrionVolumeUnit.milliliters,
   }) : entryCount = entryCount ?? activityMinutes ?? 0;
 
   double _score() {
@@ -50,6 +79,15 @@ class HydrationScoreCard extends StatelessWidget {
     final score = _score();
     final barColor = _colorFor(score);
     final scheme = Theme.of(context).colorScheme;
+    final status = todayMl == null || targetMl == null
+        ? _tip(score, l10n)
+        : hydrationProgressStatus(
+            todayMl: todayMl!,
+            targetMl: targetMl!,
+            entryCount: entryCount,
+            volumeUnit: volumeUnit,
+            emptyStatus: l10n.hydrationTipStart,
+          );
 
     return Card(
       elevation: 1,
@@ -69,30 +107,45 @@ class HydrationScoreCard extends StatelessWidget {
                     ),
               ),
               const SizedBox(height: 8),
-              Row(
+              Wrap(
+                spacing: 14,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text(
-                    score.toStringAsFixed(0),
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: barColor,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        score.toStringAsFixed(0),
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
+                              color: barColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        l10n.scoreSuffix,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    l10n.scoreSuffix,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const Spacer(),
-                  _MetricChip(
-                    icon: Icons.water_drop,
-                    label:
-                        '${hydrationPercent.clamp(0.0, 100.0).toStringAsFixed(0)}%',
-                  ),
-                  const SizedBox(width: 6),
-                  _MetricChip(
-                    icon: Icons.list_alt,
-                    label: l10n.logCount(count: entryCount.clamp(0, 24)),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _MetricChip(
+                        icon: Icons.water_drop,
+                        label:
+                            '${hydrationPercent.clamp(0.0, 100.0).toStringAsFixed(0)}%',
+                      ),
+                      const SizedBox(width: 6),
+                      _MetricChip(
+                        icon: Icons.list_alt,
+                        label: l10n.logCount(count: entryCount.clamp(0, 24)),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -108,7 +161,7 @@ class HydrationScoreCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                _tip(score, l10n),
+                status,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
