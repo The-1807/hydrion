@@ -133,7 +133,12 @@ void main() {
 
       expect(checkedIn, isTrue);
       expect(hydration.logs, isEmpty);
-      expect(challenges.progressFor(hydration).completedDays, 1);
+      expect(
+        challenges
+            .progressFor(hydration, now: DateTime(2026, 7, 18, 10))
+            .completedDays,
+        1,
+      );
     });
 
     test('measured Pomodoro drink creates one canonical hydration record',
@@ -169,8 +174,12 @@ void main() {
       expect(log, isNotNull);
       expect(hydration.logs, hasLength(1));
       expect(hydration.totalForDay(DateTime(2026, 7, 18)), 150);
-      expect(challenges.progressFor(hydration).todayMl, 150);
-      expect(challenges.progressFor(hydration).completedDays, 1);
+      final progress = challenges.progressFor(
+        hydration,
+        now: DateTime(2026, 7, 18, 10),
+      );
+      expect(progress.todayMl, 150);
+      expect(progress.completedDays, 1);
     });
   });
 
