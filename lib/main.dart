@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -41,6 +42,7 @@ import 'ui/screens/settings_screen.dart';
 import 'ui/screens/social_challenges_screen.dart';
 import 'ui/screens/startup_screen.dart';
 import 'ui/screens/profile_screen.dart';
+import 'ui/components/hydrion_system_ui.dart';
 import 'ui/theme/hydrion_design.dart';
 import 'storage/local_store.dart';
 import 'utils/i18n_resolver.dart';
@@ -49,6 +51,7 @@ import 'utils/startup_trace.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   HydrionStartupTrace.log('Dart main() reached');
   runApp(const HydrionBootstrapApp());
 }
@@ -154,6 +157,7 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) => HydrionSystemUi(child: child!),
       home: StartupScreen(
         warmUp: _loadServicesAndWarmUp,
         isOnboardingCompleted: () =>
@@ -298,6 +302,7 @@ class HydrionApp extends StatelessWidget {
             ],
             supportedLocales: AppLocalizations.supportedLocales,
             locale: i18n.locale,
+            builder: (context, child) => HydrionSystemUi(child: child!),
             initialRoute: initialRoute,
             routes: routes,
             onGenerateInitialRoutes: (initialRouteName) {

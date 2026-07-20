@@ -33,7 +33,7 @@ class ProfileScreen extends StatelessWidget {
               actions: [_ProfileMenu(embedded: embedded)],
             ),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16, 20, 16, embedded ? 112 : 28),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
         children: [
           _ProfileHero(
             settings: settings,
@@ -77,6 +77,7 @@ class ProfileScreen extends StatelessWidget {
           _ProfileLifestyleMoment(settings: settings),
           const SizedBox(height: 16),
           HydrionSurface(
+            key: const Key('profile-identity-card'),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -118,6 +119,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           HydrionSurface(
+            key: const Key('profile-support-card'),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -162,46 +164,71 @@ class _ProfileHero extends StatelessWidget {
     return HydrionSurface(
       gradient: HydrionGradients.ocean,
       radius: HydrionRadii.lg,
-      child: Row(
-        children: [
-          _ProfileImage(settings: settings, avatar: avatar, size: 96),
-          const SizedBox(width: 16),
-          Expanded(
-            child: DefaultTextStyle(
-              style: const TextStyle(color: Colors.white),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    nickname == null || nickname.isEmpty
-                        ? 'Local Hydrion profile'
-                        : nickname,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(_avatarRelationshipLabel(avatar)),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _MiniPill('${settings.dailyGoalMl} ml/day'),
-                      _MiniPill(
-                        settings.goalMode == HydrionGoalMode.weatherInformed
-                            ? 'Weather-aware'
-                            : 'Manual goal',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final details = DefaultTextStyle(
+            style: const TextStyle(color: Colors.white),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nickname == null || nickname.isEmpty
+                      ? 'Local Hydrion profile'
+                      : nickname,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 6),
+                Text(_avatarRelationshipLabel(avatar)),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _MiniPill('${settings.dailyGoalMl} ml/day'),
+                    _MiniPill(
+                      settings.goalMode == HydrionGoalMode.weatherInformed
+                          ? 'Weather-aware'
+                          : 'Manual goal',
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-          const _ProfileMenu(embedded: true),
-        ],
+          );
+          final compact = constraints.maxWidth < 340 ||
+              MediaQuery.textScalerOf(context).scale(1) > 1.3;
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _ProfileImage(
+                      settings: settings,
+                      avatar: avatar,
+                      size: 80,
+                    ),
+                    const _ProfileMenu(embedded: true),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                details,
+              ],
+            );
+          }
+          return Row(
+            children: [
+              _ProfileImage(settings: settings, avatar: avatar, size: 96),
+              const SizedBox(width: 16),
+              Expanded(child: details),
+              const _ProfileMenu(embedded: true),
+            ],
+          );
+        },
       ),
     );
   }
@@ -226,37 +253,58 @@ class _ProfileLifestyleMoment extends StatelessWidget {
           HydrionColors.glow.withValues(alpha: 0.12),
         ],
       ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(HydrionRadii.sm),
-            child: Image.asset(
-              scene.assetPath,
-              width: 104,
-              height: 132,
-              fit: BoxFit.contain,
-              semanticLabel: scene.description,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final image = SizedBox(
+            width: 104,
+            height: 132,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(HydrionRadii.sm),
+              child: Image.asset(
+                scene.assetPath,
+                key: const Key('profile-lifestyle-art'),
+                width: 104,
+                height: 132,
+                fit: BoxFit.contain,
+                cacheWidth: 256,
+                semanticLabel: scene.description,
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
+          );
+          final copy = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Built around your routine',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Your photo, avatar, goals, reminders, and challenge state stay local to this device.',
+              ),
+            ],
+          );
+          if (constraints.maxWidth < 320 ||
+              MediaQuery.textScalerOf(context).scale(1) > 1.4) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Built around your routine',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Your photo, avatar, goals, reminders, and challenge state stay local to this device.',
-                ),
+                Center(child: image),
+                const SizedBox(height: 12),
+                copy,
               ],
-            ),
-          ),
-        ],
+            );
+          }
+          return Row(
+            children: [
+              image,
+              const SizedBox(width: 16),
+              Expanded(child: copy),
+            ],
+          );
+        },
       ),
     );
   }

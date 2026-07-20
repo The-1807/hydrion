@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../repositories/settings_repository.dart';
+import 'profile_art_registry.dart';
 
 class ChallengeVisualIdentity {
   final Color primary;
   final Color secondary;
   final IconData icon;
   final String? cardAsset;
-  final String? neutralAsset;
+  final String neutralAsset;
   final String? maleAsset;
   final String? femaleAsset;
   final Alignment imageAlignment;
@@ -17,17 +17,21 @@ class ChallengeVisualIdentity {
     required this.secondary,
     required this.icon,
     required this.imageAlignment,
+    required this.neutralAsset,
     this.cardAsset,
-    this.neutralAsset,
     this.maleAsset,
     this.femaleAsset,
   });
 
-  String? dashboardAssetFor(HydrionSex? sex) => switch (sex) {
-        HydrionSex.male => maleAsset ?? neutralAsset,
-        HydrionSex.female => femaleAsset ?? neutralAsset,
-        _ => neutralAsset,
-      };
+  String dashboardAssetFor(Object? profileValue) =>
+      HydrionProfileArtResolver.resolve(
+        profileValue: profileValue,
+        slot: HydrionProfileArtSlot(
+          neutralAsset: neutralAsset,
+          maleAsset: maleAsset,
+          femaleAsset: femaleAsset,
+        ),
+      );
 }
 
 class ChallengeVisualRegistry {
@@ -91,6 +95,7 @@ class ChallengeVisualRegistry {
       secondary: Color(0xFF84BDA0),
       icon: Icons.spa_outlined,
       cardAsset: 'assets/UI_BETA/planttwin-card.png',
+      neutralAsset: 'assets/UI_BETA/planttwin-card.png',
       maleAsset: 'assets/UI_BETA/planttwin-man.png',
       femaleAsset: 'assets/UI_BETA/planttwin-lady.png',
       imageAlignment: Alignment.centerLeft,

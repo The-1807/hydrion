@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../domain/avatar_manifest.dart';
 import '../../domain/challenge_catalog.dart';
 import '../../domain/hydration_contracts.dart';
+import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
@@ -177,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
             _HeroHydrationScene(
-              key: widget.hydrationTargetKey,
+              targetKey: widget.hydrationTargetKey,
               avatar: profileAvatar,
               statusText: hydrationStatus,
               consumedMl: todayMl,
@@ -225,6 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
               challengeRepository: challengeRepository,
               targetMl: targetMl,
             ),
+            const SizedBox(height: 16),
+            _HomeLifestyleMoment(settings: settings),
             if (widget.showRouteShortcuts) ...[
               const SizedBox(height: 16),
               _LegacyRouteShortcuts(capabilities: capabilities),
@@ -340,7 +343,73 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class _HomeLifestyleMoment extends StatelessWidget {
+  final UserSettings settings;
+
+  const _HomeLifestyleMoment({required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    final scene = HydrionLifestyleArtResolver.sceneFor(
+      surface: HydrionLifestyleSurface.homePrimary,
+      sex: settings.sex,
+    );
+    return HydrionSurface(
+      key: const Key('home-lifestyle-moment'),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final art = SizedBox(
+            width: 96,
+            height: 112,
+            child: Image.asset(
+              scene.assetPath,
+              key: const Key('home-profile-art'),
+              fit: BoxFit.contain,
+              cacheWidth: 256,
+              semanticLabel: scene.description,
+            ),
+          );
+          final copy = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'A routine that fits your day',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Keep logging the water you actually drink. Small check-ins build a useful daily picture.',
+              ),
+            ],
+          );
+          if (constraints.maxWidth < 300 ||
+              MediaQuery.textScalerOf(context).scale(1) > 1.4) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: art),
+                const SizedBox(height: 10),
+                copy,
+              ],
+            );
+          }
+          return Row(
+            children: [
+              art,
+              const SizedBox(width: 14),
+              Expanded(child: copy),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _HeroHydrationScene extends StatelessWidget {
+  final Key? targetKey;
   final HydrionAvatar avatar;
   final String statusText;
   final int consumedMl;
@@ -350,7 +419,7 @@ class _HeroHydrationScene extends StatelessWidget {
   final UserSettings settings;
 
   const _HeroHydrationScene({
-    super.key,
+    this.targetKey,
     required this.avatar,
     required this.statusText,
     required this.consumedMl,
@@ -382,13 +451,18 @@ class _HeroHydrationScene extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _hydrationStatusTitle(consumedMl, targetMl),
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                      KeyedSubtree(
+                        key: targetKey,
+                        child: Text(
+                          _hydrationStatusTitle(consumedMl, targetMl),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(

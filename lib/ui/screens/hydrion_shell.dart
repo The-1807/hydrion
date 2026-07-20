@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../repositories/settings_repository.dart';
@@ -31,6 +30,7 @@ class _HydrionShellState extends State<HydrionShell>
   static final _historyTargetKey = GlobalKey();
   static final _challengesTargetKey = GlobalKey();
   static final _progressTargetKey = GlobalKey();
+  static final _bottomNavigationKey = GlobalKey();
 
   int _selectedIndex = 0;
   Timer? _dayRolloverTimer;
@@ -57,12 +57,6 @@ class _HydrionShellState extends State<HydrionShell>
     if (state == AppLifecycleState.resumed) {
       _refreshLocalLifecycleState();
     }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _applySystemBars();
   }
 
   Future<void> _refreshLocalLifecycleState() async {
@@ -184,30 +178,17 @@ class _HydrionShellState extends State<HydrionShell>
     }
   }
 
-  void _applySystemBars() {
-    final brightness = Theme.of(context).brightness;
-    final dark = brightness == Brightness.dark;
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarDividerColor: Colors.transparent,
-        statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
-        statusBarBrightness: dark ? Brightness.dark : Brightness.light,
-        systemNavigationBarIconBrightness:
-            dark ? Brightness.light : Brightness.dark,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tourRepository = context.watch<GuidedTourRepository>();
+    final navigationColor =
+        Theme.of(context).navigationBarTheme.backgroundColor ??
+            Theme.of(context).colorScheme.surface;
     final scaffold = Scaffold(
-      extendBody: true,
-      extendBodyBehindAppBar: true,
+      extendBody: false,
       body: DecoratedBox(
+        key: const Key('hydrion-edge-background'),
         decoration: BoxDecoration(
           gradient: isDark
               ? const LinearGradient(
@@ -230,57 +211,69 @@ class _HydrionShellState extends State<HydrionShell>
                 logTargetKey: _logTargetKey,
                 historyTargetKey: _historyTargetKey,
               ),
-              SocialChallengesScreen(
+              const SocialChallengesScreen(
                 embedded: true,
-                tourTargetKey: _challengesTargetKey,
               ),
-              AnalyticsScreen(
+              const AnalyticsScreen(
                 embedded: true,
-                tourTargetKey: _progressTargetKey,
               ),
               const ProfileScreen(embedded: true),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: NavigationBar(
-          key: const Key('hydrion-bottom-nav'),
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) {
-            setState(() => _selectedIndex = index);
-          },
-          destinations: const [
-            NavigationDestination(
-              key: Key('nav-home'),
-              icon: Icon(Icons.water_drop_outlined),
-              selectedIcon: Icon(Icons.water_drop),
-              label: 'Home',
+      bottomNavigationBar: KeyedSubtree(
+        key: _bottomNavigationKey,
+        child: ColoredBox(
+          key: const Key('hydrion-bottom-nav-background'),
+          color: navigationColor,
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewPaddingOf(context).bottom,
             ),
-            NavigationDestination(
-              key: Key('nav-challenges'),
-              icon: Icon(Icons.emoji_events_outlined),
-              selectedIcon: Icon(Icons.emoji_events),
-              label: 'Challenges',
+            child: NavigationBar(
+              key: const Key('hydrion-bottom-nav'),
+              backgroundColor: navigationColor,
+              labelBehavior: MediaQuery.sizeOf(context).width < 320
+                  ? NavigationDestinationLabelBehavior.alwaysHide
+                  : NavigationDestinationLabelBehavior.alwaysShow,
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (index) {
+                setState(() => _selectedIndex = index);
+              },
+              destinations: [
+                const NavigationDestination(
+                  key: Key('nav-home'),
+                  icon: Icon(Icons.water_drop_outlined),
+                  selectedIcon: Icon(Icons.water_drop),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  key: _challengesTargetKey,
+                  icon: const Icon(Icons.emoji_events_outlined),
+                  selectedIcon: const Icon(Icons.emoji_events),
+                  label: 'Challenges',
+                ),
+                NavigationDestination(
+                  key: _progressTargetKey,
+                  icon: const Icon(Icons.insights_outlined),
+                  selectedIcon: const Icon(Icons.insights),
+                  label: 'Progress',
+                ),
+                const NavigationDestination(
+                  key: Key('nav-profile'),
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: 'Profile',
+                ),
+              ],
             ),
-            NavigationDestination(
-              key: Key('nav-progress'),
-              icon: Icon(Icons.insights_outlined),
-              selectedIcon: Icon(Icons.insights),
-              label: 'Progress',
-            ),
-            NavigationDestination(
-              key: Key('nav-profile'),
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
+          ),
         ),
       ),
     );
     return GuidedTourOverlay(
+      obstructionKey: _bottomNavigationKey,
       onDestinationRequested: (index) {
         if (mounted && _selectedIndex != index) {
           setState(() => _selectedIndex = index);
@@ -334,7 +327,7 @@ class _HydrionShellState extends State<HydrionShell>
           if (tourRepository.shouldOfferWhatsNew)
             Positioned(
               key: const Key('whats-new-tour-prompt'),
-              top: MediaQuery.paddingOf(context).top + 12,
+              top: 12,
               left: 16,
               right: 16,
               child: SafeArea(

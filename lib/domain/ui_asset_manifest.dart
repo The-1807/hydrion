@@ -1,4 +1,4 @@
-import '../repositories/settings_repository.dart';
+import 'profile_art_registry.dart';
 
 class HydrionUiScene {
   final String id;
@@ -34,6 +34,27 @@ class HydrionUiAssetManifest {
       description: 'A Hydrion intake tracking illustration.',
       assetPath: 'assets/UI_BETA/tracked_intake.png',
       intendedUse: 'Progress, profile, or empty-state accent.',
+    ),
+    HydrionUiScene(
+      id: 'neutral-bottle',
+      label: 'Hydrion Bottle',
+      description: 'A neutral Hydrion water bottle illustration.',
+      assetPath: 'assets/UI_BETA/ble_bottle.png',
+      intendedUse: 'Safe neutral profile-aware fallback.',
+    ),
+    HydrionUiScene(
+      id: 'neutral-infusion',
+      label: 'Infused Water',
+      description: 'A neutral infused-water bottle illustration.',
+      assetPath: 'assets/UI_BETA/arounddworld.png',
+      intendedUse: 'Safe neutral routine and profile fallback.',
+    ),
+    HydrionUiScene(
+      id: 'neutral-temperature',
+      label: 'Water Temperature',
+      description: 'A neutral hot-and-cold water dispenser illustration.',
+      assetPath: 'assets/UI_BETA/temp-roulette.png',
+      intendedUse: 'Safe neutral progress and empty-state fallback.',
     ),
     HydrionUiScene(
       id: 'bottle-break',
@@ -173,20 +194,19 @@ enum HydrionLifestylePresentation {
 class HydrionLifestyleArtResolver {
   const HydrionLifestyleArtResolver._();
 
-  static HydrionLifestylePresentation presentationFor(HydrionSex? sex) {
-    return switch (sex) {
-      HydrionSex.male => HydrionLifestylePresentation.male,
-      HydrionSex.female => HydrionLifestylePresentation.female,
-      HydrionSex.intersex ||
-      HydrionSex.preferNotToSay ||
-      null =>
+  static HydrionLifestylePresentation presentationFor(Object? sex) {
+    return switch (HydrionProfileArtResolver.presentationFor(sex)) {
+      HydrionProfileArtPresentation.male => HydrionLifestylePresentation.male,
+      HydrionProfileArtPresentation.female =>
+        HydrionLifestylePresentation.female,
+      HydrionProfileArtPresentation.neutral =>
         HydrionLifestylePresentation.neutral,
     };
   }
 
   static HydrionUiScene sceneFor({
     required HydrionLifestyleSurface surface,
-    required HydrionSex? sex,
+    required Object? sex,
   }) {
     final presentation = presentationFor(sex);
     final id = switch (presentation) {
@@ -197,7 +217,7 @@ class HydrionLifestyleArtResolver {
     return HydrionUiAssetManifest.byId(id);
   }
 
-  static List<HydrionUiScene> homeRailScenes(HydrionSex? sex) {
+  static List<HydrionUiScene> homeRailScenes(Object? sex) {
     return [
       sceneFor(surface: HydrionLifestyleSurface.homePrimary, sex: sex),
       sceneFor(surface: HydrionLifestyleSurface.homeSecondary, sex: sex),
@@ -210,14 +230,14 @@ class HydrionLifestyleArtResolver {
     return switch (surface) {
       HydrionLifestyleSurface.homePrimary => 'men-goals',
       HydrionLifestyleSurface.homeSecondary => 'bottle-break',
-      HydrionLifestyleSurface.homeTertiary => 'blue-kit',
+      HydrionLifestyleSurface.homeTertiary => 'runner',
       HydrionLifestyleSurface.homeQuaternary => 'cooldown',
       HydrionLifestyleSurface.weather => 'weather',
-      HydrionLifestyleSurface.progress => 'blue-kit',
+      HydrionLifestyleSurface.progress => 'runner',
       HydrionLifestyleSurface.challenges => 'challenge',
       HydrionLifestyleSurface.profile => 'app-check',
       HydrionLifestyleSurface.onboarding => 'men-goals',
-      HydrionLifestyleSurface.emptyState => 'blue-kit',
+      HydrionLifestyleSurface.emptyState => 'bottle-break',
       HydrionLifestyleSurface.recommendation => 'bottle-break',
     };
   }
@@ -240,17 +260,17 @@ class HydrionLifestyleArtResolver {
 
   static String _neutralSceneId(HydrionLifestyleSurface surface) {
     return switch (surface) {
-      HydrionLifestyleSurface.homePrimary => 'blue-kit',
-      HydrionLifestyleSurface.homeSecondary => 'goals',
-      HydrionLifestyleSurface.homeTertiary => 'plan-check',
-      HydrionLifestyleSurface.homeQuaternary => 'bottle-break',
+      HydrionLifestyleSurface.homePrimary => 'neutral-bottle',
+      HydrionLifestyleSurface.homeSecondary => 'neutral-infusion',
+      HydrionLifestyleSurface.homeTertiary => 'weather',
+      HydrionLifestyleSurface.homeQuaternary => 'neutral-temperature',
       HydrionLifestyleSurface.weather => 'weather',
-      HydrionLifestyleSurface.progress => 'cooldown',
+      HydrionLifestyleSurface.progress => 'neutral-bottle',
       HydrionLifestyleSurface.challenges => 'challenge',
-      HydrionLifestyleSurface.profile => 'blue-kit',
-      HydrionLifestyleSurface.onboarding => 'goals',
-      HydrionLifestyleSurface.emptyState => 'cooldown',
-      HydrionLifestyleSurface.recommendation => 'plan-check',
+      HydrionLifestyleSurface.profile => 'neutral-infusion',
+      HydrionLifestyleSurface.onboarding => 'neutral-bottle',
+      HydrionLifestyleSurface.emptyState => 'neutral-temperature',
+      HydrionLifestyleSurface.recommendation => 'neutral-infusion',
     };
   }
 }

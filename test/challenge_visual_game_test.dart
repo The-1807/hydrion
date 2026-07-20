@@ -24,10 +24,7 @@ void main() {
             reason: visual.cardAsset);
       }
       final dashboardAsset = visual.dashboardAssetFor(null);
-      if (dashboardAsset != null) {
-        expect(File(dashboardAsset).existsSync(), isTrue,
-            reason: dashboardAsset);
-      }
+      expect(File(dashboardAsset).existsSync(), isTrue, reason: dashboardAsset);
     }
   });
 

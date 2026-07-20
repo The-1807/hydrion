@@ -6,11 +6,11 @@ enum HydrionBuildStage {
 
 class HydrionReleaseMetadata {
   static const productName = 'Hydrion';
-  static const publicVersion = '1.0.0';
-  static const buildNumber = 2;
+  static const publicVersion = '1.1.0';
+  static const buildNumber = 3;
   static const flutterVersionName = '$publicVersion+$buildNumber';
   static const releaseDateLabel = 'Release date pending';
-  static const nextPlannedVersion = '1.1.0';
+  static const nextPlannedVersion = '1.2.0';
   static const metadataStatus = 'Draft';
   static const termsStatus = 'Owner review required';
   static const privacyStatus = 'Owner review required';
