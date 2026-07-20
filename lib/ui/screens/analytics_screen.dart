@@ -187,7 +187,7 @@ class _WeeklyHydrationStrip extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 520;
-          final chart = Column(
+          final heading = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -198,6 +198,32 @@ class _WeeklyHydrationStrip extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(rhythmSummary),
+            ],
+          );
+          final chart = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (compact)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: heading),
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: 64,
+                      height: 78,
+                      child: Image.asset(
+                        scene.assetPath,
+                        key: const Key('progress-profile-art'),
+                        fit: BoxFit.contain,
+                        cacheWidth: 192,
+                        semanticLabel: scene.description,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                heading,
               const SizedBox(height: 16),
               Semantics(
                 label: 'Seven day hydration chart. '
@@ -245,16 +271,22 @@ class _WeeklyHydrationStrip extends StatelessWidget {
             children: [
               Expanded(child: chart),
               const SizedBox(width: 14),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(HydrionRadii.sm),
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Image.asset(
-                    scene.assetPath,
-                    width: 76,
-                    height: 120,
-                    fit: BoxFit.contain,
-                    semanticLabel: scene.description,
+              SizedBox(
+                width: 88,
+                height: 132,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(HydrionRadii.sm),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Image.asset(
+                      scene.assetPath,
+                      key: const Key('progress-profile-art'),
+                      width: 76,
+                      height: 120,
+                      fit: BoxFit.contain,
+                      cacheWidth: 192,
+                      semanticLabel: scene.description,
+                    ),
                   ),
                 ),
               ),

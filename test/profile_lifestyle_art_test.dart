@@ -52,21 +52,21 @@ void main() {
         surface: HydrionLifestyleSurface.profile,
         sex: HydrionSex.intersex,
       ).id,
-      'blue-kit',
+      'neutral-infusion',
     );
     expect(
       HydrionLifestyleArtResolver.sceneFor(
         surface: HydrionLifestyleSurface.profile,
         sex: HydrionSex.preferNotToSay,
       ).id,
-      'blue-kit',
+      'neutral-infusion',
     );
     expect(
       HydrionLifestyleArtResolver.sceneFor(
         surface: HydrionLifestyleSurface.profile,
         sex: null,
       ).id,
-      'blue-kit',
+      'neutral-infusion',
     );
 
     for (final sex in <HydrionSex?>[

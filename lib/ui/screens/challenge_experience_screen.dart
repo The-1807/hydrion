@@ -709,7 +709,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     return [
       _BottleBingoDashboardHero(
         asset: ChallengeVisualRegistry.forId('bottle-bingo')
-            .dashboardAssetFor(settings.sex)!,
+            .dashboardAssetFor(settings.sex),
         completedTiles: completed.length,
         completedLines: lines.length,
       ),
@@ -1544,7 +1544,7 @@ class _ChallengeImageHero extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Semantics(
         label: '$challengeName illustration',
-        image: asset != null,
+        image: true,
         child: Container(
           height: 210,
           clipBehavior: Clip.antiAlias,
@@ -1557,47 +1557,42 @@ class _ChallengeImageHero extends StatelessWidget {
               ],
             ),
           ),
-          child: asset == null
-              ? Center(
-                  child: Icon(identity.icon, color: Colors.white, size: 88),
-                )
-              : Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.asset(
-                      asset,
-                      fit: BoxFit.contain,
-                      alignment: identity.imageAlignment,
-                      excludeFromSemantics: true,
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            identity.primary.withValues(alpha: 0.78),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Text(
-                          challengeName,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                              ),
-                        ),
-                      ),
-                    ),
-                  ],
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                asset,
+                key: const Key('challenge-dashboard-art'),
+                fit: BoxFit.contain,
+                cacheWidth: 720,
+                alignment: identity.imageAlignment,
+                excludeFromSemantics: true,
+              ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      identity.primary.withValues(alpha: 0.78),
+                      Colors.transparent,
+                    ],
+                  ),
                 ),
+              ),
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    challengeName,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

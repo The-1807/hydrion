@@ -45,7 +45,7 @@ void main() {
   });
 
   test('UI asset manifest separates lifestyle scenes from profile avatars', () {
-    expect(HydrionUiAssetManifest.lifestyleScenes, hasLength(17));
+    expect(HydrionUiAssetManifest.lifestyleScenes, hasLength(20));
     expect(HydrionUiAssetManifest.byId('sip-break').assetPath,
         'assets/UI_BETA/drinking-lady.png');
     expect(HydrionUiAssetManifest.byId('challenge').assetPath,
@@ -569,7 +569,7 @@ void main() {
   test('release metadata keeps v1 identity and pending release date explicit',
       () {
     expect(HydrionReleaseMetadata.productName, 'Hydrion');
-    expect(HydrionReleaseMetadata.flutterVersionName, '1.0.0+2');
+    expect(HydrionReleaseMetadata.flutterVersionName, '1.1.0+3');
     expect(HydrionReleaseMetadata.releaseDateLabel, 'Release date pending');
     expect(HydrionReleaseMetadata.communityName, 'HydrionSharks');
     expect(HydrionReleaseMetadata.contactEmail, 'hydrionsharks@gmail.com');

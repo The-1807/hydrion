@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -51,13 +52,24 @@ class GuidedTourLayout {
     required EdgeInsets viewInsets,
     required Size cardSize,
     required Rect? targetRect,
+    Rect? obstructionRect,
     bool expanded = false,
   }) {
+    final unobstructedBottom = obstructionRect != null &&
+            obstructionRect.top > safePadding.top &&
+            obstructionRect.top < viewport.height
+        ? obstructionRect.top - 12
+        : viewport.height -
+            math.max(safePadding.bottom, viewInsets.bottom) -
+            12;
     final safeRect = Rect.fromLTRB(
       safePadding.left + 12,
       safePadding.top + 12,
       viewport.width - safePadding.right - 12,
-      viewport.height - math.max(safePadding.bottom, viewInsets.bottom) - 12,
+      math.min(
+        unobstructedBottom,
+        viewport.height - math.max(safePadding.bottom, viewInsets.bottom) - 12,
+      ),
     );
     final safeCardSize = Size(
       math.min(cardSize.width, safeRect.width),
@@ -82,26 +94,52 @@ class GuidedTourLayout {
     final spotlight = targetRect.inflate(7).intersect(
           Offset.zero & viewport,
         );
+    final aboveSpace = targetRect.top - safeRect.top - _gap;
+    final belowSpace = safeRect.bottom - targetRect.bottom - _gap;
+    final preferredVertical =
+        targetRect.center.dy < safeRect.top + safeRect.height / 3
+            ? TourCardPlacement.below
+            : targetRect.center.dy > safeRect.top + safeRect.height * 2 / 3
+                ? TourCardPlacement.above
+                : belowSpace >= aboveSpace
+                    ? TourCardPlacement.below
+                    : TourCardPlacement.above;
     final candidates = <TourCardPlacement>[
-      if (expanded) TourCardPlacement.right,
-      if (expanded) TourCardPlacement.left,
-      TourCardPlacement.below,
-      TourCardPlacement.above,
+      if (expanded && targetRect.center.dx <= safeRect.center.dx)
+        TourCardPlacement.right,
+      if (expanded && targetRect.center.dx > safeRect.center.dx)
+        TourCardPlacement.left,
+      if (expanded && targetRect.center.dx <= safeRect.center.dx)
+        TourCardPlacement.left,
+      if (expanded && targetRect.center.dx > safeRect.center.dx)
+        TourCardPlacement.right,
+      preferredVertical,
+      preferredVertical == TourCardPlacement.above
+          ? TourCardPlacement.below
+          : TourCardPlacement.above,
     ];
     Rect rectFor(TourCardPlacement placement) {
       return switch (placement) {
-        TourCardPlacement.below => Rect.fromLTWH(
-            targetRect.center.dx - safeCardSize.width / 2,
-            targetRect.bottom + _gap,
-            safeCardSize.width,
-            safeCardSize.height,
-          ),
-        TourCardPlacement.above => Rect.fromLTWH(
-            targetRect.center.dx - safeCardSize.width / 2,
-            targetRect.top - _gap - safeCardSize.height,
-            safeCardSize.width,
-            safeCardSize.height,
-          ),
+        TourCardPlacement.below => () {
+            final height =
+                math.min(safeCardSize.height, math.max(0.0, belowSpace));
+            return Rect.fromLTWH(
+              targetRect.center.dx - safeCardSize.width / 2,
+              targetRect.bottom + _gap,
+              safeCardSize.width,
+              height,
+            );
+          }(),
+        TourCardPlacement.above => () {
+            final height =
+                math.min(safeCardSize.height, math.max(0.0, aboveSpace));
+            return Rect.fromLTWH(
+              targetRect.center.dx - safeCardSize.width / 2,
+              targetRect.top - _gap - height,
+              safeCardSize.width,
+              height,
+            );
+          }(),
         TourCardPlacement.right => Rect.fromLTWH(
             targetRect.right + _gap,
             targetRect.center.dy - safeCardSize.height / 2,
@@ -123,30 +161,32 @@ class GuidedTourLayout {
       };
     }
 
-    bool fits(Rect rect) =>
-        safeRect.contains(rect.topLeft) && safeRect.contains(rect.bottomRight);
+    final minimumUsableHeight = math.min(160.0, safeRect.height);
+    bool valid(TourCardPlacement candidate) {
+      final rect = rectFor(candidate);
+      return rect.width > 0 &&
+          rect.height >= minimumUsableHeight &&
+          safeRect.contains(rect.topLeft) &&
+          safeRect.contains(rect.bottomRight) &&
+          !rect.overlaps(spotlight);
+    }
+
     var placement = candidates.firstWhere(
-      (candidate) => fits(rectFor(candidate)),
-      orElse: () {
-        final below = safeRect.bottom - targetRect.bottom;
-        final above = targetRect.top - safeRect.top;
-        return below >= above
-            ? TourCardPlacement.below
-            : TourCardPlacement.above;
-      },
+      valid,
+      orElse: () => aboveSpace >= belowSpace
+          ? TourCardPlacement.above
+          : TourCardPlacement.below,
     );
     var cardRect = _clampRect(rectFor(placement), safeRect);
-    if (cardRect.overlaps(spotlight)) {
+    if (cardRect.height <= 0 || cardRect.overlaps(spotlight)) {
       final fallback = Rect.fromLTWH(
         safeRect.center.dx - safeCardSize.width / 2,
         safeRect.center.dy - safeCardSize.height / 2,
         safeCardSize.width,
         safeCardSize.height,
       );
-      if (!fallback.overlaps(spotlight)) {
-        cardRect = fallback;
-        placement = TourCardPlacement.centered;
-      }
+      cardRect = _clampRect(fallback, safeRect);
+      placement = TourCardPlacement.centered;
     }
 
     final pointer = _pointerFor(
@@ -164,9 +204,11 @@ class GuidedTourLayout {
   }
 
   static Rect _clampRect(Rect rect, Rect bounds) {
-    final left = rect.left.clamp(bounds.left, bounds.right - rect.width);
-    final top = rect.top.clamp(bounds.top, bounds.bottom - rect.height);
-    return Rect.fromLTWH(left, top, rect.width, rect.height);
+    final width = math.min(rect.width, bounds.width);
+    final height = math.min(rect.height, bounds.height);
+    final left = rect.left.clamp(bounds.left, bounds.right - width);
+    final top = rect.top.clamp(bounds.top, bounds.bottom - height);
+    return Rect.fromLTWH(left, top, width, height);
   }
 
   static (Offset, Offset)? _pointerFor({
@@ -218,6 +260,7 @@ class GuidedTourLayout {
 class GuidedTourOverlay extends StatefulWidget {
   final List<GuidedTourStep> steps;
   final Widget child;
+  final GlobalKey? obstructionKey;
   final ValueChanged<int>? onDestinationRequested;
   final VoidCallback? onFinished;
 
@@ -225,6 +268,7 @@ class GuidedTourOverlay extends StatefulWidget {
     super.key,
     required this.steps,
     required this.child,
+    this.obstructionKey,
     this.onDestinationRequested,
     this.onFinished,
   });
@@ -243,9 +287,12 @@ class _GuidedTourOverlayState extends State<GuidedTourOverlay> {
             repository.currentStep.clamp(0, widget.steps.length - 1).toInt();
         return Stack(
           children: [
-            ExcludeSemantics(
+            ExcludeFocus(
               excluding: show,
-              child: AbsorbPointer(absorbing: show, child: widget.child),
+              child: ExcludeSemantics(
+                excluding: show,
+                child: AbsorbPointer(absorbing: show, child: widget.child),
+              ),
             ),
             if (show)
               _TourStepOverlay(
@@ -254,6 +301,7 @@ class _GuidedTourOverlayState extends State<GuidedTourOverlay> {
                 step: widget.steps[index],
                 index: index,
                 total: widget.steps.length,
+                obstructionKey: widget.obstructionKey,
                 onDestinationRequested: widget.onDestinationRequested,
                 onBack: index == 0
                     ? null
@@ -302,9 +350,12 @@ class ContextualGuidedTourOverlay extends StatelessWidget {
             .toInt();
         return Stack(
           children: [
-            ExcludeSemantics(
+            ExcludeFocus(
               excluding: show,
-              child: AbsorbPointer(absorbing: show, child: child),
+              child: ExcludeSemantics(
+                excluding: show,
+                child: AbsorbPointer(absorbing: show, child: child),
+              ),
             ),
             if (show)
               _TourStepOverlay(
@@ -345,11 +396,12 @@ class _TourStepOverlay extends StatefulWidget {
   final GuidedTourStep step;
   final int index;
   final int total;
-  final VoidCallback? onBack;
-  final VoidCallback onNext;
-  final VoidCallback onSkip;
-  final VoidCallback onTargetMissing;
+  final FutureOr<void> Function()? onBack;
+  final FutureOr<void> Function() onNext;
+  final FutureOr<void> Function() onSkip;
+  final FutureOr<void> Function() onTargetMissing;
   final ValueChanged<int>? onDestinationRequested;
+  final GlobalKey? obstructionKey;
 
   const _TourStepOverlay({
     super.key,
@@ -362,6 +414,7 @@ class _TourStepOverlay extends StatefulWidget {
     required this.onSkip,
     required this.onTargetMissing,
     this.onDestinationRequested,
+    this.obstructionKey,
   });
 
   @override
@@ -369,18 +422,21 @@ class _TourStepOverlay extends StatefulWidget {
 }
 
 class _TourStepOverlayState extends State<_TourStepOverlay>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final _cardKey = GlobalKey();
   final _cardFocusNode = FocusNode(debugLabel: 'Hydrion tour card');
   late final AnimationController _gestureController;
   Rect? _target;
-  Size _cardSize = const Size(360, 300);
-  bool _missingHandled = false;
+  Size? _cardSize;
+  Rect? _obstruction;
+  int _missingRecoveryAttempts = 0;
   bool _gestureStopped = false;
+  bool _actionInProgress = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _gestureController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 760),
@@ -390,9 +446,25 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _gestureController.dispose();
     _cardFocusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _refreshMeasurements();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _refreshMeasurements();
+    });
   }
 
   Future<void> _prepareStep() async {
@@ -445,21 +517,38 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
   }
 
   void _retryMissingTarget() {
-    if (_missingHandled) return;
-    _missingHandled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) widget.onTargetMissing();
+    if (_missingRecoveryAttempts >= 1) {
+      scheduleMicrotask(widget.onTargetMissing);
+      return;
+    }
+    _missingRecoveryAttempts += 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      final targetContext = widget.step.targetKey.currentContext;
+      if (targetContext == null || !targetContext.mounted) {
+        await widget.onTargetMissing();
+        return;
+      }
+      await _prepareStep();
     });
   }
 
   void _refreshMeasurements() {
     final target = _rectForKey(widget.step.targetKey);
+    final obstruction = widget.obstructionKey == null
+        ? null
+        : _rectForKey(widget.obstructionKey!);
     final card = _cardKey.currentContext?.findRenderObject();
-    final nextCardSize = card is RenderBox ? card.size : _cardSize;
-    if (target != _target || nextCardSize != _cardSize) {
+    final nextCardSize = card is RenderBox && card.hasSize ? card.size : null;
+    if (target != _target ||
+        obstruction != _obstruction ||
+        (nextCardSize != null && nextCardSize != _cardSize)) {
       setState(() {
         _target = target;
-        _cardSize = nextCardSize;
+        _obstruction = obstruction;
+        if (nextCardSize != null) _cardSize = nextCardSize;
       });
     }
   }
@@ -479,6 +568,17 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
     _gestureController.stop();
   }
 
+  Future<void> _runAction(FutureOr<void> Function()? action) async {
+    if (action == null || _actionInProgress) return;
+    _stopGesture();
+    setState(() => _actionInProgress = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _actionInProgress = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -495,13 +595,18 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
     );
     final width =
         size.width >= 600 ? 400.0 : math.max(240, size.width - 32).toDouble();
-    final estimatedHeight = _cardSize.height.clamp(180.0, size.height * 0.62);
+    final measurementTop = media.padding.top + 12;
+    final measurementBottom =
+        math.max(media.padding.bottom, media.viewInsets.bottom) + 12;
+    final measurementMaxHeight =
+        math.max(1.0, size.height - measurementTop - measurementBottom);
     final geometry = GuidedTourLayout.calculate(
       viewport: size,
       safePadding: media.padding,
       viewInsets: media.viewInsets,
-      cardSize: Size(width, estimatedHeight.toDouble()),
+      cardSize: _cardSize ?? Size(width, measurementMaxHeight),
       targetRect: _target,
+      obstructionRect: _obstruction,
       expanded: size.width >= 700,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -509,205 +614,231 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
     });
     final scheme = Theme.of(context).colorScheme;
     final reducedMotion = media.disableAnimations;
-
-    return Listener(
-      onPointerDown: (_) => _stopGesture(),
-      child: Semantics(
-        scopesRoute: true,
-        explicitChildNodes: true,
-        label:
-            '${widget.tourLabel} step ${widget.index + 1} of ${widget.total}',
-        child: Material(
-          color: Colors.transparent,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    key: const Key('tour-spotlight'),
-                    painter: _SpotlightPainter(
-                      target: geometry.spotlightRect,
-                      overlayColor:
-                          Theme.of(context).brightness == Brightness.dark
-                              ? Colors.black.withValues(alpha: 0.48)
-                              : const Color(0xFF062B3B).withValues(alpha: 0.46),
-                      glowColor: scheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-              if (geometry.pointerStart != null && geometry.pointerEnd != null)
-                Positioned.fill(
-                  child: ExcludeSemantics(
-                    child: IgnorePointer(
-                      child: CustomPaint(
-                        key: const Key('tour-pointer'),
-                        painter: _PointerPainter(
-                          from: geometry.pointerStart!,
-                          to: geometry.pointerEnd!,
-                          color: scheme.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              if (widget.step.demonstratesPullToRefresh)
-                Positioned(
-                  key: const Key('tour-pull-gesture'),
-                  top: media.padding.top + 12,
-                  left: size.width / 2 - 72,
-                  width: 144,
-                  child: IgnorePointer(
-                    child: ExcludeSemantics(
-                      child: AnimatedBuilder(
-                        animation: _gestureController,
-                        builder: (context, child) => Transform.translate(
-                          offset: Offset(
-                            0,
-                            reducedMotion ? 0 : _gestureController.value * 18,
-                          ),
-                          child: child,
-                        ),
-                        child: DecoratedBox(
+    final tourCard = Focus(
+      focusNode: _cardFocusNode,
+      child: Card(
+        key: _cardKey,
+        elevation: 10,
+        color: scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(HydrionRadii.lg),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: measurementMaxHeight),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DecoratedBox(
                           decoration: BoxDecoration(
-                            color: scheme.surface,
+                            color: scheme.primaryContainer,
                             borderRadius:
                                 BorderRadius.circular(HydrionRadii.pill),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.16),
-                                blurRadius: 10,
-                              ),
-                            ],
                           ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                              horizontal: 10,
+                              vertical: 5,
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.arrow_downward,
-                                    color: scheme.primary),
-                                const SizedBox(width: 6),
-                                const Flexible(child: Text('Pull to refresh')),
+                            child: Text(
+                              'Step ${widget.index + 1} of ${widget.total}',
+                              key: const Key('tour-progress'),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelLarge
+                                  ?.copyWith(
+                                    color: scheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          widget.step.title,
+                          key: const Key('tour-title'),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: scheme.onSurface,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          widget.step.body,
+                          key: const Key('tour-body'),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OverflowBar(
+                  alignment: MainAxisAlignment.end,
+                  overflowAlignment: OverflowBarAlignment.end,
+                  spacing: 6,
+                  overflowSpacing: 8,
+                  children: [
+                    TextButton(
+                      key: const Key('tour-skip'),
+                      onPressed: _actionInProgress
+                          ? null
+                          : () => _runAction(widget.onSkip),
+                      child: const Text('Skip'),
+                    ),
+                    if (widget.onBack != null)
+                      OutlinedButton(
+                        key: const Key('tour-back'),
+                        onPressed: _actionInProgress
+                            ? null
+                            : () => _runAction(widget.onBack),
+                        child: const Text('Back'),
+                      ),
+                    FilledButton(
+                      key: const Key('tour-next'),
+                      onPressed: _actionInProgress
+                          ? null
+                          : () => _runAction(widget.onNext),
+                      child: Text(
+                        widget.index == widget.total - 1 ? 'Finish' : 'Next',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _runAction(widget.onSkip);
+      },
+      child: Listener(
+        onPointerDown: (_) => _stopGesture(),
+        child: Semantics(
+          scopesRoute: true,
+          explicitChildNodes: true,
+          label:
+              '${widget.tourLabel} step ${widget.index + 1} of ${widget.total}',
+          child: Material(
+            color: Colors.transparent,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      key: const Key('tour-spotlight'),
+                      painter: _SpotlightPainter(
+                        target: geometry.spotlightRect,
+                        overlayColor: Theme.of(context).brightness ==
+                                Brightness.dark
+                            ? Colors.black.withValues(alpha: 0.48)
+                            : const Color(0xFF062B3B).withValues(alpha: 0.46),
+                        glowColor: scheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+                if (geometry.pointerStart != null &&
+                    geometry.pointerEnd != null)
+                  Positioned.fill(
+                    child: ExcludeSemantics(
+                      child: IgnorePointer(
+                        child: CustomPaint(
+                          key: const Key('tour-pointer'),
+                          painter: _PointerPainter(
+                            from: geometry.pointerStart!,
+                            to: geometry.pointerEnd!,
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (widget.step.demonstratesPullToRefresh)
+                  Positioned(
+                    key: const Key('tour-pull-gesture'),
+                    top: media.padding.top + 12,
+                    left: size.width / 2 - 72,
+                    width: 144,
+                    child: IgnorePointer(
+                      child: ExcludeSemantics(
+                        child: AnimatedBuilder(
+                          animation: _gestureController,
+                          builder: (context, child) => Transform.translate(
+                            offset: Offset(
+                              0,
+                              reducedMotion ? 0 : _gestureController.value * 18,
+                            ),
+                            child: child,
+                          ),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: scheme.surface,
+                              borderRadius:
+                                  BorderRadius.circular(HydrionRadii.pill),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.16),
+                                  blurRadius: 10,
+                                ),
                               ],
                             ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              Positioned.fromRect(
-                rect: geometry.cardRect,
-                child: SafeArea(
-                  child: Focus(
-                    focusNode: _cardFocusNode,
-                    child: Card(
-                      key: _cardKey,
-                      elevation: 10,
-                      color: scheme.surface,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(HydrionRadii.lg),
-                        side: BorderSide(color: scheme.outlineVariant),
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxHeight: geometry.cardRect.height,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: scheme.primaryContainer,
-                                          borderRadius: BorderRadius.circular(
-                                            HydrionRadii.pill,
-                                          ),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 5,
-                                          ),
-                                          child: Text(
-                                            '${widget.index + 1} of ${widget.total}',
-                                            key: const Key('tour-progress'),
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .labelLarge
-                                                ?.copyWith(
-                                                  color:
-                                                      scheme.onPrimaryContainer,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        widget.step.title,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(widget.step.body),
-                                    ],
-                                  ),
-                                ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
                               ),
-                              const SizedBox(height: 10),
-                              OverflowBar(
-                                alignment: MainAxisAlignment.end,
-                                overflowAlignment: OverflowBarAlignment.end,
-                                spacing: 6,
-                                overflowSpacing: 8,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  TextButton(
-                                    key: const Key('tour-skip'),
-                                    onPressed: widget.onSkip,
-                                    child: const Text('Skip'),
-                                  ),
-                                  if (widget.onBack != null)
-                                    OutlinedButton(
-                                      key: const Key('tour-back'),
-                                      onPressed: widget.onBack,
-                                      child: const Text('Back'),
-                                    ),
-                                  FilledButton(
-                                    key: const Key('tour-next'),
-                                    onPressed: widget.onNext,
-                                    child: Text(
-                                      widget.index == widget.total - 1
-                                          ? 'Finish'
-                                          : 'Next',
-                                    ),
-                                  ),
+                                  Icon(Icons.arrow_downward,
+                                      color: scheme.primary),
+                                  const SizedBox(width: 6),
+                                  const Flexible(
+                                      child: Text('Pull to refresh')),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            ],
+                if (_cardSize == null)
+                  Positioned(
+                    left: math.max(12, (size.width - width) / 2),
+                    top: measurementTop,
+                    width: width,
+                    child: Opacity(
+                      opacity: 0,
+                      child: tourCard,
+                    ),
+                  )
+                else
+                  Positioned.fromRect(
+                    rect: geometry.cardRect,
+                    child: tourCard,
+                  ),
+              ],
+            ),
           ),
         ),
       ),

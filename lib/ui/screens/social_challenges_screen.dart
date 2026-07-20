@@ -46,11 +46,9 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
         .where((challenge) => !activeIds.contains(challenge.id))
         .toList(growable: false);
 
-    final mediaPadding = MediaQuery.paddingOf(context);
-    final bottomPadding = widget.embedded ? 96.0 + mediaPadding.bottom : 28.0;
     final listView = ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(16, 20, 16, bottomPadding),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
       children: [
         KeyedSubtree(
           key: widget.tourTargetKey,
