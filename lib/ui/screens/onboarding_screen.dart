@@ -364,7 +364,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             if (_goalMode == HydrionGoalMode.weatherInformed) ...[
               const SizedBox(height: 8),
               const Text(
-                'No forecast provider is configured in this build, so manual goals remain the reliable default until eligibility is complete.',
+                'Hydrion will ask for location access after setup, then show a daily weather-based suggestion for you to accept or keep your standard goal.',
               ),
             ],
           ],

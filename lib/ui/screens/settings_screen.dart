@@ -5,6 +5,7 @@ import '../../domain/avatar_manifest.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/settings_repository.dart';
+import '../../services/local_profile_reset_service.dart';
 import '../../utils/i18n_resolver.dart';
 import '../../utils/permissions.dart';
 import '../components/hydrion_logo.dart';
@@ -67,9 +68,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const _HelpCard(),
           const SizedBox(height: 12),
           const _LegalAboutCard(),
+          const SizedBox(height: 12),
+          const _DeleteProfileCard(),
         ],
       ),
     );
+  }
+}
+
+class _DeleteProfileCard extends StatefulWidget {
+  const _DeleteProfileCard();
+
+  @override
+  State<_DeleteProfileCard> createState() => _DeleteProfileCardState();
+}
+
+class _DeleteProfileCardState extends State<_DeleteProfileCard> {
+  bool _deleting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        key: const Key('settings-delete-profile-card'),
+        leading: Icon(
+          Icons.delete_outline,
+          color: Theme.of(context).colorScheme.error,
+        ),
+        title: const Text('Delete local profile'),
+        subtitle: const Text(
+          'Removes profile details, logs, reminders, challenges, and weather cache from this device.',
+        ),
+        trailing: _deleting
+            ? const SizedBox.square(
+                dimension: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.chevron_right),
+        onTap: _deleting ? null : () => _confirmDelete(context),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete local profile?'),
+        content: const Text(
+          'This clears your local profile, hydration history, reminders, challenges, and weather cache on this device. Legal acknowledgements and appearance settings are kept.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('confirm-delete-profile'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final resetService = context.read<LocalProfileResetService>();
+    setState(() => _deleting = true);
+    final result = await resetService.resetLocalProfile();
+    if (!context.mounted) return;
+    setState(() => _deleting = false);
+    if (!result.isCompleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Profile could not be deleted. Close Hydrion, reopen it, and try again.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (result.hasPendingNotificationCleanup) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Profile deleted. Android reminder cleanup will retry automatically.',
+          ),
+        ),
+      );
+    }
+    Navigator.of(context)
+        .pushNamedAndRemoveUntil('/onboarding', (route) => false);
   }
 }
 

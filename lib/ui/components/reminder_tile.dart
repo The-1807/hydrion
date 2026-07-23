@@ -5,6 +5,7 @@ import '../../domain/hydration_contracts.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../services/notifications.dart';
+import '../../services/reminder_feedback.dart';
 
 class ReminderTile extends StatefulWidget {
   final int shortfallMl;
@@ -44,17 +45,12 @@ class _ReminderTileState extends State<ReminderTile> {
       if (!mounted) {
         return;
       }
-      final capabilities = context.read<AppCapabilityReporter>().capabilities;
-      final notificationStatus = reminder?.scheduleState.name ??
-          (capabilities.osNotifications
-              ? 'available'
-              : l10n.osNotificationsDisabledSentence);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             reminder == null
                 ? l10n.noLocalReminderNeeded
-                : 'Reminder saved; scheduling state: $notificationStatus.',
+                : ReminderFeedback.status(reminder),
           ),
         ),
       );
@@ -84,7 +80,7 @@ class _ReminderTileState extends State<ReminderTile> {
         ? (capabilities.osNotifications
             ? 'Local notifications can be scheduled after permission.'
             : l10n.osNotificationsDisabledSentence)
-        : 'Scheduling: ${nextReminder.scheduleState.name}.';
+        : ReminderFeedback.status(nextReminder);
 
     return ListTile(
       leading: Icon(Icons.notifications, color: scheme.primary),

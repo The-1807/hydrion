@@ -853,6 +853,7 @@ class UserSettingsRepository extends ChangeNotifier {
     required String explanation,
   }) async {
     _settings = _settings.copyWith(
+      dailyGoalMl: _settings.baselineDailyGoalMl,
       lastWeatherGoalDecisionAt: decidedAt,
       lastWeatherGoalLocalDate: localDateKey,
       lastWeatherGoalExplanation: explanation,
@@ -982,6 +983,34 @@ class UserSettingsRepository extends ChangeNotifier {
     _settings = _settings.copyWith(
       onboardingCompleted: false,
       onboardingStep: 0,
+    );
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<void> resetLocalProfile({
+    bool preserveLegalAcceptance = true,
+  }) async {
+    final current = _settings;
+    _settings = UserSettings(
+      locale: current.locale,
+      themePreference: current.themePreference,
+      onboardingCompleted: false,
+      legalAndHealthAcknowledged:
+          preserveLegalAcceptance ? current.legalAndHealthAcknowledged : false,
+      acceptedTermsVersion:
+          preserveLegalAcceptance ? current.acceptedTermsVersion : null,
+      acceptedTermsAt: preserveLegalAcceptance ? current.acceptedTermsAt : null,
+      acknowledgedHealthDisclaimerVersion: preserveLegalAcceptance
+          ? current.acknowledgedHealthDisclaimerVersion
+          : null,
+      acknowledgedHealthDisclaimerAt: preserveLegalAcceptance
+          ? current.acknowledgedHealthDisclaimerAt
+          : null,
+      privacyPolicyVersionShown:
+          preserveLegalAcceptance ? current.privacyPolicyVersionShown : null,
+      privacyPolicyShownAt:
+          preserveLegalAcceptance ? current.privacyPolicyShownAt : null,
     );
     await _persist();
     notifyListeners();

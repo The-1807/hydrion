@@ -856,7 +856,8 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
           priority: 1,
           requestPermissionIfNeeded: true,
         );
-        parameters['timerReminderId'] = scheduled.reminder?.id;
+        parameters['timerReminderId'] =
+            scheduled.scheduled ? scheduled.reminder?.id : null;
       }
     }
     if (widget.challenge.id == 'temperature-roulette') {
@@ -1027,7 +1028,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
             priority: 1,
             requestPermissionIfNeeded: true,
           );
-          if (scheduled.reminder != null) {
+          if (scheduled.scheduled && scheduled.reminder != null) {
             final latest = repository.activeChallengeFor(active.id) ?? active;
             await repository.updateParameters({
               ...latest.parameters,
@@ -2949,7 +2950,7 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard> {
           priority: 1,
           requestPermissionIfNeeded: true,
         );
-    if (scheduled.reminder != null && mounted) {
+    if (scheduled.scheduled && scheduled.reminder != null && mounted) {
       await _save({'timerReminderId': scheduled.reminder!.id});
     }
   }

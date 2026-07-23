@@ -22,6 +22,7 @@ import 'services/hydration_ai_action_executor.dart';
 import 'services/hydration_ai_orchestrator.dart';
 import 'services/hydration_context_builder.dart';
 import 'services/location_service.dart';
+import 'services/local_profile_reset_service.dart';
 import 'services/notifications.dart';
 import 'services/policy_service.dart';
 import 'services/provider_health.dart';
@@ -282,6 +283,7 @@ class HydrionApp extends StatelessWidget {
         Provider.value(value: services.voiceBridge),
         Provider.value(value: services.wearables),
         Provider.value(value: services.ecoTracker),
+        Provider.value(value: services.localProfileResetService),
       ],
       child: Consumer3<I18nResolver, UserSettingsRepository, DynamicThemeClock>(
         builder: (context, i18n, settingsRepository, themeClock, _) {
@@ -352,6 +354,7 @@ class HydrionServices {
   final VoiceLLMBridge voiceBridge;
   final WearableService wearables;
   final EcoTracker ecoTracker;
+  final LocalProfileResetService localProfileResetService;
 
   HydrionServices({
     this.aiRuntimeConfig = const HydrionAiRuntimeConfig(),
@@ -384,6 +387,7 @@ class HydrionServices {
     required this.voiceBridge,
     required this.wearables,
     required this.ecoTracker,
+    required this.localProfileResetService,
   });
 
   static Future<HydrionServices> local() async {
@@ -576,6 +580,14 @@ class HydrionServices {
       hydrationRepository: hydrationRepository,
       settingsRepository: settingsRepository,
     );
+    final localProfileResetService = LocalProfileResetService(
+      settingsRepository: settingsRepository,
+      hydrationRepository: hydrationRepository,
+      challengeRepository: challengeRepository,
+      reminderRepository: reminderRepository,
+      notificationService: notificationService,
+      weatherForecastService: weatherForecastService,
+    );
 
     return HydrionServices(
       aiRuntimeConfig: aiRuntimeConfig,
@@ -608,6 +620,7 @@ class HydrionServices {
       voiceBridge: voiceBridge,
       wearables: wearables,
       ecoTracker: ecoTracker,
+      localProfileResetService: localProfileResetService,
     );
   }
 

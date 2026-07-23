@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/avatar_manifest.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
@@ -292,6 +294,31 @@ void main() {
     expect(ineligible.eligible, isFalse);
     expect(ineligible.recommendedGoalMl, 2200);
     expect(ineligible.explanation, contains('Manual goal kept'));
+  });
+
+  test('EPA rules are not bound to personalized hydration or safety claims',
+      () {
+    final scannedFiles = <File>[
+      ...Directory('lib').listSync(recursive: true).whereType<File>().where(
+          (file) => file.path.endsWith('.dart') || file.path.endsWith('.arb')),
+      ...Directory('docs')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.md')),
+    ];
+    final scanned = scannedFiles
+        .map((file) => file.readAsStringSync().toLowerCase())
+        .join('\n');
+
+    for (final blocked in const [
+      'epa compliant',
+      'epa rules applied',
+      'meets epa rules',
+      'your local water is safe',
+      'safe to drink',
+    ]) {
+      expect(scanned, isNot(contains(blocked)));
+    }
   });
 
   test('challenge catalogue contains safe local v1 challenges', () {

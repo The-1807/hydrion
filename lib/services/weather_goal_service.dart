@@ -25,6 +25,7 @@ abstract class DailyWeatherProvider {
 
 class WeatherSnapshot {
   final double temperatureC;
+  final double? apparentTemperatureC;
   final double? humidityPercent;
   final double uvIndex;
   final DateTime observedAt;
@@ -34,6 +35,7 @@ class WeatherSnapshot {
 
   const WeatherSnapshot({
     required this.temperatureC,
+    this.apparentTemperatureC,
     this.humidityPercent,
     required this.uvIndex,
     required this.observedAt,
@@ -45,6 +47,7 @@ class WeatherSnapshot {
   Map<String, dynamic> toJson() {
     return {
       'temperatureC': temperatureC,
+      'apparentTemperatureC': apparentTemperatureC,
       'humidityPercent': humidityPercent,
       'uvIndex': uvIndex,
       'observedAt': observedAt.toIso8601String(),
@@ -60,6 +63,7 @@ class WeatherSnapshot {
     }
     final temperature = value['temperatureC'];
     final humidity = value['humidityPercent'];
+    final apparentTemperature = value['apparentTemperatureC'];
     final uv = value['uvIndex'];
     final observedAt =
         DateTime.tryParse((value['observedAt'] ?? '').toString());
@@ -74,6 +78,10 @@ class WeatherSnapshot {
     }
     return WeatherSnapshot(
       temperatureC: temperature.toDouble(),
+      apparentTemperatureC:
+          apparentTemperature is num && apparentTemperature.isFinite
+              ? apparentTemperature.toDouble()
+              : null,
       humidityPercent:
           humidity is num && humidity.isFinite ? humidity.toDouble() : null,
       uvIndex: uv.toDouble(),
@@ -195,6 +203,10 @@ class WeatherForecastService {
 
   bool get isConfigured => _provider.isConfigured;
 
+  Future<void> clearCache() {
+    return _cache.clear();
+  }
+
   Future<WeatherForecastResult> getDailyForecast({
     required HydrionCoordinates coordinates,
     DateTime? now,
@@ -297,8 +309,10 @@ class OpenMeteoWeatherProvider implements DailyWeatherProvider {
       queryParameters: {
         'latitude': coordinates.latitude.toStringAsFixed(4),
         'longitude': coordinates.longitude.toStringAsFixed(4),
-        'daily': 'temperature_2m_max,weather_code',
-        'current': 'temperature_2m,relative_humidity_2m,weather_code',
+        'daily':
+            'temperature_2m_max,apparent_temperature_max,uv_index_max,weather_code',
+        'current':
+            'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code',
         'forecast_days': '1',
         'timezone': 'auto',
       },
@@ -366,13 +380,18 @@ class OpenMeteoWeatherProvider implements DailyWeatherProvider {
       );
     }
     final humidity = _numAt(current, 'relative_humidity_2m');
+    final currentApparent = _numAt(current, 'apparent_temperature');
+    final dailyApparentMax = _listNumAt(daily, 'apparent_temperature_max', 0);
+    final apparentTemperature = dailyApparentMax ?? currentApparent;
+    final uvIndex = _listNumAt(daily, 'uv_index_max', 0) ?? 0;
     final weatherCode =
         _numAt(current, 'weather_code') ?? _listNumAt(daily, 'weather_code', 0);
 
     return WeatherSnapshot(
       temperatureC: temperature.clamp(-60, 60).toDouble(),
+      apparentTemperatureC: apparentTemperature?.clamp(-60, 70).toDouble(),
       humidityPercent: humidity?.clamp(0, 100).toDouble(),
-      uvIndex: 0,
+      uvIndex: uvIndex.clamp(0, 20).toDouble(),
       observedAt: currentTime,
       retrievedAt: currentTime,
       condition: _conditionFromCode(weatherCode?.round()),
@@ -498,11 +517,15 @@ class DeterministicWeatherGoalService {
       );
     }
 
-    final temperatureAdjustment = switch (inputs.weather.temperatureC) {
+    final effectiveTemperature = inputs.weather.apparentTemperatureC == null
+        ? inputs.weather.temperatureC
+        : inputs.weather.temperatureC > inputs.weather.apparentTemperatureC!
+            ? inputs.weather.temperatureC
+            : inputs.weather.apparentTemperatureC!;
+    final temperatureAdjustment = switch (effectiveTemperature) {
       >= 35 => 450,
       >= 30 => 300,
       >= 26 => 150,
-      <= 0 => -100,
       _ => 0,
     };
     final humidityAdjustment =
@@ -648,7 +671,7 @@ class DailyWeatherGoalCoordinator {
     if (locationPermission != HydrionLocationPermissionState.granted) {
       return WeatherModeSetupResult(
         status: WeatherModeSetupStatus.locationPermissionRequired,
-        message: locationPermission.name,
+        message: _locationPermissionMessage(locationPermission),
       );
     }
 
@@ -656,7 +679,7 @@ class DailyWeatherGoalCoordinator {
     if (!location.isSuccess || location.coordinates == null) {
       return WeatherModeSetupResult(
         status: WeatherModeSetupStatus.locationUnavailable,
-        message: location.status.name,
+        message: _locationStatusMessage(location.status),
       );
     }
 
@@ -670,7 +693,7 @@ class DailyWeatherGoalCoordinator {
         status: WeatherModeSetupStatus.weatherUnavailable,
         forecast: forecastResult.forecast,
         forecastFromCache: forecastResult.fromCache,
-        message: forecastResult.message ?? forecastResult.status.name,
+        message: _weatherStatusMessage(forecastResult.status),
       );
     }
 
@@ -756,7 +779,7 @@ class DailyWeatherGoalCoordinator {
     if (locationPermission != HydrionLocationPermissionState.granted) {
       return DailyWeatherGoalResult(
         status: DailyWeatherGoalStatus.locationPermissionRequired,
-        message: locationPermission.name,
+        message: _locationPermissionMessage(locationPermission),
       );
     }
 
@@ -773,7 +796,7 @@ class DailyWeatherGoalCoordinator {
     if (!location.isSuccess || location.coordinates == null) {
       return DailyWeatherGoalResult(
         status: DailyWeatherGoalStatus.locationUnavailable,
-        message: location.status.name,
+        message: _locationStatusMessage(location.status),
       );
     }
 
@@ -785,7 +808,7 @@ class DailyWeatherGoalCoordinator {
       return DailyWeatherGoalResult(
         status: DailyWeatherGoalStatus.weatherUnavailable,
         forecast: forecastResult.forecast,
-        message: forecastResult.status.name,
+        message: _weatherStatusMessage(forecastResult.status),
       );
     }
 
@@ -897,5 +920,49 @@ class DailyWeatherGoalCoordinator {
     return localA.year == localB.year &&
         localA.month == localB.month &&
         localA.day == localB.day;
+  }
+
+  String _locationPermissionMessage(
+    HydrionLocationPermissionState permission,
+  ) {
+    return switch (permission) {
+      HydrionLocationPermissionState.permanentlyDenied =>
+        'Location access is blocked. Enable it in device settings to use weather assistance.',
+      HydrionLocationPermissionState.denied =>
+        'Allow location access to use local weather assistance.',
+      HydrionLocationPermissionState.serviceDisabled =>
+        'Turn on device location services to use weather assistance.',
+      _ => 'Hydrion could not access your location. Try again.',
+    };
+  }
+
+  String _locationStatusMessage(HydrionLocationLookupStatus status) {
+    return switch (status) {
+      HydrionLocationLookupStatus.serviceDisabled =>
+        'Turn on device location services to use weather assistance.',
+      HydrionLocationLookupStatus.permissionDenied =>
+        'Allow location access to use local weather assistance.',
+      HydrionLocationLookupStatus.permanentlyDenied =>
+        'Location access is blocked. Enable it in device settings.',
+      HydrionLocationLookupStatus.timeout =>
+        'Location lookup took too long. Check your signal and try again.',
+      _ => 'Your location is unavailable right now. Try again later.',
+    };
+  }
+
+  String _weatherStatusMessage(WeatherForecastStatus status) {
+    return switch (status) {
+      WeatherForecastStatus.timeout =>
+        'Weather lookup took too long. Try again shortly.',
+      WeatherForecastStatus.noNetwork =>
+        'Weather is unavailable while the device is offline.',
+      WeatherForecastStatus.rateLimited ||
+      WeatherForecastStatus.serviceUnavailable =>
+        'The weather service is busy right now. Try again shortly.',
+      WeatherForecastStatus.missingApiKey ||
+      WeatherForecastStatus.unconfigured =>
+        'Weather assistance is unavailable in this build.',
+      _ => 'Local weather is unavailable right now. Try again later.',
+    };
   }
 }

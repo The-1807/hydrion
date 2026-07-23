@@ -5,6 +5,7 @@ import '../../domain/hydration_contracts.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../services/notifications.dart';
+import '../../services/reminder_feedback.dart';
 
 class RemindersScreen extends StatelessWidget {
   const RemindersScreen({super.key});
@@ -79,11 +80,8 @@ class RemindersScreen extends StatelessWidget {
                   leading: const Icon(Icons.schedule),
                   title: Text(reminder.message),
                   subtitle: Text(
-                    '${l10n.reminderSubtitle(
-                      timestamp:
-                          _formatTimestamp(context, reminder.triggerTime),
-                      priority: reminder.priority,
-                    )}\nScheduling: ${_scheduleStateLabel(reminder)}',
+                    '${_formatTimestamp(context, reminder.triggerTime)}\n'
+                    '${ReminderFeedback.status(reminder)}',
                   ),
                   isThreeLine: true,
                   trailing: Wrap(
@@ -266,18 +264,10 @@ class RemindersScreen extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          result.scheduled
-              ? 'Reminder scheduled.'
-              : 'Reminder saved; scheduling state: ${result.state.name}.',
+          ReminderFeedback.result(result),
         ),
       ),
     );
-  }
-
-  static String _scheduleStateLabel(ScheduledReminder reminder) {
-    final error = reminder.scheduleError;
-    final suffix = error == null ? '' : ' ($error)';
-    return '${reminder.scheduleState.name}$suffix';
   }
 
   static String _formatTimestamp(BuildContext context, DateTime time) {

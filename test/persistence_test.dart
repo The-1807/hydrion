@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/hydration_contracts.dart';
+import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
@@ -9,6 +10,10 @@ import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/dynamic_theme_clock.dart';
 import 'package:hydrion/services/achievement_service.dart';
 import 'package:hydrion/services/ble_service.dart';
+import 'package:hydrion/services/location_service.dart';
+import 'package:hydrion/services/local_profile_reset_service.dart';
+import 'package:hydrion/services/notifications.dart';
+import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -284,6 +289,138 @@ void main() {
       await services.ecoTracker.getTotalPlasticSavedKg(),
       closeTo(0.01, 0.0001),
     );
+  });
+
+  test('local profile reset clears profile-owned data and survives reload',
+      () async {
+    final store = MemoryHydrionStore();
+    final services = await HydrionServices.fromStore(
+      store,
+      notificationAdapter: FakeHydrionNotificationAdapter(),
+    );
+    final now = DateTime(2026, 7, 23, 9);
+
+    await services.settingsRepository.setProfile(
+      nickname: 'Reset Tester',
+      age: 31,
+      sex: HydrionSex.female,
+    );
+    await services.settingsRepository.setThemePreference(
+      HydrionThemePreference.dark,
+    );
+    await services.settingsRepository.completeOnboardingWithLegalReview(
+      reviewedAt: now,
+    );
+    await services.settingsRepository.setGoalMode(
+      HydrionGoalMode.weatherInformed,
+    );
+    await services.settingsRepository.setVolumeUnit(HydrionVolumeUnit.ounces);
+    expect(await services.settingsRepository.setContainerSizeMl(710), isTrue);
+    await services.hydrationRepository.addLog(
+      volumeMl: 500,
+      timestamp: now,
+      source: 'test',
+    );
+    final challenge = HydrionChallengeCatalog.byId('bottle-bingo');
+    await services.challengeRepository.join(
+      id: challenge.id,
+      name: challenge.name,
+      description: challenge.description,
+      targetMl: challenge.targetMl,
+      durationDays: challenge.durationDays,
+      joinedAt: now,
+    );
+    await services.notificationService.createReminder(
+      triggerTime: now.add(const Duration(hours: 1)),
+      message: 'Drink water',
+      priority: 1,
+      requestPermissionIfNeeded: true,
+    );
+    await services.weatherForecastService.getDailyForecast(
+      coordinates: HydrionCoordinates(
+        latitude: 43.6532,
+        longitude: -79.3832,
+        capturedAt: now,
+      ),
+      now: now,
+    );
+
+    final result = await services.localProfileResetService.resetLocalProfile();
+    final reloaded = await HydrionServices.fromStore(
+      store,
+      notificationAdapter: FakeHydrionNotificationAdapter(),
+    );
+
+    expect(result.isCompleted, isTrue);
+    expect(reloaded.settingsRepository.settings.nickname, isNull);
+    expect(reloaded.settingsRepository.settings.age, isNull);
+    expect(reloaded.settingsRepository.settings.sex, isNull);
+    expect(reloaded.settingsRepository.settings.onboardingCompleted, isFalse);
+    expect(
+      reloaded.settingsRepository.settings.themePreference,
+      HydrionThemePreference.dark,
+    );
+    expect(reloaded.settingsRepository.settings.hasCurrentLegalReview, isTrue);
+    expect(reloaded.settingsRepository.settings.dailyGoalMl,
+        UserSettings.defaultDailyGoalMl);
+    expect(reloaded.settingsRepository.settings.volumeUnit,
+        HydrionVolumeUnit.milliliters);
+    expect(reloaded.settingsRepository.settings.usableContainerSizeMl, isNull);
+    expect(reloaded.hydrationRepository.logs, isEmpty);
+    expect(reloaded.challengeRepository.activeChallenges, isEmpty);
+    expect(reloaded.challengeRepository.challengeHistory, isEmpty);
+    expect(reloaded.reminderRepository.reminders, isEmpty);
+    expect(store.snapshot[WeatherForecastCacheRepository.storageKey], isNull);
+  });
+
+  test('profile deletion continues if Android reminder cancellation fails',
+      () async {
+    final store = MemoryHydrionStore();
+    final services = await HydrionServices.fromStore(
+      store,
+      notificationAdapter: FakeHydrionNotificationAdapter(
+        failCancelAll: true,
+      ),
+    );
+    await services.settingsRepository.setProfile(
+      nickname: 'Delete Me',
+      age: 28,
+      sex: HydrionSex.male,
+    );
+    await services.hydrationRepository.addLog(
+      volumeMl: 350,
+      timestamp: DateTime.now(),
+    );
+    final scheduled = await services.notificationService.createReminder(
+      triggerTime: DateTime.now().add(const Duration(hours: 1)),
+      message: 'Delete profile reminder',
+      priority: 1,
+      requestPermissionIfNeeded: true,
+    );
+    final platformId = scheduled.reminder!.platformNotificationId;
+
+    final result = await services.localProfileResetService.resetLocalProfile();
+
+    expect(result.isCompleted, isTrue);
+    expect(result.hasPendingNotificationCleanup, isTrue);
+    expect(
+      result.notificationCancellation,
+      LocalProfileSubsystemStatus.pendingRetry,
+    );
+    expect(services.settingsRepository.settings.nickname, isNull);
+    expect(services.hydrationRepository.logs, isEmpty);
+    expect(services.reminderRepository.reminders, isEmpty);
+    expect(
+      services.reminderRepository.orphanNotificationIds,
+      contains(platformId),
+    );
+
+    final reloaded = await HydrionServices.fromStore(
+      store,
+      notificationAdapter: FakeHydrionNotificationAdapter(),
+    );
+    await reloaded.notificationService.initialize();
+    expect(reloaded.reminderRepository.orphanNotificationIds, isEmpty);
   });
 
   test('hydration context refreshes after new hydration logs', () async {

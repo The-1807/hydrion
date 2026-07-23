@@ -7,15 +7,20 @@ import 'storage_recovery.dart';
 
 enum ReminderScheduleState {
   pending,
-  scheduled,
+  scheduledExactly,
+  scheduledApproximately,
+  permissionRequired,
+  needsRescheduling,
+  schedulingFailed,
   disabled,
-  permissionDenied,
-  permanentlyDenied,
   unsupported,
-  failed,
 }
 
 class ScheduledReminder {
+  static const maxMessageLength = 160;
+  static const minPriority = 0;
+  static const maxPriority = 5;
+
   final String id;
   final DateTime triggerTime;
   final String message;
@@ -37,6 +42,28 @@ class ScheduledReminder {
   });
 
   int get platformNotificationId => id.hashCode & 0x7fffffff;
+
+  static String? safeMessage(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    final text = value.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (text.isEmpty || text.length > maxMessageLength) {
+      return null;
+    }
+    return text;
+  }
+
+  static int? safePriority(Object? value) {
+    if (value is! num || !value.isFinite) {
+      return null;
+    }
+    final priority = value.round();
+    if (priority < minPriority || priority > maxPriority) {
+      return null;
+    }
+    return priority;
+  }
 
   ScheduledReminder copyWith({
     DateTime? triggerTime,
@@ -82,13 +109,10 @@ class ScheduledReminder {
     }
     final triggerTime =
         DateTime.tryParse((value['triggerTime'] ?? '').toString());
-    final message = (value['message'] ?? '').toString().trim();
-    final priority = value['priority'];
+    final message = safeMessage(value['message']);
+    final priority = safePriority(value['priority']);
 
-    if (triggerTime == null ||
-        message.isEmpty ||
-        priority is! num ||
-        !priority.isFinite) {
+    if (triggerTime == null || message == null || priority == null) {
       return null;
     }
 
@@ -96,7 +120,7 @@ class ScheduledReminder {
       id: (value['id'] ?? triggerTime.millisecondsSinceEpoch).toString(),
       triggerTime: triggerTime,
       message: message,
-      priority: priority.round(),
+      priority: priority,
       enabled: value['enabled'] != false,
       scheduleState: _safeScheduleState(value['scheduleState']),
       scheduleError: _safeShortText(value['scheduleError']),
@@ -106,6 +130,15 @@ class ScheduledReminder {
   }
 
   static ReminderScheduleState _safeScheduleState(Object? value) {
+    if (value == 'scheduled') {
+      return ReminderScheduleState.scheduledApproximately;
+    }
+    if (value == 'permissionDenied' || value == 'permanentlyDenied') {
+      return ReminderScheduleState.permissionRequired;
+    }
+    if (value == 'failed') {
+      return ReminderScheduleState.schedulingFailed;
+    }
     if (value is String) {
       for (final state in ReminderScheduleState.values) {
         if (state.name == value) {
@@ -130,20 +163,24 @@ class ScheduledReminder {
 
 class ReminderRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.reminders.v1';
+  static const orphanCleanupStorageKey = 'hydrion.reminder_orphans.v1';
   static const _category = 'reminders';
   static const _currentSchemaVersion = 1;
 
   final HydrionLocalStore _store;
   final List<ScheduledReminder> _reminders;
+  final Set<int> _orphanNotificationIds;
   final List<StorageRecoveryEvent> _recoveryEvents;
 
   ReminderRepository._(
     this._store,
     List<ScheduledReminder> reminders, [
     List<StorageRecoveryEvent> recoveryEvents = const <StorageRecoveryEvent>[],
+    Set<int> orphanNotificationIds = const <int>{},
   ])  : _recoveryEvents = List<StorageRecoveryEvent>.unmodifiable(
           recoveryEvents,
         ),
+        _orphanNotificationIds = Set<int>.of(orphanNotificationIds),
         _reminders = List<ScheduledReminder>.of(reminders)
           ..sort((a, b) => a.triggerTime.compareTo(b.triggerTime));
 
@@ -152,11 +189,13 @@ class ReminderRepository extends ChangeNotifier {
 
   static Future<ReminderRepository> load(HydrionLocalStore store) async {
     final raw = await store.readString(storageKey);
+    final orphanRaw = await store.readString(orphanCleanupStorageKey);
     final result = _decodeReminders(raw);
     return ReminderRepository._(
       store,
       result.reminders,
       result.recoveryEvents,
+      _decodeOrphanNotificationIds(orphanRaw),
     );
   }
 
@@ -164,6 +203,9 @@ class ReminderRepository extends ChangeNotifier {
       List<ScheduledReminder>.unmodifiable(_reminders);
 
   List<StorageRecoveryEvent> get recoveryEvents => _recoveryEvents;
+
+  Set<int> get orphanNotificationIds =>
+      Set<int>.unmodifiable(_orphanNotificationIds);
 
   ScheduledReminder? byId(String id) {
     for (final reminder in _reminders) {
@@ -180,11 +222,20 @@ class ReminderRepository extends ChangeNotifier {
     required int priority,
     bool enabled = true,
   }) async {
+    final safeMessage = ScheduledReminder.safeMessage(message);
+    final safePriority = ScheduledReminder.safePriority(priority);
+    if (safeMessage == null || safePriority == null) {
+      throw ArgumentError.value(
+        safeMessage == null ? message : priority,
+        safeMessage == null ? 'message' : 'priority',
+        'Reminder details are outside Hydrion limits.',
+      );
+    }
     final reminder = ScheduledReminder(
       id: 'reminder-${triggerTime.microsecondsSinceEpoch}',
       triggerTime: triggerTime,
-      message: message,
-      priority: priority,
+      message: safeMessage,
+      priority: safePriority,
       enabled: enabled,
     );
     _reminders.add(reminder);
@@ -210,12 +261,15 @@ class ReminderRepository extends ChangeNotifier {
     if (index == -1) {
       return null;
     }
-    final nextMessage = message?.trim();
-    if (nextMessage != null && nextMessage.isEmpty) {
+    final nextMessage =
+        message == null ? null : ScheduledReminder.safeMessage(message);
+    if (message != null && nextMessage == null) {
       return null;
     }
-    final nextPriority = priority ?? _reminders[index].priority;
-    if (nextPriority < 0) {
+    final nextPriority = priority == null
+        ? _reminders[index].priority
+        : ScheduledReminder.safePriority(priority);
+    if (nextPriority == null) {
       return null;
     }
     _reminders[index] = _reminders[index].copyWith(
@@ -247,8 +301,9 @@ class ReminderRepository extends ChangeNotifier {
       scheduleError: error,
       clearScheduleError: error == null,
       lastScheduledAt: scheduledAt,
-      clearLastScheduledAt:
-          scheduledAt == null && state != ReminderScheduleState.scheduled,
+      clearLastScheduledAt: scheduledAt == null &&
+          state != ReminderScheduleState.scheduledExactly &&
+          state != ReminderScheduleState.scheduledApproximately,
     );
   }
 
@@ -267,6 +322,27 @@ class ReminderRepository extends ChangeNotifier {
     _reminders.clear();
     await _store.remove(storageKey);
     notifyListeners();
+  }
+
+  Future<void> recordOrphanNotificationIds(Iterable<int> ids) async {
+    _orphanNotificationIds.addAll(ids.where((id) => id >= 0));
+    await _persistOrphanNotificationIds();
+  }
+
+  Future<void> resolveOrphanNotificationId(int id) async {
+    if (!_orphanNotificationIds.remove(id)) {
+      return;
+    }
+    await _persistOrphanNotificationIds();
+  }
+
+  Future<void> _persistOrphanNotificationIds() async {
+    if (_orphanNotificationIds.isEmpty) {
+      await _store.remove(orphanCleanupStorageKey);
+      return;
+    }
+    final sorted = _orphanNotificationIds.toList()..sort();
+    await _store.writeString(orphanCleanupStorageKey, jsonEncode(sorted));
   }
 
   Future<void> _persist() async {
@@ -344,6 +420,25 @@ class ReminderRepository extends ChangeNotifier {
           ),
         ],
       );
+    }
+  }
+
+  static Set<int> _decodeOrphanNotificationIds(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return <int>{};
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        return <int>{};
+      }
+      return decoded
+          .whereType<num>()
+          .where((value) => value.isFinite && value >= 0)
+          .map((value) => value.round())
+          .toSet();
+    } on FormatException {
+      return <int>{};
     }
   }
 }

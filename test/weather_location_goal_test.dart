@@ -59,6 +59,32 @@ void main() {
       expect(harness.settings.settings.weatherGoalAutoApplyEnabled, isFalse);
     });
 
+    test('keeping the standard goal restores the saved baseline next day',
+        () async {
+      final harness = await _GoalHarness.create();
+      final first = await harness.coordinator.evaluate(
+        now: DateTime(2026, 7, 5, 8),
+      );
+      await harness.coordinator.acceptRecommendation(
+        decision: first.decision!,
+        now: DateTime(2026, 7, 5, 8),
+      );
+      expect(harness.settings.settings.dailyGoalMl, 2450);
+
+      final nextDay = await harness.coordinator.evaluate(
+        now: DateTime(2026, 7, 6, 8),
+      );
+      await harness.coordinator.keepPreviousGoal(
+        explanation: 'Standard goal kept.',
+        now: DateTime(2026, 7, 6, 8),
+      );
+
+      expect(nextDay.status, DailyWeatherGoalStatus.promptReady);
+      expect(harness.settings.settings.dailyGoalMl, 2200);
+      expect(harness.settings.settings.baselineDailyGoalMl, 2200);
+      expect(harness.settings.settings.weatherAdjustedGoalActive, isFalse);
+    });
+
     test('denied and permanently denied permissions block without lookup',
         () async {
       final denied = await _GoalHarness.create(
@@ -81,7 +107,7 @@ void main() {
 
       expect(permanentResult.status,
           DailyWeatherGoalStatus.locationPermissionRequired);
-      expect(permanentResult.message, 'permanentlyDenied');
+      expect(permanentResult.message, contains('device settings'));
     });
 
     test(
@@ -164,6 +190,62 @@ void main() {
       expect(harness.location.lookupCount, 1);
     });
 
+    test('hot weather produces a real non-zero adjustment', () async {
+      final harness = await _GoalHarness.create(
+        weatherProvider: _CountingWeatherProvider(
+          temperatureC: 35,
+          humidityPercent: 72,
+          uvIndex: 9,
+        ),
+      );
+
+      final result = await harness.coordinator.evaluate(
+        now: DateTime(2026, 7, 5, 8),
+      );
+
+      expect(result.status, DailyWeatherGoalStatus.promptReady);
+      expect(result.decision?.baselineGoalMl, 2200);
+      expect(result.decision?.weatherAdjustmentMl, 600);
+      expect(result.decision?.recommendedGoalMl, 2800);
+      expect(harness.settings.settings.dailyGoalMl, 2200);
+    });
+
+    test('weather failure is unavailable and does not display a false zero',
+        () async {
+      final harness = await _GoalHarness.create(
+        weatherProvider:
+            const _FailingWeatherProvider(WeatherForecastStatus.noNetwork),
+      );
+
+      final result = await harness.coordinator.evaluate(
+        now: DateTime(2026, 7, 5, 8),
+      );
+
+      expect(result.status, DailyWeatherGoalStatus.weatherUnavailable);
+      expect(result.decision, isNull);
+      expect(result.message, contains('offline'));
+      expect(harness.settings.settings.dailyGoalMl, 2200);
+    });
+
+    test('neutral weather produces a valid zero adjustment', () async {
+      final harness = await _GoalHarness.create(
+        weatherProvider: _CountingWeatherProvider(
+          temperatureC: 18,
+          humidityPercent: 45,
+          uvIndex: 2,
+        ),
+      );
+
+      final result = await harness.coordinator.evaluate(
+        now: DateTime(2026, 7, 5, 8),
+      );
+
+      expect(result.status, DailyWeatherGoalStatus.promptReady);
+      expect(result.decision?.weatherAdjustmentMl, 0);
+      expect(result.decision?.recommendedGoalMl, 2200);
+      expect(harness.settings.settings.dailyGoalMl, 2200);
+    });
+
     test('weather mode setup fetches forecast without notification permission',
         () async {
       final harness =
@@ -177,7 +259,7 @@ void main() {
       expect(result.status, WeatherModeSetupStatus.ready);
       expect(result.forecast?.condition, 'Humid');
       expect(result.decision?.recommendedGoalMl, 2450);
-      expect(harness.weatherProvider.calls, 1);
+      expect((harness.weatherProvider as _CountingWeatherProvider).calls, 1);
       expect(harness.location.lookupCount, 1);
       expect(harness.notificationAdapter.requestCount, 0);
       expect(harness.settings.settings.goalMode, HydrionGoalMode.manual);
@@ -197,7 +279,7 @@ void main() {
       expect(result.status, WeatherModeSetupStatus.locationPermissionRequired);
       expect(harness.location.requestCount, 1);
       expect(harness.location.lookupCount, 0);
-      expect(harness.weatherProvider.calls, 0);
+      expect((harness.weatherProvider as _CountingWeatherProvider).calls, 0);
       expect(harness.settings.settings.goalMode, HydrionGoalMode.manual);
     });
 
@@ -235,11 +317,14 @@ void main() {
             jsonEncode({
               'current': {
                 'temperature_2m': 29.0,
+                'apparent_temperature': 34.1,
                 'relative_humidity_2m': 74,
                 'weather_code': 3,
               },
               'daily': {
                 'temperature_2m_max': [33.2],
+                'apparent_temperature_max': [35.4],
+                'uv_index_max': [8.6],
                 'weather_code': [3],
               },
             }),
@@ -254,7 +339,9 @@ void main() {
       );
 
       expect(forecast.temperatureC, 33.2);
+      expect(forecast.apparentTemperatureC, 35.4);
       expect(forecast.humidityPercent, 74);
+      expect(forecast.uvIndex, 8.6);
       expect(forecast.condition, 'Cloudy');
       expect(forecast.providerId, 'open-meteo');
     });
@@ -394,7 +481,7 @@ class _GoalHarness {
   final UserSettingsRepository settings;
   final FakeHydrionLocationService location;
   final FakeHydrionNotificationAdapter notificationAdapter;
-  final _CountingWeatherProvider weatherProvider;
+  final DailyWeatherProvider weatherProvider;
   final DailyWeatherGoalCoordinator coordinator;
 
   const _GoalHarness({
@@ -412,6 +499,7 @@ class _GoalHarness {
     HydrionNotificationPermissionState notificationPermission =
         HydrionNotificationPermissionState.granted,
     HydrionLocationLookupResult? locationResult,
+    DailyWeatherProvider? weatherProvider,
   }) async {
     final settings = UserSettingsRepository.memory();
     await settings.setProfile(
@@ -432,9 +520,9 @@ class _GoalHarness {
       reminderRepository: ReminderRepository.memory(),
       adapter: notificationAdapter,
     );
-    final weatherProvider = _CountingWeatherProvider();
+    final provider = weatherProvider ?? _CountingWeatherProvider();
     final weatherService = WeatherForecastService(
-      provider: weatherProvider,
+      provider: provider,
       cache: WeatherForecastCacheRepository(MemoryHydrionStore()),
     );
     final coordinator = DailyWeatherGoalCoordinator(
@@ -447,14 +535,23 @@ class _GoalHarness {
       settings: settings,
       location: location,
       notificationAdapter: notificationAdapter,
-      weatherProvider: weatherProvider,
+      weatherProvider: provider,
       coordinator: coordinator,
     );
   }
 }
 
 class _CountingWeatherProvider implements DailyWeatherProvider {
+  final double temperatureC;
+  final double? humidityPercent;
+  final double uvIndex;
   int calls = 0;
+
+  _CountingWeatherProvider({
+    this.temperatureC = 27,
+    this.humidityPercent = 72,
+    this.uvIndex = 0,
+  });
 
   @override
   bool get isConfigured => true;
@@ -470,9 +567,9 @@ class _CountingWeatherProvider implements DailyWeatherProvider {
     calls += 1;
     final currentTime = now ?? DateTime.now();
     return WeatherSnapshot(
-      temperatureC: 27,
-      humidityPercent: 72,
-      uvIndex: 0,
+      temperatureC: temperatureC,
+      humidityPercent: humidityPercent,
+      uvIndex: uvIndex,
       observedAt: currentTime,
       retrievedAt: currentTime,
       condition: 'Humid',
