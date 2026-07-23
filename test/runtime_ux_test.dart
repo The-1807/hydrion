@@ -249,6 +249,40 @@ void main() {
     expect(find.textContaining('adapter'), findsNothing);
   });
 
+  testWidgets('user can delete the local profile from Settings',
+      (tester) async {
+    final services = HydrionServices.memory();
+    await services.settingsRepository.setProfile(
+      nickname: 'Delete Tester',
+      age: 29,
+      sex: HydrionSex.female,
+    );
+    await services.hydrationRepository.addLog(
+      volumeMl: 400,
+      timestamp: DateTime.now(),
+    );
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('settings-delete-profile-card')),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    await tester.tap(find.byKey(const Key('settings-delete-profile-card')));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete local profile?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('confirm-delete-profile')));
+    await tester.pumpAndSettle();
+
+    expect(services.settingsRepository.settings.nickname, isNull);
+    expect(services.hydrationRepository.logs, isEmpty);
+    expect(find.text('Welcome to Hydrion'), findsOneWidget);
+  });
+
   testWidgets('top-level hydration data screens support pull to refresh',
       (tester) async {
     final services = HydrionServices.memory();

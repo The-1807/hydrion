@@ -213,6 +213,7 @@ void main() {
       voiceBridge: base.voiceBridge,
       wearables: base.wearables,
       ecoTracker: base.ecoTracker,
+      localProfileResetService: base.localProfileResetService,
     );
 
     await tester.pumpWidget(HydrionApp(services: services));

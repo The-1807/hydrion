@@ -100,7 +100,9 @@ class _HydrionShellState extends State<HydrionShell>
     if (settings.goalMode != HydrionGoalMode.weatherInformed) return;
 
     final coordinator = context.read<DailyWeatherGoalCoordinator>();
-    final result = await coordinator.evaluate();
+    final result = await coordinator.evaluate(
+      requestLocationPermission: true,
+    );
     if (!mounted ||
         result.status != DailyWeatherGoalStatus.promptReady ||
         result.decision == null ||

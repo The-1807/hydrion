@@ -1038,6 +1038,25 @@ class ChallengeRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> clear() async {
+    final previousActive = _activeChallenges;
+    final previousHistory = _challengeHistory;
+    _activeChallenges = const <JoinedChallenge>[];
+    _challengeHistory = const <JoinedChallenge>[];
+    try {
+      await _store.remove(storageKey);
+    } catch (_) {
+      _activeChallenges = previousActive;
+      _challengeHistory = previousHistory;
+      rethrow;
+    }
+    final hydration = _boundHydrationRepository;
+    if (hydration != null) {
+      _recalculateHydrationQualifications(hydration);
+    }
+    notifyListeners();
+  }
+
   Future<void> _persistActiveChallenges() async {
     if (_activeChallenges.isEmpty && _challengeHistory.isEmpty) {
       await _store.remove(storageKey);
