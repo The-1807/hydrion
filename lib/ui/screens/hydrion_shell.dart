@@ -9,6 +9,7 @@ import '../../repositories/challenge_repository.dart';
 import '../../services/notifications.dart';
 import '../../services/weather_goal_service.dart';
 import '../components/guided_tour_overlay.dart';
+import '../components/hydrion_viewport.dart';
 import '../theme/hydrion_design.dart';
 import '../components/intake_ring.dart';
 import 'analytics_screen.dart';
@@ -203,24 +204,28 @@ class _HydrionShellState extends State<HydrionShell>
         child: SafeArea(
           top: true,
           bottom: false,
-          child: IndexedStack(
-            key: const Key('hydrion-tab-safe-stack'),
-            index: _selectedIndex,
-            children: [
-              HomeScreen(
-                showRouteShortcuts: false,
-                hydrationTargetKey: _homeTargetKey,
-                logTargetKey: _logTargetKey,
-                historyTargetKey: _historyTargetKey,
-              ),
-              const SocialChallengesScreen(
-                embedded: true,
-              ),
-              const AnalyticsScreen(
-                embedded: true,
-              ),
-              const ProfileScreen(embedded: true),
-            ],
+          child: MediaQuery.removeViewPadding(
+            context: context,
+            removeBottom: true,
+            child: IndexedStack(
+              key: const Key('hydrion-tab-safe-stack'),
+              index: _selectedIndex,
+              children: [
+                HomeScreen(
+                  showRouteShortcuts: false,
+                  hydrationTargetKey: _homeTargetKey,
+                  logTargetKey: _logTargetKey,
+                  historyTargetKey: _historyTargetKey,
+                ),
+                const SocialChallengesScreen(
+                  embedded: true,
+                ),
+                const AnalyticsScreen(
+                  embedded: true,
+                ),
+                const ProfileScreen(embedded: true),
+              ],
+            ),
           ),
         ),
       ),
@@ -229,12 +234,13 @@ class _HydrionShellState extends State<HydrionShell>
         child: ColoredBox(
           key: const Key('hydrion-bottom-nav-background'),
           color: navigationColor,
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.viewPaddingOf(context).bottom,
-            ),
+          child: SafeArea(
+            top: false,
+            left: false,
+            right: false,
             child: NavigationBar(
               key: const Key('hydrion-bottom-nav'),
+              height: HydrionViewport.navigationBarHeight(context),
               backgroundColor: navigationColor,
               labelBehavior: MediaQuery.sizeOf(context).width < 320
                   ? NavigationDestinationLabelBehavior.alwaysHide
