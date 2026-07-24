@@ -1,7 +1,7 @@
 ---
 document_id: privacy
 title: Hydrion Privacy Policy
-version: 1.0.0
+version: 1.0.1
 effective_date: 2026-07-06
 last_updated: 2026-07-06
 intended_display: in_app_and_public
@@ -11,8 +11,8 @@ requires_acceptance: false
 # Hydrion Privacy Policy
 
 **Effective date:** July 6, 2026  
-**Last updated:** July 6, 2026  
-**Version:** 1.0.0
+**Last updated:** July 24, 2026
+**Version:** 1.0.1
 
 Hydrion is a local-first hydration companion for logging water intake, setting personal goals, using local reminders, reviewing progress, and joining local challenges. This Privacy Policy explains how the current Hydrion app processes information based on the source code, platform manifests, and release configuration in this repository.
 
@@ -122,8 +122,16 @@ Current in-app controls include:
 - changing or disabling reminders;
 - changing goal, weather, units, language, reusable-container, and challenge settings;
 - restarting guided setup without deleting hydration history.
+- deleting the local Hydrion profile, hydration history, reminders,
+  challenges, profile photo, and cached weather data.
 
-Because Hydrion currently has no account backend, it does not offer account deletion. Operating system storage controls and uninstall behavior are controlled by the platform and device. Hydrion has not verified uninstall behavior on every operating system, device, and backup configuration.
+Because Hydrion currently has no account backend, local-profile deletion is
+not remote account deletion. Deleting a profile does not revoke Android
+notification or location permissions; those grants remain controlled through
+device settings. A newly created local profile reads the installation's real
+permission state and does not assume that access has never been granted.
+Operating system storage controls, permissions, backup, and uninstall behavior
+are controlled by the platform and device.
 
 ## Device Backups and Third Parties
 

@@ -32,7 +32,7 @@ Official references checked:
 | Health positioning | General wellness tracker; not medical device; health disclaimer required. | Health and wellness app, no diagnosis/treatment/medical device claim. | Confirm with qualified legal/product review. |
 | Third-party SDK disclosures | Flutter plugins for local storage, location, notifications, image picker, localization, HTTP, Markdown. | No analytics, ads, crash reporting, HealthKit, Health Connect, contacts, camera, mic, Bluetooth. | Recheck `pubspec.lock` before submission. |
 | Account deletion | No accounts. | Account deletion requirement not applicable to current binary. | Revisit if accounts are added. |
-| Data deletion | Local edit/delete controls for logs, reminders, profile photo; OS app storage/uninstall for broader local data. | Do not claim remote account deletion. | Document public support path. |
+| Data deletion | In-app local-profile deletion removes profile-owned settings, logs, reminders, challenges, profile photo, and weather cache. Android notification and location grants belong to the app installation and are not silently revoked. | Do not claim remote account deletion or automatic platform-permission revocation. | Verify profile reset and permission disclosure on a physical device. |
 | Public release | Not performed. | No App Store or Play production release. | Owner approval required. |
 
 ## Store Answers That Remain Owner Actions

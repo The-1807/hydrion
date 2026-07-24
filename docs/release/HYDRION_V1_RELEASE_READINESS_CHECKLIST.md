@@ -736,6 +736,17 @@
 
 # Final Release Gate
 
+## Permission and profile clean-install gate
+
+- [ ] A clean install shows no system permission prompt before user action.
+- [ ] Reminder and weather **Not now** choices leave core hydration usable.
+- [ ] Notification denial, permanent denial, settings recovery, and delivery are physically verified.
+- [ ] Approximate-location grant, denial, revocation, settings return, and weather recovery are physically verified.
+- [ ] Exact-alarm denial preserves approximate reminder scheduling.
+- [ ] Profile deletion removes local profile data and explains that Android permissions remain.
+- [ ] A new profile reflects existing installation permissions without unnecessary prompts.
+- [ ] Intersex Home, Progress, Profile, Challenge, and empty states use the approved Pride/neutral mix.
+
 Hydrion V1 may proceed to production release only when every statement below is confirmed.
 
 - [ ] Every release-blocking checkbox is confirmed.

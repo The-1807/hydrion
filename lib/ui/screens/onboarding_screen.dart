@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../domain/avatar_manifest.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../repositories/settings_repository.dart';
+import '../../utils/permissions.dart';
 import '../components/hydrion_viewport.dart';
 import 'legal_about_screen.dart';
 
@@ -461,10 +462,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       const _OnboardingPanel(
         icon: Icons.notifications_none,
-        title: 'Reminder setup',
-        child: Text(
-          'This build stores reminder definitions locally. OS notification delivery is unavailable until a native notification adapter is connected, permission UX is added, and scheduling is verified.',
-        ),
+        title: 'Optional device features',
+        child: _OnboardingPermissionChoices(),
       ),
       _OnboardingPanel(
         icon: Icons.health_and_safety_outlined,
@@ -515,6 +514,143 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       HydrionSex.intersex => 'Intersex',
       HydrionSex.preferNotToSay => 'Prefer not to say',
     };
+  }
+}
+
+class _OnboardingPermissionChoices extends StatefulWidget {
+  const _OnboardingPermissionChoices();
+
+  @override
+  State<_OnboardingPermissionChoices> createState() =>
+      _OnboardingPermissionChoicesState();
+}
+
+class _OnboardingPermissionChoicesState
+    extends State<_OnboardingPermissionChoices> {
+  bool _remindersSkipped = false;
+  bool _weatherSkipped = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final permissions = context.watch<Permissions>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _CapabilityChoice(
+          key: const Key('onboarding-reminder-capability'),
+          icon: Icons.notifications_active_outlined,
+          title: 'Hydration reminders',
+          description:
+              'Hydrion can send local reminders on this device. You can enable them now or later.',
+          status: _remindersSkipped
+              ? 'Not now — reminders can be enabled in Settings.'
+              : permissions.snapshot.notifications.explanation,
+          enableLabel: 'Enable reminders',
+          notNowKey: const Key('onboarding-reminders-not-now'),
+          enableKey: const Key('onboarding-enable-reminders'),
+          onEnable: () async {
+            await permissions.requestNotifications();
+            if (mounted) setState(() => _remindersSkipped = false);
+          },
+          onNotNow: () => setState(() => _remindersSkipped = true),
+        ),
+        const SizedBox(height: 12),
+        _CapabilityChoice(
+          key: const Key('onboarding-weather-capability'),
+          icon: Icons.cloud_outlined,
+          title: 'Weather assistance',
+          description:
+              'Hydrion can use approximate location to retrieve local weather and offer a temporary hydration suggestion. Your standard goal still works without it.',
+          status: _weatherSkipped
+              ? 'Not now — your standard hydration goal remains active.'
+              : permissions.snapshot.location.explanation,
+          enableLabel: 'Enable weather assistance',
+          notNowKey: const Key('onboarding-weather-not-now'),
+          enableKey: const Key('onboarding-enable-weather'),
+          onEnable: () async {
+            await permissions.requestLocation();
+            if (mounted) setState(() => _weatherSkipped = false);
+          },
+          onNotNow: () => setState(() => _weatherSkipped = true),
+        ),
+      ],
+    );
+  }
+}
+
+class _CapabilityChoice extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+  final String status;
+  final String enableLabel;
+  final Key enableKey;
+  final Key notNowKey;
+  final Future<void> Function() onEnable;
+  final VoidCallback onNotNow;
+
+  const _CapabilityChoice({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.status,
+    required this.enableLabel,
+    required this.enableKey,
+    required this.notNowKey,
+    required this.onEnable,
+    required this.onNotNow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(description),
+            const SizedBox(height: 6),
+            Text(status, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton(
+                  key: enableKey,
+                  onPressed: onEnable,
+                  child: Text(enableLabel),
+                ),
+                TextButton(
+                  key: notNowKey,
+                  onPressed: onNotNow,
+                  child: const Text('Not now'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
