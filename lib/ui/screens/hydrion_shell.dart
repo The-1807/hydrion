@@ -7,6 +7,7 @@ import '../../repositories/settings_repository.dart';
 import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../services/notifications.dart';
+import '../../services/pomodoro_session_service.dart';
 import '../../services/weather_goal_service.dart';
 import '../components/guided_tour_overlay.dart';
 import '../components/hydrion_viewport.dart';
@@ -67,8 +68,10 @@ class _HydrionShellState extends State<HydrionShell>
     setState(() {});
     _scheduleDayRollover();
     final notificationService = context.read<NotificationService>();
+    final pomodoroSessionService = context.read<PomodoroSessionService>();
     final settings = context.read<UserSettingsRepository>().settings;
     await context.read<ChallengeRepository>().reconcileLocalDay();
+    await pomodoroSessionService.reconcile();
     await notificationService.reconcileSchedules();
     if (!mounted) {
       return;
