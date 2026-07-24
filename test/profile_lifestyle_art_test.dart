@@ -17,7 +17,7 @@ void main() {
     );
     expect(
       HydrionLifestyleArtResolver.presentationFor(HydrionSex.intersex),
-      HydrionLifestylePresentation.neutral,
+      HydrionLifestylePresentation.intersex,
     );
     expect(
       HydrionLifestyleArtResolver.presentationFor(
@@ -52,7 +52,7 @@ void main() {
         surface: HydrionLifestyleSurface.profile,
         sex: HydrionSex.intersex,
       ).id,
-      'neutral-infusion',
+      'pride-gender',
     );
     expect(
       HydrionLifestyleArtResolver.sceneFor(

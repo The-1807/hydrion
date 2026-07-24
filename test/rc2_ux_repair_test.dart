@@ -31,8 +31,11 @@ void main() {
         HydrionProfileArtResolver.presentationFor(HydrionSex.female),
         HydrionProfileArtPresentation.female,
       );
+      expect(
+        HydrionProfileArtResolver.presentationFor(HydrionSex.intersex),
+        HydrionProfileArtPresentation.intersex,
+      );
       for (final value in <Object?>[
-        HydrionSex.intersex,
         HydrionSex.preferNotToSay,
         null,
         'unknown-legacy-value',
@@ -163,7 +166,7 @@ void main() {
         sex: HydrionSex.intersex,
       );
       await tester.pumpAndSettle();
-      expect(renderedAsset(), 'assets/UI_BETA/arounddworld.png');
+      expect(renderedAsset(), 'assets/UI_BETA/pride/gender_icon.png');
 
       await services.settingsRepository.setProfile(
         nickname: 'River',
@@ -247,13 +250,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         renderedAsset(const Key('home-profile-art')),
-        endsWith('ble_bottle.png'),
+        endsWith('pride-bottle.png'),
       );
       navigationBar.onDestinationSelected?.call(2);
       await tester.pumpAndSettle();
       expect(
         renderedAsset(const Key('progress-profile-art')),
-        endsWith('ble_bottle.png'),
+        endsWith('be-proud.png'),
       );
       expect(tester.takeException(), isNull);
     });

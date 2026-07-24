@@ -1,7 +1,7 @@
 import '../repositories/settings_repository.dart';
 
 /// The only profile classifications that may influence Hydrion artwork.
-enum HydrionProfileArtPresentation { male, female, neutral }
+enum HydrionProfileArtPresentation { male, female, intersex, neutral }
 
 /// A profile-aware artwork slot with an explicit, non-gendered fallback.
 class HydrionProfileArtSlot {
@@ -32,6 +32,7 @@ class HydrionProfileArtResolver {
     return switch (normalized) {
       'male' => HydrionProfileArtPresentation.male,
       'female' => HydrionProfileArtPresentation.female,
+      'intersex' => HydrionProfileArtPresentation.intersex,
       _ => HydrionProfileArtPresentation.neutral,
     };
   }
@@ -40,24 +41,13 @@ class HydrionProfileArtResolver {
     required Object? profileValue,
     required HydrionProfileArtSlot slot,
   }) {
-    if (_isIntersex(profileValue) && slot.intersexAsset != null) {
-      return slot.intersexAsset!;
-    }
     return switch (presentationFor(profileValue)) {
       HydrionProfileArtPresentation.male => slot.maleAsset ?? slot.neutralAsset,
       HydrionProfileArtPresentation.female =>
         slot.femaleAsset ?? slot.neutralAsset,
+      HydrionProfileArtPresentation.intersex =>
+        slot.intersexAsset ?? slot.neutralAsset,
       HydrionProfileArtPresentation.neutral => slot.neutralAsset,
     };
-  }
-
-  static bool _isIntersex(Object? profileValue) {
-    if (profileValue == HydrionSex.intersex) return true;
-    if (profileValue is! String) return false;
-    return profileValue
-            .trim()
-            .toLowerCase()
-            .replaceAll(RegExp(r'[_\s-]'), '') ==
-        'intersex';
   }
 }
