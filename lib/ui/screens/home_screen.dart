@@ -13,6 +13,7 @@ import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/app_refresh_controller.dart';
 import '../components/intake_ring.dart';
+import '../components/hydrion_viewport.dart';
 import '../components/voice_input_widget.dart';
 import '../theme/hydrion_design.dart';
 
@@ -118,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         key: const Key('home-appbar'),
+        toolbarHeight: HydrionViewport.headerHeight(context),
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Column(
@@ -175,7 +177,12 @@ class _HomeScreenState extends State<HomeScreen> {
         onRefresh: () => refreshHydrionData(context),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+          padding: HydrionViewport.scrollPadding(
+            context,
+            top: 8,
+            bottom: 24,
+            includeSystemBottom: false,
+          ),
           children: [
             _HeroHydrationScene(
               targetKey: widget.hydrationTargetKey,

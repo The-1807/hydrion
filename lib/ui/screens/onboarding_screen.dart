@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../domain/avatar_manifest.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../repositories/settings_repository.dart';
+import '../components/hydrion_viewport.dart';
 import 'legal_about_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -216,35 +217,64 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(20),
+                key: const Key('onboarding-step-scroll'),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: HydrionViewport.scrollPadding(
+                  context,
+                  top: 20,
+                  bottom: 20,
+                  includeSystemBottom: false,
+                ),
                 children: [
                   steps[_step],
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed:
-                          canGoBack ? () => setState(() => _step -= 1) : null,
-                      icon: const Icon(Icons.arrow_back),
-                      label: const Text('Back'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      key: const Key('onboarding-next'),
-                      onPressed: _next,
-                      icon:
-                          Icon(_step == 7 ? Icons.check : Icons.arrow_forward),
-                      label: Text(_step == 7 ? 'Start' : 'Continue'),
-                    ),
-                  ),
-                ],
+              padding: EdgeInsets.fromLTRB(
+                HydrionViewport.horizontalPadding(context),
+                8,
+                HydrionViewport.horizontalPadding(context),
+                12,
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final back = OutlinedButton.icon(
+                    onPressed:
+                        canGoBack ? () => setState(() => _step -= 1) : null,
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Back'),
+                  );
+                  final next = FilledButton.icon(
+                    key: const Key('onboarding-next'),
+                    onPressed: _next,
+                    icon: Icon(_step == 7 ? Icons.check : Icons.arrow_forward),
+                    label: Text(_step == 7 ? 'Start' : 'Continue'),
+                  );
+                  if (HydrionViewport.stackActions(
+                    context,
+                    availableWidth: constraints.maxWidth,
+                    widthBreakpoint: 330,
+                    textScaleBreakpoint: 1.75,
+                  )) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        next,
+                        const SizedBox(height: 8),
+                        back,
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: back),
+                      const SizedBox(width: 12),
+                      Expanded(child: next),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -336,24 +366,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SegmentedButton<HydrionGoalMode>(
-              key: const Key('goal-mode-selector'),
-              segments: const [
-                ButtonSegment(
-                  value: HydrionGoalMode.manual,
-                  icon: Icon(Icons.tune),
-                  label: Text('Manual'),
-                ),
-                ButtonSegment(
-                  value: HydrionGoalMode.weatherInformed,
-                  icon: Icon(Icons.wb_sunny_outlined),
-                  label: Text('Weather'),
-                ),
-              ],
-              selected: {_goalMode},
-              onSelectionChanged: (selection) {
-                setState(() => _goalMode = selection.single);
-              },
+            HydrionHorizontalControl(
+              child: SegmentedButton<HydrionGoalMode>(
+                key: const Key('goal-mode-selector'),
+                segments: const [
+                  ButtonSegment(
+                    value: HydrionGoalMode.manual,
+                    icon: Icon(Icons.tune),
+                    label: Text('Manual'),
+                  ),
+                  ButtonSegment(
+                    value: HydrionGoalMode.weatherInformed,
+                    icon: Icon(Icons.wb_sunny_outlined),
+                    label: Text('Weather'),
+                  ),
+                ],
+                selected: {_goalMode},
+                onSelectionChanged: (selection) {
+                  setState(() => _goalMode = selection.single);
+                },
+              ),
             ),
             const SizedBox(height: 12),
             Text(
@@ -388,6 +420,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<HydrionVolumeUnit>(
               initialValue: _unit,
+              isExpanded: true,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Display unit',

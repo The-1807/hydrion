@@ -6,6 +6,7 @@ import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/app_refresh_controller.dart';
 import '../components/intake_ring.dart';
+import '../components/hydrion_viewport.dart';
 
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
@@ -113,7 +114,11 @@ class _LogScreenState extends State<LogScreen> {
         child: data.isEmpty
             ? ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(24),
+                padding: HydrionViewport.scrollPadding(
+                  context,
+                  top: 24,
+                  bottom: 24,
+                ),
                 children: [
                   const SizedBox(height: 96),
                   Icon(
@@ -137,7 +142,7 @@ class _LogScreenState extends State<LogScreen> {
               )
             : ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
+                padding: HydrionViewport.scrollPadding(context),
                 itemCount: data.length,
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, index) {
@@ -145,39 +150,21 @@ class _LogScreenState extends State<LogScreen> {
                   final timestamp = _formatTimestamp(context, log.timestamp);
                   final deleting = _deletingLogIds.contains(log.id);
 
-                  return ListTile(
-                    leading: const Icon(Icons.local_drink),
-                    title: Text(
-                      HydrationVolumeFormatter.format(
-                        log.volumeMl,
-                        settings.volumeUnit,
-                      ),
-                      style: Theme.of(context).textTheme.titleMedium,
+                  return _ResponsiveLogTile(
+                    logId: log.id,
+                    amount: HydrationVolumeFormatter.format(
+                      log.volumeMl,
+                      settings.volumeUnit,
                     ),
-                    subtitle: Text(
-                      '${l10n.logSourceTimestamp(
-                        source: _sourceLabel(log.source, l10n),
-                        timestamp: timestamp,
-                      )}${_metadataSummary(log.metadata)}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    trailing: Wrap(
-                      spacing: 4,
-                      children: [
-                        IconButton(
-                          key: Key('edit-log-${log.id}'),
-                          icon: const Icon(Icons.edit),
-                          tooltip: l10n.editLogTooltip,
-                          onPressed: () => _editLog(log),
-                        ),
-                        IconButton(
-                          key: Key('delete-log-${log.id}'),
-                          icon: const Icon(Icons.delete_outline),
-                          tooltip: l10n.deleteLogTooltip,
-                          onPressed: deleting ? null : () => _deleteLog(log),
-                        ),
-                      ],
-                    ),
+                    details: l10n.logSourceTimestamp(
+                          source: _sourceLabel(log.source, l10n),
+                          timestamp: timestamp,
+                        ) +
+                        _metadataSummary(log.metadata),
+                    editTooltip: l10n.editLogTooltip,
+                    deleteTooltip: l10n.deleteLogTooltip,
+                    onEdit: () => _editLog(log),
+                    onDelete: deleting ? null : () => _deleteLog(log),
                   );
                 },
               ),
@@ -232,6 +219,92 @@ class _LogScreenState extends State<LogScreen> {
       if (metadata.mealContext != null) metadata.mealContext!,
     ];
     return details.isEmpty ? '' : '\n${details.join(' \u00b7 ')}';
+  }
+}
+
+class _ResponsiveLogTile extends StatelessWidget {
+  final String logId;
+  final String amount;
+  final String details;
+  final String editTooltip;
+  final String deleteTooltip;
+  final VoidCallback onEdit;
+  final VoidCallback? onDelete;
+
+  const _ResponsiveLogTile({
+    required this.logId,
+    required this.amount,
+    required this.details,
+    required this.editTooltip,
+    required this.deleteTooltip,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(amount, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(details, style: Theme.of(context).textTheme.bodySmall),
+      ],
+    );
+    final actions = <Widget>[
+      IconButton(
+        key: Key('edit-log-$logId'),
+        icon: const Icon(Icons.edit),
+        tooltip: editTooltip,
+        onPressed: onEdit,
+      ),
+      IconButton(
+        key: Key('delete-log-$logId'),
+        icon: const Icon(Icons.delete_outline),
+        tooltip: deleteTooltip,
+        onPressed: onDelete,
+      ),
+    ];
+    return Padding(
+      key: Key('hydration-log-$logId'),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stacked = HydrionViewport.stackActions(
+            context,
+            availableWidth: constraints.maxWidth,
+          );
+          if (stacked) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.local_drink),
+                    const SizedBox(width: 12),
+                    Expanded(child: copy),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: actions,
+                ),
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.local_drink),
+              const SizedBox(width: 12),
+              Expanded(child: copy),
+              ...actions,
+            ],
+          );
+        },
+      ),
+    );
   }
 }
 

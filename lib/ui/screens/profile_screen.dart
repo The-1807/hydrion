@@ -12,6 +12,7 @@ import '../../repositories/reminder_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/profile_photo_service.dart';
 import '../theme/hydrion_design.dart';
+import '../components/hydrion_viewport.dart';
 
 class ProfileScreen extends StatelessWidget {
   final bool embedded;
@@ -33,7 +34,13 @@ class ProfileScreen extends StatelessWidget {
               actions: [_ProfileMenu(embedded: embedded)],
             ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+        key: const Key('profile-scroll-view'),
+        padding: HydrionViewport.scrollPadding(
+          context,
+          top: 20,
+          bottom: 28,
+          includeSystemBottom: !embedded,
+        ),
         children: [
           _ProfileHero(
             settings: settings,
@@ -518,6 +525,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _avatarId,
+            isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Default profile avatar',
               border: OutlineInputBorder(),
@@ -526,7 +534,10 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                 .map(
                   (avatar) => DropdownMenuItem(
                     value: avatar.id,
-                    child: Text(avatar.displayName),
+                    child: Text(
+                      avatar.displayName,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 )
                 .toList(),
@@ -537,19 +548,22 @@ class _ProfileEditorState extends State<_ProfileEditor> {
             },
           ),
           const SizedBox(height: 12),
-          SegmentedButton<HydrionVolumeUnit>(
-            selected: {_unit},
-            segments: const [
-              ButtonSegment(
-                value: HydrionVolumeUnit.milliliters,
-                label: Text('mL'),
-              ),
-              ButtonSegment(
-                value: HydrionVolumeUnit.ounces,
-                label: Text('oz'),
-              ),
-            ],
-            onSelectionChanged: (value) => setState(() => _unit = value.single),
+          HydrionHorizontalControl(
+            child: SegmentedButton<HydrionVolumeUnit>(
+              selected: {_unit},
+              segments: const [
+                ButtonSegment(
+                  value: HydrionVolumeUnit.milliliters,
+                  label: Text('mL'),
+                ),
+                ButtonSegment(
+                  value: HydrionVolumeUnit.ounces,
+                  label: Text('oz'),
+                ),
+              ],
+              onSelectionChanged: (value) =>
+                  setState(() => _unit = value.single),
+            ),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -570,20 +584,22 @@ class _ProfileEditorState extends State<_ProfileEditor> {
             ),
           ),
           const SizedBox(height: 12),
-          SegmentedButton<HydrionGoalMode>(
-            selected: {_goalMode},
-            segments: const [
-              ButtonSegment(
-                value: HydrionGoalMode.manual,
-                label: Text('Manual'),
-              ),
-              ButtonSegment(
-                value: HydrionGoalMode.weatherInformed,
-                label: Text('Weather'),
-              ),
-            ],
-            onSelectionChanged: (value) =>
-                setState(() => _goalMode = value.single),
+          HydrionHorizontalControl(
+            child: SegmentedButton<HydrionGoalMode>(
+              selected: {_goalMode},
+              segments: const [
+                ButtonSegment(
+                  value: HydrionGoalMode.manual,
+                  label: Text('Manual'),
+                ),
+                ButtonSegment(
+                  value: HydrionGoalMode.weatherInformed,
+                  label: Text('Weather'),
+                ),
+              ],
+              onSelectionChanged: (value) =>
+                  setState(() => _goalMode = value.single),
+            ),
           ),
           const SizedBox(height: 18),
           FilledButton(
@@ -610,14 +626,31 @@ class _ProfileStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon),
-      title: Text(label),
-      trailing: Text(
-        value,
-        style: Theme.of(context).textTheme.labelLarge,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = HydrionViewport.stackActions(
+          context,
+          availableWidth: constraints.maxWidth,
+          widthBreakpoint: 340,
+        );
+        return ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(icon),
+          title: Text(label),
+          subtitle: stacked
+              ? Text(
+                  value,
+                  style: Theme.of(context).textTheme.labelLarge,
+                )
+              : null,
+          trailing: stacked
+              ? null
+              : Text(
+                  value,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+        );
+      },
     );
   }
 }

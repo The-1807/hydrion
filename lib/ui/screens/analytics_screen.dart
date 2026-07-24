@@ -10,6 +10,7 @@ import '../../services/eco_tracker.dart';
 import '../../services/app_refresh_controller.dart';
 import '../components/intake_ring.dart';
 import '../components/hydration_score_card.dart';
+import '../components/hydrion_viewport.dart';
 import '../theme/hydrion_design.dart';
 
 class AnalyticsScreen extends StatelessWidget {
@@ -54,7 +55,10 @@ class AnalyticsScreen extends StatelessWidget {
         onRefresh: () => refreshHydrionData(context),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
+          padding: HydrionViewport.scrollPadding(
+            context,
+            includeSystemBottom: !embedded,
+          ),
           children: [
             if (hydrationRepository.logs.isEmpty) ...[
               Card(
