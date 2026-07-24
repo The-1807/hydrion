@@ -9,6 +9,7 @@ import '../../services/local_profile_reset_service.dart';
 import '../../utils/i18n_resolver.dart';
 import '../../utils/permissions.dart';
 import '../components/hydrion_logo.dart';
+import '../components/hydrion_viewport.dart';
 import '../components/intake_ring.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -36,7 +37,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle), centerTitle: true),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        key: const Key('settings-scroll-view'),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: HydrionViewport.scrollPadding(context),
         children: [
           const _SettingsHeader(),
           const SizedBox(height: 12),
@@ -200,6 +203,7 @@ class _ThemeCard extends StatelessWidget {
         child: DropdownButtonFormField<HydrionThemePreference>(
           key: const Key('settings-theme-picker'),
           initialValue: settings.themePreference,
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Appearance',
             prefixIcon: Icon(Icons.brightness_6_outlined),
@@ -221,6 +225,12 @@ class _ThemeCard extends StatelessWidget {
               value: HydrionThemePreference.dark,
               child: Text('Night'),
             ),
+          ],
+          selectedItemBuilder: (context) => const [
+            Text('Device setting', overflow: TextOverflow.ellipsis),
+            Text('Auto day/night', overflow: TextOverflow.ellipsis),
+            Text('Day', overflow: TextOverflow.ellipsis),
+            Text('Night', overflow: TextOverflow.ellipsis),
           ],
           onChanged: (preference) async {
             if (preference == null) return;
@@ -247,8 +257,12 @@ class _SettingsHeader extends StatelessWidget {
           children: [
             HydrionLogo(size: 56, semanticLabel: l10n.hydrionLogoSemantics),
             const SizedBox(width: 16),
-            Text(l10n.appTitle,
-                style: Theme.of(context).textTheme.headlineSmall),
+            Expanded(
+              child: Text(
+                l10n.appTitle,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ),
           ],
         ),
       ),
@@ -295,6 +309,7 @@ class _LanguageCard extends StatelessWidget {
         child: DropdownButtonFormField<Locale>(
           key: const Key('settings-locale-picker'),
           initialValue: selected,
+          isExpanded: true,
           decoration: InputDecoration(labelText: l10n.appLanguageLabel),
           items: I18nResolver.supportedLocales
               .map((locale) => DropdownMenuItem(
@@ -341,32 +356,54 @@ class _DailyGoalCardState extends State<_DailyGoalCard> {
           Text(l10n.dailyGoalTitle,
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
-          Row(children: [
-            Expanded(
-                child: TextField(
-              key: const Key('settings-daily-goal-field'),
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: l10n.dailyGoalFieldLabel),
-            )),
-            const SizedBox(width: 8),
-            FilledButton(
-              key: const Key('settings-daily-goal-save'),
-              onPressed: () async {
-                final value = int.tryParse(controller.text.trim());
-                final saved = value != null &&
-                    await context
-                        .read<UserSettingsRepository>()
-                        .setDailyGoalMl(value);
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(
-                      saved ? l10n.dailyGoalUpdated : l10n.dailyGoalInvalid),
-                ));
-              },
-              child: Text(l10n.save),
-            ),
-          ]),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final field = TextField(
+                key: const Key('settings-daily-goal-field'),
+                controller: controller,
+                keyboardType: TextInputType.number,
+                decoration:
+                    InputDecoration(labelText: l10n.dailyGoalFieldLabel),
+              );
+              final save = FilledButton(
+                key: const Key('settings-daily-goal-save'),
+                onPressed: () async {
+                  final value = int.tryParse(controller.text.trim());
+                  final saved = value != null &&
+                      await context
+                          .read<UserSettingsRepository>()
+                          .setDailyGoalMl(value);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(
+                        saved ? l10n.dailyGoalUpdated : l10n.dailyGoalInvalid),
+                  ));
+                },
+                child: Text(l10n.save),
+              );
+              if (HydrionViewport.stackActions(
+                context,
+                availableWidth: constraints.maxWidth,
+                widthBreakpoint: 380,
+              )) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    field,
+                    const SizedBox(height: 12),
+                    save,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: field),
+                  const SizedBox(width: 8),
+                  save,
+                ],
+              );
+            },
+          ),
         ]),
       ),
     );
@@ -469,19 +506,61 @@ class _PermissionsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Card(
-      child: ListTile(
-        leading: const Icon(Icons.verified_user_outlined),
-        title: Text(l10n.permissions),
-        subtitle: const Text('Review permissions used for reminders.'),
-        trailing: TextButton(
-          onPressed: () async {
-            await context.read<Permissions>().requestPermissions();
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.noPlatformPermissionsRequested)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final copy = Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.verified_user_outlined),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.permissions,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      const Text('Review permissions used for reminders.'),
+                    ],
+                  ),
+                ),
+              ],
+            );
+            final action = TextButton(
+              onPressed: () async {
+                await context.read<Permissions>().requestPermissions();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.noPlatformPermissionsRequested)),
+                );
+              },
+              child: Text(l10n.check),
+            );
+            if (HydrionViewport.stackActions(
+              context,
+              availableWidth: constraints.maxWidth,
+            )) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  copy,
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerRight, child: action),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: copy),
+                const SizedBox(width: 8),
+                action,
+              ],
             );
           },
-          child: Text(l10n.check),
         ),
       ),
     );

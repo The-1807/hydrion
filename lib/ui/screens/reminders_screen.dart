@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../services/notifications.dart';
 import '../../services/reminder_feedback.dart';
+import '../components/hydrion_viewport.dart';
 
 class RemindersScreen extends StatelessWidget {
   const RemindersScreen({super.key});
@@ -24,7 +25,11 @@ class RemindersScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        key: const Key('reminders-scroll-view'),
+        padding: HydrionViewport.scrollPadding(
+          context,
+          bottom: 104,
+        ),
         children: [
           Card(
             child: ListTile(
@@ -75,48 +80,31 @@ class RemindersScreen extends StatelessWidget {
             )
           else
             ...reminders.map((reminder) {
-              return Card(
-                child: ListTile(
-                  leading: const Icon(Icons.schedule),
-                  title: Text(reminder.message),
-                  subtitle: Text(
-                    '${_formatTimestamp(context, reminder.triggerTime)}\n'
-                    '${ReminderFeedback.status(reminder)}',
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _ReminderCard(
+                  reminder: reminder,
+                  timestamp: _formatTimestamp(context, reminder.triggerTime),
+                  status: ReminderFeedback.status(reminder),
+                  onEdit: () => _showReminderDialog(
+                    context,
+                    existing: reminder,
                   ),
-                  isThreeLine: true,
-                  trailing: Wrap(
-                    spacing: 4,
-                    children: [
-                      IconButton(
-                        key: Key('edit-reminder-${reminder.id}'),
-                        tooltip: 'Edit reminder',
-                        icon: const Icon(Icons.edit_outlined),
-                        onPressed: () => _showReminderDialog(
-                          context,
-                          existing: reminder,
-                        ),
+                  onDelete: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    await context
+                        .read<NotificationService>()
+                        .deleteReminder(reminder.id);
+                    if (!context.mounted) {
+                      return;
+                    }
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.localReminderDeleted),
                       ),
-                      IconButton(
-                        key: Key('delete-reminder-${reminder.id}'),
-                        tooltip: l10n.deleteLocalReminderTooltip,
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          await context
-                              .read<NotificationService>()
-                              .deleteReminder(reminder.id);
-                          if (!context.mounted) {
-                            return;
-                          }
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(l10n.localReminderDeleted),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                    );
+                  },
+                  deleteTooltip: l10n.deleteLocalReminderTooltip,
                 ),
               );
             }),
@@ -158,50 +146,52 @@ class RemindersScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              insetPadding: HydrionViewport.dialogInsetPadding(dialogContext),
+              scrollable: true,
               title: Text(existing == null ? 'Add reminder' : 'Edit reminder'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      key: const Key('reminder-message-field'),
-                      controller: messageController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Message',
-                      ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    key: const Key('reminder-message-field'),
+                    controller: messageController,
+                    minLines: 1,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Message',
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      key: const Key('reminder-minutes-field'),
-                      controller: minutesController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Minutes from now',
-                        helperText: 'Use 5 to 1440 minutes.',
-                      ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const Key('reminder-minutes-field'),
+                    controller: minutesController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Minutes from now',
+                      helperText: 'Use 5 to 1440 minutes.',
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      key: const Key('reminder-priority-field'),
-                      controller: priorityController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Priority',
-                      ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const Key('reminder-priority-field'),
+                    controller: priorityController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Priority',
                     ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      value: enabled,
-                      onChanged: (value) {
-                        setDialogState(() => enabled = value);
-                      },
-                      title: const Text('Enabled'),
-                    ),
-                  ],
-                ),
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    value: enabled,
+                    onChanged: (value) {
+                      setDialogState(() => enabled = value);
+                    },
+                    title: const Text('Enabled'),
+                  ),
+                ],
               ),
               actions: [
                 TextButton(
@@ -287,5 +277,115 @@ class RemindersScreen extends StatelessWidget {
       alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
     );
     return l10n.relativeDateTime(date: dayLabel, time: timeLabel);
+  }
+}
+
+class _ReminderCard extends StatelessWidget {
+  final ScheduledReminder reminder;
+  final String timestamp;
+  final String status;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final String deleteTooltip;
+
+  const _ReminderCard({
+    required this.reminder,
+    required this.timestamp,
+    required this.status,
+    required this.onEdit,
+    required this.onDelete,
+    required this.deleteTooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final copy = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          reminder.message,
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          timestamp,
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: colors.onSurfaceVariant),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          status,
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: colors.onSurfaceVariant),
+        ),
+      ],
+    );
+    final actions = <Widget>[
+      IconButton(
+        key: Key('edit-reminder-${reminder.id}'),
+        tooltip: 'Edit reminder',
+        icon: const Icon(Icons.edit_outlined),
+        onPressed: onEdit,
+      ),
+      IconButton(
+        key: Key('delete-reminder-${reminder.id}'),
+        tooltip: deleteTooltip,
+        icon: const Icon(Icons.delete_outline),
+        onPressed: onDelete,
+      ),
+    ];
+
+    return Card(
+      key: Key('reminder-card-${reminder.id}'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked = HydrionViewport.stackActions(
+              context,
+              availableWidth: constraints.maxWidth,
+            );
+            if (stacked) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.schedule, color: colors.primary),
+                      const SizedBox(width: 12),
+                      Expanded(child: copy),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: actions,
+                  ),
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.schedule, color: colors.primary),
+                const SizedBox(width: 12),
+                Expanded(child: copy),
+                const SizedBox(width: 8),
+                ...actions,
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 }

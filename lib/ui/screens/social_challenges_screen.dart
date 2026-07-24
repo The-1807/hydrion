@@ -13,6 +13,7 @@ import '../../repositories/settings_repository.dart';
 import '../../services/app_refresh_controller.dart';
 import '../theme/hydrion_design.dart';
 import '../components/intake_ring.dart';
+import '../components/hydrion_viewport.dart';
 import 'challenge_experience_screen.dart';
 
 class SocialChallengesScreen extends StatefulWidget {
@@ -47,8 +48,14 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
         .toList(growable: false);
 
     final listView = ListView(
+      key: const Key('challenges-catalog-scroll'),
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+      padding: HydrionViewport.scrollPadding(
+        context,
+        top: 20,
+        bottom: 28,
+        includeSystemBottom: !widget.embedded,
+      ),
       children: [
         KeyedSubtree(
           key: widget.tourTargetKey,

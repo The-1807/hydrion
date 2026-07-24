@@ -17,6 +17,7 @@ import '../../services/weather_goal_service.dart';
 import '../../services/notifications.dart';
 import '../components/intake_ring.dart';
 import '../components/guided_tour_overlay.dart';
+import '../components/hydrion_viewport.dart';
 import '../presentation/challenge_history_presenter.dart';
 import '../theme/hydrion_design.dart';
 
@@ -87,7 +88,12 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     }
     final scaffold = Scaffold(
       appBar: AppBar(
-        title: Text(widget.challenge.name),
+        toolbarHeight: HydrionViewport.headerHeight(context),
+        title: Text(
+          widget.challenge.name,
+          maxLines: 2,
+          overflow: TextOverflow.fade,
+        ),
         actions: [
           if (active != null)
             PopupMenuButton<String>(
@@ -117,8 +123,13 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         key: Key('challenge-dashboard-refresh-${widget.challenge.id}'),
         onRefresh: () => refreshHydrionData(context),
         child: ListView(
+          key: Key('challenge-scroll-${widget.challenge.id}'),
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: HydrionViewport.scrollPadding(
+            context,
+            bottom: 32,
+          ),
           children: active != null && !active.needsSetup
               ? _dashboard(context, active)
               : latestHistory?.lifecycleStatus ==
@@ -299,6 +310,10 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
               Text('Required setup',
                   style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
+              const Text(
+                'Choose the required values below. Field-level guidance appears only where an option needs explanation.',
+              ),
+              const SizedBox(height: 12),
               for (final key in definition.requiredParameters) ...[
                 _ChallengeParameterField(
                   parameterKey: key,
@@ -314,15 +329,21 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                 ),
                 const SizedBox(height: 10),
               ],
-              FilledButton.icon(
-                key: Key('activate-challenge-${widget.challenge.id}'),
-                onPressed: joinBlocked ? null : () => _activate(context),
-                icon: const Icon(Icons.play_arrow),
-                label: Text(!joinBlocked
-                    ? completingSetup
-                        ? 'Complete setup'
-                        : 'Join challenge'
-                    : 'Pause or leave one challenge first'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  key: Key('activate-challenge-${widget.challenge.id}'),
+                  onPressed: joinBlocked ? null : () => _activate(context),
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(
+                    !joinBlocked
+                        ? completingSetup
+                            ? 'Complete setup'
+                            : 'Join challenge'
+                        : 'Pause or leave one challenge first',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
               if (joinBlocked) ...[
                 const SizedBox(height: 8),
@@ -1218,7 +1239,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       'temperature-roulette' =>
         "Today's assigned style: ${((active.parameters['temperatureSchedule'] as List?) ?? definition.schedule)[day % definition.schedule.length]}. Log $amountText. ${active.parameters['weatherContext'] ?? 'Today’s standard temperature plan is in use.'}",
       'eat-your-water-day' =>
-        'Include ${active.parameters['food']} with ${active.parameters['meal']}, then confirm the food task. No hydration volume will be added.',
+        'Include ${active.parameters['food']} with ${active.parameters['meal']}, then confirm the food task.',
       'pomodoro-sip' =>
         'After each ${active.parameters['sessionMinutes']}-minute focus session, choose Took a sip for a check-in or log a measured $amountText drink.',
       'bottle-bingo' =>
@@ -1773,7 +1794,7 @@ class _EatYourWaterPanel extends StatelessWidget {
           leading: const CircleAvatar(child: Icon(Icons.restaurant)),
           title: Text('${active.parameters['food']}'),
           subtitle: Text(
-            'Add it to ${active.parameters['meal']}. Confirming this task adds no hydration volume.',
+            'Add it to ${active.parameters['meal']}. Food completion and fluid hydration stay separate; only drinks you log change hydration.',
           ),
         ),
       );
@@ -3008,6 +3029,7 @@ class _ChallengeParameterFieldState extends State<_ChallengeParameterField> {
     final decoration = InputDecoration(
       labelText: _parameterLabel(widget.parameterKey, widget.unit),
       helperText: _parameterHelp(widget.parameterKey),
+      helperMaxLines: 3,
     );
     if (choices.isNotEmpty) {
       final current = choices.contains(widget.controller.text)
@@ -3017,10 +3039,17 @@ class _ChallengeParameterFieldState extends State<_ChallengeParameterField> {
       return DropdownButtonFormField<String>(
         key: Key('challenge-parameter-${widget.parameterKey}'),
         initialValue: current,
+        isExpanded: true,
         decoration: decoration,
         items: [
           for (final choice in choices)
-            DropdownMenuItem(value: choice, child: Text(_choiceLabel(choice))),
+            DropdownMenuItem(
+              value: choice,
+              child: Text(
+                _choiceLabel(choice),
+                softWrap: true,
+              ),
+            ),
         ],
         onChanged: (value) {
           if (value != null) widget.controller.text = value;
@@ -3198,7 +3227,7 @@ String _parameterLabel(String key, [HydrionVolumeUnit? unit]) => switch (key) {
       _ => key,
     };
 
-String _parameterHelp(String key) => switch (key) {
+String? _parameterHelp(String key) => switch (key) {
       'noAddedSugar' => 'Enter confirmed to accept this challenge rule.',
       'weatherOrdering' =>
         'Enter enabled or disabled. The standard plan remains available.',
@@ -3207,7 +3236,7 @@ String _parameterHelp(String key) => switch (key) {
       'autoStartNext' =>
         'Choose whether the next session starts after the sip.',
       'difficulty' => 'Choose gentle, balanced, or active.',
-      _ => 'Required challenge configuration.',
+      _ => null,
     };
 
 String? _validateParameter(
