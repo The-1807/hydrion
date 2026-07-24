@@ -9,6 +9,7 @@ import '../../repositories/challenge_repository.dart';
 import '../../services/notifications.dart';
 import '../../services/pomodoro_session_service.dart';
 import '../../services/weather_goal_service.dart';
+import '../../utils/permissions.dart';
 import '../components/guided_tour_overlay.dart';
 import '../components/hydrion_viewport.dart';
 import '../theme/hydrion_design.dart';
@@ -69,14 +70,22 @@ class _HydrionShellState extends State<HydrionShell>
     _scheduleDayRollover();
     final notificationService = context.read<NotificationService>();
     final pomodoroSessionService = context.read<PomodoroSessionService>();
-    final settings = context.read<UserSettingsRepository>().settings;
-    await context.read<ChallengeRepository>().reconcileLocalDay();
+    final permissions = context.read<Permissions>();
+    final weatherService = context.read<WeatherForecastService>();
+    final challengeRepository = context.read<ChallengeRepository>();
+    final settingsRepository = context.read<UserSettingsRepository>();
+    await permissions.refresh();
+    if (!permissions.snapshot.location.isGranted) {
+      await weatherService.clearCache();
+    }
+    await challengeRepository.reconcileLocalDay();
     await pomodoroSessionService.reconcile();
     await notificationService.reconcileSchedules();
     if (!mounted) {
       return;
     }
-    if (settings.goalMode == HydrionGoalMode.weatherInformed) {
+    final refreshedSettings = settingsRepository.settings;
+    if (refreshedSettings.goalMode == HydrionGoalMode.weatherInformed) {
       await _evaluateWeatherAssistance();
       if (!mounted) {
         return;
@@ -105,7 +114,7 @@ class _HydrionShellState extends State<HydrionShell>
 
     final coordinator = context.read<DailyWeatherGoalCoordinator>();
     final result = await coordinator.evaluate(
-      requestLocationPermission: true,
+      requestLocationPermission: false,
     );
     if (!mounted ||
         result.status != DailyWeatherGoalStatus.promptReady ||

@@ -40,12 +40,12 @@ class RemindersScreen extends StatelessWidget {
               ),
               title: Text(
                 notificationsEnabled
-                    ? 'Local notifications available'
+                    ? 'Local reminders'
                     : l10n.osNotificationsDisabledTitle,
               ),
               subtitle: Text(
                 notificationsEnabled
-                    ? 'Hydrion schedules local, on-device reminders after you allow notification permission. Delivery still depends on OS settings, reboot handling, and battery policy.'
+                    ? 'Allow notifications to receive Hydrion reminders. Android settings may affect delivery.'
                     : l10n.standaloneRemindersLocalOnly,
               ),
             ),

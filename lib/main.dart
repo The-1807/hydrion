@@ -39,6 +39,7 @@ import 'ui/screens/hydrion_shell.dart';
 import 'ui/screens/legal_about_screen.dart';
 import 'ui/screens/log_screen.dart';
 import 'ui/screens/onboarding_screen.dart';
+import 'ui/screens/permission_center_screen.dart';
 import 'ui/screens/reminders_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/social_challenges_screen.dart';
@@ -224,6 +225,7 @@ class HydrionApp extends StatelessWidget {
       if (services.capabilityReporter.capabilities.osNotifications)
         '/reminders': (_) => const RemindersScreen(),
       '/settings': (_) => const SettingsScreen(),
+      '/permissions': (_) => const PermissionCenterScreen(),
       '/profile': (_) => const ProfileScreen(),
       '/legal-about': (_) => const LegalAboutScreen(),
       '/legal-review': (_) => const LegalReviewScreen(),
@@ -248,7 +250,7 @@ class HydrionApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => DynamicThemeClock()),
         Provider.value(value: services.coreBridge),
-        Provider.value(value: services.permissions),
+        ChangeNotifierProvider.value(value: services.permissions),
         ChangeNotifierProvider.value(value: services.i18n),
         Provider.value(value: services.notificationService),
         Provider.value(value: services.pomodoroSessionService),
@@ -401,6 +403,7 @@ class HydrionServices {
       aiRuntimeConfig: HydrionAiRuntimeConfig.fromEnvironment(),
     );
     await services.notificationService.initialize();
+    await services.permissions.refresh();
     await services.pomodoroSessionService.reconcile();
     await services.notificationService.reconcileSchedules();
     return services;
@@ -481,7 +484,6 @@ class HydrionServices {
   }) {
     challengeRepository.bindHydrationRepository(hydrationRepository);
     final coreBridge = CoreBridge(hydrationRepository: hydrationRepository);
-    final permissions = Permissions();
     final location =
         locationService ?? const GeolocatorHydrionLocationService();
     final i18n = I18nResolver(settingsRepository: settingsRepository);
@@ -490,6 +492,11 @@ class HydrionServices {
       reminderPolicy: policy,
       reminderRepository: reminderRepository,
       adapter: notificationAdapter,
+    );
+    final permissions = Permissions(
+      notifications: notificationService,
+      location: location,
+      settings: settingsRepository,
     );
     final pomodoroSessionService = PomodoroSessionService(
       challengeRepository: challengeRepository,
