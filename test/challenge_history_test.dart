@@ -97,6 +97,28 @@ void main() {
     );
   });
 
+  test('legacy Pomodoro date-only history does not invent a clock time', () {
+    final item = present(
+      challenge(
+        'pomodoro-sip',
+        parameters: const {
+          'pomodoroSessionHistory': [
+            {
+              'sessionId': 'legacy-session',
+              'sessionNumber': 2,
+              'completedAt': '2026-07-02',
+              'endedEarly': false,
+            }
+          ],
+        },
+      ),
+    ).single;
+
+    expect(item.description, 'Completed focus session 2');
+    expect(item.timestamp, DateTime(2026, 7, 2));
+    expect(item.hasAuthenticTime, isFalse);
+  });
+
   test('Eat Your Water check-in includes meal and food without an amount', () {
     const action = '2026-07-02:day-2-eat-your-water-day';
     final item = present(challenge('eat-your-water-day', parameters: const {
@@ -268,6 +290,32 @@ void main() {
           Brightness.dark);
       expect(find.textContaining('250 ml'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('date-only migrated item renders no invented midnight time',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en', 'US'),
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          supportedLocales: const [Locale('en', 'US')],
+          home: Scaffold(
+            body: ChallengeHistoryView(
+              items: [
+                ChallengeHistoryItem(
+                  description: 'Completed focus session 1',
+                  timestamp: DateTime(2026, 7, 4),
+                  hasAuthenticTime: false,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.textContaining('Sat, Jul 4'), findsOneWidget);
+      expect(find.textContaining('12:00'), findsNothing);
     });
   });
 }

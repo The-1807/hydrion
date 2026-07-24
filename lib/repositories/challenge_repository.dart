@@ -6,6 +6,7 @@ import '../domain/challenge_catalog.dart';
 import '../domain/challenge_experience.dart';
 import '../domain/bottle_bingo.dart';
 import '../domain/hydration_contracts.dart';
+import '../domain/pomodoro_session.dart';
 import '../storage/local_store.dart';
 import 'hydration_repository.dart';
 import 'storage_recovery.dart';
@@ -674,7 +675,9 @@ class ChallengeRepository extends ChangeNotifier {
     final parameters = <String, Object?>{
       ...previous.parameters,
       ...?parameterOverrides,
-    }..removeWhere((key, _) => key.startsWith('timer'));
+    }..removeWhere(
+        (key, _) => key.startsWith('timer') || key.startsWith('pomodoro'),
+      );
     if (previous.id == 'bottle-bingo') {
       parameters['bingoBoardVersion'] = 2;
     }
@@ -1084,6 +1087,20 @@ class ChallengeRepository extends ChangeNotifier {
     Map<String, Object?> parameters,
   ) {
     final next = <String, Object?>{...parameters};
+    final pomodoro = PomodoroSessionState.fromJson(next['pomodoroSession']);
+    if (pomodoro != null) {
+      final snapshot = pomodoro.snapshot(DateTime.now());
+      next['pomodoroSession'] = pomodoro
+          .copyWith(
+            lifecycle: PomodoroSessionLifecycle.paused,
+            pausedRemaining: snapshot.remainingDuration,
+            updatedAt: DateTime.now(),
+            clearCompletionAt: true,
+            clearReminderId: true,
+            clearReminderSchedulingMode: true,
+          )
+          .toJson();
+    }
     final endsAt = DateTime.tryParse(next['timerEndsAt']?.toString() ?? '');
     if (next['timerStatus'] == 'running' && endsAt != null) {
       next['timerPausedSeconds'] =
@@ -1096,6 +1113,8 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   List<String> _reminderIdsFor(JoinedChallenge challenge) {
+    final pomodoro =
+        PomodoroSessionState.fromJson(challenge.parameters['pomodoroSession']);
     return {
       for (final key in const [
         'timerReminderId',
@@ -1104,6 +1123,7 @@ class ChallengeRepository extends ChangeNotifier {
       ])
         if ((challenge.parameters[key]?.toString().trim() ?? '').isNotEmpty)
           challenge.parameters[key]!.toString().trim(),
+      if ((pomodoro?.reminderId ?? '').isNotEmpty) pomodoro!.reminderId!,
     }.toList(growable: false);
   }
 
@@ -1468,16 +1488,18 @@ class ChallengeRepository extends ChangeNotifier {
     DateTime day,
   ) {
     final dayToken = _localDayToken(day);
-    final checkIns = challenge.completedActionIds.where(
-      (action) =>
-          action.contains(':$dayToken:') || action.startsWith('$dayToken:'),
-    );
-    return checkIns.length +
-        _qualifiedHydrationLogsForDay(
-          challenge,
-          hydrationRepository,
-          day,
-        ).length;
+    final evidenceIds = <String>{
+      for (final action in challenge.completedActionIds)
+        if (action.contains(':$dayToken:') || action.startsWith('$dayToken:'))
+          action,
+      for (final log in _qualifiedHydrationLogsForDay(
+        challenge,
+        hydrationRepository,
+        day,
+      ))
+        log.actionId ?? log.id,
+    };
+    return evidenceIds.length;
   }
 
   String _localDayToken(DateTime day) =>

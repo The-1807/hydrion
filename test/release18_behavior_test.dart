@@ -105,7 +105,9 @@ void main() {
   });
 
   group('Release 18 Pomodoro sip semantics', () {
-    test('took a sip creates challenge evidence without hydration', () async {
+    test(
+        'legacy Pomodoro check-in remains readable without inventing hydration',
+        () async {
       final challenges = ChallengeRepository.memory();
       final hydration = HydrationRepository.memory();
       await challenges.join(
