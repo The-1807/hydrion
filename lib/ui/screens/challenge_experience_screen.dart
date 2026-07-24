@@ -909,7 +909,22 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
               'Weather is unavailable right now, so today’s standard temperature plan is being used.';
         }
       }
+      final assignmentSource = !weatherEnabled
+          ? 'weatherDisabled'
+          : contextText.startsWith('Weather is unavailable')
+              ? 'weatherUnavailableFallback'
+              : schedule.first == definition.schedule.first
+                  ? 'weatherMatchedStandard'
+                  : 'weatherRecommendation';
+      if (assignmentSource == 'weatherMatchedStandard') {
+        contextText =
+            'Weather also recommends ${schedule.first} today; the standard assignment already matched. $contextText';
+      } else if (assignmentSource == 'weatherRecommendation') {
+        contextText =
+            'Weather recommends ${schedule.first} today, replacing the standard ${definition.schedule.first} assignment. $contextText';
+      }
       parameters['temperatureSchedule'] = schedule;
+      parameters['temperatureAssignmentSource'] = assignmentSource;
       parameters['weatherContext'] = contextText;
     }
     if (widget.challenge.id == 'bottle-bingo') {
