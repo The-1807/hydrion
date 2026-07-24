@@ -7,7 +7,6 @@ import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/local_profile_reset_service.dart';
 import '../../utils/i18n_resolver.dart';
-import '../../utils/permissions.dart';
 import '../components/hydrion_logo.dart';
 import '../components/hydrion_viewport.dart';
 import '../components/intake_ring.dart';
@@ -100,7 +99,7 @@ class _DeleteProfileCardState extends State<_DeleteProfileCard> {
         ),
         title: const Text('Delete local profile'),
         subtitle: const Text(
-          'Removes profile details, logs, reminders, challenges, and weather cache from this device.',
+          'Removes local Hydrion data. Android notification and location permissions remain controlled by device settings.',
         ),
         trailing: _deleting
             ? const SizedBox.square(
@@ -119,9 +118,17 @@ class _DeleteProfileCardState extends State<_DeleteProfileCard> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete local profile?'),
         content: const Text(
-          'This clears your local profile, hydration history, reminders, challenges, and weather cache on this device. Legal acknowledgements and appearance settings are kept.',
+          'This clears your local profile, hydration history, reminders, challenges, and weather cache on this device. Android notification and location permissions are not revoked and remain controlled in device settings.',
         ),
         actions: [
+          TextButton(
+            key: const Key('delete-review-permissions'),
+            onPressed: () {
+              Navigator.pop(dialogContext, false);
+              Navigator.of(context).pushNamed('/permissions');
+            },
+            child: const Text('Review permissions'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
@@ -504,64 +511,16 @@ class _PermissionsCard extends StatelessWidget {
   const _PermissionsCard();
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final copy = Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.verified_user_outlined),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.permissions,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      const Text('Review permissions used for reminders.'),
-                    ],
-                  ),
-                ),
-              ],
-            );
-            final action = TextButton(
-              onPressed: () async {
-                await context.read<Permissions>().requestPermissions();
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.noPlatformPermissionsRequested)),
-                );
-              },
-              child: Text(l10n.check),
-            );
-            if (HydrionViewport.stackActions(
-              context,
-              availableWidth: constraints.maxWidth,
-            )) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  copy,
-                  const SizedBox(height: 8),
-                  Align(alignment: Alignment.centerRight, child: action),
-                ],
-              );
-            }
-            return Row(
-              children: [
-                Expanded(child: copy),
-                const SizedBox(width: 8),
-                action,
-              ],
-            );
-          },
+      child: ListTile(
+        key: const Key('settings-permission-center'),
+        leading: const Icon(Icons.verified_user_outlined),
+        title: const Text('Permissions'),
+        subtitle: const Text(
+          'Review reminders, weather location, and Android alarm access.',
         ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).pushNamed('/permissions'),
       ),
     );
   }

@@ -7,8 +7,15 @@ enum HydrionLocationPermissionState {
   granted,
   denied,
   permanentlyDenied,
+  restricted,
   serviceDisabled,
   unsupported,
+  unknown,
+}
+
+enum HydrionLocationAccuracy {
+  approximate,
+  precise,
   unknown,
 }
 
@@ -75,6 +82,8 @@ abstract class HydrionLocationService {
 
   Future<HydrionLocationPermissionState> requestPermission();
 
+  Future<HydrionLocationAccuracy> checkAccuracy();
+
   Future<HydrionLocationLookupResult> getCurrentLocation({
     Duration timeout = const Duration(seconds: 12),
   });
@@ -114,6 +123,18 @@ class GeolocatorHydrionLocationService implements HydrionLocationService {
   }
 
   @override
+  Future<HydrionLocationAccuracy> checkAccuracy() async {
+    try {
+      final accuracy = await geo.Geolocator.getLocationAccuracy();
+      return accuracy == geo.LocationAccuracyStatus.precise
+          ? HydrionLocationAccuracy.precise
+          : HydrionLocationAccuracy.approximate;
+    } on PlatformException {
+      return HydrionLocationAccuracy.unknown;
+    }
+  }
+
+  @override
   Future<HydrionLocationLookupResult> getCurrentLocation({
     Duration timeout = const Duration(seconds: 12),
   }) async {
@@ -129,6 +150,10 @@ class GeolocatorHydrionLocationService implements HydrionLocationService {
         case HydrionLocationPermissionState.permanentlyDenied:
           return const HydrionLocationLookupResult.failure(
             HydrionLocationLookupStatus.permanentlyDenied,
+          );
+        case HydrionLocationPermissionState.restricted:
+          return const HydrionLocationLookupResult.failure(
+            HydrionLocationLookupStatus.permissionDenied,
           );
         case HydrionLocationPermissionState.serviceDisabled:
           return const HydrionLocationLookupResult.failure(
@@ -211,6 +236,7 @@ class GeolocatorHydrionLocationService implements HydrionLocationService {
 
 class FakeHydrionLocationService implements HydrionLocationService {
   HydrionLocationPermissionState permission;
+  HydrionLocationAccuracy accuracy;
   HydrionLocationLookupResult lookupResult;
   int requestCount = 0;
   int lookupCount = 0;
@@ -219,6 +245,7 @@ class FakeHydrionLocationService implements HydrionLocationService {
 
   FakeHydrionLocationService({
     this.permission = HydrionLocationPermissionState.granted,
+    this.accuracy = HydrionLocationAccuracy.approximate,
     HydrionLocationLookupResult? lookupResult,
   }) : lookupResult = lookupResult ??
             HydrionLocationLookupResult.success(
@@ -231,6 +258,9 @@ class FakeHydrionLocationService implements HydrionLocationService {
 
   @override
   Future<HydrionLocationPermissionState> checkPermission() async => permission;
+
+  @override
+  Future<HydrionLocationAccuracy> checkAccuracy() async => accuracy;
 
   @override
   Future<HydrionLocationPermissionState> requestPermission() async {

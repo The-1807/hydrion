@@ -57,7 +57,7 @@ class HydrionLegalDocumentRegistry {
     description:
         'How Hydrion handles local data, weather requests, photos, and support.',
     assetPath: 'docs/Hydrion_Legal_Pack_Markdown/01_PRIVACY_POLICY.md',
-    version: '1.0.0',
+    version: '1.0.1',
     effectiveDate: DateTime(2026, 7, 6),
     lastUpdated: DateTime(2026, 7, 6),
     requiresTermsAcceptance: false,

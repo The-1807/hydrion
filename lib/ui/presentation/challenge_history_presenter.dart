@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/bottle_bingo.dart';
+import '../../domain/pomodoro_session.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
@@ -9,9 +10,13 @@ import '../components/intake_ring.dart';
 class ChallengeHistoryItem {
   final String description;
   final DateTime timestamp;
+  final bool hasAuthenticTime;
 
-  const ChallengeHistoryItem(
-      {required this.description, required this.timestamp});
+  const ChallengeHistoryItem({
+    required this.description,
+    required this.timestamp,
+    this.hasAuthenticTime = true,
+  });
 }
 
 class ChallengeHistoryPresenter {
@@ -40,6 +45,27 @@ class ChallengeHistoryPresenter {
         if (!actionLogIds.contains(log.id) && hydrationLogQualifies(log)) {
           items.add(_qualifiedHydrationItem(challenge, log, unit));
         }
+      }
+    }
+    if (challenge.id == 'pomodoro-sip') {
+      final session = PomodoroSessionState.fromJson(
+          challenge.parameters['pomodoroSession']);
+      final legacyHistory = challenge.parameters['pomodoroSessionHistory'];
+      final history = session?.history ??
+          (legacyHistory is List
+              ? legacyHistory
+                  .map(PomodoroSessionHistoryEntry.fromJson)
+                  .whereType<PomodoroSessionHistoryEntry>()
+                  .toList(growable: false)
+              : const <PomodoroSessionHistoryEntry>[]);
+      for (final entry in history) {
+        items.add(ChallengeHistoryItem(
+          description: entry.endedEarly
+              ? 'Ended focus session ${entry.sessionNumber} early'
+              : 'Completed focus session ${entry.sessionNumber}',
+          timestamp: entry.completedAt,
+          hasAuthenticTime: entry.hasAuthenticTime,
+        ));
       }
     }
 
@@ -88,7 +114,8 @@ class ChallengeHistoryPresenter {
     HydrationLog? log,
     HydrionVolumeUnit unit,
   ) {
-    final timestamp = log?.timestamp ?? _dateFrom(action) ?? challenge.joinedAt;
+    final actionDate = _dateFrom(action);
+    final timestamp = log?.timestamp ?? actionDate ?? challenge.joinedAt;
     final amount = log == null
         ? ''
         : ' · ${HydrationVolumeFormatter.format(log.volumeMl, unit)}';
@@ -118,9 +145,11 @@ class ChallengeHistoryPresenter {
         description = 'Tried the $theme infusion$amount';
       case 'pomodoro-sip':
         final session = RegExp(r'session-(\d+)').firstMatch(action)?.group(1);
-        description = session == null
-            ? 'Completed a Pomodoro focus session$amount'
-            : 'Completed Pomodoro session $session$amount';
+        description = log != null && action.contains('pomodoro-session-')
+            ? 'Logged a Pomodoro drink$amount'
+            : session == null
+                ? 'Completed a Pomodoro focus session$amount'
+                : 'Completed Pomodoro session $session$amount';
       case 'eat-your-water-day':
         final meal = _friendlyValue(challenge.parameters['meal'], 'meal');
         final food =
@@ -140,7 +169,11 @@ class ChallengeHistoryPresenter {
             ? 'Completed a challenge task'
             : 'Logged a challenge drink$amount';
     }
-    return ChallengeHistoryItem(description: description, timestamp: timestamp);
+    return ChallengeHistoryItem(
+      description: description,
+      timestamp: timestamp,
+      hasAuthenticTime: log != null || actionDate == null,
+    );
   }
 
   static ChallengeHistoryItem _qualifiedHydrationItem(
@@ -221,8 +254,10 @@ class ChallengeHistoryView extends StatelessWidget {
               children: [
                 Text(item.description),
                 Text(
-                  '${localizations.formatMediumDate(item.timestamp)} · '
-                  '${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(item.timestamp))}',
+                  item.hasAuthenticTime
+                      ? '${localizations.formatMediumDate(item.timestamp)} · '
+                          '${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(item.timestamp))}'
+                      : localizations.formatMediumDate(item.timestamp),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

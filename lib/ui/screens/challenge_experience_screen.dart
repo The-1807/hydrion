@@ -8,6 +8,7 @@ import '../../domain/challenge_experience.dart';
 import '../../domain/bottle_bingo.dart';
 import '../../domain/challenge_visual_registry.dart';
 import '../../domain/hydration_contracts.dart';
+import '../../domain/pomodoro_session.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/hydration_repository.dart';
@@ -15,6 +16,7 @@ import '../../repositories/settings_repository.dart';
 import '../../services/app_refresh_controller.dart';
 import '../../services/weather_goal_service.dart';
 import '../../services/notifications.dart';
+import '../../services/pomodoro_session_service.dart';
 import '../components/intake_ring.dart';
 import '../components/guided_tour_overlay.dart';
 import '../components/hydrion_viewport.dart';
@@ -836,7 +838,6 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     final settingsRepository = context.read<UserSettingsRepository>();
     final repository = context.read<ChallengeRepository>();
     final weatherCoordinator = context.read<DailyWeatherGoalCoordinator>();
-    final notifications = context.read<NotificationService>();
     final messenger = ScaffoldMessenger.of(context);
     final unit = settingsRepository.settings.volumeUnit;
     final parameters = <String, Object?>{};
@@ -862,24 +863,8 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         );
         return;
       }
-      final now = DateTime.now();
-      final end =
-          now.add(Duration(minutes: parameters['sessionMinutes'] as int));
-      parameters['timerStatus'] = 'running';
-      parameters['timerStartedAt'] = now.toIso8601String();
-      parameters['timerEndsAt'] = end.toIso8601String();
+      parameters['timerStatus'] = 'stopped';
       parameters['timerSession'] = 1;
-      if ((parameters['notifications'] as String).toLowerCase() == 'enabled') {
-        final scheduled = await notifications.createReminder(
-          triggerTime: end,
-          message:
-              'Focus session complete. Take your planned sip when you’re ready.',
-          priority: 1,
-          requestPermissionIfNeeded: true,
-        );
-        parameters['timerReminderId'] =
-            scheduled.scheduled ? scheduled.reminder?.id : null;
-      }
     }
     if (widget.challenge.id == 'temperature-roulette') {
       final weatherEnabled = parameters['weatherOrdering'] == 'enabled';
@@ -924,7 +909,22 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
               'Weather is unavailable right now, so today’s standard temperature plan is being used.';
         }
       }
+      final assignmentSource = !weatherEnabled
+          ? 'weatherDisabled'
+          : contextText.startsWith('Weather is unavailable')
+              ? 'weatherUnavailableFallback'
+              : schedule.first == definition.schedule.first
+                  ? 'weatherMatchedStandard'
+                  : 'weatherRecommendation';
+      if (assignmentSource == 'weatherMatchedStandard') {
+        contextText =
+            'Weather also recommends ${schedule.first} today; the standard assignment already matched. $contextText';
+      } else if (assignmentSource == 'weatherRecommendation') {
+        contextText =
+            'Weather recommends ${schedule.first} today, replacing the standard ${definition.schedule.first} assignment. $contextText';
+      }
       parameters['temperatureSchedule'] = schedule;
+      parameters['temperatureAssignmentSource'] = assignmentSource;
       parameters['weatherContext'] = contextText;
     }
     if (widget.challenge.id == 'bottle-bingo') {
@@ -955,6 +955,10 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
           ),
         ),
       );
+    } else if (joined &&
+        widget.challenge.id == 'pomodoro-sip' &&
+        context.mounted) {
+      await context.read<PomodoroSessionService>().start();
     }
   }
 
@@ -964,36 +968,46 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     int day,
   ) async {
     final repository = context.read<ChallengeRepository>();
-    final notifications = context.read<NotificationService>();
     if (widget.challenge.id == 'pomodoro-sip') {
-      final endsAt = DateTime.tryParse(
-        active.parameters['timerEndsAt']?.toString() ?? '',
-      );
-      if (endsAt != null && DateTime.now().isBefore(endsAt)) {
+      final sessions = context.read<PomodoroSessionService>();
+      final state = await sessions.reconcile();
+      if (!context.mounted) return;
+      if (state?.lifecycle != PomodoroSessionLifecycle.completed ||
+          state?.completionCommitted != true) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content:
-                  Text('Finish this focus session before logging its sip.')),
+            content: Text(
+              'Complete this focus session before confirming your sip.',
+            ),
+          ),
         );
         return;
       }
+      final log = await sessions.recordSip(
+        hydrationRepository: context.read<HydrationRepository>(),
+      );
+      if (!context.mounted) return;
+      if (log == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'That sip was already recorded or could not be saved. Check your history before trying again.',
+            ),
+          ),
+        );
+        return;
+      }
+      await _completeIfFinished(context, active.id);
+      return;
     }
-    final sessionSuffix = widget.challenge.id == 'pomodoro-sip'
-        ? '-session-${active.completedActionIds.length + 1}'
-        : '';
     final now = DateTime.now();
     final localDay = '${now.year.toString().padLeft(4, '0')}-'
         '${now.month.toString().padLeft(2, '0')}-'
         '${now.day.toString().padLeft(2, '0')}';
-    final key = '$localDay:day-${day + 1}-${widget.challenge.id}$sessionSuffix';
+    final key = '$localDay:day-${day + 1}-${widget.challenge.id}';
     if (definition.actionKind == ChallengeActionKind.checkIn) {
       final completed =
           await repository.completeCheckIn(key, challengeId: active.id);
-      if (completed &&
-          widget.challenge.id == 'pomodoro-sip' &&
-          context.mounted) {
-        await _setPomodoroComplete(context, active);
-      }
       if (completed && context.mounted) {
         await _completeIfFinished(context, active.id);
       }
@@ -1016,56 +1030,6 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       challengeId: active.id,
       metadata: _metadataForChallengeAction(active, day),
     );
-    if (log != null && widget.challenge.id == 'pomodoro-sip') {
-      final session =
-          ((active.parameters['timerSession'] as num?) ?? 1).round();
-      final planned =
-          ((active.parameters['sessionsPerDay'] as num?) ?? 1).round();
-      final autoStart =
-          active.parameters['autoStartNext']?.toString().toLowerCase() ==
-              'enabled';
-      if (session < planned) {
-        final next = session + 1;
-        final minutes =
-            ((active.parameters['sessionMinutes'] as num?) ?? 25).round();
-        final now = DateTime.now();
-        final nextEnd = now.add(Duration(minutes: minutes));
-        final latest = repository.activeChallengeFor(active.id) ?? active;
-        await repository.updateParameters({
-          ...latest.parameters,
-          'timerSession': next,
-          'timerStatus': autoStart ? 'running' : 'stopped',
-          'timerStartedAt': autoStart ? now.toIso8601String() : '',
-          'timerEndsAt': autoStart ? nextEnd.toIso8601String() : '',
-          'timerReminderId': '',
-        }, challengeId: active.id);
-        if (autoStart &&
-            active.parameters['notifications']?.toString().toLowerCase() ==
-                'enabled') {
-          final scheduled = await notifications.createReminder(
-            triggerTime: nextEnd,
-            message:
-                'Focus session complete. Take your planned sip when you’re ready.',
-            priority: 1,
-            requestPermissionIfNeeded: true,
-          );
-          if (scheduled.scheduled && scheduled.reminder != null) {
-            final latest = repository.activeChallengeFor(active.id) ?? active;
-            await repository.updateParameters({
-              ...latest.parameters,
-              'timerReminderId': scheduled.reminder!.id,
-            }, challengeId: active.id);
-          }
-        }
-      } else {
-        final latest = repository.activeChallengeFor(active.id) ?? active;
-        await repository.updateParameters({
-          ...latest.parameters,
-          'timerStatus': 'complete',
-          'timerEndsAt': '',
-        }, challengeId: active.id);
-      }
-    }
     if (log != null && context.mounted) {
       await _completeIfFinished(context, active.id);
     }
@@ -1074,30 +1038,29 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
   Future<void> _logPomodoroMeasuredDrink(
     BuildContext context,
     JoinedChallenge active,
-    int day,
+    int _,
   ) async {
     final amount = active.parameters['amountMl'];
     if (amount is! int || amount <= 0) return;
     final now = DateTime.now();
-    final localDay = '${now.year.toString().padLeft(4, '0')}-'
-        '${now.month.toString().padLeft(2, '0')}-'
-        '${now.day.toString().padLeft(2, '0')}';
-    final actionKey =
-        '$localDay:day-${day + 1}-${widget.challenge.id}-measured-${active.completedActionIds.length + 1}';
     final metadata = await _promptPomodoroDrinkContext(context, now);
     if (metadata == null || !context.mounted) return;
     final log =
-        await context.read<ChallengeRepository>().completeHydrationAction(
+        await context.read<PomodoroSessionService>().recordMeasuredDrink(
               hydrationRepository: context.read<HydrationRepository>(),
-              volumeMl: amount,
-              actionKey: actionKey,
-              challengeId: active.id,
+              amountMl: amount,
               metadata: metadata,
             );
     if (log != null && context.mounted) {
-      await _setPomodoroComplete(context, active);
-      if (!context.mounted) return;
       await _completeIfFinished(context, active.id);
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Complete the focus session first, or check whether this drink was already recorded.',
+          ),
+        ),
+      );
     }
   }
 
@@ -1213,20 +1176,6 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     }
   }
 
-  Future<void> _setPomodoroComplete(
-    BuildContext context,
-    JoinedChallenge active,
-  ) async {
-    final repository = context.read<ChallengeRepository>();
-    final latest = repository.activeChallengeFor(active.id) ?? active;
-    await repository.updateParameters({
-      ...latest.parameters,
-      'timerStatus': 'complete',
-      'timerEndsAt': '',
-      'timerReminderId': '',
-    }, challengeId: active.id);
-  }
-
   String _instruction(JoinedChallenge active, int day) {
     final amount = active.parameters['amountMl'];
     final amountText = amount is int
@@ -1308,12 +1257,16 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   onChanged: (enabled) async {
                     final repository = context.read<ChallengeRepository>();
                     final notifications = context.read<NotificationService>();
+                    final pomodoroSessions =
+                        context.read<PomodoroSessionService>();
                     await repository.editParameter(
                       challengeId: active.id,
                       key: 'notifications',
                       value: enabled ? 'enabled' : 'disabled',
                     );
-                    if (!enabled) {
+                    if (active.id == PomodoroSessionService.challengeId) {
+                      await pomodoroSessions.syncReminderPreference();
+                    } else if (!enabled) {
                       for (final key in const [
                         'timerReminderId',
                         'challengeReminderId',
@@ -2784,41 +2737,59 @@ class _PomodoroTimerCard extends StatefulWidget {
   State<_PomodoroTimerCard> createState() => _PomodoroTimerCardState();
 }
 
-class _PomodoroTimerCardState extends State<_PomodoroTimerCard> {
+class _PomodoroTimerCardState extends State<_PomodoroTimerCard>
+    with WidgetsBindingObserver {
   Timer? _ticker;
+  bool _reconciling = false;
 
   @override
   void initState() {
     super.initState();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _reconcile();
     });
   }
 
   @override
+  void didUpdateWidget(covariant _PomodoroTimerCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncTicker();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
     super.dispose();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reconcile();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _ticker?.cancel();
+      _ticker = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final parameters = widget.active.parameters;
-    final status = parameters['timerStatus']?.toString() ?? 'stopped';
-    final end = DateTime.tryParse(parameters['timerEndsAt']?.toString() ?? '');
-    final pausedSeconds =
-        ((parameters['timerPausedSeconds'] as num?) ?? 0).round();
-    final remaining = status == 'paused'
-        ? Duration(seconds: pausedSeconds)
-        : end == null
-            ? Duration.zero
-            : end.difference(DateTime.now());
-    final safe = remaining.isNegative ? Duration.zero : remaining;
-    final complete = status == 'running' && safe == Duration.zero;
-    final minutes = safe.inMinutes.toString().padLeft(2, '0');
-    final seconds = (safe.inSeconds % 60).toString().padLeft(2, '0');
-    final session = ((parameters['timerSession'] as num?) ?? 1).round();
-    final planned = ((parameters['sessionsPerDay'] as num?) ?? 1).round();
+    final sessionState =
+        context.read<PomodoroSessionService>().stateFor(widget.active);
+    final snapshot = sessionState.snapshot(DateTime.now());
+    final complete = snapshot.isCompleted ||
+        snapshot.isRunning && snapshot.remainingDuration == Duration.zero;
+    final minutes =
+        snapshot.remainingDuration.inMinutes.toString().padLeft(2, '0');
+    final seconds =
+        (snapshot.remainingDuration.inSeconds % 60).toString().padLeft(2, '0');
+    final session = sessionState.sessionNumber;
+    final planned =
+        ((widget.active.parameters['sessionsPerDay'] as num?) ?? 1).round();
     return _Section(
       title: 'Focus timer · Session $session of $planned',
       child: Column(
@@ -2838,42 +2809,61 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard> {
             ),
           ),
           const SizedBox(height: 12),
+          Semantics(
+            label:
+                '${(snapshot.progress * 100).round()} percent of the focus session complete',
+            child: LinearProgressIndicator(
+              key: const Key('pomodoro-meter'),
+              value: snapshot.progress,
+              minHeight: 10,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             alignment: WrapAlignment.center,
             children: [
-              if (status == 'running' && !complete)
+              if (snapshot.isRunning && !complete)
                 OutlinedButton.icon(
+                  key: const Key('pomodoro-pause'),
                   style: _challengeOutlinedStyle(context),
-                  onPressed: () => _pause(safe),
+                  onPressed: _pause,
                   icon: const Icon(Icons.pause),
                   label: const Text('Pause'),
                 ),
-              if (status == 'paused')
+              if (snapshot.isPaused)
                 FilledButton.icon(
-                  onPressed: () => _resume(pausedSeconds),
+                  key: const Key('pomodoro-resume'),
+                  onPressed: _resume,
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Resume'),
                 ),
-              if (status == 'stopped')
+              if (snapshot.lifecycle == PomodoroSessionLifecycle.stopped ||
+                  snapshot.lifecycle == PomodoroSessionLifecycle.notStarted)
                 FilledButton.icon(
-                  onPressed: _restart,
+                  key: const Key('pomodoro-start'),
+                  onPressed: _start,
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Start next focus session'),
                 ),
-              if (status != 'stopped')
+              if (snapshot.lifecycle != PomodoroSessionLifecycle.stopped &&
+                  snapshot.lifecycle != PomodoroSessionLifecycle.notStarted)
                 OutlinedButton(
+                  key: const Key('pomodoro-restart'),
                   style: _challengeOutlinedStyle(context),
                   onPressed: _restart,
                   child: const Text('Restart session'),
                 ),
-              if (!complete && status != 'stopped')
+              if (!complete && snapshot.isRunning)
                 TextButton(
+                  key: const Key('pomodoro-end-early'),
                   onPressed: _endEarly,
                   child: const Text('End early'),
                 ),
               TextButton(
+                key: const Key('pomodoro-stop'),
                 onPressed: _stop,
                 child: const Text('Stop today’s plan'),
               ),
@@ -2882,97 +2872,78 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard> {
           if (complete) ...[
             const SizedBox(height: 8),
             const Text(
-                'Focus session complete. Log your planned sip when you’re ready.'),
+              'Focus session complete. No water has been added. Confirm Took a sip or log a measured drink when you actually drink.',
+            ),
           ],
         ],
       ),
     );
   }
 
-  Future<void> _save(Map<String, Object?> values) async {
-    await context.read<ChallengeRepository>().updateParameters({
-      ...widget.active.parameters,
-      ...values,
-    });
+  Future<void> _start() async {
+    await context.read<PomodoroSessionService>().start();
+    _syncTicker();
   }
 
-  Future<void> _cancelReminder() async {
-    final id = widget.active.parameters['timerReminderId']?.toString();
-    if (id != null && id.isNotEmpty) {
-      await context.read<NotificationService>().deleteReminder(id);
-    }
+  Future<void> _pause() async {
+    await context.read<PomodoroSessionService>().pause();
+    _syncTicker();
   }
 
-  Future<void> _pause(Duration remaining) async {
-    await _cancelReminder();
-    await _save({
-      'timerStatus': 'paused',
-      'timerPausedSeconds': remaining.inSeconds,
-      'timerEndsAt': '',
-      'timerReminderId': '',
-    });
-  }
-
-  Future<void> _resume(int seconds) async {
-    final end = DateTime.now().add(Duration(seconds: seconds));
-    await _save({
-      'timerStatus': 'running',
-      'timerEndsAt': end.toIso8601String(),
-      'timerPausedSeconds': 0,
-    });
-    await _scheduleCompletionReminder(end);
+  Future<void> _resume() async {
+    await context.read<PomodoroSessionService>().resume();
+    _syncTicker();
   }
 
   Future<void> _restart() async {
-    await _cancelReminder();
-    final minutes =
-        ((widget.active.parameters['sessionMinutes'] as num?) ?? 25).round();
-    final now = DateTime.now();
-    await _save({
-      'timerStatus': 'running',
-      'timerStartedAt': now.toIso8601String(),
-      'timerEndsAt': now.add(Duration(minutes: minutes)).toIso8601String(),
-      'timerPausedSeconds': 0,
-      'timerReminderId': '',
-    });
-    await _scheduleCompletionReminder(
-      now.add(Duration(minutes: minutes)),
-    );
+    await context.read<PomodoroSessionService>().restart();
+    _syncTicker();
   }
 
   Future<void> _endEarly() async {
-    await _cancelReminder();
-    await _save({
-      'timerStatus': 'running',
-      'timerEndsAt': DateTime.now().toIso8601String(),
-      'timerReminderId': '',
-    });
+    await context.read<PomodoroSessionService>().completeEarly();
+    _syncTicker();
   }
 
   Future<void> _stop() async {
-    await _cancelReminder();
-    await _save({
-      'timerStatus': 'stopped',
-      'timerEndsAt': '',
-      'timerPausedSeconds': 0,
-      'timerReminderId': '',
+    await context.read<PomodoroSessionService>().stop();
+    _syncTicker();
+  }
+
+  void _syncTicker() {
+    if (!mounted) return;
+    final state =
+        context.read<PomodoroSessionService>().stateFor(widget.active);
+    if (state.lifecycle != PomodoroSessionLifecycle.running) {
+      _ticker?.cancel();
+      _ticker = null;
+      return;
+    }
+    if (_ticker?.isActive == true) return;
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final snapshot = context
+          .read<PomodoroSessionService>()
+          .stateFor(widget.active)
+          .snapshot(DateTime.now());
+      setState(() {});
+      if (snapshot.remainingDuration == Duration.zero) {
+        _reconcile();
+      }
     });
   }
 
-  Future<void> _scheduleCompletionReminder(DateTime end) async {
-    if (widget.active.parameters['notifications']?.toString().toLowerCase() !=
-        'enabled') {
-      return;
-    }
-    final scheduled = await context.read<NotificationService>().createReminder(
-          triggerTime: end,
-          message:
-              'Focus session complete. Take your planned sip when you’re ready.',
-          priority: 1,
-          requestPermissionIfNeeded: true,
-        );
-    if (scheduled.scheduled && scheduled.reminder != null && mounted) {
-      await _save({'timerReminderId': scheduled.reminder!.id});
+  Future<void> _reconcile() async {
+    if (!mounted || _reconciling) return;
+    _reconciling = true;
+    try {
+      await context.read<PomodoroSessionService>().reconcile();
+      if (mounted) {
+        setState(() {});
+        _syncTicker();
+      }
+    } finally {
+      _reconciling = false;
     }
   }
 }

@@ -194,6 +194,7 @@ void main() {
       permissions: base.permissions,
       i18n: base.i18n,
       notificationService: base.notificationService,
+      pomodoroSessionService: base.pomodoroSessionService,
       locationService: base.locationService,
       weatherForecastService: base.weatherForecastService,
       dailyWeatherGoalCoordinator: base.dailyWeatherGoalCoordinator,

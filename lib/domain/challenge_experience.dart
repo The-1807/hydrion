@@ -95,13 +95,13 @@ class HydrionChallengeExperiences {
           'Pair modest hydration check-ins with manually confirmed focus-session breaks.',
       actions: [
         'Complete a configured focus session.',
-        'Confirm the session ended.',
-        'Choose Took a sip or log a measured drink.'
+        'Wait for the sip action to unlock.',
+        'Confirm Took a sip or log the measured drink after drinking.'
       ],
       whatCounts:
-          'A persisted sip check-in or measured drink after a confirmed focus session.',
+          'One persisted drink with the configured amount after a completed focus session.',
       whatDoesNotCount:
-          'The timer never adds water automatically or guesses a sip volume.',
+          'Timer completion and reminders never add water automatically.',
       requiredParameters: [
         'sessionMinutes',
         'sessionsPerDay',

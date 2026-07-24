@@ -161,6 +161,41 @@ class HydrionUiAssetManifest {
       assetPath: 'assets/UI_BETA/workout-lady.png',
       intendedUse: 'Profile and polished brand moments.',
     ),
+    HydrionUiScene(
+      id: 'pride-be-proud',
+      label: 'Be Proud',
+      description: 'A Pride encouragement illustration.',
+      assetPath: 'assets/UI_BETA/pride/be-proud.png',
+      intendedUse: 'Intersex progress, celebration, and empty-state moments.',
+    ),
+    HydrionUiScene(
+      id: 'pride-eat-your-water',
+      label: 'Eat Your Water',
+      description: 'A Pride hydration-food illustration.',
+      assetPath: 'assets/UI_BETA/pride/eat-your-water.png',
+      intendedUse: 'Intersex Eat Your Water challenge support.',
+    ),
+    HydrionUiScene(
+      id: 'pride-gender',
+      label: 'Profile Identity',
+      description: 'A Pride identity illustration.',
+      assetPath: 'assets/UI_BETA/pride/gender_icon.png',
+      intendedUse: 'Intersex profile summary.',
+    ),
+    HydrionUiScene(
+      id: 'pride-banner',
+      label: 'Pride Progress',
+      description: 'A Pride banner illustration.',
+      assetPath: 'assets/UI_BETA/pride/pride-banner.png',
+      intendedUse: 'Intersex home and progress encouragement.',
+    ),
+    HydrionUiScene(
+      id: 'pride-bottle',
+      label: 'Pride Hydration',
+      description: 'A Pride hydration bottle illustration.',
+      assetPath: 'assets/UI_BETA/pride/pride-bottle.png',
+      intendedUse: 'Intersex welcome and hydration moments.',
+    ),
   ];
 
   static HydrionUiScene byId(String id) {
@@ -188,6 +223,7 @@ enum HydrionLifestyleSurface {
 enum HydrionLifestylePresentation {
   male,
   female,
+  intersex,
   neutral,
 }
 
@@ -199,6 +235,8 @@ class HydrionLifestyleArtResolver {
       HydrionProfileArtPresentation.male => HydrionLifestylePresentation.male,
       HydrionProfileArtPresentation.female =>
         HydrionLifestylePresentation.female,
+      HydrionProfileArtPresentation.intersex =>
+        HydrionLifestylePresentation.intersex,
       HydrionProfileArtPresentation.neutral =>
         HydrionLifestylePresentation.neutral,
     };
@@ -212,6 +250,7 @@ class HydrionLifestyleArtResolver {
     final id = switch (presentation) {
       HydrionLifestylePresentation.male => _maleSceneId(surface),
       HydrionLifestylePresentation.female => _femaleSceneId(surface),
+      HydrionLifestylePresentation.intersex => _intersexSceneId(surface),
       HydrionLifestylePresentation.neutral => _neutralSceneId(surface),
     };
     return HydrionUiAssetManifest.byId(id);
@@ -270,6 +309,22 @@ class HydrionLifestyleArtResolver {
       HydrionLifestyleSurface.profile => 'neutral-infusion',
       HydrionLifestyleSurface.onboarding => 'neutral-bottle',
       HydrionLifestyleSurface.emptyState => 'neutral-temperature',
+      HydrionLifestyleSurface.recommendation => 'neutral-infusion',
+    };
+  }
+
+  static String _intersexSceneId(HydrionLifestyleSurface surface) {
+    return switch (surface) {
+      HydrionLifestyleSurface.homePrimary => 'pride-bottle',
+      HydrionLifestyleSurface.homeSecondary => 'neutral-infusion',
+      HydrionLifestyleSurface.homeTertiary => 'pride-banner',
+      HydrionLifestyleSurface.homeQuaternary => 'neutral-temperature',
+      HydrionLifestyleSurface.weather => 'weather',
+      HydrionLifestyleSurface.progress => 'pride-be-proud',
+      HydrionLifestyleSurface.challenges => 'challenge',
+      HydrionLifestyleSurface.profile => 'pride-gender',
+      HydrionLifestyleSurface.onboarding => 'pride-bottle',
+      HydrionLifestyleSurface.emptyState => 'pride-be-proud',
       HydrionLifestyleSurface.recommendation => 'neutral-infusion',
     };
   }

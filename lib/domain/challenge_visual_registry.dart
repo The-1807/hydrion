@@ -10,6 +10,7 @@ class ChallengeVisualIdentity {
   final String neutralAsset;
   final String? maleAsset;
   final String? femaleAsset;
+  final String? intersexAsset;
   final Alignment imageAlignment;
 
   const ChallengeVisualIdentity({
@@ -21,6 +22,7 @@ class ChallengeVisualIdentity {
     this.cardAsset,
     this.maleAsset,
     this.femaleAsset,
+    this.intersexAsset,
   });
 
   String dashboardAssetFor(Object? profileValue) =>
@@ -30,6 +32,7 @@ class ChallengeVisualIdentity {
           neutralAsset: neutralAsset,
           maleAsset: maleAsset,
           femaleAsset: femaleAsset,
+          intersexAsset: intersexAsset,
         ),
       );
 }
@@ -80,6 +83,7 @@ class ChallengeVisualRegistry {
       neutralAsset: 'assets/UI_BETA/eatyourwater.png',
       maleAsset: 'assets/UI_BETA/eatyourwater-man.png',
       femaleAsset: 'assets/UI_BETA/eatyourwater-lady.png',
+      intersexAsset: 'assets/UI_BETA/pride/eat-your-water.png',
       imageAlignment: Alignment.centerLeft,
     ),
     'pomodoro-sip': ChallengeVisualIdentity(

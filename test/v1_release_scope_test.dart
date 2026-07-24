@@ -47,7 +47,7 @@ void main() {
   });
 
   test('UI asset manifest separates lifestyle scenes from profile avatars', () {
-    expect(HydrionUiAssetManifest.lifestyleScenes, hasLength(20));
+    expect(HydrionUiAssetManifest.lifestyleScenes, hasLength(25));
     expect(HydrionUiAssetManifest.byId('sip-break').assetPath,
         'assets/UI_BETA/drinking-lady.png');
     expect(HydrionUiAssetManifest.byId('challenge').assetPath,

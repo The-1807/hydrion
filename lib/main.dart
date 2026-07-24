@@ -25,6 +25,7 @@ import 'services/location_service.dart';
 import 'services/local_profile_reset_service.dart';
 import 'services/notifications.dart';
 import 'services/policy_service.dart';
+import 'services/pomodoro_session_service.dart';
 import 'services/provider_health.dart';
 import 'services/profile_photo_service.dart';
 import 'services/voice_client.dart';
@@ -38,6 +39,7 @@ import 'ui/screens/hydrion_shell.dart';
 import 'ui/screens/legal_about_screen.dart';
 import 'ui/screens/log_screen.dart';
 import 'ui/screens/onboarding_screen.dart';
+import 'ui/screens/permission_center_screen.dart';
 import 'ui/screens/reminders_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/social_challenges_screen.dart';
@@ -223,6 +225,7 @@ class HydrionApp extends StatelessWidget {
       if (services.capabilityReporter.capabilities.osNotifications)
         '/reminders': (_) => const RemindersScreen(),
       '/settings': (_) => const SettingsScreen(),
+      '/permissions': (_) => const PermissionCenterScreen(),
       '/profile': (_) => const ProfileScreen(),
       '/legal-about': (_) => const LegalAboutScreen(),
       '/legal-review': (_) => const LegalReviewScreen(),
@@ -247,9 +250,10 @@ class HydrionApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => DynamicThemeClock()),
         Provider.value(value: services.coreBridge),
-        Provider.value(value: services.permissions),
+        ChangeNotifierProvider.value(value: services.permissions),
         ChangeNotifierProvider.value(value: services.i18n),
         Provider.value(value: services.notificationService),
+        Provider.value(value: services.pomodoroSessionService),
         Provider.value(value: services.locationService),
         Provider.value(value: services.weatherForecastService),
         Provider.value(value: services.dailyWeatherGoalCoordinator),
@@ -335,6 +339,7 @@ class HydrionServices {
   final Permissions permissions;
   final I18nResolver i18n;
   final NotificationService notificationService;
+  final PomodoroSessionService pomodoroSessionService;
   final HydrionLocationService locationService;
   final WeatherForecastService weatherForecastService;
   final DailyWeatherGoalCoordinator dailyWeatherGoalCoordinator;
@@ -368,6 +373,7 @@ class HydrionServices {
     required this.permissions,
     required this.i18n,
     required this.notificationService,
+    required this.pomodoroSessionService,
     required this.locationService,
     required this.weatherForecastService,
     required this.dailyWeatherGoalCoordinator,
@@ -397,6 +403,8 @@ class HydrionServices {
       aiRuntimeConfig: HydrionAiRuntimeConfig.fromEnvironment(),
     );
     await services.notificationService.initialize();
+    await services.permissions.refresh();
+    await services.pomodoroSessionService.reconcile();
     await services.notificationService.reconcileSchedules();
     return services;
   }
@@ -476,7 +484,6 @@ class HydrionServices {
   }) {
     challengeRepository.bindHydrationRepository(hydrationRepository);
     final coreBridge = CoreBridge(hydrationRepository: hydrationRepository);
-    final permissions = Permissions();
     final location =
         locationService ?? const GeolocatorHydrionLocationService();
     final i18n = I18nResolver(settingsRepository: settingsRepository);
@@ -485,6 +492,15 @@ class HydrionServices {
       reminderPolicy: policy,
       reminderRepository: reminderRepository,
       adapter: notificationAdapter,
+    );
+    final permissions = Permissions(
+      notifications: notificationService,
+      location: location,
+      settings: settingsRepository,
+    );
+    final pomodoroSessionService = PomodoroSessionService(
+      challengeRepository: challengeRepository,
+      notificationService: notificationService,
     );
     final weatherForecastService = WeatherForecastService(
       provider: weatherProvider ?? OpenMeteoWeatherProvider(),
@@ -601,6 +617,7 @@ class HydrionServices {
       permissions: permissions,
       i18n: i18n,
       notificationService: notificationService,
+      pomodoroSessionService: pomodoroSessionService,
       locationService: location,
       weatherForecastService: weatherForecastService,
       dailyWeatherGoalCoordinator: dailyWeatherGoalCoordinator,

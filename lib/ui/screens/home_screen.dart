@@ -179,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: HydrionViewport.scrollPadding(
             context,
-            top: 8,
+            top: 16,
             bottom: 24,
             includeSystemBottom: false,
           ),

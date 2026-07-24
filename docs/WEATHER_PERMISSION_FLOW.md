@@ -1,6 +1,6 @@
 # Hydrion Weather And Notification Permission Flow
 
-Status: implementation-aligned notes for July 6, 2026.
+Status: implementation-aligned notes for July 24, 2026.
 
 ## Product Rule
 
@@ -50,9 +50,20 @@ When a request is allowed:
 
 Only coarse foreground location is declared for v1. No background location is requested.
 
+The permission center re-queries the operating system when Hydrion resumes.
+If foreground location has been revoked, Hydrion clears its forecast cache and
+reports weather as unavailable; the saved standard hydration goal remains
+usable. Approximate location is sufficient and precise location is not
+required.
+
 ## Notification Handling
 
 Notification permission is requested from reminder-specific UI. The reminder dialog states that exact delivery is not guaranteed and that manual tracking still works if permission is declined.
+
+Onboarding offers independent **Enable reminders** and **Not now** actions.
+Hydrion does not show the system notification prompt until the user chooses
+the enable action. Android exact-alarm access is optional; unavailable exact
+scheduling falls back to approximate scheduling.
 
 Weather evaluation may optionally request notification permission, but notification denial does not block:
 

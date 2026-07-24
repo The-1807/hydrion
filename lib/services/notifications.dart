@@ -407,6 +407,14 @@ class NotificationService {
     return _adapter.openAppSettings();
   }
 
+  Future<bool> canSchedulePrecisely() {
+    return _adapter.canSchedulePrecisely();
+  }
+
+  Future<bool> requestPreciseSchedulingPermission() {
+    return _adapter.requestPreciseSchedulingPermission();
+  }
+
   Future<ScheduledReminder?> scheduleReminder({
     required int shortfallMl,
     required double lastDrinkHoursAgo,
