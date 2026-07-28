@@ -19,6 +19,11 @@ enum HydrionGoalMode {
   weatherInformed,
 }
 
+enum HydrionBaselineSource {
+  manual,
+  personalized,
+}
+
 enum HydrionVolumeUnit {
   milliliters,
   ounces,
@@ -54,6 +59,8 @@ class UserSettings {
   final HydrionSex? sex;
   final String avatarId;
   final HydrionGoalMode goalMode;
+  final HydrionBaselineSource baselineSource;
+  final bool weatherModifierEnabled;
   final HydrionVolumeUnit volumeUnit;
   final HydrionThemePreference themePreference;
   final int containerSizeMl;
@@ -91,6 +98,8 @@ class UserSettings {
     this.sex,
     this.avatarId = 'savvy-eco_shark',
     this.goalMode = HydrionGoalMode.manual,
+    this.baselineSource = HydrionBaselineSource.manual,
+    this.weatherModifierEnabled = false,
     this.volumeUnit = HydrionVolumeUnit.milliliters,
     this.themePreference = HydrionThemePreference.system,
     this.containerSizeMl = defaultContainerSizeMl,
@@ -130,6 +139,8 @@ class UserSettings {
     bool clearSex = false,
     String? avatarId,
     HydrionGoalMode? goalMode,
+    HydrionBaselineSource? baselineSource,
+    bool? weatherModifierEnabled,
     HydrionVolumeUnit? volumeUnit,
     HydrionThemePreference? themePreference,
     int? containerSizeMl,
@@ -180,6 +191,9 @@ class UserSettings {
       sex: clearSex ? null : sex ?? this.sex,
       avatarId: avatarId ?? this.avatarId,
       goalMode: goalMode ?? this.goalMode,
+      baselineSource: baselineSource ?? this.baselineSource,
+      weatherModifierEnabled:
+          weatherModifierEnabled ?? this.weatherModifierEnabled,
       volumeUnit: volumeUnit ?? this.volumeUnit,
       themePreference: themePreference ?? this.themePreference,
       containerSizeMl: containerSizeMl ?? this.containerSizeMl,
@@ -252,7 +266,7 @@ class UserSettings {
     return age != null &&
         sex != null &&
         sex != HydrionSex.preferNotToSay &&
-        goalMode == HydrionGoalMode.weatherInformed;
+        weatherModifierEnabled;
   }
 
   Map<String, dynamic> toJson() {
@@ -268,6 +282,8 @@ class UserSettings {
       'sex': sex?.name,
       'avatarId': avatarId,
       'goalMode': goalMode.name,
+      'baselineSource': baselineSource.name,
+      'weatherModifierEnabled': weatherModifierEnabled,
       'volumeUnit': volumeUnit.name,
       'themePreference': themePreference.name,
       'containerSizeMl': containerSizeMl,
@@ -317,6 +333,8 @@ class UserSettings {
         sex: _safeSex(value['sex']),
         avatarId: _safeAvatarId(value['avatarId']),
         goalMode: _safeGoalMode(value['goalMode']),
+        baselineSource: _safeBaselineSource(value),
+        weatherModifierEnabled: _safeWeatherModifierEnabled(value),
         volumeUnit: _safeVolumeUnit(value['volumeUnit']),
         themePreference: _safeThemePreference(value['themePreference']),
         containerSizeMl: _safeContainerSize(value['containerSizeMl']),
@@ -364,6 +382,8 @@ class UserSettings {
       sex: _safeSex(value['sex']),
       avatarId: _safeAvatarId(value['avatarId']),
       goalMode: _safeGoalMode(value['goalMode']),
+      baselineSource: _safeBaselineSource(value),
+      weatherModifierEnabled: _safeWeatherModifierEnabled(value),
       volumeUnit: _safeVolumeUnit(value['volumeUnit']),
       themePreference: _safeThemePreference(value['themePreference']),
       containerSizeMl: _safeContainerSize(value['containerSizeMl']),
@@ -560,6 +580,20 @@ class UserSettings {
       }
     }
     return HydrionGoalMode.manual;
+  }
+
+  static HydrionBaselineSource _safeBaselineSource(Map value) {
+    final raw = value['baselineSource'];
+    for (final source in HydrionBaselineSource.values) {
+      if (source.name == raw) return source;
+    }
+    return HydrionBaselineSource.manual;
+  }
+
+  static bool _safeWeatherModifierEnabled(Map value) {
+    final current = value['weatherModifierEnabled'];
+    if (current is bool) return current;
+    return _safeGoalMode(value['goalMode']) == HydrionGoalMode.weatherInformed;
   }
 
   static HydrionVolumeUnit _safeVolumeUnit(Object? value) {
@@ -773,7 +807,25 @@ class UserSettingsRepository extends ChangeNotifier {
   }
 
   Future<void> setGoalMode(HydrionGoalMode mode) async {
-    _settings = _settings.copyWith(goalMode: mode);
+    _settings = _settings.copyWith(
+      goalMode: mode,
+      weatherModifierEnabled: mode == HydrionGoalMode.weatherInformed,
+    );
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<void> setPersonalizedGoalOptions({
+    required HydrionBaselineSource baselineSource,
+    required bool weatherModifierEnabled,
+  }) async {
+    _settings = _settings.copyWith(
+      baselineSource: baselineSource,
+      weatherModifierEnabled: weatherModifierEnabled,
+      goalMode: weatherModifierEnabled
+          ? HydrionGoalMode.weatherInformed
+          : HydrionGoalMode.manual,
+    );
     await _persist();
     notifyListeners();
   }
