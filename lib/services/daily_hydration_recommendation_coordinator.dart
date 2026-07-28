@@ -105,4 +105,13 @@ class DailyHydrationRecommendationCoordinator {
   Future<void> keepCurrentGoal() async {
     // User choice is represented by leaving the canonical settings untouched.
   }
+
+  Future<bool> restoreBaseline({required DateTime now}) {
+    return settingsRepository.setDailyGoalMl(
+      settingsRepository.settings.baselineDailyGoalMl,
+      updateBaseline: false,
+      markManualEdit: false,
+      now: now,
+    );
+  }
 }
