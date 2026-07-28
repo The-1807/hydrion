@@ -746,6 +746,14 @@
 - [ ] Profile deletion removes local profile data and explains that Android permissions remain.
 - [ ] A new profile reflects existing installation permissions without unnecessary prompts.
 - [ ] Intersex Home, Progress, Profile, Challenge, and empty states use the approved Pride/neutral mix.
+- [ ] Existing upgrades preserve manual and weather baselines without enabling body metrics.
+- [ ] Fresh installs can skip body metrics and retain the 2,200 mL baseline.
+- [ ] kg/lb and cm/ft-in switching preserves canonical measurements.
+- [ ] BMI wording, under-20 behavior, and female-only reproductive controls are verified.
+- [ ] Clinician target and fluid-restriction protections are verified.
+- [ ] Daily context and weather modifiers restore the baseline when removed or revoked.
+- [ ] Recommended challenges never start until the existing Join action is used.
+- [ ] Profile deletion removes every personalization storage key.
 
 Hydrion V1 may proceed to production release only when every statement below is confirmed.
 
@@ -765,6 +773,16 @@ Hydrion V1 may proceed to production release only when every statement below is 
 - [ ] The final release candidate has been tested as an upgrade.
 - [ ] The V1 release decision is documented.
 - [ ] The V1 production release is approved.
+
+## Personalized Challenge Physical Checks
+
+- [ ] Inject cold weather and confirm the hydration goal does not decrease.
+- [ ] Enable warm-weather assistance and confirm Temperature Roulette can be suggested.
+- [ ] Revoke location and confirm the weather suggestion disappears without a new prompt.
+- [ ] Enable and disable each local challenge preference and confirm ranking updates.
+- [ ] Confirm BMI alone never creates an Eat Your Water suggestion and is never disclosed.
+- [ ] Open and dismiss recommendations without starting a challenge or adding hydration.
+- [ ] Start manually and confirm the two-active-challenge limit remains enforced.
 
 ## Final Approval
 

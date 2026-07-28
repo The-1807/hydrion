@@ -1,22 +1,39 @@
 ---
 document_id: health
 title: Hydrion Health and Safety Disclaimer
-version: 1.0.0
-effective_date: 2026-07-06
-last_updated: 2026-07-06
+version: 1.1.0
+effective_date: 2026-07-28
+last_updated: 2026-07-28
 intended_display: in_app_and_public
 requires_acknowledgement: true
 ---
 
 # Hydrion Health and Safety Disclaimer
 
-**Effective date:** July 6, 2026  
-**Last updated:** July 6, 2026  
-**Version:** 1.0.0
+**Effective date:** July 28, 2026  
+**Last updated:** July 28, 2026  
+**Version:** 1.1.0
 
 Hydrion is a general wellness and self-tracking app. It helps you log water intake, set personal goals, review progress, receive local reminders, and use gentle challenge mechanics.
 
 Hydrion is not a medical device. It does not diagnose, treat, cure, prevent, monitor, or manage disease. It does not provide medical advice, emergency assistance, clinical supervision, medication guidance, or a professional standard of care.
+
+## Personalized Estimates and BMI
+
+Optional body metrics, activity, outdoor exposure, weather, pregnancy or
+lactation selection, and user adjustments produce bounded general-wellness
+estimates only. They cannot measure dehydration, sweat rate, body composition,
+pregnancy health, kidney or heart function, electrolyte balance, or whether
+drinking water is safe.
+
+BMI is displayed only as a screening estimate for adults 20 and older. It does
+not diagnose a health condition, determine whether someone should lose weight,
+or directly increase a hydration target. Hydrion does not interpret adult BMI
+categories for younger users.
+
+If a qualified professional has set a fluid target, use that guidance instead
+of Hydrion. When a fluid restriction is reported without a target, Hydrion
+does not automatically increase the goal.
 
 ## Hydration Needs Vary
 

@@ -7,11 +7,15 @@ import 'adapters/elka/elka_adapter.dart';
 import 'adapters/gemini/gemini_adapter.dart';
 import 'adapters/local/local_hydrion_adapters.dart';
 import 'domain/hydration_contracts.dart';
+import 'domain/body_metrics.dart';
 import 'domain/legal_document_registry.dart';
 import 'l10n/app_localizations.dart';
 import 'repositories/challenge_repository.dart';
+import 'repositories/body_metrics_repository.dart';
+import 'repositories/daily_hydration_context_repository.dart';
 import 'repositories/guided_tour_repository.dart';
 import 'repositories/hydration_repository.dart';
+import 'repositories/personalization_state_repository.dart';
 import 'repositories/reminder_repository.dart';
 import 'repositories/settings_repository.dart';
 import 'services/core_bridge.dart';
@@ -34,6 +38,9 @@ import 'services/wearable_service.dart';
 import 'services/weather_goal_service.dart';
 import 'services/app_refresh_controller.dart';
 import 'services/dynamic_theme_clock.dart';
+import 'services/daily_hydration_recommendation_coordinator.dart';
+import 'services/challenge_recommendation_service.dart';
+import 'services/current_weather_context.dart';
 import 'ui/screens/analytics_screen.dart';
 import 'ui/screens/hydrion_shell.dart';
 import 'ui/screens/legal_about_screen.dart';
@@ -45,6 +52,7 @@ import 'ui/screens/settings_screen.dart';
 import 'ui/screens/social_challenges_screen.dart';
 import 'ui/screens/startup_screen.dart';
 import 'ui/screens/profile_screen.dart';
+import 'ui/screens/body_metrics_screen.dart';
 import 'ui/components/hydrion_system_ui.dart';
 import 'ui/theme/hydrion_design.dart';
 import 'storage/local_store.dart';
@@ -227,6 +235,7 @@ class HydrionApp extends StatelessWidget {
       '/settings': (_) => const SettingsScreen(),
       '/permissions': (_) => const PermissionCenterScreen(),
       '/profile': (_) => const ProfileScreen(),
+      '/body-metrics': (_) => const BodyMetricsScreen(),
       '/legal-about': (_) => const LegalAboutScreen(),
       '/legal-review': (_) => const LegalReviewScreen(),
       for (final document in HydrionLegalDocumentRegistry.userFacingDocuments)
@@ -240,6 +249,13 @@ class HydrionApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: services.settingsRepository),
         ChangeNotifierProvider.value(value: services.reminderRepository),
         ChangeNotifierProvider.value(value: services.challengeRepository),
+        ChangeNotifierProvider.value(value: services.bodyMetricsRepository),
+        ChangeNotifierProvider.value(
+          value: services.dailyHydrationContextRepository,
+        ),
+        ChangeNotifierProvider.value(
+          value: services.personalizationStateRepository,
+        ),
         ChangeNotifierProvider.value(value: services.guidedTourRepository),
         Provider(
           create: (_) => AppRefreshController(
@@ -251,12 +267,17 @@ class HydrionApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DynamicThemeClock()),
         Provider.value(value: services.coreBridge),
         ChangeNotifierProvider.value(value: services.permissions),
+        ChangeNotifierProvider.value(value: services.currentWeatherContext),
         ChangeNotifierProvider.value(value: services.i18n),
         Provider.value(value: services.notificationService),
         Provider.value(value: services.pomodoroSessionService),
         Provider.value(value: services.locationService),
         Provider.value(value: services.weatherForecastService),
         Provider.value(value: services.dailyWeatherGoalCoordinator),
+        Provider.value(
+          value: services.dailyHydrationRecommendationCoordinator,
+        ),
+        Provider.value(value: services.challengeRecommendationService),
         Provider.value(value: services.profilePhotoPicker),
         Provider<HydrationSummaryService>.value(
           value: services.hydrationSummaryService,
@@ -334,6 +355,9 @@ class HydrionServices {
   final UserSettingsRepository settingsRepository;
   final ReminderRepository reminderRepository;
   final ChallengeRepository challengeRepository;
+  final BodyMetricsRepository bodyMetricsRepository;
+  final DailyHydrationContextRepository dailyHydrationContextRepository;
+  final PersonalizationStateRepository personalizationStateRepository;
   final GuidedTourRepository guidedTourRepository;
   final CoreBridge coreBridge;
   final Permissions permissions;
@@ -343,6 +367,10 @@ class HydrionServices {
   final HydrionLocationService locationService;
   final WeatherForecastService weatherForecastService;
   final DailyWeatherGoalCoordinator dailyWeatherGoalCoordinator;
+  final DailyHydrationRecommendationCoordinator
+      dailyHydrationRecommendationCoordinator;
+  final ChallengeRecommendationService challengeRecommendationService;
+  final CurrentWeatherContext currentWeatherContext;
   final HydrionProfilePhotoPicker profilePhotoPicker;
   final HydrationSummaryService hydrationSummaryService;
   final HydrationContextProvider hydrationContextProvider;
@@ -368,6 +396,9 @@ class HydrionServices {
     required this.settingsRepository,
     required this.reminderRepository,
     required this.challengeRepository,
+    required this.bodyMetricsRepository,
+    required this.dailyHydrationContextRepository,
+    required this.personalizationStateRepository,
     required this.guidedTourRepository,
     required this.coreBridge,
     required this.permissions,
@@ -377,6 +408,9 @@ class HydrionServices {
     required this.locationService,
     required this.weatherForecastService,
     required this.dailyWeatherGoalCoordinator,
+    required this.dailyHydrationRecommendationCoordinator,
+    required this.challengeRecommendationService,
+    CurrentWeatherContext? currentWeatherContext,
     required this.profilePhotoPicker,
     required this.hydrationSummaryService,
     required this.hydrationContextProvider,
@@ -394,7 +428,7 @@ class HydrionServices {
     required this.wearables,
     required this.ecoTracker,
     required this.localProfileResetService,
-  });
+  }) : currentWeatherContext = currentWeatherContext ?? CurrentWeatherContext();
 
   static Future<HydrionServices> local() async {
     final store = await SharedPreferencesHydrionStore.create();
@@ -421,6 +455,19 @@ class HydrionServices {
     final settingsRepository = await UserSettingsRepository.load(store);
     final reminderRepository = await ReminderRepository.load(store);
     final challengeRepository = await ChallengeRepository.load(store);
+    final bodyMetricsRepository = await BodyMetricsRepository.load(store);
+    final dailyHydrationContextRepository =
+        await DailyHydrationContextRepository.load(store);
+    final personalizationStateRepository =
+        await PersonalizationStateRepository.load(store);
+    if (settingsRepository.settings.sex != HydrionSex.female &&
+        bodyMetricsRepository.metrics.reproductiveState !=
+            HydrionReproductiveHydrationState.none) {
+      await bodyMetricsRepository.update(
+        reproductiveState: HydrionReproductiveHydrationState.none,
+        femaleProfile: false,
+      );
+    }
     final guidedTourRepository = await GuidedTourRepository.load(
       store,
       establishedUser: settingsRepository.settings.onboardingCompleted ||
@@ -432,6 +479,9 @@ class HydrionServices {
       settingsRepository: settingsRepository,
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
+      bodyMetricsRepository: bodyMetricsRepository,
+      dailyHydrationContextRepository: dailyHydrationContextRepository,
+      personalizationStateRepository: personalizationStateRepository,
       guidedTourRepository: guidedTourRepository,
       aiRuntimeConfig: aiRuntimeConfig,
       locationService: locationService,
@@ -456,6 +506,9 @@ class HydrionServices {
       settingsRepository: UserSettingsRepository.memory(),
       reminderRepository: ReminderRepository.memory(),
       challengeRepository: ChallengeRepository.memory(),
+      bodyMetricsRepository: BodyMetricsRepository.memory(),
+      dailyHydrationContextRepository: DailyHydrationContextRepository.memory(),
+      personalizationStateRepository: PersonalizationStateRepository.memory(),
       guidedTourRepository:
           guidedTourRepository ?? GuidedTourRepository.memory(),
       aiRuntimeConfig: aiRuntimeConfig,
@@ -475,6 +528,9 @@ class HydrionServices {
     required UserSettingsRepository settingsRepository,
     required ReminderRepository reminderRepository,
     required ChallengeRepository challengeRepository,
+    required BodyMetricsRepository bodyMetricsRepository,
+    required DailyHydrationContextRepository dailyHydrationContextRepository,
+    required PersonalizationStateRepository personalizationStateRepository,
     required GuidedTourRepository guidedTourRepository,
     required HydrionAiRuntimeConfig aiRuntimeConfig,
     HydrionLocationService? locationService,
@@ -512,6 +568,15 @@ class HydrionServices {
       weatherService: weatherForecastService,
       notificationService: notificationService,
     );
+    final dailyHydrationRecommendationCoordinator =
+        DailyHydrationRecommendationCoordinator(
+      settingsRepository: settingsRepository,
+      bodyMetricsRepository: bodyMetricsRepository,
+      dailyContextRepository: dailyHydrationContextRepository,
+      stateRepository: personalizationStateRepository,
+    );
+    const challengeRecommendationService = ChallengeRecommendationService();
+    final currentWeatherContext = CurrentWeatherContext();
     final photoPicker =
         profilePhotoPicker ?? ImagePickerHydrionProfilePhotoPicker();
     final providerHealthReporter = LocalProviderHealthReporter.fromConfig(
@@ -603,6 +668,9 @@ class HydrionServices {
       reminderRepository: reminderRepository,
       notificationService: notificationService,
       weatherForecastService: weatherForecastService,
+      bodyMetricsRepository: bodyMetricsRepository,
+      dailyHydrationContextRepository: dailyHydrationContextRepository,
+      personalizationStateRepository: personalizationStateRepository,
     );
 
     return HydrionServices(
@@ -612,6 +680,9 @@ class HydrionServices {
       settingsRepository: settingsRepository,
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
+      bodyMetricsRepository: bodyMetricsRepository,
+      dailyHydrationContextRepository: dailyHydrationContextRepository,
+      personalizationStateRepository: personalizationStateRepository,
       guidedTourRepository: guidedTourRepository,
       coreBridge: coreBridge,
       permissions: permissions,
@@ -621,6 +692,10 @@ class HydrionServices {
       locationService: location,
       weatherForecastService: weatherForecastService,
       dailyWeatherGoalCoordinator: dailyWeatherGoalCoordinator,
+      dailyHydrationRecommendationCoordinator:
+          dailyHydrationRecommendationCoordinator,
+      challengeRecommendationService: challengeRecommendationService,
+      currentWeatherContext: currentWeatherContext,
       profilePhotoPicker: photoPicker,
       hydrationSummaryService: hydrationSummaryService,
       hydrationContextProvider: hydrationContextProvider,

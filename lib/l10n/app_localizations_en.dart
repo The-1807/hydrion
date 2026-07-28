@@ -1056,4 +1056,301 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get joined => 'Joined';
+
+  @override
+  String get bodyMetricsTitle => 'Body metrics';
+
+  @override
+  String get bodyMetricsOptional =>
+      'Optional, local-only measurements can improve Hydrion\'s general wellness estimate. You can skip, disable, or delete them at any time.';
+
+  @override
+  String get enablePersonalization => 'Enable personalized body metrics';
+
+  @override
+  String get personalizedBaselineOption => 'Use a personalized baseline';
+
+  @override
+  String get personalizedBaselineHelp =>
+      'Hydrion will calculate a suggestion for you to review. Your existing goal is not replaced until you apply it.';
+
+  @override
+  String get weatherModifierOption => 'Use optional weather adjustments';
+
+  @override
+  String get weightLabel => 'Weight';
+
+  @override
+  String get heightLabel => 'Height';
+
+  @override
+  String get kilogramsLabel => 'kg';
+
+  @override
+  String get poundsLabel => 'lb';
+
+  @override
+  String get centimetresLabel => 'cm';
+
+  @override
+  String get feetInchesLabel => 'ft and in';
+
+  @override
+  String get inchesLabel => 'in';
+
+  @override
+  String get accessibleNumericEntry => 'Accessible numeric entry';
+
+  @override
+  String get reproductiveHydrationTitle => 'Pregnancy or lactation';
+
+  @override
+  String get reproductiveNone => 'None';
+
+  @override
+  String get reproductivePregnant => 'Pregnant';
+
+  @override
+  String get reproductiveLactating => 'Lactating';
+
+  @override
+  String get bmiTitle => 'BMI screening estimate';
+
+  @override
+  String get bmiDisclaimer =>
+      'BMI is a screening estimate based on height and weight. It does not diagnose health conditions or measure body composition.';
+
+  @override
+  String get bmiUnderTwenty =>
+      'Hydrion does not interpret adult BMI categories for people younger than 20.';
+
+  @override
+  String get bmiBelowRange => 'Below standard adult range';
+
+  @override
+  String get bmiStandardRange => 'Standard adult screening range';
+
+  @override
+  String get bmiAboveRange => 'Above standard adult range';
+
+  @override
+  String get bmiHigherRange => 'Higher adult screening range';
+
+  @override
+  String get fluidSafetyTitle => 'Fluid-safety setting';
+
+  @override
+  String get fluidSafetyNone => 'No restriction reported';
+
+  @override
+  String get fluidSafetyClinician => 'I have a clinician-set target';
+
+  @override
+  String get fluidSafetyRestriction =>
+      'I have a fluid restriction without a target';
+
+  @override
+  String get fluidSafetyUnsure => 'I am unsure';
+
+  @override
+  String get clinicianTargetLabel => 'Clinician target in mL';
+
+  @override
+  String get allowAboveClinicianTarget =>
+      'Allow optional adjustments above this target';
+
+  @override
+  String get saveBodyMetrics => 'Save body metrics';
+
+  @override
+  String get deleteBodyMetrics => 'Delete body metrics';
+
+  @override
+  String get bodyMetricsSaved => 'Body metrics saved locally.';
+
+  @override
+  String get bodyMetricsInvalid =>
+      'Choose measurements within the displayed safe input range.';
+
+  @override
+  String get bodyMetricsDeleted => 'Body metrics deleted.';
+
+  @override
+  String get profileDeletionPersonalizationDisclosure =>
+      'This clears your local profile, body metrics, daily contexts, hydration history, reminders, challenges, recommendation state, and weather cache on this device. Android notification and location permissions are not revoked and remain controlled in device settings.';
+
+  @override
+  String get dailyContextTitle => 'Today\'s context';
+
+  @override
+  String get dailyContextOptional =>
+      'Optional activity and outdoor context adjusts only today\'s suggestion.';
+
+  @override
+  String get activityIntensityLabel => 'Activity intensity';
+
+  @override
+  String get activityMinutesLabel => 'Activity minutes';
+
+  @override
+  String get environmentLabel => 'Environment';
+
+  @override
+  String get sweatLevelLabel => 'Sweat level';
+
+  @override
+  String get temporaryConditionLabel => 'Temporary condition';
+
+  @override
+  String get activityRest => 'Rest';
+
+  @override
+  String get activityLight => 'Light';
+
+  @override
+  String get activityModerate => 'Moderate';
+
+  @override
+  String get activityVigorous => 'Vigorous';
+
+  @override
+  String get environmentIndoors => 'Mostly indoors';
+
+  @override
+  String get environmentMixed => 'Mixed indoor and outdoor';
+
+  @override
+  String get environmentOutdoors => 'Mostly outdoors';
+
+  @override
+  String get sweatLow => 'Low';
+
+  @override
+  String get sweatModerate => 'Moderate';
+
+  @override
+  String get sweatHigh => 'High';
+
+  @override
+  String get sweatUnknown => 'Unknown';
+
+  @override
+  String get conditionNone => 'None';
+
+  @override
+  String get conditionFever => 'Fever';
+
+  @override
+  String get conditionStomachIllness => 'Vomiting or diarrhea';
+
+  @override
+  String get conditionRecovering => 'Recovering';
+
+  @override
+  String get conditionPreferNot => 'Prefer not to say';
+
+  @override
+  String get saveDailyContext => 'Save today\'s context';
+
+  @override
+  String get clearDailyContext => 'Clear today\'s context';
+
+  @override
+  String get hydrationSuggestionTitle => 'Personalized hydration suggestion';
+
+  @override
+  String get baselineLabel => 'Baseline';
+
+  @override
+  String get adjustmentsLabel => 'Adjustments';
+
+  @override
+  String get weatherAdjustmentLabel => 'Weather adjustment';
+
+  @override
+  String get activityAdjustmentLabel => 'Activity adjustment';
+
+  @override
+  String get reproductiveAdjustmentLabel => 'Pregnancy or lactation adjustment';
+
+  @override
+  String get personalizedSuggestionAccepted =>
+      'Personalized daily suggestion accepted after review.';
+
+  @override
+  String get keepCurrentGoal => 'Keep current goal';
+
+  @override
+  String get applySuggestedGoal => 'Apply suggested goal';
+
+  @override
+  String get reviewSuggestion => 'Review suggestion';
+
+  @override
+  String get generalWellnessNotice =>
+      'This is a general wellness estimate, not medical advice. Do not force fluids.';
+
+  @override
+  String get illnessSafetyNotice =>
+      'Fluid needs can change during illness. Keep your regular recommendation and seek professional guidance for significant symptoms.';
+
+  @override
+  String get restrictionSafetyNotice =>
+      'Hydrion will not automatically increase your goal while a fluid restriction is reported. Follow professional guidance.';
+
+  @override
+  String get recommendedForYou => 'Recommended for you';
+
+  @override
+  String get viewChallenge => 'View challenge';
+
+  @override
+  String get notNow => 'Not now';
+
+  @override
+  String get noAutomaticChallenge =>
+      'Recommendations never start a challenge. You decide whether to review and join.';
+
+  @override
+  String get tailorChallengeSuggestions => 'Tailor challenge suggestions';
+
+  @override
+  String get challengeSuggestionPrivacy =>
+      'Choose the kinds of routines you would like Hydrion to consider. These choices stay on this device and never start a challenge automatically.';
+
+  @override
+  String get timedFocusSipRoutines => 'Timed focus and sip routines';
+
+  @override
+  String get waterRichFoodHabits => 'Water-rich food habits';
+
+  @override
+  String get visualDailyConsistency => 'Visual daily consistency';
+
+  @override
+  String get infusionFlavorVariety => 'Infusion and flavor variety';
+
+  @override
+  String get recommendationWarmWeather =>
+      'Today\'s warm conditions make this challenge a useful match.';
+
+  @override
+  String get recommendationTimedRoutine =>
+      'Matches your preference for timed focus and sip routines.';
+
+  @override
+  String get recommendationLoggingConsistency =>
+      'A varied logging challenge may help you build consistency.';
+
+  @override
+  String get recommendationWaterRichFood =>
+      'Matches your interest in adding water-rich foods to your routine.';
+
+  @override
+  String get recommendationVisualConsistency =>
+      'Matches your preference for visual daily consistency.';
+
+  @override
+  String get recommendationInfusionVariety =>
+      'Matches your interest in infusion and flavor variety.';
 }

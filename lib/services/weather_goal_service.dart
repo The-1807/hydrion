@@ -207,6 +207,17 @@ class WeatherForecastService {
     return _cache.clear();
   }
 
+  Future<WeatherSnapshot?> currentCachedForecast({DateTime? now}) async {
+    final currentTime = now ?? DateTime.now();
+    final cached = await _cache.read();
+    if (cached == null ||
+        cached.localDateKey != _localDateKey(currentTime) ||
+        _isStale(cached.forecast, currentTime)) {
+      return null;
+    }
+    return cached.forecast;
+  }
+
   Future<WeatherForecastResult> getDailyForecast({
     required HydrionCoordinates coordinates,
     DateTime? now,
@@ -528,12 +539,15 @@ class DeterministicWeatherGoalService {
       >= 26 => 150,
       _ => 0,
     };
-    final humidityAdjustment =
-        (inputs.weather.humidityPercent ?? 0) >= 70 ? 100 : 0;
+    final humidityAdjustment = inputs.weather.apparentTemperatureC == null &&
+            effectiveTemperature >= 26 &&
+            (inputs.weather.humidityPercent ?? 0) >= 70
+        ? 100
+        : 0;
     final uvAdjustment = inputs.weather.uvIndex >= 8 ? 100 : 0;
     final weatherAdjustment =
         (temperatureAdjustment + humidityAdjustment + uvAdjustment)
-            .clamp(-100, maxWeatherAdjustmentMl);
+            .clamp(0, maxWeatherAdjustmentMl);
     final userAdjustment = inputs.userAdjustmentMl.clamp(
       minUserAdjustmentMl,
       maxUserAdjustmentMl,

@@ -1805,6 +1805,558 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Joined'**
   String get joined;
+
+  /// No description provided for @bodyMetricsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Body metrics'**
+  String get bodyMetricsTitle;
+
+  /// No description provided for @bodyMetricsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional, local-only measurements can improve Hydrion\'s general wellness estimate. You can skip, disable, or delete them at any time.'**
+  String get bodyMetricsOptional;
+
+  /// No description provided for @enablePersonalization.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable personalized body metrics'**
+  String get enablePersonalization;
+
+  /// No description provided for @personalizedBaselineOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a personalized baseline'**
+  String get personalizedBaselineOption;
+
+  /// No description provided for @personalizedBaselineHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion will calculate a suggestion for you to review. Your existing goal is not replaced until you apply it.'**
+  String get personalizedBaselineHelp;
+
+  /// No description provided for @weatherModifierOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Use optional weather adjustments'**
+  String get weatherModifierOption;
+
+  /// No description provided for @weightLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get weightLabel;
+
+  /// No description provided for @heightLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get heightLabel;
+
+  /// No description provided for @kilogramsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'kg'**
+  String get kilogramsLabel;
+
+  /// No description provided for @poundsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'lb'**
+  String get poundsLabel;
+
+  /// No description provided for @centimetresLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'cm'**
+  String get centimetresLabel;
+
+  /// No description provided for @feetInchesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'ft and in'**
+  String get feetInchesLabel;
+
+  /// No description provided for @inchesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'in'**
+  String get inchesLabel;
+
+  /// No description provided for @accessibleNumericEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessible numeric entry'**
+  String get accessibleNumericEntry;
+
+  /// No description provided for @reproductiveHydrationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pregnancy or lactation'**
+  String get reproductiveHydrationTitle;
+
+  /// No description provided for @reproductiveNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get reproductiveNone;
+
+  /// No description provided for @reproductivePregnant.
+  ///
+  /// In en, this message translates to:
+  /// **'Pregnant'**
+  String get reproductivePregnant;
+
+  /// No description provided for @reproductiveLactating.
+  ///
+  /// In en, this message translates to:
+  /// **'Lactating'**
+  String get reproductiveLactating;
+
+  /// No description provided for @bmiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BMI screening estimate'**
+  String get bmiTitle;
+
+  /// No description provided for @bmiDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'BMI is a screening estimate based on height and weight. It does not diagnose health conditions or measure body composition.'**
+  String get bmiDisclaimer;
+
+  /// No description provided for @bmiUnderTwenty.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion does not interpret adult BMI categories for people younger than 20.'**
+  String get bmiUnderTwenty;
+
+  /// No description provided for @bmiBelowRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Below standard adult range'**
+  String get bmiBelowRange;
+
+  /// No description provided for @bmiStandardRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard adult screening range'**
+  String get bmiStandardRange;
+
+  /// No description provided for @bmiAboveRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Above standard adult range'**
+  String get bmiAboveRange;
+
+  /// No description provided for @bmiHigherRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Higher adult screening range'**
+  String get bmiHigherRange;
+
+  /// No description provided for @fluidSafetyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fluid-safety setting'**
+  String get fluidSafetyTitle;
+
+  /// No description provided for @fluidSafetyNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No restriction reported'**
+  String get fluidSafetyNone;
+
+  /// No description provided for @fluidSafetyClinician.
+  ///
+  /// In en, this message translates to:
+  /// **'I have a clinician-set target'**
+  String get fluidSafetyClinician;
+
+  /// No description provided for @fluidSafetyRestriction.
+  ///
+  /// In en, this message translates to:
+  /// **'I have a fluid restriction without a target'**
+  String get fluidSafetyRestriction;
+
+  /// No description provided for @fluidSafetyUnsure.
+  ///
+  /// In en, this message translates to:
+  /// **'I am unsure'**
+  String get fluidSafetyUnsure;
+
+  /// No description provided for @clinicianTargetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Clinician target in mL'**
+  String get clinicianTargetLabel;
+
+  /// No description provided for @allowAboveClinicianTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow optional adjustments above this target'**
+  String get allowAboveClinicianTarget;
+
+  /// No description provided for @saveBodyMetrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Save body metrics'**
+  String get saveBodyMetrics;
+
+  /// No description provided for @deleteBodyMetrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete body metrics'**
+  String get deleteBodyMetrics;
+
+  /// No description provided for @bodyMetricsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Body metrics saved locally.'**
+  String get bodyMetricsSaved;
+
+  /// No description provided for @bodyMetricsInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose measurements within the displayed safe input range.'**
+  String get bodyMetricsInvalid;
+
+  /// No description provided for @bodyMetricsDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Body metrics deleted.'**
+  String get bodyMetricsDeleted;
+
+  /// No description provided for @profileDeletionPersonalizationDisclosure.
+  ///
+  /// In en, this message translates to:
+  /// **'This clears your local profile, body metrics, daily contexts, hydration history, reminders, challenges, recommendation state, and weather cache on this device. Android notification and location permissions are not revoked and remain controlled in device settings.'**
+  String get profileDeletionPersonalizationDisclosure;
+
+  /// No description provided for @dailyContextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s context'**
+  String get dailyContextTitle;
+
+  /// No description provided for @dailyContextOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional activity and outdoor context adjusts only today\'s suggestion.'**
+  String get dailyContextOptional;
+
+  /// No description provided for @activityIntensityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity intensity'**
+  String get activityIntensityLabel;
+
+  /// No description provided for @activityMinutesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity minutes'**
+  String get activityMinutesLabel;
+
+  /// No description provided for @environmentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Environment'**
+  String get environmentLabel;
+
+  /// No description provided for @sweatLevelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sweat level'**
+  String get sweatLevelLabel;
+
+  /// No description provided for @temporaryConditionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary condition'**
+  String get temporaryConditionLabel;
+
+  /// No description provided for @activityRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest'**
+  String get activityRest;
+
+  /// No description provided for @activityLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get activityLight;
+
+  /// No description provided for @activityModerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate'**
+  String get activityModerate;
+
+  /// No description provided for @activityVigorous.
+  ///
+  /// In en, this message translates to:
+  /// **'Vigorous'**
+  String get activityVigorous;
+
+  /// No description provided for @environmentIndoors.
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly indoors'**
+  String get environmentIndoors;
+
+  /// No description provided for @environmentMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed indoor and outdoor'**
+  String get environmentMixed;
+
+  /// No description provided for @environmentOutdoors.
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly outdoors'**
+  String get environmentOutdoors;
+
+  /// No description provided for @sweatLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get sweatLow;
+
+  /// No description provided for @sweatModerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate'**
+  String get sweatModerate;
+
+  /// No description provided for @sweatHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get sweatHigh;
+
+  /// No description provided for @sweatUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get sweatUnknown;
+
+  /// No description provided for @conditionNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get conditionNone;
+
+  /// No description provided for @conditionFever.
+  ///
+  /// In en, this message translates to:
+  /// **'Fever'**
+  String get conditionFever;
+
+  /// No description provided for @conditionStomachIllness.
+  ///
+  /// In en, this message translates to:
+  /// **'Vomiting or diarrhea'**
+  String get conditionStomachIllness;
+
+  /// No description provided for @conditionRecovering.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovering'**
+  String get conditionRecovering;
+
+  /// No description provided for @conditionPreferNot.
+  ///
+  /// In en, this message translates to:
+  /// **'Prefer not to say'**
+  String get conditionPreferNot;
+
+  /// No description provided for @saveDailyContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Save today\'s context'**
+  String get saveDailyContext;
+
+  /// No description provided for @clearDailyContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear today\'s context'**
+  String get clearDailyContext;
+
+  /// No description provided for @hydrationSuggestionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personalized hydration suggestion'**
+  String get hydrationSuggestionTitle;
+
+  /// No description provided for @baselineLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Baseline'**
+  String get baselineLabel;
+
+  /// No description provided for @adjustmentsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjustments'**
+  String get adjustmentsLabel;
+
+  /// No description provided for @weatherAdjustmentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather adjustment'**
+  String get weatherAdjustmentLabel;
+
+  /// No description provided for @activityAdjustmentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity adjustment'**
+  String get activityAdjustmentLabel;
+
+  /// No description provided for @reproductiveAdjustmentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pregnancy or lactation adjustment'**
+  String get reproductiveAdjustmentLabel;
+
+  /// No description provided for @personalizedSuggestionAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Personalized daily suggestion accepted after review.'**
+  String get personalizedSuggestionAccepted;
+
+  /// No description provided for @keepCurrentGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep current goal'**
+  String get keepCurrentGoal;
+
+  /// No description provided for @applySuggestedGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply suggested goal'**
+  String get applySuggestedGoal;
+
+  /// No description provided for @reviewSuggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Review suggestion'**
+  String get reviewSuggestion;
+
+  /// No description provided for @generalWellnessNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a general wellness estimate, not medical advice. Do not force fluids.'**
+  String get generalWellnessNotice;
+
+  /// No description provided for @illnessSafetyNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Fluid needs can change during illness. Keep your regular recommendation and seek professional guidance for significant symptoms.'**
+  String get illnessSafetyNotice;
+
+  /// No description provided for @restrictionSafetyNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion will not automatically increase your goal while a fluid restriction is reported. Follow professional guidance.'**
+  String get restrictionSafetyNotice;
+
+  /// No description provided for @recommendedForYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended for you'**
+  String get recommendedForYou;
+
+  /// No description provided for @viewChallenge.
+  ///
+  /// In en, this message translates to:
+  /// **'View challenge'**
+  String get viewChallenge;
+
+  /// No description provided for @notNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get notNow;
+
+  /// No description provided for @noAutomaticChallenge.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommendations never start a challenge. You decide whether to review and join.'**
+  String get noAutomaticChallenge;
+
+  /// No description provided for @tailorChallengeSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Tailor challenge suggestions'**
+  String get tailorChallengeSuggestions;
+
+  /// No description provided for @challengeSuggestionPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the kinds of routines you would like Hydrion to consider. These choices stay on this device and never start a challenge automatically.'**
+  String get challengeSuggestionPrivacy;
+
+  /// No description provided for @timedFocusSipRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Timed focus and sip routines'**
+  String get timedFocusSipRoutines;
+
+  /// No description provided for @waterRichFoodHabits.
+  ///
+  /// In en, this message translates to:
+  /// **'Water-rich food habits'**
+  String get waterRichFoodHabits;
+
+  /// No description provided for @visualDailyConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'Visual daily consistency'**
+  String get visualDailyConsistency;
+
+  /// No description provided for @infusionFlavorVariety.
+  ///
+  /// In en, this message translates to:
+  /// **'Infusion and flavor variety'**
+  String get infusionFlavorVariety;
+
+  /// No description provided for @recommendationWarmWeather.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s warm conditions make this challenge a useful match.'**
+  String get recommendationWarmWeather;
+
+  /// No description provided for @recommendationTimedRoutine.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches your preference for timed focus and sip routines.'**
+  String get recommendationTimedRoutine;
+
+  /// No description provided for @recommendationLoggingConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'A varied logging challenge may help you build consistency.'**
+  String get recommendationLoggingConsistency;
+
+  /// No description provided for @recommendationWaterRichFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches your interest in adding water-rich foods to your routine.'**
+  String get recommendationWaterRichFood;
+
+  /// No description provided for @recommendationVisualConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches your preference for visual daily consistency.'**
+  String get recommendationVisualConsistency;
+
+  /// No description provided for @recommendationInfusionVariety.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches your interest in infusion and flavor variety.'**
+  String get recommendationInfusionVariety;
 }
 
 class _AppLocalizationsDelegate

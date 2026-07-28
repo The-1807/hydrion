@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../domain/avatar_manifest.dart';
 import '../../domain/ui_asset_manifest.dart';
+import '../../l10n/app_localizations.dart';
 import '../../repositories/settings_repository.dart';
 import '../../utils/permissions.dart';
 import '../components/hydrion_viewport.dart';
@@ -349,6 +350,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   )
                   .toList(),
               onChanged: (value) => setState(() => _sex = value),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              key: const Key('onboarding-optional-body-metrics'),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.monitor_weight_outlined),
+              title: Text(AppLocalizations.of(context).bodyMetricsTitle),
+              subtitle: Text(AppLocalizations.of(context).bodyMetricsOptional),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).pushNamed('/body-metrics'),
             ),
           ],
         ),

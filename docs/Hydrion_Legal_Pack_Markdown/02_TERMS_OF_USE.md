@@ -102,6 +102,18 @@ Hydrion may change, suspend, remove, or add features. Pre-release builds may fai
 
 Hydrion is provided without a guarantee of uninterrupted, error-free, or perfectly accurate operation. Local reminders, weather lookups, forecasts, app storage, and platform permissions can fail or behave differently depending on the device and operating system.
 
+## Optional Personalized Wellness Features
+
+Body metrics, BMI screening, daily context, weather modifiers, clinician-target
+protection, and challenge recommendations are optional general-wellness
+features. They run from user-provided local inputs and bounded product rules.
+They do not diagnose hydration status, body composition, pregnancy health, a
+medical condition, or a safe individual intake. Users remain responsible for
+reviewing suggestions and following qualified professional guidance.
+
+Hydrion does not automatically start a recommended challenge or replace an
+existing goal merely because optional measurements are available.
+
 ## Ending Use
 
 Because the current app does not use accounts, there is no sign-out or account-deletion flow. You may stop using Hydrion by uninstalling the app or clearing its local app storage through operating system controls. In-app controls are also available for editing profile details, deleting logs, removing the local profile photo, changing reminders, and restarting guided setup.

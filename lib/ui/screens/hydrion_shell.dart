@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../repositories/settings_repository.dart';
+import '../../domain/daily_hydration_context.dart';
+import '../../l10n/app_localizations.dart';
 import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../services/notifications.dart';
 import '../../services/pomodoro_session_service.dart';
 import '../../services/weather_goal_service.dart';
+import '../../services/daily_hydration_recommendation_coordinator.dart';
+import '../../services/current_weather_context.dart';
 import '../../utils/permissions.dart';
 import '../components/guided_tour_overlay.dart';
 import '../components/hydrion_viewport.dart';
@@ -72,11 +76,13 @@ class _HydrionShellState extends State<HydrionShell>
     final pomodoroSessionService = context.read<PomodoroSessionService>();
     final permissions = context.read<Permissions>();
     final weatherService = context.read<WeatherForecastService>();
+    final currentWeatherContext = context.read<CurrentWeatherContext>();
     final challengeRepository = context.read<ChallengeRepository>();
     final settingsRepository = context.read<UserSettingsRepository>();
     await permissions.refresh();
     if (!permissions.snapshot.location.isGranted) {
       await weatherService.clearCache();
+      currentWeatherContext.clear();
     }
     await challengeRepository.reconcileLocalDay();
     await pomodoroSessionService.reconcile();
@@ -85,7 +91,7 @@ class _HydrionShellState extends State<HydrionShell>
       return;
     }
     final refreshedSettings = settingsRepository.settings;
-    if (refreshedSettings.goalMode == HydrionGoalMode.weatherInformed) {
+    if (refreshedSettings.weatherModifierEnabled) {
       await _evaluateWeatherAssistance();
       if (!mounted) {
         return;
@@ -110,24 +116,56 @@ class _HydrionShellState extends State<HydrionShell>
   Future<void> _evaluateWeatherAssistance() async {
     if (!mounted) return;
     final settings = context.read<UserSettingsRepository>().settings;
-    if (settings.goalMode != HydrionGoalMode.weatherInformed) return;
+    final weatherContext = context.read<CurrentWeatherContext>();
+    if (!settings.weatherModifierEnabled) {
+      weatherContext.clear();
+      return;
+    }
 
     final coordinator = context.read<DailyWeatherGoalCoordinator>();
     final result = await coordinator.evaluate(
       requestLocationPermission: false,
     );
-    if (!mounted ||
-        result.status != DailyWeatherGoalStatus.promptReady ||
+    if (!mounted) return;
+    if (result.status != DailyWeatherGoalStatus.promptReady ||
         result.decision == null ||
         result.forecast == null) {
+      final permissions = context.read<Permissions>();
+      final cached = permissions.snapshot.location.isGranted
+          ? await context.read<WeatherForecastService>().currentCachedForecast()
+          : null;
+      if (!mounted) return;
+      if (cached != null) {
+        weatherContext.publish(
+          snapshot: cached,
+          localDateKey: hydrionLocalDateKey(DateTime.now()),
+          fromCache: true,
+        );
+        setState(() {});
+        return;
+      }
+      weatherContext.clear();
       return;
     }
 
-    final decision = result.decision!;
     final forecast = result.forecast!;
+    weatherContext.publish(
+      snapshot: forecast,
+      localDateKey: hydrionLocalDateKey(DateTime.now()),
+      fromCache: false,
+    );
+    final personalizedCoordinator =
+        context.read<DailyHydrationRecommendationCoordinator>();
+    final personalized = await personalizedCoordinator.calculate(
+      now: DateTime.now(),
+      weather: forecast,
+      locationPermissionGranted: true,
+    );
+    if (!mounted) return;
     final unit = settings.volumeUnit;
+    final l10n = AppLocalizations.of(context);
     final weatherAdjustment = HydrationVolumeFormatter.format(
-      decision.weatherAdjustmentMl.abs(),
+      personalized.weatherAdjustmentMl.abs(),
       unit,
     );
     final useSuggestion = await showDialog<bool>(
@@ -148,19 +186,28 @@ class _HydrionShellState extends State<HydrionShell>
               const SizedBox(height: 12),
               Text(
                 'Standard goal: '
-                '${HydrationVolumeFormatter.format(decision.baselineGoalMl, unit)}',
+                '${HydrationVolumeFormatter.format(personalized.baselineGoalMl, unit)}',
               ),
               Text(
                 'Weather adjustment: '
-                '${decision.weatherAdjustmentMl >= 0 ? '+' : ''}'
+                '${personalized.weatherAdjustmentMl >= 0 ? '+' : ''}'
                 '$weatherAdjustment',
               ),
               Text(
                 "Today's suggested goal: "
-                '${HydrationVolumeFormatter.format(decision.recommendedGoalMl, unit)}',
+                '${HydrationVolumeFormatter.format(personalized.roundedRecommendedGoalMl, unit)}',
               ),
               const SizedBox(height: 8),
-              Text(decision.explanation),
+              if (personalized.activityAdjustmentMl != 0)
+                Text(
+                  '${l10n.activityAdjustmentLabel}: '
+                  '${HydrationVolumeFormatter.format(personalized.activityAdjustmentMl, unit)}',
+                ),
+              if (personalized.reproductiveAdjustmentMl != 0)
+                Text(
+                  '${l10n.reproductiveAdjustmentLabel}: '
+                  '${HydrationVolumeFormatter.format(personalized.reproductiveAdjustmentMl, unit)}',
+                ),
               Text(
                 'Updated: ${TimeOfDay.fromDateTime(forecast.retrievedAt).format(dialogContext)}',
               ),
@@ -185,7 +232,12 @@ class _HydrionShellState extends State<HydrionShell>
     );
     if (!mounted || useSuggestion == null) return;
     if (useSuggestion) {
-      await coordinator.acceptRecommendation(decision: decision);
+      await context.read<UserSettingsRepository>().applyWeatherGoal(
+            goalMl: personalized.roundedRecommendedGoalMl,
+            decidedAt: DateTime.now(),
+            explanation: l10n.personalizedSuggestionAccepted,
+            localDateKey: hydrionLocalDateKey(DateTime.now()),
+          );
     } else {
       await coordinator.keepPreviousGoal(
         explanation: 'Standard goal kept after reviewing local weather.',
