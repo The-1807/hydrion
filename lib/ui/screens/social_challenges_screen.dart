@@ -114,23 +114,24 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        if (recommendation != null) ...[
-          _RecommendedChallengeCard(
-            challenge: HydrionChallengeCatalog.byId(recommendation.challengeId),
-            onView: () => _openChallenge(context, recommendation.challengeId),
-            onDismiss: () => personalizationState.dismissChallenge(
-              localDateKey: dateKey,
-              challengeId: recommendation.challengeId,
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
         if (activeChallenges.isEmpty) ...[
           _NoChallengeCard(
             title: l10n.noActiveChallengeYet,
             body: l10n.joinLocalChallengeDescription,
           ),
           const SizedBox(height: 12),
+          if (recommendation != null) ...[
+            _RecommendedChallengeCard(
+              challenge:
+                  HydrionChallengeCatalog.byId(recommendation.challengeId),
+              onView: () => _openChallenge(context, recommendation.challengeId),
+              onDismiss: () => personalizationState.dismissChallenge(
+                localDateKey: dateKey,
+                challengeId: recommendation.challengeId,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
         ] else ...[
           Text(
             'Active challenges',
@@ -156,7 +157,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
           ),
           const SizedBox(height: 8),
         ],
-        for (final challenge in availableChallenges) ...[
+        for (final (index, challenge) in availableChallenges.indexed) ...[
           _ChallengeCard(
             challenge: challenge,
             challengeRepository: challengeRepository,
@@ -164,6 +165,20 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             targetMl: settings.dailyGoalMl,
           ),
           const SizedBox(height: 12),
+          if (activeChallenges.isNotEmpty &&
+              index == 0 &&
+              recommendation != null) ...[
+            _RecommendedChallengeCard(
+              challenge:
+                  HydrionChallengeCatalog.byId(recommendation.challengeId),
+              onView: () => _openChallenge(context, recommendation.challengeId),
+              onDismiss: () => personalizationState.dismissChallenge(
+                localDateKey: dateKey,
+                challengeId: recommendation.challengeId,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
         ],
         if (challengeRepository.pausedChallenges.isNotEmpty) ...[
           Text(
