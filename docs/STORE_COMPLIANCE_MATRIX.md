@@ -33,6 +33,8 @@ Official references checked:
 | Third-party SDK disclosures | Flutter plugins for local storage, location, notifications, image picker, localization, HTTP, Markdown. | No analytics, ads, crash reporting, HealthKit, Health Connect, contacts, camera, mic, Bluetooth. | Recheck `pubspec.lock` before submission. |
 | Account deletion | No accounts. | Account deletion requirement not applicable to current binary. | Revisit if accounts are added. |
 | Data deletion | In-app local-profile deletion removes profile-owned settings, logs, reminders, challenges, profile photo, and weather cache. Android notification and location grants belong to the app installation and are not silently revoked. | Do not claim remote account deletion or automatic platform-permission revocation. | Verify profile reset and permission disclosure on a physical device. |
+| Optional body metrics | Weight, height, adult BMI screening estimate, reproductive hydration state, clinician target, and daily context are optional and local-only. No health-platform or AI integration is used. | General wellness personalization; no diagnosis, treatment, tracking, advertising, or sale. | Verify Google Play health-content and Data Safety answers against the final binary. |
+| Challenge recommendations | Local deterministic ranking can display a challenge but cannot join it. | User must open details and explicitly start; no medical or weight-loss claim. | Verify the two-active-challenge limit and dismissal behavior. |
 | Public release | Not performed. | No App Store or Play production release. | Owner approval required. |
 
 ## Store Answers That Remain Owner Actions

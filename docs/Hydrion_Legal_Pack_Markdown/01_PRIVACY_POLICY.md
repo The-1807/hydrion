@@ -1,18 +1,18 @@
 ---
 document_id: privacy
 title: Hydrion Privacy Policy
-version: 1.0.1
-effective_date: 2026-07-06
-last_updated: 2026-07-06
+version: 1.1.0
+effective_date: 2026-07-28
+last_updated: 2026-07-28
 intended_display: in_app_and_public
 requires_acceptance: false
 ---
 
 # Hydrion Privacy Policy
 
-**Effective date:** July 6, 2026  
-**Last updated:** July 24, 2026
-**Version:** 1.0.1
+**Effective date:** July 28, 2026  
+**Last updated:** July 28, 2026  
+**Version:** 1.1.0
 
 Hydrion is a local-first hydration companion for logging water intake, setting personal goals, using local reminders, reviewing progress, and joining local challenges. This Privacy Policy explains how the current Hydrion app processes information based on the source code, platform manifests, and release configuration in this repository.
 
@@ -47,6 +47,33 @@ Hydrion may store the following information on your device when you use the app:
 - legal review state, including accepted Terms version, acceptance time, acknowledged Health and Safety Disclaimer version, acknowledgement time, and Privacy Policy version shown;
 - permission prompt timestamps used to avoid repeated same-day prompting;
 - local storage recovery events used to handle malformed local data safely.
+- optional body weight and height, stored canonically as kilograms and
+  centimetres;
+- an optional BMI screening estimate, which is derived locally and is not a
+  diagnosis or body-composition measurement;
+- an optional pregnancy or lactation selection for female profiles;
+- optional daily activity, outdoor exposure, sweat-level, and temporary
+  wellness context;
+- an optional clinician-set hydration target, fluid-restriction state, and
+  wake/sleep schedule;
+- local recommendation fingerprints and same-day challenge-recommendation
+  dismissals.
+
+## Personalized Hydration Processing
+
+Personalized hydration is optional and disabled until you enable it. Its rules
+run locally without AI, cloud inference, an account, analytics, Health Connect,
+HealthKit, a wearable, or a smart-scale service. Display-unit changes do not
+replace the canonical measurements.
+
+Hydrion does not sell body-metric or wellness-context data, use it for
+advertising, or send it to an analytics provider. Weather lookup remains the
+only optional network input to this calculation and follows the location
+disclosure in this policy.
+
+Deleting the local profile removes body metrics, calculated personalization
+state, pregnancy or lactation selection, clinician target, fluid-restriction
+state, retained daily contexts, and challenge-recommendation dismissals.
 
 This information is used to run Hydrion features, restore your app state, personalize local summaries, and keep the app from repeatedly asking for the same permission.
 

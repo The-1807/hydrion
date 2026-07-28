@@ -19,6 +19,9 @@ state on the device through `shared_preferences`.
 - Weather-informed goals use a one-shot foreground approximate location lookup
   and Open-Meteo daily forecast data when the user enables weather mode and
   grants required permissions.
+- Optional local-only body metrics and daily context can produce a deterministic,
+  explainable hydration suggestion. The user must review and apply it; Hydrion
+  does not use AI or automatically start recommended challenges.
 - ELKA, cloud sync, connected-device sync, Health, and voice capture remain
   disabled or unconfigured unless future adapters are added.
 
