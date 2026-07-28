@@ -8,6 +8,7 @@ import '../../domain/avatar_manifest.dart';
 import '../../domain/community_links.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../domain/ui_asset_manifest.dart';
+import '../../l10n/app_localizations.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/profile_photo_service.dart';
@@ -22,6 +23,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<UserSettingsRepository>().settings;
+    final l10n = AppLocalizations.of(context);
     final reminderRepository = context.watch<ReminderRepository>();
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final avatar = HydrionAvatarManifest.byId(settings.avatarId);
@@ -56,6 +58,13 @@ class ProfileScreen extends StatelessWidget {
                 onPressed: () => _openEditor(context, settings),
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text('Edit profile'),
+              ),
+              OutlinedButton.icon(
+                key: const Key('profile-body-metrics-action'),
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/body-metrics'),
+                icon: const Icon(Icons.monitor_weight_outlined),
+                label: Text(l10n.bodyMetricsTitle),
               ),
               OutlinedButton.icon(
                 key: const Key('profile-settings-action'),

@@ -44,6 +44,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           _ProfileSummaryCard(settings: settings),
           const SizedBox(height: 12),
+          const _BodyMetricsCard(),
+          const SizedBox(height: 12),
           _LanguageCard(
             selected: _selected ?? i18n.locale,
             onChanged: (locale) async {
@@ -73,6 +75,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           const _DeleteProfileCard(),
         ],
+      ),
+    );
+  }
+}
+
+class _BodyMetricsCard extends StatelessWidget {
+  const _BodyMetricsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Card(
+      child: ListTile(
+        key: const Key('settings-body-metrics-card'),
+        leading: const Icon(Icons.monitor_weight_outlined),
+        title: Text(l10n.bodyMetricsTitle),
+        subtitle: Text(l10n.bodyMetricsOptional),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).pushNamed('/body-metrics'),
       ),
     );
   }
@@ -113,13 +134,12 @@ class _DeleteProfileCardState extends State<_DeleteProfileCard> {
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete local profile?'),
-        content: const Text(
-          'This clears your local profile, hydration history, reminders, challenges, and weather cache on this device. Android notification and location permissions are not revoked and remain controlled in device settings.',
-        ),
+        content: Text(l10n.profileDeletionPersonalizationDisclosure),
         actions: [
           TextButton(
             key: const Key('delete-review-permissions'),

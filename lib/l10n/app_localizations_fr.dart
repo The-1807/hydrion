@@ -1067,4 +1067,262 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get joined => 'Rejoint';
+
+  @override
+  String get bodyMetricsTitle => 'Mesures corporelles';
+
+  @override
+  String get bodyMetricsOptional =>
+      'Des mesures facultatives et stockées localement peuvent améliorer l\'estimation de bien-être général. Vous pouvez les ignorer, les désactiver ou les supprimer à tout moment.';
+
+  @override
+  String get enablePersonalization =>
+      'Activer les mesures corporelles personnalisées';
+
+  @override
+  String get personalizedBaselineOption => 'Utiliser une base personnalisée';
+
+  @override
+  String get personalizedBaselineHelp =>
+      'Hydrion calculera une suggestion à examiner. Votre objectif actuel n\'est pas remplacé avant que vous l\'appliquiez.';
+
+  @override
+  String get weatherModifierOption =>
+      'Utiliser les ajustements météo facultatifs';
+
+  @override
+  String get weightLabel => 'Poids';
+
+  @override
+  String get heightLabel => 'Taille';
+
+  @override
+  String get kilogramsLabel => 'kg';
+
+  @override
+  String get poundsLabel => 'lb';
+
+  @override
+  String get centimetresLabel => 'cm';
+
+  @override
+  String get feetInchesLabel => 'pi et po';
+
+  @override
+  String get inchesLabel => 'po';
+
+  @override
+  String get accessibleNumericEntry => 'Saisie numérique accessible';
+
+  @override
+  String get reproductiveHydrationTitle => 'Grossesse ou allaitement';
+
+  @override
+  String get reproductiveNone => 'Aucun';
+
+  @override
+  String get reproductivePregnant => 'Enceinte';
+
+  @override
+  String get reproductiveLactating => 'Allaitement';
+
+  @override
+  String get bmiTitle => 'Estimation de dépistage de l\'IMC';
+
+  @override
+  String get bmiDisclaimer =>
+      'L\'IMC est une estimation de dépistage basée sur la taille et le poids. Il ne diagnostique pas de problème de santé et ne mesure pas la composition corporelle.';
+
+  @override
+  String get bmiUnderTwenty =>
+      'Hydrion n\'interprète pas les catégories adultes de l\'IMC pour les personnes de moins de 20 ans.';
+
+  @override
+  String get bmiBelowRange => 'Sous la plage adulte standard';
+
+  @override
+  String get bmiStandardRange => 'Plage de dépistage adulte standard';
+
+  @override
+  String get bmiAboveRange => 'Au-dessus de la plage adulte standard';
+
+  @override
+  String get bmiHigherRange => 'Plage de dépistage adulte supérieure';
+
+  @override
+  String get fluidSafetyTitle => 'Réglage de sécurité des liquides';
+
+  @override
+  String get fluidSafetyNone => 'Aucune restriction signalée';
+
+  @override
+  String get fluidSafetyClinician => 'J\'ai une cible fixée par un clinicien';
+
+  @override
+  String get fluidSafetyRestriction =>
+      'J\'ai une restriction de liquides sans cible';
+
+  @override
+  String get fluidSafetyUnsure => 'Je ne suis pas sûr';
+
+  @override
+  String get clinicianTargetLabel => 'Cible du clinicien en ml';
+
+  @override
+  String get allowAboveClinicianTarget =>
+      'Autoriser des ajustements facultatifs au-dessus de cette cible';
+
+  @override
+  String get saveBodyMetrics => 'Enregistrer les mesures';
+
+  @override
+  String get deleteBodyMetrics => 'Supprimer les mesures';
+
+  @override
+  String get bodyMetricsSaved => 'Mesures enregistrées localement.';
+
+  @override
+  String get bodyMetricsInvalid =>
+      'Choisissez des mesures dans la plage sécuritaire affichée.';
+
+  @override
+  String get bodyMetricsDeleted => 'Mesures corporelles supprimées.';
+
+  @override
+  String get profileDeletionPersonalizationDisclosure =>
+      'Cela efface sur cet appareil votre profil local, les mesures corporelles, les contextes quotidiens, l\'historique d\'hydratation, les rappels, les défis, l\'état des recommandations et le cache météo. Les autorisations Android de notification et de localisation ne sont pas révoquées et restent contrôlées dans les réglages de l\'appareil.';
+
+  @override
+  String get dailyContextTitle => 'Contexte d\'aujourd\'hui';
+
+  @override
+  String get dailyContextOptional =>
+      'Le contexte facultatif d\'activité et d\'extérieur ajuste seulement la suggestion du jour.';
+
+  @override
+  String get activityIntensityLabel => 'Intensité de l\'activité';
+
+  @override
+  String get activityMinutesLabel => 'Minutes d\'activité';
+
+  @override
+  String get environmentLabel => 'Environnement';
+
+  @override
+  String get sweatLevelLabel => 'Niveau de transpiration';
+
+  @override
+  String get temporaryConditionLabel => 'État temporaire';
+
+  @override
+  String get activityRest => 'Repos';
+
+  @override
+  String get activityLight => 'Légère';
+
+  @override
+  String get activityModerate => 'Modérée';
+
+  @override
+  String get activityVigorous => 'Vigoureuse';
+
+  @override
+  String get environmentIndoors => 'Surtout à l\'intérieur';
+
+  @override
+  String get environmentMixed => 'Intérieur et extérieur';
+
+  @override
+  String get environmentOutdoors => 'Surtout à l\'extérieur';
+
+  @override
+  String get sweatLow => 'Faible';
+
+  @override
+  String get sweatModerate => 'Modérée';
+
+  @override
+  String get sweatHigh => 'Élevée';
+
+  @override
+  String get sweatUnknown => 'Inconnu';
+
+  @override
+  String get conditionNone => 'Aucun';
+
+  @override
+  String get conditionFever => 'Fièvre';
+
+  @override
+  String get conditionStomachIllness => 'Vomissements ou diarrhée';
+
+  @override
+  String get conditionRecovering => 'Rétablissement';
+
+  @override
+  String get conditionPreferNot => 'Préfère ne pas répondre';
+
+  @override
+  String get saveDailyContext => 'Enregistrer le contexte du jour';
+
+  @override
+  String get clearDailyContext => 'Effacer le contexte du jour';
+
+  @override
+  String get hydrationSuggestionTitle =>
+      'Suggestion d\'hydratation personnalisée';
+
+  @override
+  String get baselineLabel => 'Base';
+
+  @override
+  String get adjustmentsLabel => 'Ajustements';
+
+  @override
+  String get weatherAdjustmentLabel => 'Ajustement météo';
+
+  @override
+  String get activityAdjustmentLabel => 'Ajustement d\'activité';
+
+  @override
+  String get reproductiveAdjustmentLabel =>
+      'Ajustement de grossesse ou d\'allaitement';
+
+  @override
+  String get personalizedSuggestionAccepted =>
+      'Suggestion quotidienne personnalisée acceptée après examen.';
+
+  @override
+  String get keepCurrentGoal => 'Garder l\'objectif actuel';
+
+  @override
+  String get applySuggestedGoal => 'Appliquer l\'objectif suggéré';
+
+  @override
+  String get reviewSuggestion => 'Examiner la suggestion';
+
+  @override
+  String get generalWellnessNotice =>
+      'Il s\'agit d\'une estimation de bien-être général, et non d\'un avis médical. Ne forcez pas la consommation de liquides.';
+
+  @override
+  String get illnessSafetyNotice =>
+      'Les besoins en liquides peuvent changer pendant une maladie. Gardez la recommandation habituelle et consultez un professionnel si les symptômes sont importants.';
+
+  @override
+  String get restrictionSafetyNotice =>
+      'Hydrion n\'augmentera pas automatiquement votre objectif lorsqu\'une restriction de liquides est signalée. Suivez les conseils professionnels.';
+
+  @override
+  String get recommendedForYou => 'Recommandé pour vous';
+
+  @override
+  String get viewChallenge => 'Voir le défi';
+
+  @override
+  String get notNow => 'Pas maintenant';
+
+  @override
+  String get noAutomaticChallenge =>
+      'Une recommandation ne démarre jamais un défi. Vous choisissez de l\'examiner et de le rejoindre.';
 }

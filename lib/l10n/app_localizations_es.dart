@@ -1072,4 +1072,261 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get joined => 'Unido';
+
+  @override
+  String get bodyMetricsTitle => 'Medidas corporales';
+
+  @override
+  String get bodyMetricsOptional =>
+      'Las medidas opcionales y almacenadas localmente pueden mejorar la estimación de bienestar general. Puedes omitirlas, desactivarlas o eliminarlas cuando quieras.';
+
+  @override
+  String get enablePersonalization =>
+      'Activar medidas corporales personalizadas';
+
+  @override
+  String get personalizedBaselineOption => 'Usar una base personalizada';
+
+  @override
+  String get personalizedBaselineHelp =>
+      'Hydrion calculará una sugerencia para revisar. Tu objetivo actual no se reemplaza hasta que lo apliques.';
+
+  @override
+  String get weatherModifierOption => 'Usar ajustes meteorológicos opcionales';
+
+  @override
+  String get weightLabel => 'Peso';
+
+  @override
+  String get heightLabel => 'Altura';
+
+  @override
+  String get kilogramsLabel => 'kg';
+
+  @override
+  String get poundsLabel => 'lb';
+
+  @override
+  String get centimetresLabel => 'cm';
+
+  @override
+  String get feetInchesLabel => 'pies y pulgadas';
+
+  @override
+  String get inchesLabel => 'pulg';
+
+  @override
+  String get accessibleNumericEntry => 'Entrada numérica accesible';
+
+  @override
+  String get reproductiveHydrationTitle => 'Embarazo o lactancia';
+
+  @override
+  String get reproductiveNone => 'Ninguno';
+
+  @override
+  String get reproductivePregnant => 'Embarazo';
+
+  @override
+  String get reproductiveLactating => 'Lactancia';
+
+  @override
+  String get bmiTitle => 'Estimación de detección del IMC';
+
+  @override
+  String get bmiDisclaimer =>
+      'El IMC es una estimación de detección basada en la altura y el peso. No diagnostica afecciones ni mide la composición corporal.';
+
+  @override
+  String get bmiUnderTwenty =>
+      'Hydrion no interpreta categorías adultas de IMC para menores de 20 años.';
+
+  @override
+  String get bmiBelowRange => 'Por debajo del rango adulto estándar';
+
+  @override
+  String get bmiStandardRange => 'Rango estándar de detección para adultos';
+
+  @override
+  String get bmiAboveRange => 'Por encima del rango adulto estándar';
+
+  @override
+  String get bmiHigherRange => 'Rango superior de detección para adultos';
+
+  @override
+  String get fluidSafetyTitle => 'Configuración de seguridad de líquidos';
+
+  @override
+  String get fluidSafetyNone => 'No se informó ninguna restricción';
+
+  @override
+  String get fluidSafetyClinician =>
+      'Tengo un objetivo establecido por un profesional';
+
+  @override
+  String get fluidSafetyRestriction =>
+      'Tengo una restricción de líquidos sin objetivo';
+
+  @override
+  String get fluidSafetyUnsure => 'No estoy seguro';
+
+  @override
+  String get clinicianTargetLabel => 'Objetivo profesional en ml';
+
+  @override
+  String get allowAboveClinicianTarget =>
+      'Permitir ajustes opcionales por encima de este objetivo';
+
+  @override
+  String get saveBodyMetrics => 'Guardar medidas';
+
+  @override
+  String get deleteBodyMetrics => 'Eliminar medidas';
+
+  @override
+  String get bodyMetricsSaved => 'Medidas guardadas localmente.';
+
+  @override
+  String get bodyMetricsInvalid =>
+      'Elige medidas dentro del rango seguro mostrado.';
+
+  @override
+  String get bodyMetricsDeleted => 'Medidas corporales eliminadas.';
+
+  @override
+  String get profileDeletionPersonalizationDisclosure =>
+      'Esto borra de este dispositivo el perfil local, las medidas corporales, los contextos diarios, el historial de hidratación, los recordatorios, los desafíos, el estado de recomendaciones y la caché meteorológica. Los permisos de notificación y ubicación de Android no se revocan y se controlan en los ajustes del dispositivo.';
+
+  @override
+  String get dailyContextTitle => 'Contexto de hoy';
+
+  @override
+  String get dailyContextOptional =>
+      'El contexto opcional de actividad y exterior ajusta solo la sugerencia de hoy.';
+
+  @override
+  String get activityIntensityLabel => 'Intensidad de actividad';
+
+  @override
+  String get activityMinutesLabel => 'Minutos de actividad';
+
+  @override
+  String get environmentLabel => 'Entorno';
+
+  @override
+  String get sweatLevelLabel => 'Nivel de sudor';
+
+  @override
+  String get temporaryConditionLabel => 'Condición temporal';
+
+  @override
+  String get activityRest => 'Descanso';
+
+  @override
+  String get activityLight => 'Ligera';
+
+  @override
+  String get activityModerate => 'Moderada';
+
+  @override
+  String get activityVigorous => 'Vigorosa';
+
+  @override
+  String get environmentIndoors => 'Principalmente interiores';
+
+  @override
+  String get environmentMixed => 'Interiores y exteriores';
+
+  @override
+  String get environmentOutdoors => 'Principalmente exteriores';
+
+  @override
+  String get sweatLow => 'Bajo';
+
+  @override
+  String get sweatModerate => 'Moderado';
+
+  @override
+  String get sweatHigh => 'Alto';
+
+  @override
+  String get sweatUnknown => 'Desconocido';
+
+  @override
+  String get conditionNone => 'Ninguna';
+
+  @override
+  String get conditionFever => 'Fiebre';
+
+  @override
+  String get conditionStomachIllness => 'Vómitos o diarrea';
+
+  @override
+  String get conditionRecovering => 'Recuperación';
+
+  @override
+  String get conditionPreferNot => 'Prefiero no decirlo';
+
+  @override
+  String get saveDailyContext => 'Guardar el contexto de hoy';
+
+  @override
+  String get clearDailyContext => 'Borrar el contexto de hoy';
+
+  @override
+  String get hydrationSuggestionTitle =>
+      'Sugerencia de hidratación personalizada';
+
+  @override
+  String get baselineLabel => 'Base';
+
+  @override
+  String get adjustmentsLabel => 'Ajustes';
+
+  @override
+  String get weatherAdjustmentLabel => 'Ajuste meteorológico';
+
+  @override
+  String get activityAdjustmentLabel => 'Ajuste de actividad';
+
+  @override
+  String get reproductiveAdjustmentLabel => 'Ajuste de embarazo o lactancia';
+
+  @override
+  String get personalizedSuggestionAccepted =>
+      'Sugerencia diaria personalizada aceptada después de revisarla.';
+
+  @override
+  String get keepCurrentGoal => 'Mantener objetivo actual';
+
+  @override
+  String get applySuggestedGoal => 'Aplicar objetivo sugerido';
+
+  @override
+  String get reviewSuggestion => 'Revisar sugerencia';
+
+  @override
+  String get generalWellnessNotice =>
+      'Esta es una estimación de bienestar general, no un consejo médico. No fuerces el consumo de líquidos.';
+
+  @override
+  String get illnessSafetyNotice =>
+      'Las necesidades de líquidos pueden cambiar durante una enfermedad. Mantén la recomendación habitual y busca orientación profesional si los síntomas son importantes.';
+
+  @override
+  String get restrictionSafetyNotice =>
+      'Hydrion no aumentará automáticamente tu objetivo mientras informes una restricción de líquidos. Sigue la orientación profesional.';
+
+  @override
+  String get recommendedForYou => 'Recomendado para ti';
+
+  @override
+  String get viewChallenge => 'Ver desafío';
+
+  @override
+  String get notNow => 'Ahora no';
+
+  @override
+  String get noAutomaticChallenge =>
+      'Las recomendaciones nunca inician un desafío. Tú decides si quieres revisarlo y unirte.';
 }
