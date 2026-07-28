@@ -2285,6 +2285,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recommendations never start a challenge. You decide whether to review and join.'**
   String get noAutomaticChallenge;
+
+  /// No description provided for @tailorChallengeSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Tailor challenge suggestions'**
+  String get tailorChallengeSuggestions;
+
+  /// No description provided for @challengeSuggestionPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the kinds of routines you would like Hydrion to consider. These choices stay on this device and never start a challenge automatically.'**
+  String get challengeSuggestionPrivacy;
+
+  /// No description provided for @timedFocusSipRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Timed focus and sip routines'**
+  String get timedFocusSipRoutines;
+
+  /// No description provided for @waterRichFoodHabits.
+  ///
+  /// In en, this message translates to:
+  /// **'Water-rich food habits'**
+  String get waterRichFoodHabits;
+
+  /// No description provided for @visualDailyConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'Visual daily consistency'**
+  String get visualDailyConsistency;
+
+  /// No description provided for @infusionFlavorVariety.
+  ///
+  /// In en, this message translates to:
+  /// **'Infusion and flavor variety'**
+  String get infusionFlavorVariety;
+
+  /// No description provided for @recommendationWarmWeather.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s warm conditions make this challenge a useful match.'**
+  String get recommendationWarmWeather;
+
+  /// No description provided for @recommendationTimedRoutine.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches your preference for timed focus and sip routines.'**
+  String get recommendationTimedRoutine;
+
+  /// No description provided for @recommendationLoggingConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'A varied logging challenge may help you build consistency.'**
+  String get recommendationLoggingConsistency;
+
+  /// No description provided for @recommendationWaterRichFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches your interest in adding water-rich foods to your routine.'**
+  String get recommendationWaterRichFood;
+
+  /// No description provided for @recommendationVisualConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches your preference for visual daily consistency.'**
+  String get recommendationVisualConsistency;
+
+  /// No description provided for @recommendationInfusionVariety.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches your interest in infusion and flavor variety.'**
+  String get recommendationInfusionVariety;
 }
 
 class _AppLocalizationsDelegate

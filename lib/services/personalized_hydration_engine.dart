@@ -277,7 +277,6 @@ class PersonalizedHydrationEngine {
       >= 35 => 450,
       >= 30 => 300,
       >= 26 => 150,
-      <= 0 => -100,
       _ => 0,
     };
     if (weather.apparentTemperatureC == null &&
@@ -287,7 +286,7 @@ class PersonalizedHydrationEngine {
     }
     if (weather.uvIndex >= 8) raw += 100;
     raw = raw.clamp(
-      -100,
+      0,
       PersonalizedHydrationPolicy.maxWeatherAdjustmentMl,
     );
     final multiplier = exposure == HydrionEnvironmentExposure.mixed ? 0.5 : 1.0;

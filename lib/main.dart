@@ -40,6 +40,7 @@ import 'services/app_refresh_controller.dart';
 import 'services/dynamic_theme_clock.dart';
 import 'services/daily_hydration_recommendation_coordinator.dart';
 import 'services/challenge_recommendation_service.dart';
+import 'services/current_weather_context.dart';
 import 'ui/screens/analytics_screen.dart';
 import 'ui/screens/hydrion_shell.dart';
 import 'ui/screens/legal_about_screen.dart';
@@ -266,6 +267,7 @@ class HydrionApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DynamicThemeClock()),
         Provider.value(value: services.coreBridge),
         ChangeNotifierProvider.value(value: services.permissions),
+        ChangeNotifierProvider.value(value: services.currentWeatherContext),
         ChangeNotifierProvider.value(value: services.i18n),
         Provider.value(value: services.notificationService),
         Provider.value(value: services.pomodoroSessionService),
@@ -368,6 +370,7 @@ class HydrionServices {
   final DailyHydrationRecommendationCoordinator
       dailyHydrationRecommendationCoordinator;
   final ChallengeRecommendationService challengeRecommendationService;
+  final CurrentWeatherContext currentWeatherContext;
   final HydrionProfilePhotoPicker profilePhotoPicker;
   final HydrationSummaryService hydrationSummaryService;
   final HydrationContextProvider hydrationContextProvider;
@@ -407,6 +410,7 @@ class HydrionServices {
     required this.dailyWeatherGoalCoordinator,
     required this.dailyHydrationRecommendationCoordinator,
     required this.challengeRecommendationService,
+    CurrentWeatherContext? currentWeatherContext,
     required this.profilePhotoPicker,
     required this.hydrationSummaryService,
     required this.hydrationContextProvider,
@@ -424,7 +428,7 @@ class HydrionServices {
     required this.wearables,
     required this.ecoTracker,
     required this.localProfileResetService,
-  });
+  }) : currentWeatherContext = currentWeatherContext ?? CurrentWeatherContext();
 
   static Future<HydrionServices> local() async {
     final store = await SharedPreferencesHydrionStore.create();
@@ -572,6 +576,7 @@ class HydrionServices {
       stateRepository: personalizationStateRepository,
     );
     const challengeRecommendationService = ChallengeRecommendationService();
+    final currentWeatherContext = CurrentWeatherContext();
     final photoPicker =
         profilePhotoPicker ?? ImagePickerHydrionProfilePhotoPicker();
     final providerHealthReporter = LocalProviderHealthReporter.fromConfig(
@@ -690,6 +695,7 @@ class HydrionServices {
       dailyHydrationRecommendationCoordinator:
           dailyHydrationRecommendationCoordinator,
       challengeRecommendationService: challengeRecommendationService,
+      currentWeatherContext: currentWeatherContext,
       profilePhotoPicker: photoPicker,
       hydrationSummaryService: hydrationSummaryService,
       hydrationContextProvider: hydrationContextProvider,

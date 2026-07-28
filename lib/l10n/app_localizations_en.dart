@@ -1310,4 +1310,47 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noAutomaticChallenge =>
       'Recommendations never start a challenge. You decide whether to review and join.';
+
+  @override
+  String get tailorChallengeSuggestions => 'Tailor challenge suggestions';
+
+  @override
+  String get challengeSuggestionPrivacy =>
+      'Choose the kinds of routines you would like Hydrion to consider. These choices stay on this device and never start a challenge automatically.';
+
+  @override
+  String get timedFocusSipRoutines => 'Timed focus and sip routines';
+
+  @override
+  String get waterRichFoodHabits => 'Water-rich food habits';
+
+  @override
+  String get visualDailyConsistency => 'Visual daily consistency';
+
+  @override
+  String get infusionFlavorVariety => 'Infusion and flavor variety';
+
+  @override
+  String get recommendationWarmWeather =>
+      'Today\'s warm conditions make this challenge a useful match.';
+
+  @override
+  String get recommendationTimedRoutine =>
+      'Matches your preference for timed focus and sip routines.';
+
+  @override
+  String get recommendationLoggingConsistency =>
+      'A varied logging challenge may help you build consistency.';
+
+  @override
+  String get recommendationWaterRichFood =>
+      'Matches your interest in adding water-rich foods to your routine.';
+
+  @override
+  String get recommendationVisualConsistency =>
+      'Matches your preference for visual daily consistency.';
+
+  @override
+  String get recommendationInfusionVariety =>
+      'Matches your interest in infusion and flavor variety.';
 }

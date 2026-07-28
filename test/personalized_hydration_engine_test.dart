@@ -338,6 +338,26 @@ void main() {
       expect(result(HydrionEnvironmentExposure.mostlyOutdoors), 450);
     });
 
+    test('cold weather never reduces baseline or final recommendation', () {
+      for (final temperature in [-20.0, 0.0, 25.9]) {
+        for (final exposure in [
+          HydrionEnvironmentExposure.mixed,
+          HydrionEnvironmentExposure.mostlyOutdoors,
+        ]) {
+          final result = engine.calculate(inputs(
+            weatherEnabled: true,
+            weather: weather(temperature: temperature),
+            context: context(exposure),
+          ));
+          expect(result.weatherAdjustmentMl, 0);
+          expect(
+            result.roundedRecommendedGoalMl,
+            greaterThanOrEqualTo(result.baselineGoalMl),
+          );
+        }
+      }
+    });
+
     test('weather denial and unavailable data preserve baseline', () {
       final denied = engine.calculate(inputs(
         weatherEnabled: true,

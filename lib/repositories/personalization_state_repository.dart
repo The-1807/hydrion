@@ -3,37 +3,43 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../domain/hydration_recommendation.dart';
+import '../domain/challenge_recommendation.dart';
 import '../storage/local_store.dart';
 
 class PersonalizationStateRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.personalization_state.v1';
-  static const schemaVersion = 1;
+  static const schemaVersion = 2;
 
   final HydrionLocalStore _store;
   String? _lastInputFingerprint;
   HydrationRecommendation? _latestRecommendation;
   Map<String, Set<String>> _dismissedChallengesByDate;
+  ChallengeRecommendationPreferences _challengePreferences;
 
   PersonalizationStateRepository._(
     this._store,
     this._lastInputFingerprint,
     this._dismissedChallengesByDate,
+    this._challengePreferences,
   );
 
   PersonalizationStateRepository.memory()
-      : this._(MemoryHydrionStore(), null, {});
+      : this._(MemoryHydrionStore(), null, {},
+            const ChallengeRecommendationPreferences());
 
   static Future<PersonalizationStateRepository> load(
     HydrionLocalStore store,
   ) async {
     final raw = await store.readString(storageKey);
     if (raw == null || raw.trim().isEmpty) {
-      return PersonalizationStateRepository._(store, null, {});
+      return PersonalizationStateRepository._(
+          store, null, {}, const ChallengeRecommendationPreferences());
     }
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) {
-        return PersonalizationStateRepository._(store, null, {});
+        return PersonalizationStateRepository._(
+            store, null, {}, const ChallengeRecommendationPreferences());
       }
       final rawDismissals = decoded['dismissedChallengesByDate'];
       final dismissals = <String, Set<String>>{};
@@ -54,14 +60,29 @@ class PersonalizationStateRepository extends ChangeNotifier {
         store,
         decoded['lastInputFingerprint']?.toString(),
         dismissals,
+        ChallengeRecommendationPreferences.fromJson(
+          decoded['challengePreferences'],
+        ),
       );
     } on FormatException {
-      return PersonalizationStateRepository._(store, null, {});
+      return PersonalizationStateRepository._(
+          store, null, {}, const ChallengeRecommendationPreferences());
     }
   }
 
   HydrationRecommendation? get latestRecommendation => _latestRecommendation;
   String? get lastInputFingerprint => _lastInputFingerprint;
+  ChallengeRecommendationPreferences get challengePreferences =>
+      _challengePreferences;
+
+  Future<void> setChallengePreferences(
+    ChallengeRecommendationPreferences value, {
+    DateTime? now,
+  }) async {
+    _challengePreferences = value.copyWith(updatedAt: now ?? DateTime.now());
+    await _persist();
+    notifyListeners();
+  }
 
   Set<String> dismissedForDate(String localDateKey) =>
       Set.unmodifiable(_dismissedChallengesByDate[localDateKey] ?? const {});
@@ -102,6 +123,7 @@ class PersonalizationStateRepository extends ChangeNotifier {
     _lastInputFingerprint = null;
     _latestRecommendation = null;
     _dismissedChallengesByDate = {};
+    _challengePreferences = const ChallengeRecommendationPreferences();
     await _store.remove(storageKey);
     notifyListeners();
   }
@@ -111,6 +133,7 @@ class PersonalizationStateRepository extends ChangeNotifier {
         jsonEncode({
           'schemaVersion': schemaVersion,
           'lastInputFingerprint': _lastInputFingerprint,
+          'challengePreferences': _challengePreferences.toJson(),
           'dismissedChallengesByDate': {
             for (final entry in _dismissedChallengesByDate.entries)
               entry.key: entry.value.toList()..sort(),

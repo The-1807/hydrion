@@ -17,9 +17,7 @@ class ChallengeRecommendationInputs {
   final List<JoinedChallenge> activeChallenges;
   final int hydrationLogCountLastSevenDays;
   final Set<String> dismissedChallengeIds;
-  final bool prefersTimedRoutines;
-  final bool balancedHydrationInterest;
-  final bool visualConsistencyInterest;
+  final ChallengeRecommendationPreferences preferences;
 
   const ChallengeRecommendationInputs({
     required this.now,
@@ -31,9 +29,7 @@ class ChallengeRecommendationInputs {
     required this.activeChallenges,
     required this.hydrationLogCountLastSevenDays,
     required this.dismissedChallengeIds,
-    this.prefersTimedRoutines = false,
-    this.balancedHydrationInterest = false,
-    this.visualConsistencyInterest = false,
+    this.preferences = const ChallengeRecommendationPreferences(),
   });
 }
 
@@ -78,7 +74,7 @@ class ChallengeRecommendationService {
       final reasons = <ChallengeRecommendationReason>[];
       switch (challenge.id) {
         case 'temperature-roulette':
-          if ((effectiveTemperature ?? -100) >= 26) {
+          if (effectiveTemperature != null && effectiveTemperature >= 26) {
             score += 50;
             reasons.add(ChallengeRecommendationReason.hotWeather);
           }
@@ -93,7 +89,7 @@ class ChallengeRecommendationService {
             score += 35;
             reasons.add(ChallengeRecommendationReason.indoorFocus);
           }
-          if (inputs.prefersTimedRoutines) {
+          if (inputs.preferences.prefersTimedRoutines) {
             score += 35;
             reasons.add(ChallengeRecommendationReason.indoorFocus);
           }
@@ -101,24 +97,35 @@ class ChallengeRecommendationService {
           if (inputs.hydrationLogCountLastSevenDays < 7) {
             score += 45;
             reasons.add(ChallengeRecommendationReason.inconsistentLogging);
+            score += 10;
+            reasons.add(ChallengeRecommendationReason.variedHabits);
           }
-          score += 10;
-          reasons.add(ChallengeRecommendationReason.variedHabits);
         case 'eat-your-water-day':
-          if ((inputs.settings.age ?? -1) >= 20 &&
-              inputs.bodyMetrics.personalizationEnabled &&
-              inputs.balancedHydrationInterest) {
+          if (inputs.preferences.balancedHydrationInterest) {
             score += 35;
             reasons.add(ChallengeRecommendationReason.balancedFoodInterest);
+            final bmi = inputs.bodyMetrics.adultBmi;
+            if ((inputs.settings.age ?? -1) >= 20 &&
+                inputs.bodyMetrics.personalizationEnabled &&
+                bmi != null &&
+                bmi.isFinite &&
+                bmi >= 25) {
+              score += 10;
+              reasons.add(
+                ChallengeRecommendationReason.adultBmiSecondarySignal,
+              );
+            }
           }
         case 'plant-twin-challenge':
-          if (inputs.visualConsistencyInterest) {
+          if (inputs.preferences.visualConsistencyInterest) {
             score += 35;
             reasons.add(ChallengeRecommendationReason.visualConsistency);
           }
         case 'around-the-world-infusion-week':
-          score += 5;
-          reasons.add(ChallengeRecommendationReason.variedHabits);
+          if (inputs.preferences.infusionVarietyInterest) {
+            score += 35;
+            reasons.add(ChallengeRecommendationReason.infusionVariety);
+          }
       }
       results.add(ChallengeRecommendation(
         challengeId: challenge.id,

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/domain/daily_hydration_context.dart';
+import 'package:hydrion/domain/challenge_recommendation.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
 import 'package:hydrion/repositories/daily_hydration_context_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
@@ -130,6 +131,49 @@ void main() {
     expect(weather.baselineSource, HydrionBaselineSource.manual);
     expect(weather.weatherModifierEnabled, isTrue);
     expect(weather.baselineDailyGoalMl, 2200);
+  });
+
+  test('challenge preferences default, persist, and migrate safely', () async {
+    final store = MemoryHydrionStore({
+      PersonalizationStateRepository.storageKey: jsonEncode({
+        'schemaVersion': 1,
+        'lastInputFingerprint': 'legacy',
+        'dismissedChallengesByDate': {
+          '2026-07-28': ['bottle-bingo'],
+        },
+      }),
+    });
+    var repository = await PersonalizationStateRepository.load(store);
+    expect(repository.challengePreferences.prefersTimedRoutines, isFalse);
+    expect(repository.dismissedForDate('2026-07-28'), contains('bottle-bingo'));
+    await repository.setChallengePreferences(
+      const ChallengeRecommendationPreferences(
+        prefersTimedRoutines: true,
+        infusionVarietyInterest: true,
+      ),
+      now: DateTime(2026, 7, 28),
+    );
+    repository = await PersonalizationStateRepository.load(store);
+    expect(repository.challengePreferences.prefersTimedRoutines, isTrue);
+    expect(repository.challengePreferences.infusionVarietyInterest, isTrue);
+    final stored = jsonDecode(
+      store.snapshot[PersonalizationStateRepository.storageKey]!,
+    ) as Map;
+    expect(stored['schemaVersion'], 2);
+
+    final malformed = await PersonalizationStateRepository.load(
+      MemoryHydrionStore({
+        PersonalizationStateRepository.storageKey: jsonEncode({
+          'schemaVersion': 2,
+          'challengePreferences': {
+            'prefersTimedRoutines': 'yes',
+            'balancedHydrationInterest': 1,
+          },
+        }),
+      }),
+    );
+    expect(malformed.challengePreferences.prefersTimedRoutines, isFalse);
+    expect(malformed.challengePreferences.balancedHydrationInterest, isFalse);
   });
 
   test('profile deletion enumerates and clears every personalization key',

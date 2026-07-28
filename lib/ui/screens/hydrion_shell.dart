@@ -12,6 +12,7 @@ import '../../services/notifications.dart';
 import '../../services/pomodoro_session_service.dart';
 import '../../services/weather_goal_service.dart';
 import '../../services/daily_hydration_recommendation_coordinator.dart';
+import '../../services/current_weather_context.dart';
 import '../../utils/permissions.dart';
 import '../components/guided_tour_overlay.dart';
 import '../components/hydrion_viewport.dart';
@@ -75,11 +76,13 @@ class _HydrionShellState extends State<HydrionShell>
     final pomodoroSessionService = context.read<PomodoroSessionService>();
     final permissions = context.read<Permissions>();
     final weatherService = context.read<WeatherForecastService>();
+    final currentWeatherContext = context.read<CurrentWeatherContext>();
     final challengeRepository = context.read<ChallengeRepository>();
     final settingsRepository = context.read<UserSettingsRepository>();
     await permissions.refresh();
     if (!permissions.snapshot.location.isGranted) {
       await weatherService.clearCache();
+      currentWeatherContext.clear();
     }
     await challengeRepository.reconcileLocalDay();
     await pomodoroSessionService.reconcile();
@@ -113,20 +116,44 @@ class _HydrionShellState extends State<HydrionShell>
   Future<void> _evaluateWeatherAssistance() async {
     if (!mounted) return;
     final settings = context.read<UserSettingsRepository>().settings;
-    if (!settings.weatherModifierEnabled) return;
+    final weatherContext = context.read<CurrentWeatherContext>();
+    if (!settings.weatherModifierEnabled) {
+      weatherContext.clear();
+      return;
+    }
 
     final coordinator = context.read<DailyWeatherGoalCoordinator>();
     final result = await coordinator.evaluate(
       requestLocationPermission: false,
     );
-    if (!mounted ||
-        result.status != DailyWeatherGoalStatus.promptReady ||
+    if (!mounted) return;
+    if (result.status != DailyWeatherGoalStatus.promptReady ||
         result.decision == null ||
         result.forecast == null) {
+      final permissions = context.read<Permissions>();
+      final cached = permissions.snapshot.location.isGranted
+          ? await context.read<WeatherForecastService>().currentCachedForecast()
+          : null;
+      if (!mounted) return;
+      if (cached != null) {
+        weatherContext.publish(
+          snapshot: cached,
+          localDateKey: hydrionLocalDateKey(DateTime.now()),
+          fromCache: true,
+        );
+        setState(() {});
+        return;
+      }
+      weatherContext.clear();
       return;
     }
 
     final forecast = result.forecast!;
+    weatherContext.publish(
+      snapshot: forecast,
+      localDateKey: hydrionLocalDateKey(DateTime.now()),
+      fromCache: false,
+    );
     final personalizedCoordinator =
         context.read<DailyHydrationRecommendationCoordinator>();
     final personalized = await personalizedCoordinator.calculate(

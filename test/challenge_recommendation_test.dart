@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/domain/daily_hydration_context.dart';
+import 'package:hydrion/domain/challenge_recommendation.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/challenge_recommendation_service.dart';
@@ -19,6 +20,7 @@ void main() {
     bool timed = false,
     bool balanced = false,
     bool visual = false,
+    bool infusion = false,
     int age = 30,
     HydrionBodyMetrics metrics = const HydrionBodyMetrics(),
   }) =>
@@ -36,9 +38,12 @@ void main() {
         activeChallenges: active,
         hydrationLogCountLastSevenDays: logs,
         dismissedChallengeIds: dismissed,
-        prefersTimedRoutines: timed,
-        balancedHydrationInterest: balanced,
-        visualConsistencyInterest: visual,
+        preferences: ChallengeRecommendationPreferences(
+          prefersTimedRoutines: timed,
+          balancedHydrationInterest: balanced,
+          visualConsistencyInterest: visual,
+          infusionVarietyInterest: infusion,
+        ),
       );
 
   test('hot outdoor weather ranks Temperature Roulette', () {
@@ -113,7 +118,7 @@ void main() {
     );
   });
 
-  test('BMI is never the sole signal and under-20 receives no BMI ranking', () {
+  test('BMI is a weak adult secondary signal and never sole eligibility', () {
     final adult = service.rank(inputs(
       age: 30,
       metrics: const HydrionBodyMetrics(
@@ -135,11 +140,49 @@ void main() {
         heightCm: 160,
       ),
     ));
+    final underTwentyFood = underTwenty
+        .firstWhere((item) => item.challengeId == 'eat-your-water-day');
+    expect(underTwentyFood.eligible, isTrue);
     expect(
-      underTwenty
-          .firstWhere((item) => item.challengeId == 'eat-your-water-day')
+      underTwentyFood.reasons,
+      isNot(contains(ChallengeRecommendationReason.adultBmiSecondarySignal)),
+    );
+
+    final adultInterested = service.rank(inputs(
+      age: 30,
+      balanced: true,
+      metrics: const HydrionBodyMetrics(
+        personalizationEnabled: true,
+        weightKg: 65,
+        heightCm: 160,
+      ),
+    ));
+    final adultFood = adultInterested
+        .firstWhere((item) => item.challengeId == 'eat-your-water-day');
+    expect(adultFood.score, 45);
+    expect(
+      adultFood.reasons,
+      contains(ChallengeRecommendationReason.adultBmiSecondarySignal),
+    );
+  });
+
+  test('meaningful signals are required for every recommendation', () {
+    final noSignals = service.rank(inputs(logs: 14));
+    expect(noSignals.where((item) => item.eligible), isEmpty);
+    expect(
+      service
+          .rank(inputs(infusion: true))
+          .firstWhere(
+              (item) => item.challengeId == 'around-the-world-infusion-week')
           .eligible,
-      isFalse,
+      isTrue,
+    );
+    expect(
+      service
+          .rank(inputs(visual: true))
+          .firstWhere((item) => item.challengeId == 'plant-twin-challenge')
+          .eligible,
+      isTrue,
     );
   });
 }

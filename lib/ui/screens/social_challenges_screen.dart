@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../domain/bottle_bingo.dart';
 import '../../domain/challenge_catalog.dart';
+import '../../domain/challenge_recommendation.dart';
 import '../../domain/challenge_visual_registry.dart';
 import '../../domain/daily_hydration_context.dart';
 import '../../domain/hydration_contracts.dart';
@@ -16,6 +17,8 @@ import '../../repositories/personalization_state_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/app_refresh_controller.dart';
 import '../../services/challenge_recommendation_service.dart';
+import '../../services/current_weather_context.dart';
+import '../../utils/permissions.dart';
 import '../theme/hydrion_design.dart';
 import '../components/intake_ring.dart';
 import '../components/hydrion_viewport.dart';
@@ -47,6 +50,8 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
         context.watch<DailyHydrationContextRepository>();
     final personalizationState =
         context.watch<PersonalizationStateRepository>();
+    final weatherContext = context.watch<CurrentWeatherContext>();
+    final permissions = context.watch<Permissions>();
     final activeChallenges = challengeRepository.activeChallenges;
     final todayTotalMl = hydrationRepository.totalForDay(DateTime.now());
     final activeIds = activeChallenges.map((challenge) => challenge.id).toSet();
@@ -67,13 +72,19 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             settings: settings,
             bodyMetrics: bodyMetrics,
             dailyContext: dailyContextRepository.forDate(dateKey),
-            weather: null,
+            weather: weatherContext.eligibleSnapshot(
+              now: now,
+              weatherEnabled: settings.weatherModifierEnabled,
+              locationPermissionGranted:
+                  permissions.snapshot.location.isGranted,
+            ),
             activeChallenges: activeChallenges,
             hydrationLogCountLastSevenDays: hydrationRepository
                 .fetch(now.subtract(const Duration(days: 7)), now)
                 .length,
             dismissedChallengeIds:
                 personalizationState.dismissedForDate(dateKey),
+            preferences: personalizationState.challengePreferences,
           ),
         )
         .where((item) => item.eligible)
@@ -124,6 +135,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             _RecommendedChallengeCard(
               challenge:
                   HydrionChallengeCatalog.byId(recommendation.challengeId),
+              recommendation: recommendation,
               onView: () => _openChallenge(context, recommendation.challengeId),
               onDismiss: () => personalizationState.dismissChallenge(
                 localDateKey: dateKey,
@@ -132,6 +144,11 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             ),
             const SizedBox(height: 16),
           ],
+          _ChallengePreferenceCard(
+            preferences: personalizationState.challengePreferences,
+            onChanged: personalizationState.setChallengePreferences,
+          ),
+          const SizedBox(height: 16),
         ] else ...[
           Text(
             'Active challenges',
@@ -171,11 +188,19 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             _RecommendedChallengeCard(
               challenge:
                   HydrionChallengeCatalog.byId(recommendation.challengeId),
+              recommendation: recommendation,
               onView: () => _openChallenge(context, recommendation.challengeId),
               onDismiss: () => personalizationState.dismissChallenge(
                 localDateKey: dateKey,
                 challengeId: recommendation.challengeId,
               ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (activeChallenges.isNotEmpty && index == 0) ...[
+            _ChallengePreferenceCard(
+              preferences: personalizationState.challengePreferences,
+              onChanged: personalizationState.setChallengePreferences,
             ),
             const SizedBox(height: 16),
           ],
@@ -250,7 +275,12 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             ),
       body: RefreshIndicator(
         key: const Key('challenges-refresh-indicator'),
-        onRefresh: () => refreshHydrionData(context),
+        onRefresh: () async {
+          await refreshHydrionData(context);
+          if (context.mounted) {
+            context.read<CurrentWeatherContext>().refreshEligibility();
+          }
+        },
         child: listView,
       ),
     );
@@ -284,11 +314,13 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
 
 class _RecommendedChallengeCard extends StatelessWidget {
   final HydrationChallenge challenge;
+  final ChallengeRecommendation recommendation;
   final VoidCallback onView;
   final VoidCallback onDismiss;
 
   const _RecommendedChallengeCard({
     required this.challenge,
+    required this.recommendation,
     required this.onView,
     required this.onDismiss,
   });
@@ -309,6 +341,7 @@ class _RecommendedChallengeCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(challenge.name),
+          Text(_recommendationExplanation(l10n, recommendation)),
           Text(l10n.noAutomaticChallenge),
           const SizedBox(height: 10),
           Wrap(
@@ -331,6 +364,104 @@ class _RecommendedChallengeCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ChallengePreferenceCard extends StatelessWidget {
+  final ChallengeRecommendationPreferences preferences;
+  final Future<void> Function(ChallengeRecommendationPreferences) onChanged;
+
+  const _ChallengePreferenceCard({
+    required this.preferences,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    Widget preference({
+      required Key key,
+      required String title,
+      required bool value,
+      required ChallengeRecommendationPreferences next,
+    }) =>
+        SwitchListTile(
+          key: key,
+          contentPadding: EdgeInsets.zero,
+          title: Text(title),
+          value: value,
+          onChanged: (_) => onChanged(next),
+        );
+
+    return HydrionSurface(
+      key: const Key('challenge-suggestion-preferences'),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: EdgeInsets.zero,
+        title: Text(l10n.tailorChallengeSuggestions),
+        subtitle: Text(l10n.challengeSuggestionPrivacy),
+        children: [
+          preference(
+            key: const Key('preference-timed-routines'),
+            title: l10n.timedFocusSipRoutines,
+            value: preferences.prefersTimedRoutines,
+            next: preferences.copyWith(
+              prefersTimedRoutines: !preferences.prefersTimedRoutines,
+            ),
+          ),
+          preference(
+            key: const Key('preference-water-rich-food'),
+            title: l10n.waterRichFoodHabits,
+            value: preferences.balancedHydrationInterest,
+            next: preferences.copyWith(
+              balancedHydrationInterest: !preferences.balancedHydrationInterest,
+            ),
+          ),
+          preference(
+            key: const Key('preference-visual-consistency'),
+            title: l10n.visualDailyConsistency,
+            value: preferences.visualConsistencyInterest,
+            next: preferences.copyWith(
+              visualConsistencyInterest: !preferences.visualConsistencyInterest,
+            ),
+          ),
+          preference(
+            key: const Key('preference-infusion-variety'),
+            title: l10n.infusionFlavorVariety,
+            value: preferences.infusionVarietyInterest,
+            next: preferences.copyWith(
+              infusionVarietyInterest: !preferences.infusionVarietyInterest,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _recommendationExplanation(
+  AppLocalizations l10n,
+  ChallengeRecommendation recommendation,
+) {
+  final reasons = recommendation.reasons;
+  if (reasons.contains(ChallengeRecommendationReason.hotWeather)) {
+    return l10n.recommendationWarmWeather;
+  }
+  if (reasons.contains(ChallengeRecommendationReason.indoorFocus)) {
+    return l10n.recommendationTimedRoutine;
+  }
+  if (reasons.contains(ChallengeRecommendationReason.inconsistentLogging)) {
+    return l10n.recommendationLoggingConsistency;
+  }
+  if (reasons.contains(ChallengeRecommendationReason.balancedFoodInterest)) {
+    return l10n.recommendationWaterRichFood;
+  }
+  if (reasons.contains(ChallengeRecommendationReason.visualConsistency)) {
+    return l10n.recommendationVisualConsistency;
+  }
+  if (reasons.contains(ChallengeRecommendationReason.infusionVariety)) {
+    return l10n.recommendationInfusionVariety;
+  }
+  return l10n.noAutomaticChallenge;
 }
 
 class _ChallengeHero extends StatelessWidget {

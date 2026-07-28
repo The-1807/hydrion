@@ -398,4 +398,16 @@
   "viewChallenge": "Ver desafío",
   "notNow": "Ahora no",
   "noAutomaticChallenge": "Las recomendaciones nunca inician un desafío. Tú decides si quieres revisarlo y unirte."
+  ,"tailorChallengeSuggestions": "Personalizar sugerencias de retos",
+  "challengeSuggestionPrivacy": "Elige los tipos de rutinas que quieres que Hydrion considere. Estas opciones permanecen en este dispositivo y nunca inician un reto automaticamente.",
+  "timedFocusSipRoutines": "Rutinas cronometradas de enfoque e hidratacion",
+  "waterRichFoodHabits": "Habitos con alimentos ricos en agua",
+  "visualDailyConsistency": "Constancia visual diaria",
+  "infusionFlavorVariety": "Variedad de infusiones y sabores",
+  "recommendationWarmWeather": "Las condiciones calidas de hoy hacen que este reto sea una buena opcion.",
+  "recommendationTimedRoutine": "Coincide con tu preferencia por rutinas cronometradas.",
+  "recommendationLoggingConsistency": "Un reto de registro variado puede ayudarte a ganar constancia.",
+  "recommendationWaterRichFood": "Coincide con tu interes en anadir alimentos ricos en agua.",
+  "recommendationVisualConsistency": "Coincide con tu preferencia por la constancia visual diaria.",
+  "recommendationInfusionVariety": "Coincide con tu interes en la variedad de infusiones y sabores."
 }

@@ -1325,4 +1325,49 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get noAutomaticChallenge =>
       'Une recommandation ne démarre jamais un défi. Vous choisissez de l\'examiner et de le rejoindre.';
+
+  @override
+  String get tailorChallengeSuggestions =>
+      'Personnaliser les suggestions de defis';
+
+  @override
+  String get challengeSuggestionPrivacy =>
+      'Choisissez les types de routines que Hydrion peut prendre en compte. Ces choix restent sur cet appareil et ne lancent jamais automatiquement un defi.';
+
+  @override
+  String get timedFocusSipRoutines =>
+      'Routines chronometrees de concentration et d\'hydratation';
+
+  @override
+  String get waterRichFoodHabits => 'Habitudes d\'aliments riches en eau';
+
+  @override
+  String get visualDailyConsistency => 'Regularite visuelle quotidienne';
+
+  @override
+  String get infusionFlavorVariety => 'Variete d\'infusions et de saveurs';
+
+  @override
+  String get recommendationWarmWeather =>
+      'Les conditions chaudes d\'aujourd\'hui rendent ce defi pertinent.';
+
+  @override
+  String get recommendationTimedRoutine =>
+      'Correspond a votre preference pour les routines chronometrees.';
+
+  @override
+  String get recommendationLoggingConsistency =>
+      'Un defi de suivi varie peut vous aider a gagner en regularite.';
+
+  @override
+  String get recommendationWaterRichFood =>
+      'Correspond a votre interet pour les aliments riches en eau.';
+
+  @override
+  String get recommendationVisualConsistency =>
+      'Correspond a votre preference pour la regularite visuelle quotidienne.';
+
+  @override
+  String get recommendationInfusionVariety =>
+      'Correspond a votre interet pour les infusions et les saveurs variees.';
 }
