@@ -256,7 +256,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         renderedAsset(const Key('progress-profile-art')),
-        endsWith('be-proud.png'),
+        endsWith('pride-banner.png'),
       );
       expect(tester.takeException(), isNull);
     });

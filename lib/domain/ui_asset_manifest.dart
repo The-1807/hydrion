@@ -162,6 +162,13 @@ class HydrionUiAssetManifest {
       intendedUse: 'Profile and polished brand moments.',
     ),
     HydrionUiScene(
+      id: 'pride-be-proud-flag',
+      label: 'Be Proud Flag',
+      description: 'A Pride encouragement flag illustration.',
+      assetPath: 'assets/UI_BETA/pride/pride-banner.png',
+      intendedUse: 'Intersex progress, celebration, and empty-state moments.',
+    ),
+    HydrionUiScene(
       id: 'pride-be-proud',
       label: 'Be Proud',
       description: 'A Pride encouragement illustration.',
@@ -320,7 +327,7 @@ class HydrionLifestyleArtResolver {
       HydrionLifestyleSurface.homeTertiary => 'pride-banner',
       HydrionLifestyleSurface.homeQuaternary => 'neutral-temperature',
       HydrionLifestyleSurface.weather => 'weather',
-      HydrionLifestyleSurface.progress => 'pride-be-proud',
+      HydrionLifestyleSurface.progress => 'pride-be-proud-flag',
       HydrionLifestyleSurface.challenges => 'challenge',
       HydrionLifestyleSurface.profile => 'pride-gender',
       HydrionLifestyleSurface.onboarding => 'pride-bottle',
