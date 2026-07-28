@@ -6,6 +6,10 @@ import 'package:hydrion/domain/daily_hydration_context.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
 import 'package:hydrion/repositories/daily_hydration_context_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
+import 'package:hydrion/main.dart';
+import 'package:hydrion/repositories/personalization_state_repository.dart';
+import 'package:hydrion/services/location_service.dart';
+import 'package:hydrion/services/notifications.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 void main() {
@@ -126,5 +130,54 @@ void main() {
     expect(weather.baselineSource, HydrionBaselineSource.manual);
     expect(weather.weatherModifierEnabled, isTrue);
     expect(weather.baselineDailyGoalMl, 2200);
+  });
+
+  test('profile deletion enumerates and clears every personalization key',
+      () async {
+    final store = MemoryHydrionStore();
+    final services = await HydrionServices.fromStore(
+      store,
+      locationService: FakeHydrionLocationService(),
+      notificationAdapter: FakeHydrionNotificationAdapter(
+        permission: HydrionNotificationPermissionState.granted,
+      ),
+    );
+    await services.bodyMetricsRepository.save(
+      const HydrionBodyMetrics(
+        personalizationEnabled: true,
+        weightKg: 70,
+        heightCm: 175,
+      ),
+      femaleProfile: false,
+    );
+    final now = DateTime(2026, 7, 28);
+    await services.dailyHydrationContextRepository.save(
+      DailyHydrationContext(
+        localDateKey: hydrionLocalDateKey(now),
+        updatedAt: now,
+      ),
+    );
+    await services.personalizationStateRepository.dismissChallenge(
+      localDateKey: hydrionLocalDateKey(now),
+      challengeId: 'bottle-bingo',
+    );
+    expect(
+      store.snapshot.keys,
+      containsAll([
+        BodyMetricsRepository.storageKey,
+        DailyHydrationContextRepository.storageKey,
+        PersonalizationStateRepository.storageKey,
+      ]),
+    );
+
+    final result = await services.localProfileResetService.resetLocalProfile();
+    expect(result.isCompleted, isTrue);
+    for (final key in [
+      BodyMetricsRepository.storageKey,
+      DailyHydrationContextRepository.storageKey,
+      PersonalizationStateRepository.storageKey,
+    ]) {
+      expect(store.snapshot.containsKey(key), isFalse, reason: key);
+    }
   });
 }

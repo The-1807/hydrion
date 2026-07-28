@@ -4,13 +4,18 @@ import 'package:provider/provider.dart';
 import '../../domain/bottle_bingo.dart';
 import '../../domain/challenge_catalog.dart';
 import '../../domain/challenge_visual_registry.dart';
+import '../../domain/daily_hydration_context.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/challenge_repository.dart';
+import '../../repositories/body_metrics_repository.dart';
+import '../../repositories/daily_hydration_context_repository.dart';
 import '../../repositories/hydration_repository.dart';
+import '../../repositories/personalization_state_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/app_refresh_controller.dart';
+import '../../services/challenge_recommendation_service.dart';
 import '../theme/hydrion_design.dart';
 import '../components/intake_ring.dart';
 import '../components/hydrion_viewport.dart';
@@ -37,6 +42,11 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
     final challengeRepository = context.watch<ChallengeRepository>();
     final hydrationRepository = context.watch<HydrationRepository>();
     final settings = context.watch<UserSettingsRepository>().settings;
+    final bodyMetrics = context.watch<BodyMetricsRepository>().metrics;
+    final dailyContextRepository =
+        context.watch<DailyHydrationContextRepository>();
+    final personalizationState =
+        context.watch<PersonalizationStateRepository>();
     final activeChallenges = challengeRepository.activeChallenges;
     final todayTotalMl = hydrationRepository.totalForDay(DateTime.now());
     final activeIds = activeChallenges.map((challenge) => challenge.id).toSet();
@@ -46,6 +56,30 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
     final availableChallenges = HydrionChallengeCatalog.challenges
         .where((challenge) => !activeIds.contains(challenge.id))
         .toList(growable: false);
+    final now = DateTime.now();
+    final dateKey = hydrionLocalDateKey(now);
+    final eligibleRecommendations = context
+        .read<ChallengeRecommendationService>()
+        .rank(
+          ChallengeRecommendationInputs(
+            now: now,
+            localDateKey: dateKey,
+            settings: settings,
+            bodyMetrics: bodyMetrics,
+            dailyContext: dailyContextRepository.forDate(dateKey),
+            weather: null,
+            activeChallenges: activeChallenges,
+            hydrationLogCountLastSevenDays: hydrationRepository
+                .fetch(now.subtract(const Duration(days: 7)), now)
+                .length,
+            dismissedChallengeIds:
+                personalizationState.dismissedForDate(dateKey),
+          ),
+        )
+        .where((item) => item.eligible)
+        .toList(growable: false);
+    final recommendation =
+        eligibleRecommendations.isEmpty ? null : eligibleRecommendations.first;
 
     final listView = ListView(
       key: const Key('challenges-catalog-scroll'),
@@ -80,6 +114,17 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
           ),
         ),
         const SizedBox(height: 16),
+        if (recommendation != null) ...[
+          _RecommendedChallengeCard(
+            challenge: HydrionChallengeCatalog.byId(recommendation.challengeId),
+            onView: () => _openChallenge(context, recommendation.challengeId),
+            onDismiss: () => personalizationState.dismissChallenge(
+              localDateKey: dateKey,
+              challengeId: recommendation.challengeId,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         if (activeChallenges.isEmpty) ...[
           _NoChallengeCard(
             title: l10n.noActiveChallengeYet,
@@ -219,6 +264,57 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
       ChallengeLifecycleStatus.active => 'Active',
     };
     return '$status \u00b7 $dateLabel';
+  }
+}
+
+class _RecommendedChallengeCard extends StatelessWidget {
+  final HydrationChallenge challenge;
+  final VoidCallback onView;
+  final VoidCallback onDismiss;
+
+  const _RecommendedChallengeCard({
+    required this.challenge,
+    required this.onView,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return HydrionSurface(
+      key: const Key('recommended-challenge-card'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.recommendedForYou,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(challenge.name),
+          Text(l10n.noAutomaticChallenge),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton(
+                key: const Key('view-recommended-challenge'),
+                onPressed: onView,
+                child: Text(l10n.viewChallenge),
+              ),
+              TextButton(
+                key: const Key('dismiss-recommended-challenge'),
+                onPressed: onDismiss,
+                child: Text(l10n.notNow),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

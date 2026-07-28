@@ -1,5 +1,8 @@
 import '../repositories/challenge_repository.dart';
+import '../repositories/body_metrics_repository.dart';
+import '../repositories/daily_hydration_context_repository.dart';
 import '../repositories/hydration_repository.dart';
+import '../repositories/personalization_state_repository.dart';
 import '../repositories/reminder_repository.dart';
 import '../repositories/settings_repository.dart';
 import 'notifications.dart';
@@ -26,6 +29,9 @@ class LocalProfileResetResult {
   final LocalProfileSubsystemStatus challengeDeletion;
   final LocalProfileSubsystemStatus hydrationDeletion;
   final LocalProfileSubsystemStatus weatherDeletion;
+  final LocalProfileSubsystemStatus bodyMetricsDeletion;
+  final LocalProfileSubsystemStatus dailyContextDeletion;
+  final LocalProfileSubsystemStatus personalizationStateDeletion;
   final LocalProfileSubsystemStatus settingsReset;
   final LocalProfileSubsystemStatus providerInvalidation;
   final LocalProfileSubsystemStatus navigationReset;
@@ -37,6 +43,9 @@ class LocalProfileResetResult {
     required this.challengeDeletion,
     required this.hydrationDeletion,
     required this.weatherDeletion,
+    this.bodyMetricsDeletion = LocalProfileSubsystemStatus.notRequired,
+    this.dailyContextDeletion = LocalProfileSubsystemStatus.notRequired,
+    this.personalizationStateDeletion = LocalProfileSubsystemStatus.notRequired,
     required this.settingsReset,
     required this.providerInvalidation,
     required this.navigationReset,
@@ -58,6 +67,9 @@ class LocalProfileResetService {
   final ReminderRepository _reminderRepository;
   final NotificationService _notificationService;
   final WeatherForecastService _weatherForecastService;
+  final BodyMetricsRepository? _bodyMetricsRepository;
+  final DailyHydrationContextRepository? _dailyContextRepository;
+  final PersonalizationStateRepository? _personalizationStateRepository;
 
   const LocalProfileResetService({
     required UserSettingsRepository settingsRepository,
@@ -66,12 +78,18 @@ class LocalProfileResetService {
     required ReminderRepository reminderRepository,
     required NotificationService notificationService,
     required WeatherForecastService weatherForecastService,
+    BodyMetricsRepository? bodyMetricsRepository,
+    DailyHydrationContextRepository? dailyHydrationContextRepository,
+    PersonalizationStateRepository? personalizationStateRepository,
   })  : _settingsRepository = settingsRepository,
         _hydrationRepository = hydrationRepository,
         _challengeRepository = challengeRepository,
         _reminderRepository = reminderRepository,
         _notificationService = notificationService,
-        _weatherForecastService = weatherForecastService;
+        _weatherForecastService = weatherForecastService,
+        _bodyMetricsRepository = bodyMetricsRepository,
+        _dailyContextRepository = dailyHydrationContextRepository,
+        _personalizationStateRepository = personalizationStateRepository;
 
   Future<LocalProfileResetResult> resetLocalProfile() async {
     final notificationsCancelled =
@@ -80,12 +98,24 @@ class LocalProfileResetService {
     final challengeDeletion = await _run(_challengeRepository.clear);
     final hydrationDeletion = await _run(_hydrationRepository.clear);
     final weatherDeletion = await _run(_weatherForecastService.clearCache);
+    final bodyMetricsDeletion = _bodyMetricsRepository == null
+        ? LocalProfileSubsystemStatus.notRequired
+        : await _run(_bodyMetricsRepository.clear);
+    final dailyContextDeletion = _dailyContextRepository == null
+        ? LocalProfileSubsystemStatus.notRequired
+        : await _run(_dailyContextRepository.clear);
+    final personalizationStateDeletion = _personalizationStateRepository == null
+        ? LocalProfileSubsystemStatus.notRequired
+        : await _run(_personalizationStateRepository.clear);
     final settingsReset = await _run(_settingsRepository.resetLocalProfile);
     final localCleanupFailed = <LocalProfileSubsystemStatus>[
       reminderDeletion,
       challengeDeletion,
       hydrationDeletion,
       weatherDeletion,
+      bodyMetricsDeletion,
+      dailyContextDeletion,
+      personalizationStateDeletion,
       settingsReset,
     ].contains(LocalProfileSubsystemStatus.failed);
     final notificationStatus = notificationsCancelled
@@ -103,6 +133,9 @@ class LocalProfileResetService {
       challengeDeletion: challengeDeletion,
       hydrationDeletion: hydrationDeletion,
       weatherDeletion: weatherDeletion,
+      bodyMetricsDeletion: bodyMetricsDeletion,
+      dailyContextDeletion: dailyContextDeletion,
+      personalizationStateDeletion: personalizationStateDeletion,
       settingsReset: settingsReset,
       providerInvalidation: LocalProfileSubsystemStatus.notRequired,
       navigationReset: settingsReset == LocalProfileSubsystemStatus.completed
