@@ -774,6 +774,16 @@ Hydrion V1 may proceed to production release only when every statement below is 
 - [ ] The V1 release decision is documented.
 - [ ] The V1 production release is approved.
 
+## Personalized Challenge Physical Checks
+
+- [ ] Inject cold weather and confirm the hydration goal does not decrease.
+- [ ] Enable warm-weather assistance and confirm Temperature Roulette can be suggested.
+- [ ] Revoke location and confirm the weather suggestion disappears without a new prompt.
+- [ ] Enable and disable each local challenge preference and confirm ranking updates.
+- [ ] Confirm BMI alone never creates an Eat Your Water suggestion and is never disclosed.
+- [ ] Open and dismiss recommendations without starting a challenge or adding hydration.
+- [ ] Start manually and confirm the two-active-challenge limit remains enforced.
+
 ## Final Approval
 
 | Responsibility | Name | Status | Date |

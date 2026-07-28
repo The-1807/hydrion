@@ -135,9 +135,9 @@ Temperature tiers:
 - 26–29.9°C: +150 mL
 - 30–34.9°C: +300 mL
 - 35°C or above: +450 mL
-- 0°C or below: −100 mL
+- Below 26°C: 0 mL; cold weather never lowers the goal
 
-The combined weather modifier is bounded to −100–600 mL, then scaled:
+The combined weather modifier is bounded to 0–600 mL, then scaled:
 
 - Mostly indoors: 0%
 - Mixed: 50%
@@ -190,11 +190,22 @@ Ranking is local, transparent, and read-only:
 
 - Temperature Roulette: hot weather and outdoor context
 - Pomodoro Sip: indoor/focus routine preference
-- Bottle Bingo: inconsistent logging and varied small habits
-- Eat Your Water Day: adult opt-in metrics plus an explicit balanced-habit
-  interest; BMI is never the only signal
+- Bottle Bingo: inconsistent recent logging; generic varied-habit wording is
+  only a secondary explanation
+- Eat Your Water Day: explicit water-rich-food interest; adult BMI at or above
+  25 may add a private weak secondary score, but BMI alone is never eligible
 - Plant Twin: explicit visual-consistency interest
-- Around the World Infusion Week: explicit variety interest when available
+- Around the World Infusion Week: explicit infusion-variety interest
+
+Current eligible weather comes from the existing local-day cache and is used
+only while weather assistance and location permission remain enabled. The
+Challenges screen performs no permission or network request during rendering.
+Stale, missing, disabled, or revoked weather contributes no signal.
+
+Challenge preferences are optional, default to false, and stay in the existing
+local personalization-state record. No meaningful signal means no personalized
+recommendation card; the complete catalogue remains available for manual
+browsing. Neutral explanations never disclose BMI or exact body metrics.
 
 Existing active challenges, same-day dismissals, and the two-active-challenge
 limit are respected. A recommendation can only open details. `join` remains an
@@ -203,10 +214,10 @@ logs and never activates, resumes, completes, or restarts a challenge.
 
 ## Privacy and deletion
 
-Body metrics, daily contexts, calculation state, and challenge dismissals are
-stored locally under dedicated versioned keys. They are not sold, advertised
-against, uploaded, logged to console, included in notifications, or processed
-by AI.
+Body metrics, daily contexts, calculation state, challenge preferences, and
+challenge dismissals are stored locally under versioned keys. They are not
+sold, advertised against, uploaded, logged to console, included in
+notifications, or processed by AI.
 
 Local profile deletion removes every personalization key, including body
 metrics, BMI-derived state, reproductive state, clinician target, restriction

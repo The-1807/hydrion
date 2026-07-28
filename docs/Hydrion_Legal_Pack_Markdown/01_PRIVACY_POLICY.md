@@ -58,6 +58,8 @@ Hydrion may store the following information on your device when you use the app:
   wake/sleep schedule;
 - local recommendation fingerprints and same-day challenge-recommendation
   dismissals.
+- optional challenge-suggestion preferences for timed routines, water-rich
+  foods, visual consistency, and infusion variety.
 
 ## Personalized Hydration Processing
 
@@ -73,7 +75,8 @@ disclosure in this policy.
 
 Deleting the local profile removes body metrics, calculated personalization
 state, pregnancy or lactation selection, clinician target, fluid-restriction
-state, retained daily contexts, and challenge-recommendation dismissals.
+state, retained daily contexts, challenge-suggestion preferences, and
+challenge-recommendation dismissals.
 
 This information is used to run Hydrion features, restore your app state, personalize local summaries, and keep the app from repeatedly asking for the same permission.
 
