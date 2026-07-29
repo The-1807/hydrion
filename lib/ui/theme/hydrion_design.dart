@@ -179,9 +179,12 @@ class HydrionSurface extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: padding,
-        child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        child: Padding(
+          padding: padding,
+          child: child,
+        ),
       ),
     );
   }
