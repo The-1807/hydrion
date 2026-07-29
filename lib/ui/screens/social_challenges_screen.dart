@@ -366,7 +366,7 @@ class _RecommendedChallengeCard extends StatelessWidget {
   }
 }
 
-class _ChallengePreferenceCard extends StatelessWidget {
+class _ChallengePreferenceCard extends StatefulWidget {
   final ChallengeRecommendationPreferences preferences;
   final Future<void> Function(ChallengeRecommendationPreferences) onChanged;
 
@@ -376,62 +376,119 @@ class _ChallengePreferenceCard extends StatelessWidget {
   });
 
   @override
+  State<_ChallengePreferenceCard> createState() =>
+      _ChallengePreferenceCardState();
+}
+
+class _ChallengePreferenceCardState extends State<_ChallengePreferenceCard> {
+  bool _editing = false;
+  late ChallengeRecommendationPreferences _draft = widget.preferences;
+
+  @override
+  void didUpdateWidget(covariant _ChallengePreferenceCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_editing) _draft = widget.preferences;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     Widget preference({
       required Key key,
       required String title,
       required bool value,
-      required ChallengeRecommendationPreferences next,
+      required ValueChanged<bool> onChanged,
     }) =>
         SwitchListTile(
           key: key,
           contentPadding: EdgeInsets.zero,
           title: Text(title),
           value: value,
-          onChanged: (_) => onChanged(next),
+          onChanged: onChanged,
         );
+
+    final selected = <String>[
+      if (widget.preferences.prefersTimedRoutines) l10n.timedFocusSipRoutines,
+      if (widget.preferences.balancedHydrationInterest)
+        l10n.waterRichFoodHabits,
+      if (widget.preferences.visualConsistencyInterest)
+        l10n.visualDailyConsistency,
+      if (widget.preferences.infusionVarietyInterest)
+        l10n.infusionFlavorVariety,
+    ];
 
     return HydrionSurface(
       key: const Key('challenge-suggestion-preferences'),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: EdgeInsets.zero,
-        title: Text(l10n.tailorChallengeSuggestions),
-        subtitle: Text(l10n.challengeSuggestionPrivacy),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          preference(
-            key: const Key('preference-timed-routines'),
-            title: l10n.timedFocusSipRoutines,
-            value: preferences.prefersTimedRoutines,
-            next: preferences.copyWith(
-              prefersTimedRoutines: !preferences.prefersTimedRoutines,
-            ),
+          Text(
+            l10n.tailorChallengeSuggestions,
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-          preference(
-            key: const Key('preference-water-rich-food'),
-            title: l10n.waterRichFoodHabits,
-            value: preferences.balancedHydrationInterest,
-            next: preferences.copyWith(
-              balancedHydrationInterest: !preferences.balancedHydrationInterest,
+          Text(selected.isEmpty
+              ? l10n.challengeSuggestionPrivacy
+              : selected.join('\n')),
+          if (!_editing)
+            OutlinedButton(
+              key: const Key('edit-challenge-preferences'),
+              onPressed: () => setState(() {
+                _draft = widget.preferences;
+                _editing = true;
+              }),
+              child: Text(l10n.edit),
             ),
-          ),
-          preference(
-            key: const Key('preference-visual-consistency'),
-            title: l10n.visualDailyConsistency,
-            value: preferences.visualConsistencyInterest,
-            next: preferences.copyWith(
-              visualConsistencyInterest: !preferences.visualConsistencyInterest,
+          if (_editing) ...[
+            preference(
+              key: const Key('preference-timed-routines'),
+              title: l10n.timedFocusSipRoutines,
+              value: _draft.prefersTimedRoutines,
+              onChanged: (value) => setState(
+                  () => _draft = _draft.copyWith(prefersTimedRoutines: value)),
             ),
-          ),
-          preference(
-            key: const Key('preference-infusion-variety'),
-            title: l10n.infusionFlavorVariety,
-            value: preferences.infusionVarietyInterest,
-            next: preferences.copyWith(
-              infusionVarietyInterest: !preferences.infusionVarietyInterest,
+            preference(
+              key: const Key('preference-water-rich-food'),
+              title: l10n.waterRichFoodHabits,
+              value: _draft.balancedHydrationInterest,
+              onChanged: (value) => setState(
+                () =>
+                    _draft = _draft.copyWith(balancedHydrationInterest: value),
+              ),
             ),
-          ),
+            preference(
+              key: const Key('preference-visual-consistency'),
+              title: l10n.visualDailyConsistency,
+              value: _draft.visualConsistencyInterest,
+              onChanged: (value) => setState(
+                () =>
+                    _draft = _draft.copyWith(visualConsistencyInterest: value),
+              ),
+            ),
+            preference(
+              key: const Key('preference-infusion-variety'),
+              title: l10n.infusionFlavorVariety,
+              value: _draft.infusionVarietyInterest,
+              onChanged: (value) => setState(
+                () => _draft = _draft.copyWith(infusionVarietyInterest: value),
+              ),
+            ),
+            Wrap(
+              spacing: 8,
+              children: [
+                TextButton(
+                  onPressed: () => setState(() => _editing = false),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    await widget.onChanged(_draft);
+                    if (mounted) setState(() => _editing = false);
+                  },
+                  child: Text(l10n.done),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

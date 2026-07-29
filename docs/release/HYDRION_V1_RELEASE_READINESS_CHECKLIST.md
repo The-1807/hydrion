@@ -809,3 +809,16 @@ Hydrion V1 may proceed to production release only when every statement below is 
 - **Android artifact:** Not assigned
 - **iOS artifact:** Not assigned
 - **Approval date:** Not assigned
+# Body Metrics saved-state physical acceptance
+
+- [ ] Verify missing weight and height show `Not added` on Android.
+- [ ] Verify Add and Update open only the selected measurement editor.
+- [ ] Verify Cancel writes nothing and Done updates the saved summary.
+- [ ] Verify kg/lb and cm/ft-in entry with TalkBack and large text.
+- [ ] Verify independent weight and height update dates survive restart.
+- [ ] Verify adult BMI refreshes and under-20 interpretation stays suppressed.
+- [ ] Verify personalization and challenge preference editors discard cancelled drafts.
+- [ ] Verify today's context saves, summarizes, clears, and expires next local day.
+- [ ] Verify illness context shows safety guidance without a numeric adjustment.
+- [ ] Verify Keep current goal resolves the current suggestion without changing the goal.
+- [ ] Verify pregnancy gestational duration and lactation behavior remain intact.

@@ -1077,6 +1077,76 @@ class AppLocalizationsEs extends AppLocalizations {
   String get bodyMetricsTitle => 'Medidas corporales';
 
   @override
+  String get bodyMeasurementsTitle => 'Medidas corporales guardadas';
+
+  @override
+  String get notAdded => 'No añadido';
+
+  @override
+  String get addWeight => 'Añadir peso';
+
+  @override
+  String get updateWeight => 'Actualizar peso';
+
+  @override
+  String get addHeight => 'Añadir estatura';
+
+  @override
+  String get updateHeight => 'Actualizar estatura';
+
+  @override
+  String get updatedToday => 'Actualizado hoy';
+
+  @override
+  String updatedOn({required Object date}) {
+    return 'Actualizado el $date';
+  }
+
+  @override
+  String get personalizationTitle => 'Personalización';
+
+  @override
+  String get editPersonalizationSettings => 'Editar ajustes de personalización';
+
+  @override
+  String get onLabel => 'Activado';
+
+  @override
+  String get offLabel => 'Desactivado';
+
+  @override
+  String get dataPrivacyTitle => 'Datos y privacidad';
+
+  @override
+  String get deleteBodyMetricsExplanation =>
+      'Esto elimina las medidas guardadas y los ajustes de personalización. No elimina los registros de hidratación.';
+
+  @override
+  String get done => 'Listo';
+
+  @override
+  String get noDailyContext =>
+      'No se ha añadido contexto de actividad para hoy.';
+
+  @override
+  String get setDailyContext => 'Definir el contexto de hoy';
+
+  @override
+  String get savedForToday => 'Guardado para hoy.';
+
+  @override
+  String get appliesTodayOnly => 'Se aplica solo hoy.';
+
+  @override
+  String get edit => 'Editar';
+
+  @override
+  String get clear => 'Borrar';
+
+  @override
+  String get feelingUnwellToday => '¿Te sientes mal hoy?';
+
+  @override
   String get bodyMetricsOptional =>
       'Las medidas opcionales y almacenadas localmente pueden mejorar la estimación de bienestar general. Puedes omitirlas, desactivarlas o eliminarlas cuando quieras.';
 

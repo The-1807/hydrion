@@ -1812,6 +1812,138 @@ abstract class AppLocalizations {
   /// **'Body metrics'**
   String get bodyMetricsTitle;
 
+  /// No description provided for @bodyMeasurementsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Body measurements'**
+  String get bodyMeasurementsTitle;
+
+  /// No description provided for @notAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not added'**
+  String get notAdded;
+
+  /// No description provided for @addWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Add weight'**
+  String get addWeight;
+
+  /// No description provided for @updateWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Update weight'**
+  String get updateWeight;
+
+  /// No description provided for @addHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Add height'**
+  String get addHeight;
+
+  /// No description provided for @updateHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Update height'**
+  String get updateHeight;
+
+  /// No description provided for @updatedToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated today'**
+  String get updatedToday;
+
+  /// No description provided for @updatedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {date}'**
+  String updatedOn({required Object date});
+
+  /// No description provided for @personalizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personalization'**
+  String get personalizationTitle;
+
+  /// No description provided for @editPersonalizationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit personalization settings'**
+  String get editPersonalizationSettings;
+
+  /// No description provided for @onLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get onLabel;
+
+  /// No description provided for @offLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get offLabel;
+
+  /// No description provided for @dataPrivacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Data and privacy'**
+  String get dataPrivacyTitle;
+
+  /// No description provided for @deleteBodyMetricsExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes saved measurements and personalization settings. Hydration logs are not removed.'**
+  String get deleteBodyMetricsExplanation;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @noDailyContext.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity context has been added for today.'**
+  String get noDailyContext;
+
+  /// No description provided for @setDailyContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Set today\'s context'**
+  String get setDailyContext;
+
+  /// No description provided for @savedForToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved for today.'**
+  String get savedForToday;
+
+  /// No description provided for @appliesTodayOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies today only.'**
+  String get appliesTodayOnly;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// No description provided for @feelingUnwellToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Feeling unwell today?'**
+  String get feelingUnwellToday;
+
   /// No description provided for @bodyMetricsOptional.
   ///
   /// In en, this message translates to:
