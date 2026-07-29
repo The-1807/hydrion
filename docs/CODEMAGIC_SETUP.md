@@ -8,7 +8,7 @@ Hydrion uses `codemagic.yaml` as its primary Apple-compatible CI/CD entry point.
 
 ### `hydrion-validation`
 
-Runs on Linux with Flutter `3.35.6`.
+Runs on Linux with Flutter `3.44.8`.
 
 Commands:
 
@@ -26,7 +26,7 @@ Artifacts:
 
 ### `hydrion-android`
 
-Runs on Linux with Flutter `3.35.6`.
+Runs on Linux with Flutter `3.44.8`.
 
 Artifacts:
 
@@ -65,7 +65,7 @@ All four must be present together.
 
 ### `hydrion-ios-compatibility`
 
-Runs on Codemagic macOS with Flutter `3.35.6`, latest Xcode, and CocoaPods.
+Runs on Codemagic macOS with Flutter `3.44.8`, latest Xcode, and CocoaPods.
 
 Commands include validation, `pod install`, iOS simulator build, and unsigned iOS release build.
 

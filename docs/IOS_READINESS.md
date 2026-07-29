@@ -9,7 +9,7 @@ manual device validation.
 - Bundle identifier: `com.the1807.hydrion`
 - Runner test bundle identifier: `com.the1807.hydrion.RunnerTests`
 - Display name: `Hydrion`
-- Flutter version pinned in CI/Codemagic: `3.35.6`
+- Flutter version pinned in CI/Codemagic/FVM: `3.44.8`
 - iOS deployment target in `ios/Podfile`: `13.0`
 
 The bundle id is now aligned with the Android package identity. Changing this

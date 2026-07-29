@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:provider/provider.dart';
 
 import '../../repositories/guided_tour_repository.dart';
@@ -485,7 +484,6 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
       return;
     }
     final reducedMotion = MediaQuery.disableAnimationsOf(context);
-    final textDirection = Directionality.of(context);
     await Scrollable.ensureVisible(
       targetContext,
       duration:
@@ -498,12 +496,6 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
     if (!mounted) return;
     _refreshMeasurements();
     _cardFocusNode.requestFocus();
-    SemanticsService.sendAnnouncement(
-      View.of(context),
-      '${widget.step.title}. ${widget.step.body}. '
-      'Step ${widget.index + 1} of ${widget.total}.',
-      textDirection,
-    );
     if (widget.step.demonstratesPullToRefresh && !reducedMotion) {
       _runBriefGesture();
     }
@@ -636,53 +628,63 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
                 Flexible(
                   fit: FlexFit.loose,
                   child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: scheme.primaryContainer,
-                            borderRadius:
-                                BorderRadius.circular(HydrionRadii.pill),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
+                    child: Semantics(
+                      key: const Key('tour-step-announcement'),
+                      liveRegion: true,
+                      label: '${widget.step.title}. ${widget.step.body} '
+                          'Step ${widget.index + 1} of ${widget.total}.',
+                      child: ExcludeSemantics(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: scheme.primaryContainer,
+                                borderRadius:
+                                    BorderRadius.circular(HydrionRadii.pill),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                child: Text(
+                                  'Step ${widget.index + 1} of ${widget.total}',
+                                  key: const Key('tour-progress'),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                        color: scheme.onPrimaryContainer,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ),
                             ),
-                            child: Text(
-                              'Step ${widget.index + 1} of ${widget.total}',
-                              key: const Key('tour-progress'),
+                            const SizedBox(height: 10),
+                            Text(
+                              widget.step.title,
+                              key: const Key('tour-title'),
                               style: Theme.of(context)
                                   .textTheme
-                                  .labelLarge
+                                  .titleLarge
                                   ?.copyWith(
-                                    color: scheme.onPrimaryContainer,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          widget.step.title,
-                          key: const Key('tour-title'),
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
                                     color: scheme.onSurface,
                                     fontWeight: FontWeight.w900,
                                   ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              widget.step.body,
+                              key: const Key('tour-body'),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: scheme.onSurfaceVariant),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          widget.step.body,
-                          key: const Key('tour-body'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
