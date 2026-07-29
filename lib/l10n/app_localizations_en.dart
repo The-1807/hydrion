@@ -1353,4 +1353,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get recommendationInfusionVariety =>
       'Matches your interest in infusion and flavor variety.';
+
+  @override
+  String get pregnancyDurationTitle => 'How far along are you?';
+
+  @override
+  String get pregnancyDurationDays => 'Days';
+
+  @override
+  String get pregnancyDurationWeeks => 'Weeks';
+
+  @override
+  String get pregnancyDurationMonths => 'Months';
+
+  @override
+  String get pregnancyDurationInputLabel => 'Pregnancy duration';
+
+  @override
+  String get pregnancyDurationHelp =>
+      'Enter a pregnancy duration between 1 day and 42 weeks.';
+
+  @override
+  String get pregnancyDurationInvalid =>
+      'Enter a valid pregnancy duration between 1 day and 42 weeks.';
+
+  @override
+  String get pregnancyDurationMonthsHelp =>
+      'Months are converted approximately and stored locally.';
+
+  @override
+  String pregnancyDurationSummary({required int weeks, required int days}) {
+    return 'Approximately $weeks weeks, $days days.';
+  }
 }

@@ -31,7 +31,7 @@ void main() {
     expect(saved, isTrue);
     final json =
         jsonDecode(store.snapshot[BodyMetricsRepository.storageKey]!) as Map;
-    expect(json['schemaVersion'], 1);
+    expect(json['schemaVersion'], 2);
     expect(json['weightKg'], 70);
     expect(json['heightCm'], 175);
 
@@ -52,6 +52,99 @@ void main() {
       isFalse,
     );
     expect(repository.metrics.weightKg, 70);
+    expect(
+      await repository.update(
+        reproductiveState: HydrionReproductiveHydrationState.pregnant,
+        pregnancyGestationalDays: 295,
+        femaleProfile: true,
+      ),
+      isFalse,
+    );
+  });
+
+  test('pregnancy duration migrates, persists, and clears canonically',
+      () async {
+    final legacy = MemoryHydrionStore({
+      BodyMetricsRepository.storageKey: jsonEncode({
+        'schemaVersion': 1,
+        'personalizationEnabled': true,
+        'weightKg': 68,
+        'heightCm': 171,
+        'reproductiveState': 'pregnant',
+      }),
+    });
+    var repository = await BodyMetricsRepository.load(legacy);
+    expect(repository.metrics.weightKg, 68);
+    expect(repository.metrics.pregnancyGestationalDays, isNull);
+    expect(repository.recoveryEvents, isEmpty);
+
+    expect(
+      await repository.update(
+        pregnancyGestationalDays: 168,
+        preferredPregnancyDurationUnit: HydrionPregnancyDurationUnit.months,
+        femaleProfile: true,
+      ),
+      isTrue,
+    );
+    repository = await BodyMetricsRepository.load(legacy);
+    expect(repository.metrics.pregnancyGestationalDays, 168);
+    expect(
+      repository.metrics.preferredPregnancyDurationUnit,
+      HydrionPregnancyDurationUnit.months,
+    );
+    expect(
+      jsonDecode(
+          legacy.snapshot[BodyMetricsRepository.storageKey]!)['schemaVersion'],
+      2,
+    );
+
+    await repository.update(
+      reproductiveState: HydrionReproductiveHydrationState.lactating,
+      clearPregnancyDuration: true,
+      femaleProfile: true,
+    );
+    expect(repository.metrics.pregnancyGestationalDays, isNull);
+  });
+
+  test('pregnancy duration domain boundaries and compatibility are safe', () {
+    expect(HydrionBodyMetricsPolicy.validPregnancyDays(1), isTrue);
+    expect(HydrionBodyMetricsPolicy.validPregnancyDays(294), isTrue);
+    expect(HydrionBodyMetricsPolicy.validPregnancyDays(0), isFalse);
+    expect(HydrionBodyMetricsPolicy.validPregnancyDays(295), isFalse);
+    expect(HydrionBodyMetricsPolicy.pregnancyWeeksToDays(12), 84);
+    expect(HydrionBodyMetricsPolicy.pregnancyMonthsToDays(1), 30);
+
+    final legacyWeeks = HydrionBodyMetrics.fromJson({
+      'schemaVersion': 1,
+      'reproductiveState': 'pregnant',
+      'pregnancyGestationalWeeks': 24,
+    });
+    expect(legacyWeeks.pregnancyGestationalDays, 168);
+
+    final malformed = HydrionBodyMetrics.fromJson({
+      'schemaVersion': 2,
+      'reproductiveState': 'pregnant',
+      'pregnancyGestationalDays': 12.5,
+    });
+    expect(malformed.pregnancyGestationalDays, isNull);
+
+    const pregnant = HydrionBodyMetrics(
+      reproductiveState: HydrionReproductiveHydrationState.pregnant,
+      pregnancyGestationalDays: 84,
+    );
+    expect(
+      pregnant.copyWith(clearPregnancyDuration: true).pregnancyGestationalDays,
+      isNull,
+    );
+    expect(
+      pregnant
+          .copyWith(
+            reproductiveState: HydrionReproductiveHydrationState.none,
+          )
+          .sanitized(femaleProfile: true)
+          .pregnancyGestationalDays,
+      isNull,
+    );
   });
 
   test('malformed and invalid storage recover without invented values',

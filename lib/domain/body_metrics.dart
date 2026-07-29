@@ -4,7 +4,17 @@ enum HydrionWeightUnit { kilograms, pounds }
 
 enum HydrionHeightUnit { centimetres, feetAndInches }
 
-enum HydrionReproductiveHydrationState { none, pregnant, lactating }
+enum HydrionPregnancyDurationUnit {
+  days,
+  weeks,
+  months,
+}
+
+enum HydrionReproductiveHydrationState {
+  none,
+  pregnant,
+  lactating,
+}
 
 enum HydrionFluidSafetyMode {
   none,
@@ -14,13 +24,27 @@ enum HydrionFluidSafetyMode {
 }
 
 class HydrionBodyMetricsPolicy {
-  static const schemaVersion = 1;
+  static const schemaVersion = 2;
+
   static const minWeightKg = 25.0;
   static const maxWeightKg = 300.0;
+
   static const minHeightCm = 120.0;
   static const maxHeightCm = 230.0;
+
   static const poundsPerKilogram = 2.2046226218;
   static const centimetresPerInch = 2.54;
+
+  // Pregnancy duration is stored canonically as total gestational days.
+  static const minPregnancyDays = 1;
+  static const maxPregnancyDays = 294; // 42 weeks.
+
+  static const minPregnancyWeeks = minPregnancyDays / daysPerWeek;
+  static const maxPregnancyWeeks = 42.0;
+
+  static const daysPerWeek = 7.0;
+  static const averageDaysPerMonth = 30.436875;
+  static const averageWeeksPerMonth = averageDaysPerMonth / daysPerWeek;
 
   const HydrionBodyMetricsPolicy._();
 
@@ -36,6 +60,40 @@ class HydrionBodyMetricsPolicy {
       value >= minHeightCm &&
       value <= maxHeightCm;
 
+  static bool validPregnancyDays(int? value) =>
+      value != null && value >= minPregnancyDays && value <= maxPregnancyDays;
+
+  static bool validPregnancyWeeks(num? value) =>
+      value != null &&
+      value.isFinite &&
+      value >= minPregnancyWeeks &&
+      value <= maxPregnancyWeeks;
+
+  static bool validPregnancyMonths(num? value) {
+    if (value == null || !value.isFinite || value <= 0) {
+      return false;
+    }
+
+    return validPregnancyDays(
+      pregnancyMonthsToDays(value),
+    );
+  }
+
+  static int pregnancyWeeksToDays(num weeks) => (weeks * daysPerWeek).round();
+
+  static double pregnancyDaysToWeeks(int days) => days / daysPerWeek;
+
+  static int pregnancyMonthsToDays(num months) =>
+      (months * averageDaysPerMonth).round();
+
+  static double pregnancyDaysToMonths(int days) => days / averageDaysPerMonth;
+
+  static int pregnancyMonthsToWeeks(num months) =>
+      (months * averageWeeksPerMonth).round();
+
+  static double pregnancyWeeksToMonths(num weeks) =>
+      weeks / averageWeeksPerMonth;
+
   static double kilogramsToPounds(double kilograms) =>
       kilograms * poundsPerKilogram;
 
@@ -50,16 +108,29 @@ class HydrionBodyMetricsPolicy {
 
 class HydrionBodyMetrics {
   final bool personalizationEnabled;
+
   final double? weightKg;
   final double? heightCm;
+
   final HydrionWeightUnit preferredWeightUnit;
   final HydrionHeightUnit preferredHeightUnit;
+
   final HydrionReproductiveHydrationState reproductiveState;
+
+  /// Canonical pregnancy duration.
+  ///
+  /// This is only retained when [reproductiveState] is pregnant.
+  final int? pregnancyGestationalDays;
+
+  final HydrionPregnancyDurationUnit preferredPregnancyDurationUnit;
+
   final HydrionFluidSafetyMode fluidSafetyMode;
   final int? clinicianTargetMl;
   final bool allowAdjustmentsAboveClinicianTarget;
+
   final int? wakeMinuteOfDay;
   final int? sleepMinuteOfDay;
+
   final DateTime? updatedAt;
   final int schemaVersion;
 
@@ -70,6 +141,8 @@ class HydrionBodyMetrics {
     this.preferredWeightUnit = HydrionWeightUnit.kilograms,
     this.preferredHeightUnit = HydrionHeightUnit.centimetres,
     this.reproductiveState = HydrionReproductiveHydrationState.none,
+    this.pregnancyGestationalDays,
+    this.preferredPregnancyDurationUnit = HydrionPregnancyDurationUnit.weeks,
     this.fluidSafetyMode = HydrionFluidSafetyMode.none,
     this.clinicianTargetMl,
     this.allowAdjustmentsAboveClinicianTarget = false,
@@ -83,10 +156,44 @@ class HydrionBodyMetrics {
       HydrionBodyMetricsPolicy.validWeight(weightKg) &&
       HydrionBodyMetricsPolicy.validHeight(heightCm);
 
+  bool get hasValidPregnancyDuration =>
+      reproductiveState == HydrionReproductiveHydrationState.pregnant &&
+      HydrionBodyMetricsPolicy.validPregnancyDays(
+        pregnancyGestationalDays,
+      );
+
+  double? get pregnancyGestationalWeeks {
+    final days = pregnancyGestationalDays;
+
+    if (!HydrionBodyMetricsPolicy.validPregnancyDays(days)) {
+      return null;
+    }
+
+    return HydrionBodyMetricsPolicy.pregnancyDaysToWeeks(
+      days!,
+    );
+  }
+
+  double? get pregnancyGestationalMonths {
+    final days = pregnancyGestationalDays;
+
+    if (!HydrionBodyMetricsPolicy.validPregnancyDays(days)) {
+      return null;
+    }
+
+    return HydrionBodyMetricsPolicy.pregnancyDaysToMonths(
+      days!,
+    );
+  }
+
   double? get adultBmi {
-    if (!hasValidMeasurements) return null;
+    if (!hasValidMeasurements) {
+      return null;
+    }
+
     final metres = heightCm! / 100;
     final value = weightKg! / (metres * metres);
+
     return value.isFinite ? value : null;
   }
 
@@ -99,6 +206,9 @@ class HydrionBodyMetrics {
     HydrionWeightUnit? preferredWeightUnit,
     HydrionHeightUnit? preferredHeightUnit,
     HydrionReproductiveHydrationState? reproductiveState,
+    int? pregnancyGestationalDays,
+    bool clearPregnancyDuration = false,
+    HydrionPregnancyDurationUnit? preferredPregnancyDurationUnit,
     HydrionFluidSafetyMode? fluidSafetyMode,
     int? clinicianTargetMl,
     bool clearClinicianTarget = false,
@@ -117,6 +227,11 @@ class HydrionBodyMetrics {
       preferredWeightUnit: preferredWeightUnit ?? this.preferredWeightUnit,
       preferredHeightUnit: preferredHeightUnit ?? this.preferredHeightUnit,
       reproductiveState: reproductiveState ?? this.reproductiveState,
+      pregnancyGestationalDays: clearPregnancyDuration
+          ? null
+          : pregnancyGestationalDays ?? this.pregnancyGestationalDays,
+      preferredPregnancyDurationUnit:
+          preferredPregnancyDurationUnit ?? this.preferredPregnancyDurationUnit,
       fluidSafetyMode: fluidSafetyMode ?? this.fluidSafetyMode,
       clinicianTargetMl: clearClinicianTarget
           ? null
@@ -132,7 +247,23 @@ class HydrionBodyMetrics {
     );
   }
 
-  HydrionBodyMetrics sanitized({required bool femaleProfile}) {
+  HydrionBodyMetrics sanitized({
+    required bool femaleProfile,
+  }) {
+    final safeReproductiveState = femaleProfile
+        ? reproductiveState
+        : HydrionReproductiveHydrationState.none;
+
+    final pregnancyEligible =
+        safeReproductiveState == HydrionReproductiveHydrationState.pregnant;
+
+    final safePregnancyDays = pregnancyEligible &&
+            HydrionBodyMetricsPolicy.validPregnancyDays(
+              pregnancyGestationalDays,
+            )
+        ? pregnancyGestationalDays
+        : null;
+
     return HydrionBodyMetrics(
       personalizationEnabled: personalizationEnabled,
       weightKg:
@@ -141,9 +272,9 @@ class HydrionBodyMetrics {
           HydrionBodyMetricsPolicy.validHeight(heightCm) ? heightCm : null,
       preferredWeightUnit: preferredWeightUnit,
       preferredHeightUnit: preferredHeightUnit,
-      reproductiveState: femaleProfile
-          ? reproductiveState
-          : HydrionReproductiveHydrationState.none,
+      reproductiveState: safeReproductiveState,
+      pregnancyGestationalDays: safePregnancyDays,
+      preferredPregnancyDurationUnit: preferredPregnancyDurationUnit,
       fluidSafetyMode: fluidSafetyMode,
       clinicianTargetMl: _safeClinicianTarget(clinicianTargetMl),
       allowAdjustmentsAboveClinicianTarget:
@@ -162,6 +293,8 @@ class HydrionBodyMetrics {
         'preferredWeightUnit': preferredWeightUnit.name,
         'preferredHeightUnit': preferredHeightUnit.name,
         'reproductiveState': reproductiveState.name,
+        'pregnancyGestationalDays': pregnancyGestationalDays,
+        'preferredPregnancyDurationUnit': preferredPregnancyDurationUnit.name,
         'fluidSafetyMode': fluidSafetyMode.name,
         'clinicianTargetMl': clinicianTargetMl,
         'allowAdjustmentsAboveClinicianTarget':
@@ -172,9 +305,31 @@ class HydrionBodyMetrics {
       };
 
   static HydrionBodyMetrics fromJson(Object? value) {
-    if (value is! Map) return const HydrionBodyMetrics();
+    if (value is! Map) {
+      return const HydrionBodyMetrics();
+    }
+
     final weight = _safeDouble(value['weightKg']);
     final height = _safeDouble(value['heightCm']);
+
+    final reproductiveState = _enumValue(
+      HydrionReproductiveHydrationState.values,
+      value['reproductiveState'],
+      HydrionReproductiveHydrationState.none,
+    );
+
+    final storedPregnancyDays = _safePregnancyDays(
+      value['pregnancyGestationalDays'],
+    );
+
+    // Supports an experimental or older value stored as weeks.
+    final legacyPregnancyWeeks = _safeDouble(
+      value['pregnancyGestationalWeeks'],
+    );
+
+    final migratedPregnancyDays =
+        storedPregnancyDays ?? _pregnancyWeeksToSafeDays(legacyPregnancyWeeks);
+
     return HydrionBodyMetrics(
       personalizationEnabled: value['personalizationEnabled'] == true,
       weightKg: HydrionBodyMetricsPolicy.validWeight(weight) ? weight : null,
@@ -189,10 +344,15 @@ class HydrionBodyMetrics {
         value['preferredHeightUnit'],
         HydrionHeightUnit.centimetres,
       ),
-      reproductiveState: _enumValue(
-        HydrionReproductiveHydrationState.values,
-        value['reproductiveState'],
-        HydrionReproductiveHydrationState.none,
+      reproductiveState: reproductiveState,
+      pregnancyGestationalDays:
+          reproductiveState == HydrionReproductiveHydrationState.pregnant
+              ? migratedPregnancyDays
+              : null,
+      preferredPregnancyDurationUnit: _enumValue(
+        HydrionPregnancyDurationUnit.values,
+        value['preferredPregnancyDurationUnit'],
+        HydrionPregnancyDurationUnit.weeks,
       ),
       fluidSafetyMode: _enumValue(
         HydrionFluidSafetyMode.values,
@@ -204,12 +364,14 @@ class HydrionBodyMetrics {
           value['allowAdjustmentsAboveClinicianTarget'] == true,
       wakeMinuteOfDay: _safeMinute(value['wakeMinuteOfDay']),
       sleepMinuteOfDay: _safeMinute(value['sleepMinuteOfDay']),
-      updatedAt: DateTime.tryParse((value['updatedAt'] ?? '').toString()),
+      updatedAt: DateTime.tryParse(
+        (value['updatedAt'] ?? '').toString(),
+      ),
       schemaVersion: math.max(
         1,
-        (value['schemaVersion'] is num
+        value['schemaVersion'] is num
             ? (value['schemaVersion'] as num).round()
-            : 1),
+            : 1,
       ),
     );
   }
@@ -217,15 +379,60 @@ class HydrionBodyMetrics {
   static double? _safeDouble(Object? value) =>
       value is num && value.isFinite ? value.toDouble() : null;
 
+  static int? _safePregnancyDays(Object? value) {
+    if (value is! num || !value.isFinite) {
+      return null;
+    }
+
+    final days = value.toInt();
+    if (value != days) {
+      return null;
+    }
+
+    return HydrionBodyMetricsPolicy.validPregnancyDays(
+      days,
+    )
+        ? days
+        : null;
+  }
+
+  static int? _pregnancyWeeksToSafeDays(
+    double? weeks,
+  ) {
+    if (!HydrionBodyMetricsPolicy.validPregnancyWeeks(
+      weeks,
+    )) {
+      return null;
+    }
+
+    final days = HydrionBodyMetricsPolicy.pregnancyWeeksToDays(
+      weeks!,
+    );
+
+    return HydrionBodyMetricsPolicy.validPregnancyDays(
+      days,
+    )
+        ? days
+        : null;
+  }
+
   static int? _safeMinute(Object? value) {
-    if (value is! num || !value.isFinite) return null;
+    if (value is! num || !value.isFinite) {
+      return null;
+    }
+
     final minute = value.round();
+
     return minute >= 0 && minute < 1440 ? minute : null;
   }
 
   static int? _safeClinicianTarget(Object? value) {
-    if (value is! num || !value.isFinite) return null;
+    if (value is! num || !value.isFinite) {
+      return null;
+    }
+
     final target = value.round();
+
     return target >= 500 && target <= 5000 ? target : null;
   }
 
@@ -235,9 +442,13 @@ class HydrionBodyMetrics {
     T fallback,
   ) {
     final name = raw?.toString();
+
     for (final value in values) {
-      if (value.name == name) return value;
+      if (value.name == name) {
+        return value;
+      }
     }
+
     return fallback;
   }
 }
@@ -256,8 +467,18 @@ HydrionAdultBmiCategory? adultBmiCategory({
   if (age == null || age < 20 || bmi == null || !bmi.isFinite || bmi <= 0) {
     return null;
   }
-  if (bmi < 18.5) return HydrionAdultBmiCategory.belowStandardRange;
-  if (bmi < 25) return HydrionAdultBmiCategory.standardRange;
-  if (bmi < 30) return HydrionAdultBmiCategory.aboveStandardRange;
+
+  if (bmi < 18.5) {
+    return HydrionAdultBmiCategory.belowStandardRange;
+  }
+
+  if (bmi < 25) {
+    return HydrionAdultBmiCategory.standardRange;
+  }
+
+  if (bmi < 30) {
+    return HydrionAdultBmiCategory.aboveStandardRange;
+  }
+
   return HydrionAdultBmiCategory.higherStandardRange;
 }

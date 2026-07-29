@@ -39,6 +39,11 @@ does not automatically increase the goal.
 
 Hydration needs can vary based on body size, age, activity, climate, altitude, diet, illness, pregnancy, breastfeeding, medications, kidney function, heart function, electrolyte balance, fluid restrictions, and professional instructions.
 
+Hydrion does not determine gestational age, estimate a due date, diagnose a
+pregnancy stage, or replace prenatal care or guidance from a qualified
+clinician. Any pregnancy duration entered is user-provided general-wellness
+context only.
+
 Hydrion goals, reminders, streaks, achievements, weather adjustments, challenges, analytics, and coaching text are estimates. They may be too high, too low, incomplete, delayed, or unsuitable for your circumstances.
 
 ## More Water Is Not Always Better

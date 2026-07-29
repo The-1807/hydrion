@@ -409,5 +409,20 @@
   "recommendationLoggingConsistency": "Un reto de registro variado puede ayudarte a ganar constancia.",
   "recommendationWaterRichFood": "Coincide con tu interes en anadir alimentos ricos en agua.",
   "recommendationVisualConsistency": "Coincide con tu preferencia por la constancia visual diaria.",
-  "recommendationInfusionVariety": "Coincide con tu interes en la variedad de infusiones y sabores."
+  "recommendationInfusionVariety": "Coincide con tu interes en la variedad de infusiones y sabores.",
+  "pregnancyDurationTitle": "¿De cuánto tiempo estás?",
+  "pregnancyDurationDays": "Días",
+  "pregnancyDurationWeeks": "Semanas",
+  "pregnancyDurationMonths": "Meses",
+  "pregnancyDurationInputLabel": "Duración del embarazo",
+  "pregnancyDurationHelp": "Introduce una duración entre 1 día y 42 semanas.",
+  "pregnancyDurationInvalid": "Introduce una duración válida entre 1 día y 42 semanas.",
+  "pregnancyDurationMonthsHelp": "Los meses se convierten de forma aproximada y se guardan localmente.",
+  "pregnancyDurationSummary": "Aproximadamente {weeks} semanas y {days} días.",
+  "@pregnancyDurationSummary": {
+    "placeholders": {
+      "weeks": {"type": "int"},
+      "days": {"type": "int"}
+    }
+  }
 }

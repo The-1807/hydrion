@@ -29,6 +29,10 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   late HydrionWeightUnit _weightUnit;
   late HydrionHeightUnit _heightUnit;
   late HydrionReproductiveHydrationState _reproductiveState;
+  late HydrionPregnancyDurationUnit _pregnancyDurationUnit;
+  int? _pregnancyGestationalDays;
+  final _pregnancyDuration = TextEditingController();
+  String? _pregnancyDurationError;
   late HydrionFluidSafetyMode _safetyMode;
   late bool _allowAboveTarget;
   final _clinicianTarget = TextEditingController();
@@ -61,6 +65,9 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     _weightUnit = metrics.preferredWeightUnit;
     _heightUnit = metrics.preferredHeightUnit;
     _reproductiveState = metrics.reproductiveState;
+    _pregnancyDurationUnit = metrics.preferredPregnancyDurationUnit;
+    _pregnancyGestationalDays = metrics.pregnancyGestationalDays;
+    _syncPregnancyDurationField();
     _safetyMode = metrics.fluidSafetyMode;
     _allowAboveTarget = metrics.allowAdjustmentsAboveClinicianTarget;
     _clinicianTarget.text = metrics.clinicianTargetMl?.toString() ?? '';
@@ -79,6 +86,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     _manualWeight.dispose();
     _manualHeight.dispose();
     _activityMinutes.dispose();
+    _pregnancyDuration.dispose();
     super.dispose();
   }
 
@@ -93,8 +101,54 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
         .toStringAsFixed(1);
   }
 
+  void _syncPregnancyDurationField() {
+    final days = _pregnancyGestationalDays;
+    if (days == null) {
+      _pregnancyDuration.text = '';
+      return;
+    }
+    final value = switch (_pregnancyDurationUnit) {
+      HydrionPregnancyDurationUnit.days => days.toDouble(),
+      HydrionPregnancyDurationUnit.weeks =>
+        HydrionBodyMetricsPolicy.pregnancyDaysToWeeks(days),
+      HydrionPregnancyDurationUnit.months =>
+        HydrionBodyMetricsPolicy.pregnancyDaysToMonths(days),
+    };
+    _pregnancyDuration.text = _displayDuration(value);
+  }
+
+  String _displayDuration(double value) {
+    if (value == value.roundToDouble()) return value.round().toString();
+    return value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
+  }
+
+  int? _parsePregnancyDuration() {
+    final raw = _pregnancyDuration.text.trim();
+    final value = double.tryParse(raw);
+    if (raw.isEmpty || value == null || !value.isFinite || value <= 0) {
+      return null;
+    }
+    final days = switch (_pregnancyDurationUnit) {
+      HydrionPregnancyDurationUnit.days =>
+        value == value.roundToDouble() ? value.round() : null,
+      HydrionPregnancyDurationUnit.weeks =>
+        HydrionBodyMetricsPolicy.pregnancyWeeksToDays(value),
+      HydrionPregnancyDurationUnit.months =>
+        HydrionBodyMetricsPolicy.pregnancyMonthsToDays(value),
+    };
+    return HydrionBodyMetricsPolicy.validPregnancyDays(days) ? days : null;
+  }
+
   Future<void> _saveMetrics() async {
     final l10n = AppLocalizations.of(context);
+    if (_reproductiveState == HydrionReproductiveHydrationState.pregnant) {
+      final days = _parsePregnancyDuration();
+      if (days == null) {
+        setState(() => _pregnancyDurationError = l10n.pregnancyDurationInvalid);
+        return;
+      }
+      _pregnancyGestationalDays = days;
+    }
     final settings = context.read<UserSettingsRepository>().settings;
     final target = int.tryParse(_clinicianTarget.text.trim());
     final saved = await context.read<BodyMetricsRepository>().save(
@@ -107,6 +161,11 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
             reproductiveState: settings.sex == HydrionSex.female
                 ? _reproductiveState
                 : HydrionReproductiveHydrationState.none,
+            pregnancyGestationalDays:
+                _reproductiveState == HydrionReproductiveHydrationState.pregnant
+                    ? _pregnancyGestationalDays
+                    : null,
+            preferredPregnancyDurationUnit: _pregnancyDurationUnit,
             fluidSafetyMode: _safetyMode,
             clinicianTargetMl:
                 _safetyMode == HydrionFluidSafetyMode.clinicianTarget
@@ -146,6 +205,10 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     if (!mounted) return;
     setState(() {
       _enabled = false;
+      _reproductiveState = HydrionReproductiveHydrationState.none;
+      _pregnancyGestationalDays = null;
+      _pregnancyDuration.clear();
+      _pregnancyDurationError = null;
       _recommendation = null;
     });
     ScaffoldMessenger.of(context)
@@ -365,8 +428,36 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
                           child: Text(_reproductiveLabel(l10n, value)),
                         ))
                     .toList(),
-                onChanged: (value) =>
-                    setState(() => _reproductiveState = value!),
+                onChanged: (value) => setState(() {
+                  _reproductiveState = value!;
+                  if (value != HydrionReproductiveHydrationState.pregnant) {
+                    _pregnancyGestationalDays = null;
+                    _pregnancyDuration.clear();
+                    _pregnancyDurationError = null;
+                  }
+                }),
+              ),
+            if (settings.sex == HydrionSex.female &&
+                _reproductiveState ==
+                    HydrionReproductiveHydrationState.pregnant)
+              _PregnancyDurationEditor(
+                unit: _pregnancyDurationUnit,
+                controller: _pregnancyDuration,
+                errorText: _pregnancyDurationError,
+                canonicalDays: _pregnancyGestationalDays,
+                onUnitChanged: (unit) => setState(() {
+                  final entered = _parsePregnancyDuration();
+                  if (entered != null) {
+                    _pregnancyGestationalDays = entered;
+                  }
+                  _pregnancyDurationUnit = unit;
+                  _syncPregnancyDurationField();
+                  _pregnancyDurationError = null;
+                }),
+                onChanged: (_) => setState(() {
+                  _pregnancyGestationalDays = _parsePregnancyDuration();
+                  _pregnancyDurationError = null;
+                }),
               ),
             const SizedBox(height: 12),
             DropdownButtonFormField<HydrionFluidSafetyMode>(
@@ -441,6 +532,93 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PregnancyDurationEditor extends StatelessWidget {
+  final HydrionPregnancyDurationUnit unit;
+  final TextEditingController controller;
+  final String? errorText;
+  final int? canonicalDays;
+  final ValueChanged<HydrionPregnancyDurationUnit> onUnitChanged;
+  final ValueChanged<String> onChanged;
+
+  const _PregnancyDurationEditor({
+    required this.unit,
+    required this.controller,
+    required this.errorText,
+    required this.canonicalDays,
+    required this.onUnitChanged,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final weeks = canonicalDays == null ? null : canonicalDays! ~/ 7;
+    final days = canonicalDays == null ? null : canonicalDays! % 7;
+    return Padding(
+      key: const Key('pregnancy-duration-editor'),
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.pregnancyDurationTitle,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          SegmentedButton<HydrionPregnancyDurationUnit>(
+            key: const Key('pregnancy-duration-unit'),
+            selected: {unit},
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(
+                value: HydrionPregnancyDurationUnit.days,
+                label: Text(l10n.pregnancyDurationDays),
+              ),
+              ButtonSegment(
+                value: HydrionPregnancyDurationUnit.weeks,
+                label: Text(l10n.pregnancyDurationWeeks),
+              ),
+              ButtonSegment(
+                value: HydrionPregnancyDurationUnit.months,
+                label: Text(l10n.pregnancyDurationMonths),
+              ),
+            ],
+            onSelectionChanged: (selection) => onUnitChanged(selection.single),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const Key('pregnancy-duration-input'),
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+            ],
+            decoration: InputDecoration(
+              labelText: l10n.pregnancyDurationInputLabel,
+              helperText: unit == HydrionPregnancyDurationUnit.months
+                  ? l10n.pregnancyDurationMonthsHelp
+                  : l10n.pregnancyDurationHelp,
+              errorText: errorText,
+            ),
+            onChanged: onChanged,
+          ),
+          if (weeks != null && days != null)
+            Semantics(
+              liveRegion: true,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  l10n.pregnancyDurationSummary(weeks: weeks, days: days),
+                  key: const Key('pregnancy-duration-summary'),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

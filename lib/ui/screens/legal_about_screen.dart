@@ -361,31 +361,37 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
             _InlineLegalError(message: _inlineErrors['review']!),
           ],
           const SizedBox(height: 12),
-          CheckboxListTile(
-            key: const Key('onboarding-terms-accept'),
-            contentPadding: EdgeInsets.zero,
-            value: widget.termsAccepted,
-            onChanged: (value) => _setTermsAccepted(value == true),
-            title: const Text('I accept the Hydrion Terms of Use.'),
-            subtitle: Text(
-              'Version ${HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion}',
+          Material(
+            type: MaterialType.transparency,
+            child: CheckboxListTile(
+              key: const Key('onboarding-terms-accept'),
+              contentPadding: EdgeInsets.zero,
+              value: widget.termsAccepted,
+              onChanged: (value) => _setTermsAccepted(value == true),
+              title: const Text('I accept the Hydrion Terms of Use.'),
+              subtitle: Text(
+                'Version ${HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion}',
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
             ),
-            controlAffinity: ListTileControlAffinity.leading,
           ),
           if (_inlineErrors['terms'] != null)
             _InlineLegalError(message: _inlineErrors['terms']!),
-          CheckboxListTile(
-            key: const Key('onboarding-health-ack'),
-            contentPadding: EdgeInsets.zero,
-            value: widget.healthAcknowledged,
-            onChanged: (value) => _setHealthAcknowledged(value == true),
-            title: const Text(
-              'I acknowledge the Health and Safety Disclaimer.',
+          Material(
+            type: MaterialType.transparency,
+            child: CheckboxListTile(
+              key: const Key('onboarding-health-ack'),
+              contentPadding: EdgeInsets.zero,
+              value: widget.healthAcknowledged,
+              onChanged: (value) => _setHealthAcknowledged(value == true),
+              title: const Text(
+                'I acknowledge the Health and Safety Disclaimer.',
+              ),
+              subtitle: Text(
+                'Version ${HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion}',
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
             ),
-            subtitle: Text(
-              'Version ${HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion}',
-            ),
-            controlAffinity: ListTileControlAffinity.leading,
           ),
           if (_inlineErrors['health'] != null)
             _InlineLegalError(message: _inlineErrors['health']!),

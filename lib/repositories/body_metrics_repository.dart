@@ -51,6 +51,12 @@ class BodyMetricsRepository extends ChangeNotifier {
         !HydrionBodyMetricsPolicy.validHeight(value.heightCm)) {
       return false;
     }
+    if (value.pregnancyGestationalDays != null &&
+        !HydrionBodyMetricsPolicy.validPregnancyDays(
+          value.pregnancyGestationalDays,
+        )) {
+      return false;
+    }
     _metrics = value
         .sanitized(femaleProfile: femaleProfile)
         .copyWith(updatedAt: now ?? DateTime.now());
@@ -68,6 +74,9 @@ class BodyMetricsRepository extends ChangeNotifier {
     HydrionWeightUnit? preferredWeightUnit,
     HydrionHeightUnit? preferredHeightUnit,
     HydrionReproductiveHydrationState? reproductiveState,
+    int? pregnancyGestationalDays,
+    bool clearPregnancyDuration = false,
+    HydrionPregnancyDurationUnit? preferredPregnancyDurationUnit,
     HydrionFluidSafetyMode? fluidSafetyMode,
     int? clinicianTargetMl,
     bool clearClinicianTarget = false,
@@ -89,6 +98,9 @@ class BodyMetricsRepository extends ChangeNotifier {
         preferredWeightUnit: preferredWeightUnit,
         preferredHeightUnit: preferredHeightUnit,
         reproductiveState: reproductiveState,
+        pregnancyGestationalDays: pregnancyGestationalDays,
+        clearPregnancyDuration: clearPregnancyDuration,
+        preferredPregnancyDurationUnit: preferredPregnancyDurationUnit,
         fluidSafetyMode: fluidSafetyMode,
         clinicianTargetMl: clinicianTargetMl,
         clearClinicianTarget: clearClinicianTarget,
@@ -149,7 +161,10 @@ class BodyMetricsRepository extends ChangeNotifier {
       final metrics = HydrionBodyMetrics.fromJson(decoded);
       final invalidValues =
           (decoded['weightKg'] != null && metrics.weightKg == null) ||
-              (decoded['heightCm'] != null && metrics.heightCm == null);
+              (decoded['heightCm'] != null && metrics.heightCm == null) ||
+              (decoded['pregnancyGestationalDays'] != null &&
+                  decoded['reproductiveState'] == 'pregnant' &&
+                  metrics.pregnancyGestationalDays == null);
       return _BodyMetricsDecodeResult(
         metrics,
         invalidValues

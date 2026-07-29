@@ -498,7 +498,8 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
     if (!mounted) return;
     _refreshMeasurements();
     _cardFocusNode.requestFocus();
-    SemanticsService.announce(
+    SemanticsService.sendAnnouncement(
+      View.of(context),
       '${widget.step.title}. ${widget.step.body}. '
       'Step ${widget.index + 1} of ${widget.total}.',
       textDirection,

@@ -2357,6 +2357,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Matches your interest in infusion and flavor variety.'**
   String get recommendationInfusionVariety;
+
+  /// No description provided for @pregnancyDurationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How far along are you?'**
+  String get pregnancyDurationTitle;
+
+  /// No description provided for @pregnancyDurationDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days'**
+  String get pregnancyDurationDays;
+
+  /// No description provided for @pregnancyDurationWeeks.
+  ///
+  /// In en, this message translates to:
+  /// **'Weeks'**
+  String get pregnancyDurationWeeks;
+
+  /// No description provided for @pregnancyDurationMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'Months'**
+  String get pregnancyDurationMonths;
+
+  /// No description provided for @pregnancyDurationInputLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pregnancy duration'**
+  String get pregnancyDurationInputLabel;
+
+  /// No description provided for @pregnancyDurationHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a pregnancy duration between 1 day and 42 weeks.'**
+  String get pregnancyDurationHelp;
+
+  /// No description provided for @pregnancyDurationInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid pregnancy duration between 1 day and 42 weeks.'**
+  String get pregnancyDurationInvalid;
+
+  /// No description provided for @pregnancyDurationMonthsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Months are converted approximately and stored locally.'**
+  String get pregnancyDurationMonthsHelp;
+
+  /// No description provided for @pregnancyDurationSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Approximately {weeks} weeks, {days} days.'**
+  String pregnancyDurationSummary({required int weeks, required int days});
 }
 
 class _AppLocalizationsDelegate

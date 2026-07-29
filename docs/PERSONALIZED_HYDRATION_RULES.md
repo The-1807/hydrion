@@ -104,6 +104,13 @@ Male, intersex, and prefer-not-to-say profiles neither display nor apply the
 modifier. Incompatible legacy data is sanitized to `none`. The modifier is a
 bounded general estimate, not pregnancy care.
 
+For a pregnant profile, gestational duration is stored canonically as total
+days from 1 through 294 (42 weeks). The editor may display days, weeks, or
+approximate months; month conversion uses 30.436875 days. Changing display
+units never changes the stored day value. Duration does not alter the fixed
+pregnancy adjustment, determine pregnancy stage, or calculate a due date. It
+is an optional local general-wellness profile field.
+
 ## Activity and sweat tiers
 
 - Rest/light below 30 minutes: 0 mL
