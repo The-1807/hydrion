@@ -409,5 +409,20 @@
   "recommendationLoggingConsistency": "Un defi de suivi varie peut vous aider a gagner en regularite.",
   "recommendationWaterRichFood": "Correspond a votre interet pour les aliments riches en eau.",
   "recommendationVisualConsistency": "Correspond a votre preference pour la regularite visuelle quotidienne.",
-  "recommendationInfusionVariety": "Correspond a votre interet pour les infusions et les saveurs variees."
+  "recommendationInfusionVariety": "Correspond a votre interet pour les infusions et les saveurs variees.",
+  "pregnancyDurationTitle": "Où en êtes-vous dans votre grossesse ?",
+  "pregnancyDurationDays": "Jours",
+  "pregnancyDurationWeeks": "Semaines",
+  "pregnancyDurationMonths": "Mois",
+  "pregnancyDurationInputLabel": "Durée de la grossesse",
+  "pregnancyDurationHelp": "Saisissez une durée comprise entre 1 jour et 42 semaines.",
+  "pregnancyDurationInvalid": "Saisissez une durée de grossesse valide entre 1 jour et 42 semaines.",
+  "pregnancyDurationMonthsHelp": "Les mois sont convertis approximativement et enregistrés localement.",
+  "pregnancyDurationSummary": "Environ {weeks} semaines et {days} jours.",
+  "@pregnancyDurationSummary": {
+    "placeholders": {
+      "weeks": {"type": "int"},
+      "days": {"type": "int"}
+    }
+  }
 }

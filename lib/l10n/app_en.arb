@@ -650,5 +650,20 @@
   "recommendationLoggingConsistency": "A varied logging challenge may help you build consistency.",
   "recommendationWaterRichFood": "Matches your interest in adding water-rich foods to your routine.",
   "recommendationVisualConsistency": "Matches your preference for visual daily consistency.",
-  "recommendationInfusionVariety": "Matches your interest in infusion and flavor variety."
+  "recommendationInfusionVariety": "Matches your interest in infusion and flavor variety.",
+  "pregnancyDurationTitle": "How far along are you?",
+  "pregnancyDurationDays": "Days",
+  "pregnancyDurationWeeks": "Weeks",
+  "pregnancyDurationMonths": "Months",
+  "pregnancyDurationInputLabel": "Pregnancy duration",
+  "pregnancyDurationHelp": "Enter a pregnancy duration between 1 day and 42 weeks.",
+  "pregnancyDurationInvalid": "Enter a valid pregnancy duration between 1 day and 42 weeks.",
+  "pregnancyDurationMonthsHelp": "Months are converted approximately and stored locally.",
+  "pregnancyDurationSummary": "Approximately {weeks} weeks, {days} days.",
+  "@pregnancyDurationSummary": {
+    "placeholders": {
+      "weeks": {"type": "int"},
+      "days": {"type": "int"}
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/l10n/app_localizations.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
 import 'package:hydrion/repositories/daily_hydration_context_repository.dart';
@@ -17,10 +18,11 @@ void main() {
     required HydrionSex sex,
     ThemeMode themeMode = ThemeMode.light,
     double textScale = 1,
+    BodyMetricsRepository? bodyMetricsRepository,
   }) async {
     final settings = UserSettingsRepository.memory(locale);
     await settings.setProfile(nickname: 'River', age: 30, sex: sex);
-    final bodyMetrics = BodyMetricsRepository.memory();
+    final bodyMetrics = bodyMetricsRepository ?? BodyMetricsRepository.memory();
     final dailyContext = DailyHydrationContextRepository.memory();
     final state = PersonalizationStateRepository.memory();
     final coordinator = DailyHydrationRecommendationCoordinator(
@@ -108,6 +110,71 @@ void main() {
       sex: HydrionSex.intersex,
     );
     expect(find.byKey(const Key('reproductive-state')), findsNothing);
+  });
+
+  testWidgets(
+      'pregnancy duration is required, saves, and switches without drift',
+      (tester) async {
+    final repository = BodyMetricsRepository.memory();
+    await pumpScreen(
+      tester,
+      locale: const Locale('en'),
+      sex: HydrionSex.female,
+      bodyMetricsRepository: repository,
+    );
+    expect(find.byKey(const Key('pregnancy-duration-editor')), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('reproductive-state')),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const Key('reproductive-state')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pregnant').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pregnancy-duration-editor')), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('save-body-metrics')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const Key('save-body-metrics')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pregnancy-duration-input')),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final durationField = tester.widget<TextField>(
+      find.byKey(const Key('pregnancy-duration-input')),
+    );
+    expect(
+      durationField.decoration?.errorText,
+      contains('valid pregnancy duration'),
+    );
+    expect(repository.metrics.reproductiveState,
+        HydrionReproductiveHydrationState.none);
+
+    await tester.enterText(
+      find.byKey(const Key('pregnancy-duration-input')),
+      '24',
+    );
+    await tester.pump();
+    expect(find.text('Approximately 24 weeks, 0 days.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('save-body-metrics')));
+    await tester.pumpAndSettle();
+    expect(repository.metrics.pregnancyGestationalDays, 168);
+
+    final unitControl = find.byKey(const Key('pregnancy-duration-unit'));
+    await tester.ensureVisible(unitControl);
+    tester
+        .widget<SegmentedButton<HydrionPregnancyDurationUnit>>(unitControl)
+        .onSelectionChanged!({HydrionPregnancyDurationUnit.months});
+    await tester.pumpAndSettle();
+    expect(repository.metrics.pregnancyGestationalDays, 168);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('French and Spanish body-metric consent copy is localized',

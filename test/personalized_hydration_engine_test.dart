@@ -229,6 +229,22 @@ void main() {
       expect(lactating.reproductiveAdjustmentMl, 700);
     });
 
+    test('pregnancy duration never changes the fixed adjustment', () {
+      for (final days in [1, 84, 168, 294]) {
+        final result = engine.calculate(inputs(
+          metrics: HydrionBodyMetrics(
+            personalizationEnabled: true,
+            weightKg: 70,
+            heightCm: 170,
+            reproductiveState: HydrionReproductiveHydrationState.pregnant,
+            pregnancyGestationalDays: days,
+          ),
+        ));
+        expect(result.reproductiveAdjustmentMl, 300, reason: '$days days');
+        expect(result.baselineGoalMl, 2100, reason: '$days days');
+      }
+    });
+
     test('non-female profiles ignore incompatible persisted state', () {
       for (final sex in [
         HydrionSex.male,

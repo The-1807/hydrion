@@ -1370,4 +1370,36 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get recommendationInfusionVariety =>
       'Correspond a votre interet pour les infusions et les saveurs variees.';
+
+  @override
+  String get pregnancyDurationTitle => 'Où en êtes-vous dans votre grossesse ?';
+
+  @override
+  String get pregnancyDurationDays => 'Jours';
+
+  @override
+  String get pregnancyDurationWeeks => 'Semaines';
+
+  @override
+  String get pregnancyDurationMonths => 'Mois';
+
+  @override
+  String get pregnancyDurationInputLabel => 'Durée de la grossesse';
+
+  @override
+  String get pregnancyDurationHelp =>
+      'Saisissez une durée comprise entre 1 jour et 42 semaines.';
+
+  @override
+  String get pregnancyDurationInvalid =>
+      'Saisissez une durée de grossesse valide entre 1 jour et 42 semaines.';
+
+  @override
+  String get pregnancyDurationMonthsHelp =>
+      'Les mois sont convertis approximativement et enregistrés localement.';
+
+  @override
+  String pregnancyDurationSummary({required int weeks, required int days}) {
+    return 'Environ $weeks semaines et $days jours.';
+  }
 }

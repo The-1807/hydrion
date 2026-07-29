@@ -420,6 +420,12 @@
 - [ ] Local data persists after restarting the device.
 - [ ] Local data survives a normal application update.
 - [ ] Data migrations are tested.
+- [ ] Schema-1 body metrics migrate without losing existing profile fields.
+- [ ] Pregnancy duration validates 1-294 canonical days in days, weeks, and approximate months.
+- [ ] Pregnancy duration persists, survives unit switching without drift, and clears when leaving Pregnant.
+- [ ] Profile deletion removes pregnancy duration with the body-metrics namespace.
+- [ ] Pregnancy controls are visible only for eligible profiles and localized in English, French, and Spanish.
+- [ ] Pregnancy duration layout is verified on narrow Android, large text, and dark theme.
 - [ ] Existing storage keys remain compatible or migrate safely.
 - [ ] Corrupt local data is handled without crashing.
 - [ ] Resetting local data removes only the intended records.

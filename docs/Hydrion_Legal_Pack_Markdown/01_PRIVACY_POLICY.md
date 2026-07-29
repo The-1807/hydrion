@@ -51,7 +51,8 @@ Hydrion may store the following information on your device when you use the app:
   centimetres;
 - an optional BMI screening estimate, which is derived locally and is not a
   diagnosis or body-composition measurement;
-- an optional pregnancy or lactation selection for female profiles;
+- an optional pregnancy or lactation selection for female profiles, including
+  locally stored pregnancy duration when Pregnant is selected;
 - optional daily activity, outdoor exposure, sweat-level, and temporary
   wellness context;
 - an optional clinician-set hydration target, fluid-restriction state, and
@@ -74,7 +75,7 @@ only optional network input to this calculation and follows the location
 disclosure in this policy.
 
 Deleting the local profile removes body metrics, calculated personalization
-state, pregnancy or lactation selection, clinician target, fluid-restriction
+state, pregnancy or lactation selection and pregnancy duration, clinician target, fluid-restriction
 state, retained daily contexts, challenge-suggestion preferences, and
 challenge-recommendation dismissals.
 
@@ -160,6 +161,10 @@ not remote account deletion. Deleting a profile does not revoke Android
 notification or location permissions; those grants remain controlled through
 device settings. A newly created local profile reads the installation's real
 permission state and does not assume that access has never been granted.
+
+Adding pregnancy duration introduces no cloud account, advertising, health
+platform, or AI-provider transfer. The value remains in Hydrion's local
+body-metrics storage until it is changed or cleared through existing controls.
 Operating system storage controls, permissions, backup, and uninstall behavior
 are controlled by the platform and device.
 
