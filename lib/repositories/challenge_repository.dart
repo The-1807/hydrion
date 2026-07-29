@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../domain/challenge_catalog.dart';
+import '../domain/challenge_eligibility.dart';
 import '../domain/challenge_experience.dart';
 import '../domain/bottle_bingo.dart';
 import '../domain/hydration_contracts.dart';
@@ -427,8 +428,16 @@ class ChallengeRepository extends ChangeNotifier {
     required int targetMl,
     required int durationDays,
     DateTime? joinedAt,
+    int? profileAge,
     Map<String, Object?> parameters = const <String, Object?>{},
   }) async {
+    final eligibility = HydrionChallengeEligibilityPolicy.evaluate(
+      challengeId: id,
+      age: profileAge,
+    );
+    if (!eligibility.eligible) {
+      return false;
+    }
     final startedAt = joinedAt ?? DateTime.now();
     final joined = JoinedChallenge(
       id: id,

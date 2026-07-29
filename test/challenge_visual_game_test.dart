@@ -11,7 +11,7 @@ import 'package:hydrion/storage/local_store.dart';
 
 void main() {
   test('every current challenge has an explicit visual identity', () {
-    expect(HydrionChallengeCatalog.challenges, hasLength(6));
+    expect(HydrionChallengeCatalog.challenges, hasLength(14));
     expect(
       HydrionChallengeCatalog.challenges.map((item) => item.id),
       isNot(contains('front-loader-challenge')),

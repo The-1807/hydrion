@@ -107,7 +107,7 @@ class _PermissionCenterScreenState extends State<PermissionCenterScreen>
   }
 }
 
-class _PermissionCard extends StatelessWidget {
+class _PermissionCard extends StatefulWidget {
   final IconData icon;
   final String title;
   final HydrionPermissionCapability capability;
@@ -128,7 +128,28 @@ class _PermissionCard extends StatelessWidget {
   });
 
   @override
+  State<_PermissionCard> createState() => _PermissionCardState();
+}
+
+class _PermissionCardState extends State<_PermissionCard> {
+  bool _requesting = false;
+
+  Future<void> _run(Future<Object?> Function() action) async {
+    if (_requesting) return;
+    setState(() => _requesting = true);
+    try {
+      await action();
+      if (mounted) {
+        await context.read<Permissions>().refresh();
+      }
+    } finally {
+      if (mounted) setState(() => _requesting = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final capability = widget.capability;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -138,46 +159,61 @@ class _PermissionCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon),
+                Icon(widget.icon),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        widget.title,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 4),
-                      Text(_stateLabel(capability.state)),
+                      Text(
+                        _requesting
+                            ? 'Requesting'
+                            : _stateLabel(capability.state),
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            Text(capability.explanation),
+            Text(
+              _requesting
+                  ? 'Waiting for the device permission result...'
+                  : capability.explanation,
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 if (capability.canRequestDirectly ||
-                    (title == 'Precise reminder timing' &&
+                    (widget.title == 'Precise reminder timing' &&
                         capability.state == HydrionPermissionState.denied))
                   FilledButton(
-                    onPressed: onAllow,
-                    child: Text(allowLabel),
+                    onPressed: _requesting ? null : () => _run(widget.onAllow),
+                    child: _requesting
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(widget.allowLabel),
                   ),
                 if (capability.settingsRequired)
                   OutlinedButton(
-                    onPressed: onSettings,
+                    onPressed:
+                        _requesting ? null : () => _run(widget.onSettings),
                     child: const Text('Open device settings'),
                   ),
                 if (!capability.isGranted)
                   TextButton(
-                    onPressed: () => Navigator.maybePop(context),
-                    child: Text(continueLabel),
+                    onPressed:
+                        _requesting ? null : () => Navigator.maybePop(context),
+                    child: Text(widget.continueLabel),
                   ),
               ],
             ),

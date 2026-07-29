@@ -9,6 +9,7 @@ import 'adapters/local/local_hydrion_adapters.dart';
 import 'domain/hydration_contracts.dart';
 import 'domain/body_metrics.dart';
 import 'domain/legal_document_registry.dart';
+import 'domain/life_stage_policy.dart';
 import 'l10n/app_localizations.dart';
 import 'repositories/challenge_repository.dart';
 import 'repositories/body_metrics_repository.dart';
@@ -52,6 +53,7 @@ import 'ui/screens/settings_screen.dart';
 import 'ui/screens/social_challenges_screen.dart';
 import 'ui/screens/startup_screen.dart';
 import 'ui/screens/profile_screen.dart';
+import 'ui/screens/profile_age_review_screen.dart';
 import 'ui/screens/body_metrics_screen.dart';
 import 'ui/components/hydrion_system_ui.dart';
 import 'ui/theme/hydrion_design.dart';
@@ -112,6 +114,11 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
     final settings = services.settingsRepository.settings;
     if (!settings.onboardingCompleted) {
       return '/onboarding';
+    }
+    final accessStage = HydrionLifeStagePolicy.productAccessStage(settings.age);
+    if (accessStage == HydrionProductAccessStage.unsupportedIndependentChild ||
+        accessStage == HydrionProductAccessStage.invalid) {
+      return '/profile-age-review';
     }
     if (HydrionLegalAcceptancePolicy.needsReview(
       onboardingCompleted: settings.onboardingCompleted,
@@ -214,6 +221,13 @@ class HydrionApp extends StatelessWidget {
               if (!settings.onboardingCompleted) {
                 return '/onboarding';
               }
+              final accessStage =
+                  HydrionLifeStagePolicy.productAccessStage(settings.age);
+              if (accessStage ==
+                      HydrionProductAccessStage.unsupportedIndependentChild ||
+                  accessStage == HydrionProductAccessStage.invalid) {
+                return '/profile-age-review';
+              }
               if (HydrionLegalAcceptancePolicy.needsReview(
                 onboardingCompleted: settings.onboardingCompleted,
                 acceptedTermsVersion: settings.acceptedTermsVersion,
@@ -235,6 +249,7 @@ class HydrionApp extends StatelessWidget {
       '/settings': (_) => const SettingsScreen(),
       '/permissions': (_) => const PermissionCenterScreen(),
       '/profile': (_) => const ProfileScreen(),
+      '/profile-age-review': (_) => const ProfileAgeReviewScreen(),
       '/body-metrics': (_) => const BodyMetricsScreen(),
       '/legal-about': (_) => const LegalAboutScreen(),
       '/legal-review': (_) => const LegalReviewScreen(),

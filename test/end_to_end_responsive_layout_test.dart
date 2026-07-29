@@ -287,15 +287,27 @@ void main() {
 
   testWidgets('every challenge setup exposes its final action on compact phone',
       (tester) async {
-    await pumpHydrion(
-      tester,
-      size: const Size(320, 568),
-      route: '/challenges',
-      textScale: 1.3,
-      viewPadding: const EdgeInsets.only(top: 24, bottom: 48),
-    );
-
     for (final challenge in HydrionChallengeCatalog.challenges) {
+      final services = HydrionServices.memory(
+        guidedTourRepository: GuidedTourRepository.memory(completed: true),
+      );
+      await services.settingsRepository.setProfile(
+        nickname: 'Layout tester',
+        age: challenge.id == 'lunch-break-refill' ||
+                challenge.id == 'homework-hydration' ||
+                challenge.id == 'after-school-recharge' ||
+                challenge.id == 'backpack-bottle-check'
+            ? 17
+            : 20,
+      );
+      await pumpHydrion(
+        tester,
+        size: const Size(320, 568),
+        route: '/challenges',
+        textScale: 1.3,
+        viewPadding: const EdgeInsets.only(top: 24, bottom: 48),
+        services: services,
+      );
       final card = find.byKey(Key('challenge-card-${challenge.id}'));
       await revealByScrolling(
         tester,
@@ -328,12 +340,21 @@ void main() {
       final services = HydrionServices.memory(
         guidedTourRepository: GuidedTourRepository.memory(completed: true),
       );
+      final teenChallenge = challenge.id == 'lunch-break-refill' ||
+          challenge.id == 'homework-hydration' ||
+          challenge.id == 'after-school-recharge' ||
+          challenge.id == 'backpack-bottle-check';
+      await services.settingsRepository.setProfile(
+        nickname: 'Layout tester',
+        age: teenChallenge ? 17 : 20,
+      );
       await services.challengeRepository.join(
         id: challenge.id,
         name: challenge.name,
         description: challenge.description,
         targetMl: challenge.targetMl,
         durationDays: challenge.durationDays,
+        profileAge: teenChallenge ? 17 : 20,
         parameters: activeParametersFor(challenge.id),
       );
       await pumpHydrion(

@@ -748,7 +748,7 @@ class DailyWeatherGoalCoordinator {
     final localDateKey = WeatherForecastService._localDateKey(currentTime);
     var settings = _settingsRepository.settings;
 
-    if (settings.goalMode != HydrionGoalMode.weatherInformed) {
+    if (!settings.weatherModifierEnabled) {
       return const DailyWeatherGoalResult(
         status: DailyWeatherGoalStatus.goalModeManual,
       );

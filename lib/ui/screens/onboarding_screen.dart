@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/avatar_manifest.dart';
+import '../../domain/life_stage_policy.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/settings_repository.dart';
@@ -28,7 +29,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _step = 0;
   String _avatarId = HydrionAvatarManifest.avatars.first.id;
   HydrionSex? _sex;
-  HydrionGoalMode _goalMode = HydrionGoalMode.manual;
+  HydrionBaselineSource _baselineSource = HydrionBaselineSource.manual;
   HydrionVolumeUnit _unit = HydrionVolumeUnit.milliliters;
   bool _reusable = false;
   bool _termsAccepted = false;
@@ -50,7 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _containerController.text = settings.containerSizeMl.toString();
     _avatarId = settings.avatarId;
     _sex = settings.sex;
-    _goalMode = settings.goalMode;
+    _baselineSource = settings.baselineSource;
     _unit = settings.volumeUnit;
     _reusable = settings.reusableContainerEnabled;
     _step = settings.onboardingCompleted ? 0 : settings.onboardingStep;
@@ -84,6 +85,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         nickname.length <= UserSettings.maxNicknameLength;
   }
 
+  bool _ageIsValid() {
+    return HydrionLifeStagePolicy.canCreateIndependentProfile(_parsedAge());
+  }
+
   Future<void> _goToStep(int step) async {
     final nextStep = step.clamp(0, UserSettings.maxOnboardingStep).toInt();
     await context.read<UserSettingsRepository>().setOnboardingStep(nextStep);
@@ -107,6 +112,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           );
           return false;
         }
+        if (!_ageIsValid()) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Hydrion independent profiles require an age from 13 to 120.',
+              ),
+            ),
+          );
+          return false;
+        }
         return repository.setProfile(
           nickname: _nicknameController.text,
           age: _parsedAge(),
@@ -115,7 +130,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 2:
         return repository.setAvatarId(_avatarId);
       case 3:
-        await repository.setGoalMode(_goalMode);
+        await repository.setPersonalizedGoalOptions(
+          baselineSource: _baselineSource,
+          weatherModifierEnabled: repository.settings.weatherModifierEnabled,
+        );
         return true;
       case 4:
         return _saveHydrationSetup(repository, messenger);
@@ -181,6 +199,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await _goToStep(1);
       return;
     }
+    if (!_ageIsValid()) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Hydrion independent profiles require an age from 13 to 120.',
+          ),
+        ),
+      );
+      await _goToStep(1);
+      return;
+    }
     if (!await _saveHydrationSetup(repository, messenger)) {
       await _goToStep(4);
       return;
@@ -192,7 +221,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       sex: _sex,
     );
     await repository.setAvatarId(_avatarId);
-    await repository.setGoalMode(_goalMode);
+    await repository.setPersonalizedGoalOptions(
+      baselineSource: _baselineSource,
+      weatherModifierEnabled: repository.settings.weatherModifierEnabled,
+    );
     await repository.completeOnboardingWithLegalReview(
         reviewedAt: DateTime.now());
     if (!mounted) {
@@ -359,7 +391,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               title: Text(AppLocalizations.of(context).bodyMetricsTitle),
               subtitle: Text(AppLocalizations.of(context).bodyMetricsOptional),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).pushNamed('/body-metrics'),
+              onTap: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                if (!_profileIsValid() || !_ageIsValid()) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Save a nickname and supported age before adding body metrics.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+                final saved =
+                    await context.read<UserSettingsRepository>().setProfile(
+                          nickname: _nicknameController.text,
+                          age: _parsedAge(),
+                          sex: _sex,
+                        );
+                if (saved && context.mounted) {
+                  await Navigator.of(context).pushNamed('/body-metrics');
+                }
+              },
             ),
           ],
         ),
@@ -379,38 +432,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             HydrionHorizontalControl(
-              child: SegmentedButton<HydrionGoalMode>(
+              child: SegmentedButton<HydrionBaselineSource>(
                 key: const Key('goal-mode-selector'),
                 segments: const [
                   ButtonSegment(
-                    value: HydrionGoalMode.manual,
+                    value: HydrionBaselineSource.manual,
                     icon: Icon(Icons.tune),
-                    label: Text('Manual'),
+                    label: Text('Standard or manual'),
                   ),
                   ButtonSegment(
-                    value: HydrionGoalMode.weatherInformed,
-                    icon: Icon(Icons.wb_sunny_outlined),
-                    label: Text('Weather'),
+                    value: HydrionBaselineSource.personalized,
+                    icon: Icon(Icons.person_outline),
+                    label: Text('Personalized estimate'),
                   ),
                 ],
-                selected: {_goalMode},
+                selected: {_baselineSource},
                 onSelectionChanged: (selection) {
-                  setState(() => _goalMode = selection.single);
+                  setState(() => _baselineSource = selection.single);
                 },
               ),
             ),
             const SizedBox(height: 12),
             Text(
-              _goalMode == HydrionGoalMode.manual
-                  ? 'You choose the daily target.'
-                  : 'Requires age, an explicit sex option, location permission for live lookup, and a configured forecast provider. Notification permission is separate for reminders. Hydrion uses a bounded formula, not medical advice.',
+              _baselineSource == HydrionBaselineSource.manual
+                  ? 'Use the standard target or enter your own target.'
+                  : 'Use locally saved body measurements to calculate a general wellness estimate.',
             ),
-            if (_goalMode == HydrionGoalMode.weatherInformed) ...[
-              const SizedBox(height: 8),
-              const Text(
-                'Hydrion will ask for location access after setup, then show a daily weather-based suggestion for you to accept or keep your standard goal.',
-              ),
-            ],
+            const SizedBox(height: 8),
+            const Text(
+              'Optional weather assistance is selected separately and never replaces your baseline.',
+            ),
           ],
         ),
       ),
@@ -563,7 +614,9 @@ class _OnboardingPermissionChoicesState
             await permissions.requestNotifications();
             if (mounted) setState(() => _remindersSkipped = false);
           },
-          onNotNow: () => setState(() => _remindersSkipped = true),
+          onNotNow: () async {
+            setState(() => _remindersSkipped = true);
+          },
         ),
         const SizedBox(height: 12),
         _CapabilityChoice(
@@ -580,16 +633,31 @@ class _OnboardingPermissionChoicesState
           enableKey: const Key('onboarding-enable-weather'),
           onEnable: () async {
             await permissions.requestLocation();
-            if (mounted) setState(() => _weatherSkipped = false);
+            if (!context.mounted) return;
+            if (permissions.snapshot.location.isGranted) {
+              final repository = context.read<UserSettingsRepository>();
+              await repository.setPersonalizedGoalOptions(
+                baselineSource: repository.settings.baselineSource,
+                weatherModifierEnabled: true,
+              );
+            }
+            setState(() => _weatherSkipped = false);
           },
-          onNotNow: () => setState(() => _weatherSkipped = true),
+          onNotNow: () async {
+            final repository = context.read<UserSettingsRepository>();
+            await repository.setPersonalizedGoalOptions(
+              baselineSource: repository.settings.baselineSource,
+              weatherModifierEnabled: false,
+            );
+            if (mounted) setState(() => _weatherSkipped = true);
+          },
         ),
       ],
     );
   }
 }
 
-class _CapabilityChoice extends StatelessWidget {
+class _CapabilityChoice extends StatefulWidget {
   final IconData icon;
   final String title;
   final String description;
@@ -598,7 +666,7 @@ class _CapabilityChoice extends StatelessWidget {
   final Key enableKey;
   final Key notNowKey;
   final Future<void> Function() onEnable;
-  final VoidCallback onNotNow;
+  final Future<void> Function() onNotNow;
 
   const _CapabilityChoice({
     super.key,
@@ -614,6 +682,23 @@ class _CapabilityChoice extends StatelessWidget {
   });
 
   @override
+  State<_CapabilityChoice> createState() => _CapabilityChoiceState();
+}
+
+class _CapabilityChoiceState extends State<_CapabilityChoice> {
+  bool _requesting = false;
+
+  Future<void> _enable() async {
+    if (_requesting) return;
+    setState(() => _requesting = true);
+    try {
+      await widget.onEnable();
+    } finally {
+      if (mounted) setState(() => _requesting = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -627,33 +712,45 @@ class _CapabilityChoice extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon),
+                Icon(widget.icon),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    title,
+                    widget.title,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(description),
+            Text(widget.description),
             const SizedBox(height: 6),
-            Text(status, style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              _requesting ? 'Waiting for the device result...' : widget.status,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 FilledButton(
-                  key: enableKey,
-                  onPressed: onEnable,
-                  child: Text(enableLabel),
+                  key: widget.enableKey,
+                  onPressed: _requesting ? null : _enable,
+                  child: _requesting
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(widget.enableLabel),
                 ),
                 TextButton(
-                  key: notNowKey,
-                  onPressed: onNotNow,
+                  key: widget.notNowKey,
+                  onPressed: _requesting
+                      ? null
+                      : () async {
+                          await widget.onNotNow();
+                        },
                   child: const Text('Not now'),
                 ),
               ],

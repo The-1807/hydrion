@@ -148,6 +148,102 @@ class HydrionChallengeExperiences {
       requiredParameters: ['cue'],
       actionKind: ChallengeActionKind.checkIn,
     ),
+    ChallengeExperienceDefinition(
+      id: 'lunch-break-refill',
+      purpose: 'Build a private lunch-break bottle-check habit.',
+      actions: ['Check the bottle.', 'Refill if useful.', 'Confirm the check.'],
+      whatCounts: 'One explicit local bottle-check confirmation.',
+      whatDoesNotCount: 'The check never logs water automatically.',
+      requiredParameters: [],
+      actionKind: ChallengeActionKind.checkIn,
+    ),
+    ChallengeExperienceDefinition(
+      id: 'homework-hydration',
+      purpose: 'Pair one study break with a comfortable hydration review.',
+      actions: [
+        'Take a study break.',
+        'Review hydration.',
+        'Confirm the check.'
+      ],
+      whatCounts: 'One explicit local study-break confirmation.',
+      whatDoesNotCount: 'No school, assignment, or drink amount is inferred.',
+      requiredParameters: [],
+      actionKind: ChallengeActionKind.checkIn,
+    ),
+    ChallengeExperienceDefinition(
+      id: 'after-school-recharge',
+      purpose: 'Review hydration after a daytime routine without pressure.',
+      actions: [
+        'Pause after the routine.',
+        'Review the day.',
+        'Confirm the check.'
+      ],
+      whatCounts: 'One explicit local after-routine confirmation.',
+      whatDoesNotCount: 'The check never changes the daily goal.',
+      requiredParameters: [],
+      actionKind: ChallengeActionKind.checkIn,
+    ),
+    ChallengeExperienceDefinition(
+      id: 'backpack-bottle-check',
+      purpose: 'Use a packing cue to prepare a reusable bottle.',
+      actions: [
+        'Check the bottle.',
+        'Prepare it if useful.',
+        'Confirm readiness.'
+      ],
+      whatCounts: 'One explicit local bottle-ready confirmation.',
+      whatDoesNotCount: 'No location or school information is collected.',
+      requiredParameters: [],
+      actionKind: ChallengeActionKind.checkIn,
+    ),
+    ChallengeExperienceDefinition(
+      id: 'desk-day-reset',
+      purpose: 'Add a hydration review to an optional seated-work break.',
+      actions: ['Take a break.', 'Review hydration.', 'Confirm the reset.'],
+      whatCounts: 'One explicit local reset confirmation.',
+      whatDoesNotCount: 'No drink is logged automatically.',
+      requiredParameters: [],
+      actionKind: ChallengeActionKind.checkIn,
+    ),
+    ChallengeExperienceDefinition(
+      id: 'shift-hydration-check',
+      purpose: 'Add an optional midpoint check to a defined work period.',
+      actions: [
+        'Reach the midpoint.',
+        'Review hydration.',
+        'Confirm the check.'
+      ],
+      whatCounts: 'One explicit local work-period confirmation.',
+      whatDoesNotCount: 'Hydrion does not infer employment or a schedule.',
+      requiredParameters: [],
+      actionKind: ChallengeActionKind.checkIn,
+    ),
+    ChallengeExperienceDefinition(
+      id: 'commute-cup',
+      purpose: 'Use optional travel as a cue to review hydration.',
+      actions: [
+        'Choose departure or arrival.',
+        'Review hydration.',
+        'Confirm the cue.'
+      ],
+      whatCounts: 'One explicit local travel-cue confirmation.',
+      whatDoesNotCount: 'No trip or location is tracked.',
+      requiredParameters: [],
+      actionKind: ChallengeActionKind.checkIn,
+    ),
+    ChallengeExperienceDefinition(
+      id: 'evening-goal-review',
+      purpose: 'End the day with a pressure-free review of the existing plan.',
+      actions: [
+        'Review the day.',
+        'Keep or adjust the plan separately.',
+        'Confirm review.'
+      ],
+      whatCounts: 'One explicit local evening review.',
+      whatDoesNotCount: 'The review never changes the goal automatically.',
+      requiredParameters: [],
+      actionKind: ChallengeActionKind.checkIn,
+    ),
   ];
 
   static ChallengeExperienceDefinition? findById(String id) {
