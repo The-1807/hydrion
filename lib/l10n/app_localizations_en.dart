@@ -1061,6 +1061,75 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bodyMetricsTitle => 'Body metrics';
 
   @override
+  String get bodyMeasurementsTitle => 'Body measurements';
+
+  @override
+  String get notAdded => 'Not added';
+
+  @override
+  String get addWeight => 'Add weight';
+
+  @override
+  String get updateWeight => 'Update weight';
+
+  @override
+  String get addHeight => 'Add height';
+
+  @override
+  String get updateHeight => 'Update height';
+
+  @override
+  String get updatedToday => 'Updated today';
+
+  @override
+  String updatedOn({required Object date}) {
+    return 'Updated $date';
+  }
+
+  @override
+  String get personalizationTitle => 'Personalization';
+
+  @override
+  String get editPersonalizationSettings => 'Edit personalization settings';
+
+  @override
+  String get onLabel => 'On';
+
+  @override
+  String get offLabel => 'Off';
+
+  @override
+  String get dataPrivacyTitle => 'Data and privacy';
+
+  @override
+  String get deleteBodyMetricsExplanation =>
+      'This removes saved measurements and personalization settings. Hydration logs are not removed.';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get noDailyContext => 'No activity context has been added for today.';
+
+  @override
+  String get setDailyContext => 'Set today\'s context';
+
+  @override
+  String get savedForToday => 'Saved for today.';
+
+  @override
+  String get appliesTodayOnly => 'Applies today only.';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get feelingUnwellToday => 'Feeling unwell today?';
+
+  @override
   String get bodyMetricsOptional =>
       'Optional, local-only measurements can improve Hydrion\'s general wellness estimate. You can skip, disable, or delete them at any time.';
 

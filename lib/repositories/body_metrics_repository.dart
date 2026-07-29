@@ -14,11 +14,7 @@ class BodyMetricsRepository extends ChangeNotifier {
   HydrionBodyMetrics _metrics;
   List<StorageRecoveryEvent> _recoveryEvents;
 
-  BodyMetricsRepository._(
-    this._store,
-    this._metrics,
-    this._recoveryEvents,
-  );
+  BodyMetricsRepository._(this._store, this._metrics, this._recoveryEvents);
 
   BodyMetricsRepository.memory([
     HydrionBodyMetrics metrics = const HydrionBodyMetrics(),
@@ -57,9 +53,21 @@ class BodyMetricsRepository extends ChangeNotifier {
         )) {
       return false;
     }
-    _metrics = value
-        .sanitized(femaleProfile: femaleProfile)
-        .copyWith(updatedAt: now ?? DateTime.now());
+    final savedAt = now ?? DateTime.now();
+    final sanitized = value.sanitized(femaleProfile: femaleProfile);
+    final weightChanged = sanitized.weightKg != _metrics.weightKg;
+    final heightChanged = sanitized.heightCm != _metrics.heightCm;
+    _metrics = sanitized.copyWith(
+      updatedAt: savedAt,
+      weightUpdatedAt: weightChanged && sanitized.weightKg != null
+          ? savedAt
+          : sanitized.weightUpdatedAt,
+      clearWeightUpdatedAt: sanitized.weightKg == null,
+      heightUpdatedAt: heightChanged && sanitized.heightCm != null
+          ? savedAt
+          : sanitized.heightUpdatedAt,
+      clearHeightUpdatedAt: sanitized.heightCm == null,
+    );
     await _persist();
     notifyListeners();
     return true;
@@ -133,30 +141,24 @@ class BodyMetricsRepository extends ChangeNotifier {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) {
-        return const _BodyMetricsDecodeResult(
-          HydrionBodyMetrics(),
-          [
-            StorageRecoveryEvent(
-              category: _category,
-              code: StorageRecoveryCodes.wrongTopLevelType,
-              action: StorageRecoveryActions.fallbackDefaults,
-            ),
-          ],
-        );
+        return const _BodyMetricsDecodeResult(HydrionBodyMetrics(), [
+          StorageRecoveryEvent(
+            category: _category,
+            code: StorageRecoveryCodes.wrongTopLevelType,
+            action: StorageRecoveryActions.fallbackDefaults,
+          ),
+        ]);
       }
       final version = storageSchemaVersion(decoded) ?? 1;
       if (version > HydrionBodyMetricsPolicy.schemaVersion) {
-        return _BodyMetricsDecodeResult(
-          const HydrionBodyMetrics(),
-          [
-            StorageRecoveryEvent(
-              category: _category,
-              code: StorageRecoveryCodes.unsupportedSchemaVersion,
-              action: StorageRecoveryActions.preserveRawFallback,
-              schemaVersion: version,
-            ),
-          ],
-        );
+        return _BodyMetricsDecodeResult(const HydrionBodyMetrics(), [
+          StorageRecoveryEvent(
+            category: _category,
+            code: StorageRecoveryCodes.unsupportedSchemaVersion,
+            action: StorageRecoveryActions.preserveRawFallback,
+            schemaVersion: version,
+          ),
+        ]);
       }
       final metrics = HydrionBodyMetrics.fromJson(decoded);
       final invalidValues =
@@ -178,17 +180,14 @@ class BodyMetricsRepository extends ChangeNotifier {
             : const [],
       );
     } on FormatException {
-      return const _BodyMetricsDecodeResult(
-        HydrionBodyMetrics(),
-        [
-          StorageRecoveryEvent(
-            category: _category,
-            code: StorageRecoveryCodes.malformedJson,
-            action: StorageRecoveryActions.fallbackDefaults,
-            errorType: 'FormatException',
-          ),
-        ],
-      );
+      return const _BodyMetricsDecodeResult(HydrionBodyMetrics(), [
+        StorageRecoveryEvent(
+          category: _category,
+          code: StorageRecoveryCodes.malformedJson,
+          action: StorageRecoveryActions.fallbackDefaults,
+          errorType: 'FormatException',
+        ),
+      ]);
     }
   }
 }

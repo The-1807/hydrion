@@ -31,9 +31,11 @@ void main() {
     expect(saved, isTrue);
     final json =
         jsonDecode(store.snapshot[BodyMetricsRepository.storageKey]!) as Map;
-    expect(json['schemaVersion'], 2);
+    expect(json['schemaVersion'], 3);
     expect(json['weightKg'], 70);
     expect(json['heightCm'], 175);
+    expect(json['weightUpdatedAt'], '2026-07-28T00:00:00.000');
+    expect(json['heightUpdatedAt'], '2026-07-28T00:00:00.000');
 
     final reloaded = await BodyMetricsRepository.load(store);
     expect(reloaded.metrics.weightKg, 70);
@@ -45,10 +47,7 @@ void main() {
       const HydrionBodyMetrics(weightKg: 70, heightCm: 175),
     );
     expect(
-      await repository.update(
-        weightKg: 301,
-        femaleProfile: false,
-      ),
+      await repository.update(weightKg: 301, femaleProfile: false),
       isFalse,
     );
     expect(repository.metrics.weightKg, 70);
@@ -62,48 +61,92 @@ void main() {
     );
   });
 
-  test('pregnancy duration migrates, persists, and clears canonically',
-      () async {
-    final legacy = MemoryHydrionStore({
-      BodyMetricsRepository.storageKey: jsonEncode({
-        'schemaVersion': 1,
-        'personalizationEnabled': true,
-        'weightKg': 68,
-        'heightCm': 171,
-        'reproductiveState': 'pregnant',
-      }),
-    });
-    var repository = await BodyMetricsRepository.load(legacy);
-    expect(repository.metrics.weightKg, 68);
-    expect(repository.metrics.pregnancyGestationalDays, isNull);
-    expect(repository.recoveryEvents, isEmpty);
+  test(
+    'pregnancy duration migrates, persists, and clears canonically',
+    () async {
+      final legacy = MemoryHydrionStore({
+        BodyMetricsRepository.storageKey: jsonEncode({
+          'schemaVersion': 1,
+          'personalizationEnabled': true,
+          'weightKg': 68,
+          'heightCm': 171,
+          'reproductiveState': 'pregnant',
+        }),
+      });
+      var repository = await BodyMetricsRepository.load(legacy);
+      expect(repository.metrics.weightKg, 68);
+      expect(repository.metrics.pregnancyGestationalDays, isNull);
+      expect(repository.recoveryEvents, isEmpty);
 
-    expect(
+      expect(
+        await repository.update(
+          pregnancyGestationalDays: 168,
+          preferredPregnancyDurationUnit: HydrionPregnancyDurationUnit.months,
+          femaleProfile: true,
+        ),
+        isTrue,
+      );
+      repository = await BodyMetricsRepository.load(legacy);
+      expect(repository.metrics.pregnancyGestationalDays, 168);
+      expect(
+        repository.metrics.preferredPregnancyDurationUnit,
+        HydrionPregnancyDurationUnit.months,
+      );
+      expect(
+        jsonDecode(
+          legacy.snapshot[BodyMetricsRepository.storageKey]!,
+        )['schemaVersion'],
+        3,
+      );
+
       await repository.update(
-        pregnancyGestationalDays: 168,
-        preferredPregnancyDurationUnit: HydrionPregnancyDurationUnit.months,
+        reproductiveState: HydrionReproductiveHydrationState.lactating,
+        clearPregnancyDuration: true,
         femaleProfile: true,
-      ),
-      isTrue,
+      );
+      expect(repository.metrics.pregnancyGestationalDays, isNull);
+    },
+  );
+
+  test(
+    'legacy shared timestamp migrates to independent measurement dates',
+    () async {
+      final store = MemoryHydrionStore({
+        BodyMetricsRepository.storageKey: jsonEncode({
+          'schemaVersion': 2,
+          'weightKg': 70,
+          'heightCm': 175,
+          'updatedAt': '2026-07-20T12:00:00.000',
+        }),
+      });
+      final repository = await BodyMetricsRepository.load(store);
+      expect(repository.metrics.weightUpdatedAt, DateTime(2026, 7, 20, 12));
+      expect(repository.metrics.heightUpdatedAt, DateTime(2026, 7, 20, 12));
+    },
+  );
+
+  test('weight and height updates retain independent timestamps', () async {
+    final repository = BodyMetricsRepository.memory();
+    await repository.update(
+      weightKg: 70,
+      femaleProfile: false,
+      now: DateTime(2026, 7, 20),
     );
-    repository = await BodyMetricsRepository.load(legacy);
-    expect(repository.metrics.pregnancyGestationalDays, 168);
-    expect(
-      repository.metrics.preferredPregnancyDurationUnit,
-      HydrionPregnancyDurationUnit.months,
+    await repository.update(
+      heightCm: 175,
+      femaleProfile: false,
+      now: DateTime(2026, 7, 21),
     );
-    expect(
-      jsonDecode(
-          legacy.snapshot[BodyMetricsRepository.storageKey]!)['schemaVersion'],
-      2,
-    );
+    expect(repository.metrics.weightUpdatedAt, DateTime(2026, 7, 20));
+    expect(repository.metrics.heightUpdatedAt, DateTime(2026, 7, 21));
 
     await repository.update(
-      reproductiveState: HydrionReproductiveHydrationState.lactating,
-      clearPregnancyDuration: true,
-      femaleProfile: true,
+      personalizationEnabled: true,
+      femaleProfile: false,
+      now: DateTime(2026, 7, 22),
     );
-    expect(repository.metrics.pregnancyGestationalDays, isNull);
+    expect(repository.metrics.weightUpdatedAt, DateTime(2026, 7, 20));
+    expect(repository.metrics.heightUpdatedAt, DateTime(2026, 7, 21));
   });
 
   test('pregnancy duration domain boundaries and compatibility are safe', () {
@@ -138,33 +181,33 @@ void main() {
     );
     expect(
       pregnant
-          .copyWith(
-            reproductiveState: HydrionReproductiveHydrationState.none,
-          )
+          .copyWith(reproductiveState: HydrionReproductiveHydrationState.none)
           .sanitized(femaleProfile: true)
           .pregnancyGestationalDays,
       isNull,
     );
   });
 
-  test('malformed and invalid storage recover without invented values',
-      () async {
-    final malformed = MemoryHydrionStore({
-      BodyMetricsRepository.storageKey: '{bad',
-    });
-    final malformedRepository = await BodyMetricsRepository.load(malformed);
-    expect(malformedRepository.metrics.weightKg, isNull);
-    expect(malformedRepository.recoveryEvents, isNotEmpty);
+  test(
+    'malformed and invalid storage recover without invented values',
+    () async {
+      final malformed = MemoryHydrionStore({
+        BodyMetricsRepository.storageKey: '{bad',
+      });
+      final malformedRepository = await BodyMetricsRepository.load(malformed);
+      expect(malformedRepository.metrics.weightKg, isNull);
+      expect(malformedRepository.recoveryEvents, isNotEmpty);
 
-    final invalid = MemoryHydrionStore({
-      BodyMetricsRepository.storageKey:
-          '{"schemaVersion":1,"personalizationEnabled":true,'
-              '"weightKg":"NaN","heightCm":20}',
-    });
-    final invalidRepository = await BodyMetricsRepository.load(invalid);
-    expect(invalidRepository.metrics.weightKg, isNull);
-    expect(invalidRepository.metrics.heightCm, isNull);
-  });
+      final invalid = MemoryHydrionStore({
+        BodyMetricsRepository.storageKey:
+            '{"schemaVersion":1,"personalizationEnabled":true,'
+                '"weightKg":"NaN","heightCm":20}',
+      });
+      final invalidRepository = await BodyMetricsRepository.load(invalid);
+      expect(invalidRepository.metrics.weightKg, isNull);
+      expect(invalidRepository.metrics.heightCm, isNull);
+    },
+  );
 
   test('non-female profile sanitation removes reproductive state', () async {
     final repository = BodyMetricsRepository.memory();
@@ -180,51 +223,55 @@ void main() {
     );
   });
 
-  test('daily contexts are bounded and clearing removes dedicated key',
-      () async {
-    final store = MemoryHydrionStore();
-    final repository = await DailyHydrationContextRepository.load(store);
-    for (var i = 1; i <= 20; i++) {
-      final date = DateTime(2026, 7, i);
-      await repository.save(
-        DailyHydrationContext(
-          localDateKey: hydrionLocalDateKey(date),
-          updatedAt: date,
-        ),
+  test(
+    'daily contexts are bounded and clearing removes dedicated key',
+    () async {
+      final store = MemoryHydrionStore();
+      final repository = await DailyHydrationContextRepository.load(store);
+      for (var i = 1; i <= 20; i++) {
+        final date = DateTime(2026, 7, i);
+        await repository.save(
+          DailyHydrationContext(
+            localDateKey: hydrionLocalDateKey(date),
+            updatedAt: date,
+          ),
+        );
+      }
+      final json = jsonDecode(
+        store.snapshot[DailyHydrationContextRepository.storageKey]!,
+      ) as Map;
+      expect((json['contexts'] as List), hasLength(14));
+      await repository.clear();
+      expect(
+        store.snapshot.containsKey(DailyHydrationContextRepository.storageKey),
+        isFalse,
       );
-    }
-    final json = jsonDecode(
-      store.snapshot[DailyHydrationContextRepository.storageKey]!,
-    ) as Map;
-    expect((json['contexts'] as List), hasLength(14));
-    await repository.clear();
-    expect(
-      store.snapshot.containsKey(DailyHydrationContextRepository.storageKey),
-      isFalse,
-    );
-  });
+    },
+  );
 
-  test('legacy goal mode migrates into independent baseline and weather flags',
-      () {
-    final manual = UserSettings.fromJson({
-      'languageCode': 'en',
-      'goalMode': 'manual',
-      'dailyGoalMl': 2400,
-      'baselineDailyGoalMl': 2400,
-    });
-    expect(manual.baselineSource, HydrionBaselineSource.manual);
-    expect(manual.weatherModifierEnabled, isFalse);
+  test(
+    'legacy goal mode migrates into independent baseline and weather flags',
+    () {
+      final manual = UserSettings.fromJson({
+        'languageCode': 'en',
+        'goalMode': 'manual',
+        'dailyGoalMl': 2400,
+        'baselineDailyGoalMl': 2400,
+      });
+      expect(manual.baselineSource, HydrionBaselineSource.manual);
+      expect(manual.weatherModifierEnabled, isFalse);
 
-    final weather = UserSettings.fromJson({
-      'languageCode': 'en',
-      'goalMode': 'weatherInformed',
-      'dailyGoalMl': 2500,
-      'baselineDailyGoalMl': 2200,
-    });
-    expect(weather.baselineSource, HydrionBaselineSource.manual);
-    expect(weather.weatherModifierEnabled, isTrue);
-    expect(weather.baselineDailyGoalMl, 2200);
-  });
+      final weather = UserSettings.fromJson({
+        'languageCode': 'en',
+        'goalMode': 'weatherInformed',
+        'dailyGoalMl': 2500,
+        'baselineDailyGoalMl': 2200,
+      });
+      expect(weather.baselineSource, HydrionBaselineSource.manual);
+      expect(weather.weatherModifierEnabled, isTrue);
+      expect(weather.baselineDailyGoalMl, 2200);
+    },
+  );
 
   test('challenge preferences default, persist, and migrate safely', () async {
     final store = MemoryHydrionStore({
@@ -249,9 +296,9 @@ void main() {
     repository = await PersonalizationStateRepository.load(store);
     expect(repository.challengePreferences.prefersTimedRoutines, isTrue);
     expect(repository.challengePreferences.infusionVarietyInterest, isTrue);
-    final stored = jsonDecode(
-      store.snapshot[PersonalizationStateRepository.storageKey]!,
-    ) as Map;
+    final stored =
+        jsonDecode(store.snapshot[PersonalizationStateRepository.storageKey]!)
+            as Map;
     expect(stored['schemaVersion'], 2);
 
     final malformed = await PersonalizationStateRepository.load(
@@ -269,52 +316,55 @@ void main() {
     expect(malformed.challengePreferences.balancedHydrationInterest, isFalse);
   });
 
-  test('profile deletion enumerates and clears every personalization key',
-      () async {
-    final store = MemoryHydrionStore();
-    final services = await HydrionServices.fromStore(
-      store,
-      locationService: FakeHydrionLocationService(),
-      notificationAdapter: FakeHydrionNotificationAdapter(
-        permission: HydrionNotificationPermissionState.granted,
-      ),
-    );
-    await services.bodyMetricsRepository.save(
-      const HydrionBodyMetrics(
-        personalizationEnabled: true,
-        weightKg: 70,
-        heightCm: 175,
-      ),
-      femaleProfile: false,
-    );
-    final now = DateTime(2026, 7, 28);
-    await services.dailyHydrationContextRepository.save(
-      DailyHydrationContext(
+  test(
+    'profile deletion enumerates and clears every personalization key',
+    () async {
+      final store = MemoryHydrionStore();
+      final services = await HydrionServices.fromStore(
+        store,
+        locationService: FakeHydrionLocationService(),
+        notificationAdapter: FakeHydrionNotificationAdapter(
+          permission: HydrionNotificationPermissionState.granted,
+        ),
+      );
+      await services.bodyMetricsRepository.save(
+        const HydrionBodyMetrics(
+          personalizationEnabled: true,
+          weightKg: 70,
+          heightCm: 175,
+        ),
+        femaleProfile: false,
+      );
+      final now = DateTime(2026, 7, 28);
+      await services.dailyHydrationContextRepository.save(
+        DailyHydrationContext(
+          localDateKey: hydrionLocalDateKey(now),
+          updatedAt: now,
+        ),
+      );
+      await services.personalizationStateRepository.dismissChallenge(
         localDateKey: hydrionLocalDateKey(now),
-        updatedAt: now,
-      ),
-    );
-    await services.personalizationStateRepository.dismissChallenge(
-      localDateKey: hydrionLocalDateKey(now),
-      challengeId: 'bottle-bingo',
-    );
-    expect(
-      store.snapshot.keys,
-      containsAll([
+        challengeId: 'bottle-bingo',
+      );
+      expect(
+        store.snapshot.keys,
+        containsAll([
+          BodyMetricsRepository.storageKey,
+          DailyHydrationContextRepository.storageKey,
+          PersonalizationStateRepository.storageKey,
+        ]),
+      );
+
+      final result =
+          await services.localProfileResetService.resetLocalProfile();
+      expect(result.isCompleted, isTrue);
+      for (final key in [
         BodyMetricsRepository.storageKey,
         DailyHydrationContextRepository.storageKey,
         PersonalizationStateRepository.storageKey,
-      ]),
-    );
-
-    final result = await services.localProfileResetService.resetLocalProfile();
-    expect(result.isCompleted, isTrue);
-    for (final key in [
-      BodyMetricsRepository.storageKey,
-      DailyHydrationContextRepository.storageKey,
-      PersonalizationStateRepository.storageKey,
-    ]) {
-      expect(store.snapshot.containsKey(key), isFalse, reason: key);
-    }
-  });
+      ]) {
+        expect(store.snapshot.containsKey(key), isFalse, reason: key);
+      }
+    },
+  );
 }

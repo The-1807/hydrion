@@ -78,27 +78,24 @@ void main() {
     );
 
     expect(find.byKey(const Key('body-metrics-scroll')), findsOneWidget);
-    await tester.ensureVisible(find.byType(Switch).first);
-    await tester.tap(find.byType(Switch).first);
+    expect(find.byKey(const Key('weight-wheel')), findsNothing);
+    expect(find.byKey(const Key('height-wheel')), findsNothing);
+    tester
+        .widget<TextButton>(
+          find.ancestor(
+            of: find.text('Add weight'),
+            matching: find.byType(TextButton),
+          ),
+        )
+        .onPressed!();
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('weight-wheel')),
-      200,
-      scrollable: find.byType(Scrollable).first,
+    await tester.drag(
+      find.byKey(const Key('body-metrics-scroll')),
+      const Offset(0, -500),
     );
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('weight-wheel')), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('height-wheel')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.byKey(const Key('height-wheel')), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('reproductive-state')),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.byKey(const Key('reproductive-state')), findsOneWidget);
+    expect(find.byKey(const Key('height-wheel')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -124,6 +121,13 @@ void main() {
     );
     expect(find.byKey(const Key('pregnancy-duration-editor')), findsNothing);
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('edit-personalization')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const Key('edit-personalization')));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const Key('reproductive-state')),
       400,
@@ -167,14 +171,49 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.metrics.pregnancyGestationalDays, 168);
 
-    final unitControl = find.byKey(const Key('pregnancy-duration-unit'));
-    await tester.ensureVisible(unitControl);
-    tester
-        .widget<SegmentedButton<HydrionPregnancyDurationUnit>>(unitControl)
-        .onSelectionChanged!({HydrionPregnancyDurationUnit.months});
-    await tester.pumpAndSettle();
     expect(repository.metrics.pregnancyGestationalDays, 168);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('saved measurements render as summaries until edited',
+      (tester) async {
+    final repository = BodyMetricsRepository.memory(
+      HydrionBodyMetrics(
+        personalizationEnabled: true,
+        weightKg: 70,
+        heightCm: 175,
+        weightUpdatedAt: DateTime(2026, 7, 28),
+        heightUpdatedAt: DateTime(2026, 7, 29),
+      ),
+    );
+    await pumpScreen(
+      tester,
+      locale: const Locale('en'),
+      sex: HydrionSex.female,
+      bodyMetricsRepository: repository,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('measurement-summary-weight')),
+        matching: find.textContaining('70.0 kg'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('measurement-summary-height')),
+        matching: find.textContaining('175 cm'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('weight-wheel')), findsNothing);
+    expect(find.byKey(const Key('height-wheel')), findsNothing);
+
+    await tester.ensureVisible(find.text('Update weight'));
+    await tester.tap(find.text('Update weight'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('weight-wheel')), findsOneWidget);
+    expect(find.byKey(const Key('height-wheel')), findsNothing);
   });
 
   testWidgets('French and Spanish body-metric consent copy is localized',

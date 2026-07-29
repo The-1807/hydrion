@@ -15,17 +15,24 @@ class PersonalizationStateRepository extends ChangeNotifier {
   HydrationRecommendation? _latestRecommendation;
   Map<String, Set<String>> _dismissedChallengesByDate;
   ChallengeRecommendationPreferences _challengePreferences;
+  Map<String, String> _reviewedRecommendationsByDate;
 
   PersonalizationStateRepository._(
     this._store,
     this._lastInputFingerprint,
     this._dismissedChallengesByDate,
     this._challengePreferences,
+    this._reviewedRecommendationsByDate,
   );
 
   PersonalizationStateRepository.memory()
-      : this._(MemoryHydrionStore(), null, {},
-            const ChallengeRecommendationPreferences());
+      : this._(
+          MemoryHydrionStore(),
+          null,
+          {},
+          const ChallengeRecommendationPreferences(),
+          {},
+        );
 
   static Future<PersonalizationStateRepository> load(
     HydrionLocalStore store,
@@ -33,13 +40,23 @@ class PersonalizationStateRepository extends ChangeNotifier {
     final raw = await store.readString(storageKey);
     if (raw == null || raw.trim().isEmpty) {
       return PersonalizationStateRepository._(
-          store, null, {}, const ChallengeRecommendationPreferences());
+        store,
+        null,
+        {},
+        const ChallengeRecommendationPreferences(),
+        {},
+      );
     }
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) {
         return PersonalizationStateRepository._(
-            store, null, {}, const ChallengeRecommendationPreferences());
+          store,
+          null,
+          {},
+          const ChallengeRecommendationPreferences(),
+          {},
+        );
       }
       final rawDismissals = decoded['dismissedChallengesByDate'];
       final dismissals = <String, Set<String>>{};
@@ -56,6 +73,18 @@ class PersonalizationStateRepository extends ChangeNotifier {
               .toSet();
         }
       }
+      final reviewed = <String, String>{};
+      final rawReviewed = decoded['reviewedRecommendationsByDate'];
+      if (rawReviewed is Map) {
+        for (final entry in rawReviewed.entries) {
+          final key = entry.key.toString();
+          final fingerprint = entry.value?.toString() ?? '';
+          if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(key) &&
+              fingerprint.isNotEmpty) {
+            reviewed[key] = fingerprint;
+          }
+        }
+      }
       return PersonalizationStateRepository._(
         store,
         decoded['lastInputFingerprint']?.toString(),
@@ -63,10 +92,16 @@ class PersonalizationStateRepository extends ChangeNotifier {
         ChallengeRecommendationPreferences.fromJson(
           decoded['challengePreferences'],
         ),
+        reviewed,
       );
     } on FormatException {
       return PersonalizationStateRepository._(
-          store, null, {}, const ChallengeRecommendationPreferences());
+        store,
+        null,
+        {},
+        const ChallengeRecommendationPreferences(),
+        {},
+      );
     }
   }
 
@@ -74,6 +109,24 @@ class PersonalizationStateRepository extends ChangeNotifier {
   String? get lastInputFingerprint => _lastInputFingerprint;
   ChallengeRecommendationPreferences get challengePreferences =>
       _challengePreferences;
+  bool isRecommendationReviewed({
+    required String localDateKey,
+    required String inputFingerprint,
+  }) =>
+      _reviewedRecommendationsByDate[localDateKey] == inputFingerprint;
+
+  Future<void> markRecommendationReviewed({
+    required String localDateKey,
+  }) async {
+    final fingerprint = _lastInputFingerprint;
+    if (fingerprint == null) return;
+    _reviewedRecommendationsByDate = {
+      ..._reviewedRecommendationsByDate,
+      localDateKey: fingerprint,
+    };
+    await _persist();
+    notifyListeners();
+  }
 
   Future<void> setChallengePreferences(
     ChallengeRecommendationPreferences value, {
@@ -124,6 +177,7 @@ class PersonalizationStateRepository extends ChangeNotifier {
     _latestRecommendation = null;
     _dismissedChallengesByDate = {};
     _challengePreferences = const ChallengeRecommendationPreferences();
+    _reviewedRecommendationsByDate = {};
     await _store.remove(storageKey);
     notifyListeners();
   }
@@ -134,6 +188,7 @@ class PersonalizationStateRepository extends ChangeNotifier {
           'schemaVersion': schemaVersion,
           'lastInputFingerprint': _lastInputFingerprint,
           'challengePreferences': _challengePreferences.toJson(),
+          'reviewedRecommendationsByDate': _reviewedRecommendationsByDate,
           'dismissedChallengesByDate': {
             for (final entry in _dismissedChallengesByDate.entries)
               entry.key: entry.value.toList()..sort(),

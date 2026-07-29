@@ -102,8 +102,10 @@ class DailyHydrationRecommendationCoordinator {
     );
   }
 
-  Future<void> keepCurrentGoal() async {
-    // User choice is represented by leaving the canonical settings untouched.
+  Future<void> keepCurrentGoal({required DateTime now}) async {
+    await stateRepository.markRecommendationReviewed(
+      localDateKey: hydrionLocalDateKey(now),
+    );
   }
 
   Future<bool> restoreBaseline({required DateTime now}) {

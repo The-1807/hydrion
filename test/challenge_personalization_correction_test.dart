@@ -145,7 +145,11 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('Tailor challenge suggestions'));
+    tester
+        .widget<OutlinedButton>(
+          find.byKey(const Key('edit-challenge-preferences')),
+        )
+        .onPressed!();
     await tester.pumpAndSettle();
     final toggle = find.byKey(const Key('preference-timed-routines'));
     await tester.scrollUntilVisible(
@@ -155,6 +159,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    final done = find.widgetWithText(FilledButton, 'Done');
+    tester.widget<FilledButton>(done).onPressed!();
     await tester.pumpAndSettle();
     expect(
       services.personalizationStateRepository.challengePreferences

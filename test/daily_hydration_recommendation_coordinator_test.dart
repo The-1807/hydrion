@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/domain/daily_hydration_context.dart';
@@ -11,6 +12,39 @@ import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 void main() {
+  test('keeping current goal records review for date and fingerprint',
+      () async {
+    final settings = UserSettingsRepository.memory(const Locale('en'));
+    final body = BodyMetricsRepository.memory();
+    final daily = DailyHydrationContextRepository.memory();
+    final state = PersonalizationStateRepository.memory();
+    final coordinator = DailyHydrationRecommendationCoordinator(
+      settingsRepository: settings,
+      bodyMetricsRepository: body,
+      dailyContextRepository: daily,
+      stateRepository: state,
+    );
+    final now = DateTime(2026, 7, 29, 12);
+    await coordinator.calculate(now: now);
+    final fingerprint = state.lastInputFingerprint!;
+    expect(
+      state.isRecommendationReviewed(
+        localDateKey: '2026-07-29',
+        inputFingerprint: fingerprint,
+      ),
+      isFalse,
+    );
+    await coordinator.keepCurrentGoal(now: now);
+    expect(
+      state.isRecommendationReviewed(
+        localDateKey: '2026-07-29',
+        inputFingerprint: fingerprint,
+      ),
+      isTrue,
+    );
+    expect(settings.settings.dailyGoalMl, 2200);
+  });
+
   Future<_Fixture> fixture([HydrionLocalStore? store]) async {
     final localStore = store ?? MemoryHydrionStore();
     final settings = await UserSettingsRepository.load(localStore);

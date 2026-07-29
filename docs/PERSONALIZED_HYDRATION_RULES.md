@@ -246,3 +246,20 @@ Hydrion distinguishes its bounded product rules from the population reference
 values and occupational heat guidance cited above. Users with medical
 restrictions or significant symptoms should follow qualified professional
 guidance rather than the app.
+# Saved-state interaction contract
+
+Body measurements, personalization settings, daily context, and challenge
+preferences are displayed as saved summaries during normal use. Picker,
+numeric-entry, switch, and dropdown controls appear only after an explicit Add,
+Update, or Edit action. Weight and height persist independently with separate
+update timestamps.
+
+Picker defaults are draft-only and never become saved measurements until the
+user selects Done. Cancel discards the draft. Today's activity and temporary
+condition context is keyed to the local date and does not carry into another
+day. Temporary illness is safety context only and does not add a numerical
+illness adjustment.
+
+Keeping the current hydration goal records the current recommendation
+fingerprint as reviewed for that local date without changing the goal,
+baseline, or hydration history.

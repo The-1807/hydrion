@@ -1072,6 +1072,77 @@ class AppLocalizationsFr extends AppLocalizations {
   String get bodyMetricsTitle => 'Mesures corporelles';
 
   @override
+  String get bodyMeasurementsTitle => 'Mesures corporelles enregistrées';
+
+  @override
+  String get notAdded => 'Non ajouté';
+
+  @override
+  String get addWeight => 'Ajouter le poids';
+
+  @override
+  String get updateWeight => 'Mettre à jour le poids';
+
+  @override
+  String get addHeight => 'Ajouter la taille';
+
+  @override
+  String get updateHeight => 'Mettre à jour la taille';
+
+  @override
+  String get updatedToday => 'Mis à jour aujourd’hui';
+
+  @override
+  String updatedOn({required Object date}) {
+    return 'Mis à jour le $date';
+  }
+
+  @override
+  String get personalizationTitle => 'Personnalisation';
+
+  @override
+  String get editPersonalizationSettings =>
+      'Modifier les paramètres de personnalisation';
+
+  @override
+  String get onLabel => 'Activé';
+
+  @override
+  String get offLabel => 'Désactivé';
+
+  @override
+  String get dataPrivacyTitle => 'Données et confidentialité';
+
+  @override
+  String get deleteBodyMetricsExplanation =>
+      'Cette action supprime les mesures enregistrées et les paramètres de personnalisation. Les journaux d’hydratation ne sont pas supprimés.';
+
+  @override
+  String get done => 'Terminé';
+
+  @override
+  String get noDailyContext =>
+      'Aucun contexte d’activité n’a été ajouté pour aujourd’hui.';
+
+  @override
+  String get setDailyContext => 'Définir le contexte du jour';
+
+  @override
+  String get savedForToday => 'Enregistré pour aujourd’hui.';
+
+  @override
+  String get appliesTodayOnly => 'S’applique uniquement aujourd’hui.';
+
+  @override
+  String get edit => 'Modifier';
+
+  @override
+  String get clear => 'Effacer';
+
+  @override
+  String get feelingUnwellToday => 'Vous ne vous sentez pas bien aujourd’hui?';
+
+  @override
   String get bodyMetricsOptional =>
       'Des mesures facultatives et stockées localement peuvent améliorer l\'estimation de bien-être général. Vous pouvez les ignorer, les désactiver ou les supprimer à tout moment.';
 
