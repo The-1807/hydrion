@@ -90,7 +90,7 @@ total daily hydration.
 
 | Command | Result |
 |---|---|
-| `flutter --version` | Flutter 3.35.6, Dart 3.9.2 |
+| `flutter --version` | Flutter 3.44.8, Dart 3.12.2 |
 | `java -version` | Java 25.0.1 LTS |
 | `flutter pub get` | Pass (34 constrained updates reported) |
 | `dart format --output=none --set-exit-if-changed .` | Baseline pass, 96 files, 0 changed |

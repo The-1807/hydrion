@@ -4,7 +4,7 @@ workflows:
     instance_type: linux_x2
     max_build_duration: 45
     environment:
-      flutter: 3.35.6
+      flutter: 3.44.8
       vars:
         CI_ARTIFACTS_DIRECTORY: codemagic-artifacts/validation
     triggering:
@@ -53,7 +53,7 @@ workflows:
     instance_type: linux_x2
     max_build_duration: 45
     environment:
-      flutter: 3.35.6
+      flutter: 3.44.8
       vars:
         CI_ARTIFACTS_DIRECTORY: codemagic-artifacts/android
     triggering:
@@ -190,7 +190,7 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
-      flutter: 3.35.6
+      flutter: 3.44.8
       xcode: latest
       cocoapods: default
       vars:
@@ -229,7 +229,7 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
-      flutter: 3.35.6
+      flutter: 3.44.8
       xcode: latest
       cocoapods: default
       ios_signing:

@@ -17,7 +17,7 @@ void main() {
     expect(gradle, contains('applicationId = "com.the1807.hydrion"'));
     expect(gradle, isNot(contains('com.example.hydrion_app')));
     expect(activity, contains('package com.the1807.hydrion'));
-    expect(workflow, contains('FLUTTER_VERSION: "3.35.6"'));
+    expect(workflow, contains('FLUTTER_VERSION: "3.44.8"'));
     expect(workflow, contains('dart format --set-exit-if-changed .'));
     expect(workflow, contains('release_signing_kind=ci-ephemeral'));
     expect(workflow, contains('apksigner'));
@@ -153,7 +153,7 @@ void main() {
     expect(codemagic, contains('hydrion-android'));
     expect(codemagic, contains('hydrion-ios-compatibility'));
     expect(codemagic, contains('hydrion-ios-signed-testflight-prep'));
-    expect(codemagic, contains('flutter: 3.35.6'));
+    expect(codemagic, contains('flutter: 3.44.8'));
     expect(
       codemagic,
       contains('hydrion-android-debug-smoke.apk'),

@@ -25,7 +25,7 @@ available evidence.
 
 ## 2026-07-07 Local Validation Update
 
-Local automated validation completed on Windows with Flutter 3.35.6:
+Local automated validation completed on Windows with Flutter 3.44.8:
 
 - `dart format --output=none --set-exit-if-changed .` passed with 95 files
   checked and 0 changes.

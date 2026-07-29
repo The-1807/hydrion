@@ -292,6 +292,16 @@ void main() {
         expect(find.byKey(const Key('tour-next')), findsOneWidget);
         expect(find.byKey(const Key('tour-back')), findsNothing);
         expect(find.byKey(const Key('tour-pointer')), findsOneWidget);
+        expect(
+          tester.getSemantics(
+            find.byKey(const Key('tour-step-announcement')),
+          ),
+          matchesSemantics(
+            label:
+                'Log what you drink. Use your saved container or choose the actual amount. Step 1 of 1.',
+            isLiveRegion: true,
+          ),
+        );
         expect(tester.getRect(find.byKey(const Key('tour-next'))).bottom,
             lessThanOrEqualTo(variant.$2.height));
         expect(tester.takeException(), isNull);
