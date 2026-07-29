@@ -205,9 +205,15 @@ class _ProfileHero extends StatelessWidget {
                   children: [
                     _MiniPill('${settings.dailyGoalMl} ml/day'),
                     _MiniPill(
-                      settings.goalMode == HydrionGoalMode.weatherInformed
-                          ? 'Weather-aware'
-                          : 'Manual goal',
+                      settings.baselineSource ==
+                              HydrionBaselineSource.personalized
+                          ? 'Personalized baseline'
+                          : 'Standard or manual baseline',
+                    ),
+                    _MiniPill(
+                      settings.weatherModifierEnabled
+                          ? 'Weather assistance selected'
+                          : 'Weather assistance off',
                     ),
                   ],
                 ),
@@ -375,7 +381,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   late final TextEditingController _containerController;
   late final TextEditingController _goalController;
   late HydrionVolumeUnit _unit;
-  late HydrionGoalMode _goalMode;
+  late HydrionBaselineSource _baselineSource;
   late String _avatarId;
 
   @override
@@ -388,7 +394,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
     _goalController =
         TextEditingController(text: settings.dailyGoalMl.toString());
     _unit = settings.volumeUnit;
-    _goalMode = settings.goalMode;
+    _baselineSource = settings.baselineSource;
     _avatarId = settings.avatarId;
   }
 
@@ -420,7 +426,10 @@ class _ProfileEditorState extends State<_ProfileEditor> {
     }
     await repository.setAvatarId(_avatarId);
     await repository.setVolumeUnit(_unit);
-    await repository.setGoalMode(_goalMode);
+    await repository.setPersonalizedGoalOptions(
+      baselineSource: _baselineSource,
+      weatherModifierEnabled: repository.settings.weatherModifierEnabled,
+    );
     await repository.setDailyGoalMl(goal);
     await repository.setContainerSizeMl(container);
     if (!mounted) {
@@ -594,20 +603,20 @@ class _ProfileEditorState extends State<_ProfileEditor> {
           ),
           const SizedBox(height: 12),
           HydrionHorizontalControl(
-            child: SegmentedButton<HydrionGoalMode>(
-              selected: {_goalMode},
+            child: SegmentedButton<HydrionBaselineSource>(
+              selected: {_baselineSource},
               segments: const [
                 ButtonSegment(
-                  value: HydrionGoalMode.manual,
-                  label: Text('Manual'),
+                  value: HydrionBaselineSource.manual,
+                  label: Text('Standard or manual'),
                 ),
                 ButtonSegment(
-                  value: HydrionGoalMode.weatherInformed,
-                  label: Text('Weather'),
+                  value: HydrionBaselineSource.personalized,
+                  label: Text('Personalized'),
                 ),
               ],
               onSelectionChanged: (value) =>
-                  setState(() => _goalMode = value.single),
+                  setState(() => _baselineSource = value.single),
             ),
           ),
           const SizedBox(height: 18),

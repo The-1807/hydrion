@@ -945,6 +945,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       durationDays: widget.challenge.id == 'pomodoro-sip'
           ? parameters['challengeDurationDays'] as int
           : widget.challenge.durationDays,
+      profileAge: settingsRepository.settings.age,
       parameters: parameters,
     );
     if (!joined && context.mounted) {

@@ -112,6 +112,62 @@ class ChallengeVisualRegistry {
       neutralAsset: 'assets/UI_BETA/ble_bottle.png',
       imageAlignment: Alignment.centerRight,
     ),
+    'lunch-break-refill': ChallengeVisualIdentity(
+      primary: Color(0xFF2C7A65),
+      secondary: Color(0xFFF0B44D),
+      icon: Icons.lunch_dining_outlined,
+      neutralAsset: 'assets/UI_BETA/challenge.png',
+      imageAlignment: Alignment.centerRight,
+    ),
+    'homework-hydration': ChallengeVisualIdentity(
+      primary: Color(0xFF376A9A),
+      secondary: Color(0xFF72C4B8),
+      icon: Icons.menu_book_outlined,
+      neutralAsset: 'assets/UI_BETA/community-run.png',
+      imageAlignment: Alignment.centerRight,
+    ),
+    'after-school-recharge': ChallengeVisualIdentity(
+      primary: Color(0xFF4C7656),
+      secondary: Color(0xFFF09B67),
+      icon: Icons.battery_charging_full_outlined,
+      neutralAsset: 'assets/UI_BETA/tracked_intake.png',
+      imageAlignment: Alignment.centerLeft,
+    ),
+    'backpack-bottle-check': ChallengeVisualIdentity(
+      primary: Color(0xFF33718A),
+      secondary: Color(0xFFEDB95F),
+      icon: Icons.backpack_outlined,
+      neutralAsset: 'assets/UI_BETA/pride/pride-bottle.png',
+      imageAlignment: Alignment.centerRight,
+    ),
+    'desk-day-reset': ChallengeVisualIdentity(
+      primary: Color(0xFF3A6F78),
+      secondary: Color(0xFF9CC9A7),
+      icon: Icons.chair_outlined,
+      neutralAsset: 'assets/UI_BETA/goals.png',
+      imageAlignment: Alignment.centerLeft,
+    ),
+    'shift-hydration-check': ChallengeVisualIdentity(
+      primary: Color(0xFF355F8A),
+      secondary: Color(0xFFF0B85B),
+      icon: Icons.schedule_outlined,
+      neutralAsset: 'assets/UI_BETA/green-check.png',
+      imageAlignment: Alignment.centerRight,
+    ),
+    'commute-cup': ChallengeVisualIdentity(
+      primary: Color(0xFF28756E),
+      secondary: Color(0xFFE88C67),
+      icon: Icons.directions_transit_outlined,
+      neutralAsset: 'assets/UI_BETA/weather.png',
+      imageAlignment: Alignment.centerRight,
+    ),
+    'evening-goal-review': ChallengeVisualIdentity(
+      primary: Color(0xFF4B6380),
+      secondary: Color(0xFF8FC2A1),
+      icon: Icons.nights_stay_outlined,
+      neutralAsset: 'assets/UI_BETA/hot-summer.png',
+      imageAlignment: Alignment.centerRight,
+    ),
   };
 
   static ChallengeVisualIdentity forId(String id) => identities[id]!;

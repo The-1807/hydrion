@@ -68,6 +68,94 @@ class HydrionChallengeCatalog {
       dailyTask: 'Logged water before lunch.',
       objectiveType: ChallengeObjectiveType.loggedWaterBeforeLunch,
     ),
+    HydrationChallenge(
+      id: 'lunch-break-refill',
+      name: 'Lunch Break Refill',
+      description:
+          'Use a lunch break as a private reminder to check and refill your bottle when needed.',
+      targetMl: 2200,
+      durationDays: 5,
+      category: 'Teen routine',
+      dailyTask: 'Confirm one lunch-break bottle check.',
+      objectiveType: ChallengeObjectiveType.manualCheckIn,
+    ),
+    HydrationChallenge(
+      id: 'homework-hydration',
+      name: 'Homework Hydration',
+      description:
+          'Pair a comfortable drink check with a study break without tracking a school or assignment.',
+      targetMl: 2200,
+      durationDays: 5,
+      category: 'Teen routine',
+      dailyTask: 'Confirm one study-break hydration check.',
+      objectiveType: ChallengeObjectiveType.manualCheckIn,
+    ),
+    HydrationChallenge(
+      id: 'after-school-recharge',
+      name: 'After-School Recharge',
+      description:
+          'Pause after your daytime routine to review hydration and choose a comfortable next step.',
+      targetMl: 2200,
+      durationDays: 5,
+      category: 'Teen routine',
+      dailyTask: 'Complete one after-routine check-in.',
+      objectiveType: ChallengeObjectiveType.manualCheckIn,
+    ),
+    HydrationChallenge(
+      id: 'backpack-bottle-check',
+      name: 'Backpack Bottle Check',
+      description:
+          'Use a private packing cue to check that a reusable bottle is ready for the next day.',
+      targetMl: 2200,
+      durationDays: 5,
+      category: 'Teen routine',
+      dailyTask: 'Confirm the bottle-ready check.',
+      objectiveType: ChallengeObjectiveType.manualCheckIn,
+    ),
+    HydrationChallenge(
+      id: 'desk-day-reset',
+      name: 'Desk-Day Reset',
+      description:
+          'Use an optional seated-work break to review hydration without changing your normal goal.',
+      targetMl: 2200,
+      durationDays: 5,
+      category: 'Adult routine',
+      dailyTask: 'Confirm one seated-work hydration review.',
+      objectiveType: ChallengeObjectiveType.manualCheckIn,
+    ),
+    HydrationChallenge(
+      id: 'shift-hydration-check',
+      name: 'Shift Hydration Check',
+      description:
+          'For days with a defined work period, add a private midpoint hydration check.',
+      targetMl: 2200,
+      durationDays: 5,
+      category: 'Adult routine',
+      dailyTask: 'Confirm one work-period hydration check.',
+      objectiveType: ChallengeObjectiveType.manualCheckIn,
+    ),
+    HydrationChallenge(
+      id: 'commute-cup',
+      name: 'Commute Cup',
+      description:
+          'When you travel, use departure or arrival as an optional cue to review your drink plan.',
+      targetMl: 2200,
+      durationDays: 5,
+      category: 'Adult routine',
+      dailyTask: 'Confirm one travel-cue hydration review.',
+      objectiveType: ChallengeObjectiveType.manualCheckIn,
+    ),
+    HydrationChallenge(
+      id: 'evening-goal-review',
+      name: 'Evening Goal Review',
+      description:
+          'Review your day without pressure and decide whether your existing plan still feels appropriate.',
+      targetMl: 2200,
+      durationDays: 5,
+      category: 'Adult routine',
+      dailyTask: 'Complete one evening goal review.',
+      objectiveType: ChallengeObjectiveType.manualCheckIn,
+    ),
   ];
 
   static HydrationChallenge byId(String id) {

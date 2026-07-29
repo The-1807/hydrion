@@ -808,7 +808,7 @@ class UserSettingsRepository extends ChangeNotifier {
 
   Future<void> setGoalMode(HydrionGoalMode mode) async {
     _settings = _settings.copyWith(
-      goalMode: mode,
+      goalMode: HydrionGoalMode.manual,
       weatherModifierEnabled: mode == HydrionGoalMode.weatherInformed,
     );
     await _persist();
@@ -822,9 +822,7 @@ class UserSettingsRepository extends ChangeNotifier {
     _settings = _settings.copyWith(
       baselineSource: baselineSource,
       weatherModifierEnabled: weatherModifierEnabled,
-      goalMode: weatherModifierEnabled
-          ? HydrionGoalMode.weatherInformed
-          : HydrionGoalMode.manual,
+      goalMode: HydrionGoalMode.manual,
     );
     await _persist();
     notifyListeners();

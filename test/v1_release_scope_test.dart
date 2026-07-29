@@ -106,7 +106,8 @@ void main() {
     expect(second.settings.sex, HydrionSex.intersex);
     expect(second.settings.avatarId, 'superhappy_shark');
     expect(second.settings.profilePhotoBase64, 'AQIDBA==');
-    expect(second.settings.goalMode, HydrionGoalMode.weatherInformed);
+    expect(second.settings.goalMode, HydrionGoalMode.manual);
+    expect(second.settings.weatherModifierEnabled, isTrue);
     expect(second.settings.volumeUnit, HydrionVolumeUnit.ounces);
     expect(second.settings.containerSizeMl, 750);
     expect(second.settings.usableContainerSizeMl, 750);
@@ -322,7 +323,7 @@ void main() {
   });
 
   test('challenge catalogue contains safe local v1 challenges', () {
-    expect(HydrionChallengeCatalog.challenges, hasLength(6));
+    expect(HydrionChallengeCatalog.challenges, hasLength(14));
     expect(
       HydrionChallengeCatalog.challenges.map((challenge) => challenge.name),
       containsAll([
@@ -358,7 +359,11 @@ void main() {
       expect(definition.actions, isNotEmpty, reason: challenge.id);
       expect(definition.whatCounts, isNotEmpty, reason: challenge.id);
       expect(definition.whatDoesNotCount, isNotEmpty, reason: challenge.id);
-      expect(definition.requiredParameters, isNotEmpty, reason: challenge.id);
+      expect(
+        definition.requiredParameters,
+        isA<List<String>>(),
+        reason: challenge.id,
+      );
     }
   });
 

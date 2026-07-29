@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../domain/bottle_bingo.dart';
 import '../../domain/challenge_catalog.dart';
+import '../../domain/challenge_eligibility.dart';
 import '../../domain/challenge_recommendation.dart';
 import '../../domain/challenge_visual_registry.dart';
 import '../../domain/daily_hydration_context.dart';
@@ -59,7 +60,12 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
         .where((challenge) => activeIds.contains(challenge.id))
         .toList(growable: false);
     final availableChallenges = HydrionChallengeCatalog.challenges
-        .where((challenge) => !activeIds.contains(challenge.id))
+        .where((challenge) =>
+            !activeIds.contains(challenge.id) &&
+            HydrionChallengeEligibilityPolicy.evaluate(
+              challengeId: challenge.id,
+              age: settings.age,
+            ).eligible)
         .toList(growable: false);
     final now = DateTime.now();
     final dateKey = hydrionLocalDateKey(now);

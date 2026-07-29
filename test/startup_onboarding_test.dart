@@ -112,6 +112,10 @@ void main() {
       find.byKey(const Key('onboarding-nickname')),
       'Riley',
     );
+    await tester.enterText(
+      find.byKey(const Key('onboarding-age')),
+      '17',
+    );
     await tester.tap(find.byKey(const Key('onboarding-next')));
     await tester.pumpAndSettle();
 
