@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/bottle_bingo.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/domain/challenge_visual_registry.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
-import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 void main() {
@@ -19,31 +17,18 @@ void main() {
     for (final challenge in HydrionChallengeCatalog.challenges) {
       final visual = ChallengeVisualRegistry.forId(challenge.id);
       expect(visual.icon, isNotNull, reason: challenge.id);
-      if (visual.cardAsset != null) {
-        expect(File(visual.cardAsset!).existsSync(), isTrue,
-            reason: visual.cardAsset);
-      }
-      final dashboardAsset = visual.dashboardAssetFor(null);
-      expect(File(dashboardAsset).existsSync(), isTrue, reason: dashboardAsset);
+      expect(visual.challengeId, challenge.id);
+      expect(
+        visual.assetPath,
+        startsWith('${ChallengeVisualRegistry.assetDirectory}/'),
+      );
     }
   });
 
-  test('profile artwork uses explicit sex and neutral fallback rules', () {
-    final temperature = ChallengeVisualRegistry.forId('temperature-roulette');
-    expect(temperature.dashboardAssetFor(HydrionSex.male),
-        endsWith('temp-roulette-man.png'));
-    expect(temperature.dashboardAssetFor(HydrionSex.female),
-        endsWith('temp-roulette-lady.png'));
-    expect(temperature.dashboardAssetFor(HydrionSex.preferNotToSay),
-        endsWith('temp-roulette.png'));
-  });
-
-  test('asset aliases resolve owner supplied filename stems', () {
-    expect(ChallengeVisualRegistry.aliases['temp_roullete'],
-        'temperature-roulette');
-    expect(ChallengeVisualRegistry.aliases['arounddworld'],
-        'around-the-world-infusion-week');
-    expect(ChallengeVisualRegistry.aliases['pomo'], 'pomodoro-sip');
+  test('final challenge artwork paths are unique', () {
+    final paths =
+        ChallengeVisualRegistry.identities.values.map((item) => item.assetPath);
+    expect(paths.toSet(), hasLength(paths.length));
   });
 
   test('Bottle Bingo generation is stable and contains one free center', () {

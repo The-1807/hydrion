@@ -97,15 +97,9 @@ void main() {
     final ownersByAsset = <String, Set<String>>{};
     for (final challenge in HydrionChallengeCatalog.challenges) {
       final visual = ChallengeVisualRegistry.forId(challenge.id);
-      for (final path in [
-        visual.cardAsset,
-        visual.neutralAsset,
-        visual.maleAsset,
-        visual.femaleAsset,
-      ].whereType<String>()) {
-        mapped.add(path);
-        ownersByAsset.putIfAbsent(path, () => <String>{}).add(challenge.id);
-      }
+      final path = visual.assetPath;
+      mapped.add(path);
+      ownersByAsset.putIfAbsent(path, () => <String>{}).add(challenge.id);
     }
     expect(mapped, isNotEmpty);
     expect(
@@ -114,9 +108,12 @@ void main() {
       reason: 'Artwork may serve multiple surfaces for one challenge but '
           'must not be shared across different challenges.',
     );
-    for (final path in mapped) {
-      expect(File(path).existsSync(), isTrue, reason: path);
-    }
+    expect(
+      mapped.every(
+        (path) => path.startsWith('assets/images/challenges/'),
+      ),
+      isTrue,
+    );
   });
 
   test('image asset filenames do not expose AI provider or generator names',

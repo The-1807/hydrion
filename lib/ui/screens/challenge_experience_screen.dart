@@ -18,9 +18,11 @@ import '../../services/weather_goal_service.dart';
 import '../../services/notifications.dart';
 import '../../services/pomodoro_session_service.dart';
 import '../components/intake_ring.dart';
+import '../components/challenge_artwork.dart';
 import '../components/guided_tour_overlay.dart';
 import '../components/hydrion_viewport.dart';
 import '../presentation/challenge_history_presenter.dart';
+import '../presentation/challenge_copy.dart';
 import '../theme/hydrion_design.dart';
 
 class ChallengeExperienceScreen extends StatefulWidget {
@@ -79,6 +81,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = ChallengeCopy.forChallenge(context, widget.challenge);
     final challengeRepository = context.watch<ChallengeRepository>();
     final active = challengeRepository.activeChallengeFor(widget.challenge.id);
     JoinedChallenge? latestHistory;
@@ -92,7 +95,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       appBar: AppBar(
         toolbarHeight: HydrionViewport.headerHeight(context),
         title: Text(
-          widget.challenge.name,
+          copy.title,
           maxLines: 2,
           overflow: TextOverflow.fade,
         ),
@@ -152,7 +155,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     }
     return ContextualGuidedTourOverlay(
       tourId: tutorial.id,
-      semanticsLabel: '${widget.challenge.name} tutorial',
+      semanticsLabel: '${copy.title} tutorial',
       steps: tutorial.steps,
       child: scaffold,
     );
@@ -255,12 +258,10 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     final completingSetup = active != null;
     final joinBlocked =
         !completingSetup && !repository.hasRoomForAnotherChallenge;
-    final settings = context.read<UserSettingsRepository>().settings;
     return [
       _ChallengeImageHero(
         challengeName: widget.challenge.name,
         identity: ChallengeVisualRegistry.forId(widget.challenge.id),
-        sex: settings.sex,
       ),
       _Section(title: 'What this challenge is', body: definition.purpose),
       _Section(
@@ -377,7 +378,6 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       _ChallengeImageHero(
         challengeName: widget.challenge.name,
         identity: ChallengeVisualRegistry.forId(widget.challenge.id),
-        sex: context.read<UserSettingsRepository>().settings.sex,
       ),
       const _Section(
         title: 'Challenge paused',
@@ -453,7 +453,6 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       _ChallengeImageHero(
         challengeName: widget.challenge.name,
         identity: ChallengeVisualRegistry.forId(widget.challenge.id),
-        sex: settings.sex,
       ),
       _Section(
         title: 'Challenge complete',
@@ -541,7 +540,6 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       _ChallengeImageHero(
         challengeName: widget.challenge.name,
         identity: ChallengeVisualRegistry.forId(widget.challenge.id),
-        sex: settings.sex,
       ),
       _Section(
         title: challengeComplete
@@ -731,8 +729,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     final recent = history.take(4).toList(growable: false);
     return [
       _BottleBingoDashboardHero(
-        asset: ChallengeVisualRegistry.forId('bottle-bingo')
-            .dashboardAssetFor(settings.sex),
+        identity: ChallengeVisualRegistry.forId('bottle-bingo'),
         completedTiles: completed.length,
         completedLines: lines.length,
       ),
@@ -1505,17 +1502,14 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
 class _ChallengeImageHero extends StatelessWidget {
   final String challengeName;
   final ChallengeVisualIdentity identity;
-  final HydrionSex? sex;
 
   const _ChallengeImageHero({
     required this.challengeName,
     required this.identity,
-    required this.sex,
   });
 
   @override
   Widget build(BuildContext context) {
-    final asset = identity.dashboardAssetFor(sex);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Semantics(
@@ -1536,13 +1530,10 @@ class _ChallengeImageHero extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(
-                asset,
+              ChallengeArtwork(
                 key: const Key('challenge-dashboard-art'),
-                fit: BoxFit.contain,
+                identity: identity,
                 cacheWidth: 720,
-                alignment: identity.imageAlignment,
-                excludeFromSemantics: true,
               ),
               DecoratedBox(
                 decoration: BoxDecoration(
@@ -1774,12 +1765,12 @@ class _PlantCuePanel extends StatelessWidget {
 }
 
 class _BottleBingoDashboardHero extends StatelessWidget {
-  final String asset;
+  final ChallengeVisualIdentity identity;
   final int completedTiles;
   final int completedLines;
 
   const _BottleBingoDashboardHero({
-    required this.asset,
+    required this.identity,
     required this.completedTiles,
     required this.completedLines,
   });
@@ -1817,12 +1808,9 @@ class _BottleBingoDashboardHero extends StatelessWidget {
               right: -6,
               bottom: -28,
               width: shortViewport ? 180 : 214,
-              child: Image.asset(
-                asset,
-                fit: BoxFit.contain,
-                alignment: Alignment.centerRight,
+              child: ChallengeArtwork(
+                identity: identity,
                 cacheWidth: 640,
-                excludeFromSemantics: true,
               ),
             ),
             DecoratedBox(

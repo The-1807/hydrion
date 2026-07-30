@@ -29,6 +29,11 @@
 
 # 1. Product Scope
 
+- [ ] Supply and physically review every pending challenge PNG listed in
+  `assets/images/challenges/artwork_manifest.json`.
+- [ ] Confirm no audience, eligibility, enum, identifier, reason-code, or raw
+  exception text is visible or announced on a physical device.
+
 - [x] Runtime content stripping for unfinished and developer-facing features is complete.
 - [x] Coach is non-interactive and clearly reserved for a future update.
 - [x] Weather, connected-device, integration, and diagnostic surfaces are hidden from V1.

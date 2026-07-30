@@ -21,8 +21,10 @@ import '../../services/challenge_recommendation_service.dart';
 import '../../services/current_weather_context.dart';
 import '../../utils/permissions.dart';
 import '../theme/hydrion_design.dart';
+import '../components/challenge_artwork.dart';
 import '../components/intake_ring.dart';
 import '../components/hydrion_viewport.dart';
+import '../presentation/challenge_copy.dart';
 import 'challenge_experience_screen.dart';
 
 class SocialChallengesScreen extends StatefulWidget {
@@ -971,6 +973,7 @@ class _ChallengeCard extends StatelessWidget {
       challengeId: challenge.id,
     );
     final visual = ChallengeVisualRegistry.forId(challenge.id);
+    final copy = ChallengeCopy.forChallenge(context, challenge);
     final isBottleBingo = challenge.id == 'bottle-bingo';
     final bingoCompleted = active == null
         ? const <int>{BottleBingoBoard.centerIndex}
@@ -994,7 +997,7 @@ class _ChallengeCard extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: '${challenge.name}. Open challenge details.',
+      label: '${copy.title}. Open challenge details.',
       child: InkWell(
         key: Key('challenge-card-${challenge.id}'),
         onTap: openDetails,
@@ -1005,7 +1008,7 @@ class _ChallengeCard extends StatelessWidget {
             children: [
               if (isBottleBingo)
                 _BottleBingoCatalogueHeader(
-                  asset: visual.cardAsset!,
+                  identity: visual,
                   primary: visual.primary,
                   secondary: visual.secondary,
                   completedTiles: bingoCompleted.length,
@@ -1029,15 +1032,10 @@ class _ChallengeCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(HydrionRadii.md),
                       ),
                       clipBehavior: Clip.antiAlias,
-                      child: visual.cardAsset == null
-                          ? Icon(visual.icon, color: visual.primary, size: 40)
-                          : Image.asset(
-                              visual.cardAsset!,
-                              fit: BoxFit.contain,
-                              alignment: visual.imageAlignment,
-                              cacheWidth: 300,
-                              excludeFromSemantics: true,
-                            ),
+                      child: ChallengeArtwork(
+                        identity: visual,
+                        cacheWidth: 300,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1045,16 +1043,11 @@ class _ChallengeCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            challenge.name,
+                            copy.title,
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
                                 ?.copyWith(fontWeight: FontWeight.w900),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            challenge.category,
-                            style: Theme.of(context).textTheme.labelMedium,
                           ),
                         ],
                       ),
@@ -1062,18 +1055,7 @@ class _ChallengeCard extends StatelessWidget {
                   ],
                 ),
               const SizedBox(height: 12),
-              Text(isBottleBingo
-                  ? 'Complete hydration habits and build a five-tile line.'
-                  : challenge.description),
-              if (!isBottleBingo) ...[
-                const SizedBox(height: 8),
-                Text(
-                  challenge.dailyTask,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ],
+              Text(copy.description),
               const SizedBox(height: 12),
               if (joined) ...[
                 if (!isBottleBingo) ...[
@@ -1156,7 +1138,7 @@ class _ChallengeCard extends StatelessWidget {
 }
 
 class _BottleBingoCatalogueHeader extends StatelessWidget {
-  final String asset;
+  final ChallengeVisualIdentity identity;
   final Color primary;
   final Color secondary;
   final int completedTiles;
@@ -1164,7 +1146,7 @@ class _BottleBingoCatalogueHeader extends StatelessWidget {
   final bool active;
 
   const _BottleBingoCatalogueHeader({
-    required this.asset,
+    required this.identity,
     required this.primary,
     required this.secondary,
     required this.completedTiles,
@@ -1202,12 +1184,9 @@ class _BottleBingoCatalogueHeader extends StatelessWidget {
             right: -8,
             bottom: -18,
             width: 158,
-            child: Image.asset(
-              asset,
-              fit: BoxFit.contain,
-              alignment: Alignment.centerRight,
+            child: ChallengeArtwork(
+              identity: identity,
               cacheWidth: 420,
-              excludeFromSemantics: true,
             ),
           ),
           DecoratedBox(
