@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_hydrion">Hydrion</string>
+    <string name="widget_daily_progress_name">Progression Hydrion</string>
+    <string name="widget_daily_progress_description">Consultez votre progression et votre objectif du jour.</string>
+    <string name="widget_quick_log_name">Ajout rapide Hydrion</string>
+    <string name="widget_quick_log_widget_description">Consultez la progression et ajoutez rapidement la quantité enregistrée.</string>
+    <string name="widget_quick_log_description">Ajouter la quantité d’eau affichée</string>
+</resources>

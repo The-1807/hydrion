@@ -38,6 +38,7 @@ import 'services/voice_llm_bridge.dart';
 import 'services/wearable_service.dart';
 import 'services/weather_goal_service.dart';
 import 'services/app_refresh_controller.dart';
+import 'services/android_widget_service.dart';
 import 'services/dynamic_theme_clock.dart';
 import 'services/daily_hydration_recommendation_coordinator.dart';
 import 'services/challenge_recommendation_service.dart';
@@ -403,6 +404,7 @@ class HydrionServices {
   final WearableService wearables;
   final EcoTracker ecoTracker;
   final LocalProfileResetService localProfileResetService;
+  final AndroidWidgetService androidWidgetService;
 
   HydrionServices({
     this.aiRuntimeConfig = const HydrionAiRuntimeConfig(),
@@ -443,7 +445,14 @@ class HydrionServices {
     required this.wearables,
     required this.ecoTracker,
     required this.localProfileResetService,
-  }) : currentWeatherContext = currentWeatherContext ?? CurrentWeatherContext();
+    AndroidWidgetService? androidWidgetService,
+  })  : currentWeatherContext =
+            currentWeatherContext ?? CurrentWeatherContext(),
+        androidWidgetService = androidWidgetService ??
+            AndroidWidgetService(
+              hydrationRepository: hydrationRepository,
+              settingsRepository: settingsRepository,
+            );
 
   static Future<HydrionServices> local() async {
     final store = await SharedPreferencesHydrionStore.create();
@@ -455,6 +464,7 @@ class HydrionServices {
     await services.permissions.refresh();
     await services.pomodoroSessionService.reconcile();
     await services.notificationService.reconcileSchedules();
+    await services.androidWidgetService.initialize();
     return services;
   }
 
@@ -687,6 +697,10 @@ class HydrionServices {
       dailyHydrationContextRepository: dailyHydrationContextRepository,
       personalizationStateRepository: personalizationStateRepository,
     );
+    final androidWidgetService = AndroidWidgetService(
+      hydrationRepository: hydrationRepository,
+      settingsRepository: settingsRepository,
+    );
 
     return HydrionServices(
       aiRuntimeConfig: aiRuntimeConfig,
@@ -728,6 +742,7 @@ class HydrionServices {
       wearables: wearables,
       ecoTracker: ecoTracker,
       localProfileResetService: localProfileResetService,
+      androidWidgetService: androidWidgetService,
     );
   }
 

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_hydrion">Hydrion</string>
+    <string name="widget_daily_progress_name">Hydrion Daily Progress</string>
+    <string name="widget_daily_progress_description">See the current hydration progress and goal.</string>
+    <string name="widget_quick_log_name">Hydrion Quick Log</string>
+    <string name="widget_quick_log_widget_description">See progress and quickly log your saved amount.</string>
+    <string name="widget_quick_log_description">Log the displayed amount of water</string>
+</resources>
