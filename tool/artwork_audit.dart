@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 void main() {
-  const manifestPath =
-      'assets/images/challenges/artwork_manifest.json';
+  const manifestPath = 'assets/images/challenges/artwork_manifest.json';
   final manifestFile = File(manifestPath);
   if (!manifestFile.existsSync()) {
     stderr.writeln('Missing artwork manifest: $manifestPath');
@@ -34,8 +33,7 @@ void main() {
       invalid = true;
     }
     if (path is! String ||
-        !RegExp(r'^assets/images/challenges/[a-z0-9_]+\.png$')
-            .hasMatch(path) ||
+        !RegExp(r'^assets/images/challenges/[a-z0-9_]+\.png$').hasMatch(path) ||
         !paths.add(path)) {
       stderr.writeln('Missing, invalid, or duplicate artwork path: $path');
       invalid = true;

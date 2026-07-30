@@ -55,7 +55,8 @@ class _ChallengeArtFallback extends StatelessWidget {
         child: Center(
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+              color:
+                  Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
               shape: BoxShape.circle,
               border: Border.all(
                 color: identity.secondary.withValues(alpha: 0.65),

@@ -30,11 +30,9 @@ void main() {
 
   test('manifest covers every challenge with a unique exact PNG path', () {
     final manifest = jsonDecode(
-      File('assets/images/challenges/artwork_manifest.json')
-          .readAsStringSync(),
+      File('assets/images/challenges/artwork_manifest.json').readAsStringSync(),
     ) as Map<String, dynamic>;
-    final entries = (manifest['artwork'] as List)
-        .cast<Map<String, dynamic>>();
+    final entries = (manifest['artwork'] as List).cast<Map<String, dynamic>>();
     final ids = entries.map((entry) => entry['challenge_id']).toSet();
     final paths = entries.map((entry) => entry['path']).toList();
     expect(

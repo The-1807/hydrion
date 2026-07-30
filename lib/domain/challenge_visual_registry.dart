@@ -26,8 +26,7 @@ class ChallengeVisualRegistry {
   static const identities = <String, ChallengeVisualIdentity>{
     'around-the-world-infusion-week': ChallengeVisualIdentity(
       challengeId: 'around-the-world-infusion-week',
-      assetPath:
-          '$assetDirectory/around_the_world_infusion.png',
+      assetPath: '$assetDirectory/around_the_world_infusion.png',
       primary: Color(0xFF287C64),
       secondary: Color(0xFFE1A34A),
       icon: Icons.local_florist_outlined,
