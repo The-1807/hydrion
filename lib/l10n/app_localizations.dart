@@ -2370,6 +2370,18 @@ abstract class AppLocalizations {
   /// **'Apply suggested goal'**
   String get applySuggestedGoal;
 
+  /// No description provided for @suggestedGoalApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested goal applied.'**
+  String get suggestedGoalApplied;
+
+  /// No description provided for @dailyContextSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s context saved.'**
+  String get dailyContextSaved;
+
   /// No description provided for @reviewSuggestion.
   ///
   /// In en, this message translates to:

@@ -655,6 +655,8 @@
   "personalizedSuggestionAccepted": "Personalized daily suggestion accepted after review.",
   "keepCurrentGoal": "Keep current goal",
   "applySuggestedGoal": "Apply suggested goal",
+  "suggestedGoalApplied": "Suggested goal applied.",
+  "dailyContextSaved": "Today's context saved.",
   "reviewSuggestion": "Review suggestion",
   "generalWellnessNotice": "This is a general wellness estimate, not medical advice. Do not force fluids.",
   "illnessSafetyNotice": "Fluid needs can change during illness. Keep your regular recommendation and seek professional guidance for significant symptoms.",

@@ -286,7 +286,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     if (!mounted) return;
     setState(() => _editingContext = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context).bodyMetricsSaved)),
+      SnackBar(content: Text(AppLocalizations.of(context).dailyContextSaved)),
     );
   }
 
@@ -304,7 +304,12 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
           recommendation,
           now: DateTime.now(),
         );
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() => _recommendation = null);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text(AppLocalizations.of(context).suggestedGoalApplied)),
+    );
   }
 
   Future<void> _keepCurrentGoal() async {
