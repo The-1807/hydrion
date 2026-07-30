@@ -96,21 +96,8 @@ void main() {
               reason: '${surface.name}: ${scene.assetPath}');
         }
       }
-      for (final challenge in HydrionChallengeCatalog.challenges) {
-        final visual = ChallengeVisualRegistry.forId(challenge.id);
-        for (final value in values) {
-          final asset = visual.dashboardAssetFor(value);
-          expect(File(asset).existsSync(), isTrue,
-              reason: '${challenge.id}: $asset');
-        }
-        if (visual.maleAsset != null && visual.femaleAsset != null) {
-          expect(
-            visual.dashboardAssetFor(HydrionSex.male),
-            isNot(visual.dashboardAssetFor(HydrionSex.female)),
-            reason: challenge.id,
-          );
-        }
-      }
+      expect(ChallengeVisualRegistry.identities,
+          hasLength(HydrionChallengeCatalog.challenges.length));
     });
 
     test('unknown persisted profile values reload as neutral', () async {
@@ -314,26 +301,22 @@ void main() {
       await tester.tap(card);
       await tester.pumpAndSettle();
 
-      String renderedAsset() {
-        final image = tester.widget<Image>(
-          find.byKey(const Key('challenge-dashboard-art')),
-        );
-        return _assetName(image.image);
-      }
-
-      expect(renderedAsset(), endsWith('temp-roulette-man.png'));
+      final fallback = find.byKey(
+        const Key('challenge-art-fallback-temperature-roulette'),
+      );
+      expect(fallback, findsOneWidget);
       await services.settingsRepository.setProfile(
         nickname: 'River',
         sex: HydrionSex.female,
       );
       await tester.pumpAndSettle();
-      expect(renderedAsset(), endsWith('temp-roulette-lady.png'));
+      expect(fallback, findsOneWidget);
       await services.settingsRepository.setProfile(
         nickname: 'River',
         sex: HydrionSex.intersex,
       );
       await tester.pumpAndSettle();
-      expect(renderedAsset(), endsWith('temp-roulette.png'));
+      expect(fallback, findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

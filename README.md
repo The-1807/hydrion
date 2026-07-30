@@ -99,6 +99,11 @@ The CI baseline runs:
 
 Architecture and provider safety notes live in `docs/architecture/`.
 
+Challenge artwork uses exact paths under `assets/images/challenges/`. Pending
+asset specifications and drop-in instructions are documented in
+`docs/assets/HYDRION_PENDING_ARTWORK_REQUESTS.md`; run
+`dart run tool/artwork_audit.dart` to validate the manifest.
+
 ## Release Readiness
 
 Hydrion V1 release validation is tracked in the
