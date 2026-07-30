@@ -314,6 +314,16 @@ void main() {
         target: card,
         scrollView: find.byKey(const Key('challenges-catalog-scroll')),
       );
+      if (challenge.id == 'bottle-bingo') {
+        expect(
+          find.byKey(const Key('bottle-bingo-catalogue-header')),
+          findsOneWidget,
+        );
+      } else {
+        final hero = find.byKey(Key('challenge-hero-${challenge.id}'));
+        expect(hero, findsOneWidget);
+        expect(tester.getSize(hero).height, 176);
+      }
       await tester.tap(card);
       await tester.pumpAndSettle();
       final action = find.byKey(Key('activate-challenge-${challenge.id}'));

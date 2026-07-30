@@ -29,8 +29,7 @@
 
 # 1. Product Scope
 
-- [ ] Supply and physically review every pending challenge PNG listed in
-  `assets/images/challenges/artwork_manifest.json`.
+- [ ] Physically review every challenge image and profile-aware variant.
 - [ ] Confirm no audience, eligibility, enum, identifier, reason-code, or raw
   exception text is visible or announced on a physical device.
 

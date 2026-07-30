@@ -7,6 +7,7 @@ class ChallengeArtwork extends StatelessWidget {
   final BoxFit fit;
   final double iconSize;
   final int? cacheWidth;
+  final Object? profileValue;
 
   const ChallengeArtwork({
     super.key,
@@ -14,12 +15,13 @@ class ChallengeArtwork extends StatelessWidget {
     this.fit = BoxFit.contain,
     this.iconSize = 44,
     this.cacheWidth,
+    this.profileValue,
   });
 
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      identity.assetPath,
+      identity.assetFor(profileValue),
       fit: fit,
       alignment: identity.imageAlignment,
       cacheWidth: cacheWidth,
