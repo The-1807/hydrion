@@ -29,6 +29,7 @@ class ScheduledReminder {
   final ReminderScheduleState scheduleState;
   final String? scheduleError;
   final DateTime? lastScheduledAt;
+  final String? challengeId;
 
   const ScheduledReminder({
     required this.id,
@@ -39,6 +40,7 @@ class ScheduledReminder {
     this.scheduleState = ReminderScheduleState.pending,
     this.scheduleError,
     this.lastScheduledAt,
+    this.challengeId,
   });
 
   int get platformNotificationId => id.hashCode & 0x7fffffff;
@@ -87,6 +89,7 @@ class ScheduledReminder {
           clearScheduleError ? null : scheduleError ?? this.scheduleError,
       lastScheduledAt:
           clearLastScheduledAt ? null : lastScheduledAt ?? this.lastScheduledAt,
+      challengeId: challengeId,
     );
   }
 
@@ -100,6 +103,7 @@ class ScheduledReminder {
       'scheduleState': scheduleState.name,
       'scheduleError': scheduleError,
       'lastScheduledAt': lastScheduledAt?.toIso8601String(),
+      'challengeId': challengeId,
     };
   }
 
@@ -126,6 +130,7 @@ class ScheduledReminder {
       scheduleError: _safeShortText(value['scheduleError']),
       lastScheduledAt:
           DateTime.tryParse((value['lastScheduledAt'] ?? '').toString()),
+      challengeId: _safeShortText(value['challengeId']),
     );
   }
 
@@ -221,6 +226,7 @@ class ReminderRepository extends ChangeNotifier {
     required String message,
     required int priority,
     bool enabled = true,
+    String? challengeId,
   }) async {
     final safeMessage = ScheduledReminder.safeMessage(message);
     final safePriority = ScheduledReminder.safePriority(priority);
@@ -237,6 +243,7 @@ class ReminderRepository extends ChangeNotifier {
       message: safeMessage,
       priority: safePriority,
       enabled: enabled,
+      challengeId: challengeId,
     );
     _reminders.add(reminder);
     _reminders.sort((a, b) => a.triggerTime.compareTo(b.triggerTime));

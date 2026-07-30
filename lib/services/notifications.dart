@@ -6,6 +6,7 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../repositories/reminder_repository.dart';
+import '../domain/challenge_visual_registry.dart';
 import 'policy_service.dart';
 
 enum HydrionNotificationPermissionState {
@@ -76,6 +77,12 @@ class FlutterLocalNotificationsHydrionAdapter
   static const _channelName = 'Hydration reminders';
   static const _channelDescription =
       'Local reminders for user-created Hydrion hydration check-ins.';
+
+  static String? _challengeIcon(String? challengeId) {
+    if (challengeId == null) return null;
+    return ChallengeVisualRegistry
+        .identities[challengeId]?.notificationIconName;
+  }
 
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialized = false;
@@ -194,11 +201,12 @@ class FlutterLocalNotificationsHydrionAdapter
       title: 'Hydrion reminder',
       body: reminder.message,
       scheduledDate: scheduledAt,
-      notificationDetails: const NotificationDetails(
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
           channelDescription: _channelDescription,
+          icon: _challengeIcon(reminder.challengeId),
           importance: Importance.high,
           priority: Priority.high,
           category: AndroidNotificationCategory.reminder,
@@ -453,6 +461,7 @@ class NotificationService {
     required int priority,
     bool enabled = true,
     bool requestPermissionIfNeeded = false,
+    String? challengeId,
   }) async {
     final safeTriggerTime = _nextFutureTriggerTime(triggerTime);
     final safeMessage = ScheduledReminder.safeMessage(message);
@@ -483,6 +492,7 @@ class NotificationService {
       message: safeMessage,
       priority: safePriority,
       enabled: enabled,
+      challengeId: challengeId,
     );
     return _schedulePersistedReminder(
       reminder,
