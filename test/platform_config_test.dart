@@ -108,12 +108,11 @@ void main() {
       reason: 'Artwork may serve multiple surfaces for one challenge but '
           'must not be shared across different challenges.',
     );
-    expect(
-      mapped.every(
-        (path) => path.startsWith('assets/images/challenges/'),
-      ),
-      isTrue,
-    );
+    for (final path in mapped) {
+      if (!path.startsWith('assets/images/challenges/')) {
+        expect(File(path).existsSync(), isTrue, reason: path);
+      }
+    }
   });
 
   test('image asset filenames do not expose AI provider or generator names',

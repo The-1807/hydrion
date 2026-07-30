@@ -10,7 +10,7 @@ import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 
 void main() {
-  const asset = 'assets/images/challenges/bottle_bingo.png';
+  const asset = 'assets/UI_BETA/ble_bottle.png';
 
   Future<HydrionServices> pumpBingo(
     WidgetTester tester, {
@@ -108,10 +108,10 @@ void main() {
 
   test('Bottle Bingo registry uses the supplied local transparent artwork', () {
     final visual = ChallengeVisualRegistry.forId('bottle-bingo');
-    expect(visual.assetPath, 'assets/images/challenges/bottle_bingo.png');
+    expect(visual.assetPath, asset);
     expect(
       File('pubspec.yaml').readAsStringSync(),
-      contains('assets/images/challenges/'),
+      contains('assets/UI_BETA/'),
     );
   });
 

@@ -1,6 +1,6 @@
 # Hydrion Pending Artwork Requests
 
-All 14 final challenge PNGs are pending. Exact filenames, paths, scenes,
+Eight challenge PNGs are pending. Exact filenames, paths, scenes,
 accessible descriptions, and priorities are recorded in
 `assets/images/challenges/artwork_manifest.json`.
 

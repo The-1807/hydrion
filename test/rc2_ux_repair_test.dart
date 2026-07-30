@@ -301,22 +301,29 @@ void main() {
       await tester.tap(card);
       await tester.pumpAndSettle();
 
-      final fallback = find.byKey(
-        const Key('challenge-art-fallback-temperature-roulette'),
-      );
-      expect(fallback, findsOneWidget);
+      String renderedAsset() {
+        final image = tester.widget<Image>(
+          find.descendant(
+            of: find.byKey(const Key('challenge-dashboard-art')),
+            matching: find.byType(Image),
+          ),
+        );
+        return _assetName(image.image);
+      }
+
+      expect(renderedAsset(), 'assets/UI_BETA/temp-roulette-card.png');
       await services.settingsRepository.setProfile(
         nickname: 'River',
         sex: HydrionSex.female,
       );
       await tester.pumpAndSettle();
-      expect(fallback, findsOneWidget);
+      expect(renderedAsset(), 'assets/UI_BETA/temp-roulette-card.png');
       await services.settingsRepository.setProfile(
         nickname: 'River',
         sex: HydrionSex.intersex,
       );
       await tester.pumpAndSettle();
-      expect(fallback, findsOneWidget);
+      expect(renderedAsset(), 'assets/UI_BETA/temp-roulette-card.png');
       expect(tester.takeException(), isNull);
     });
   });

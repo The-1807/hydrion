@@ -12,5 +12,6 @@
 | Profile, settings, deletion, legal | Yes | Yes | Yes | Pass |
 | Errors, loading, snackbars, notifications, semantics | Yes | Yes | N/A | Pass |
 
-Custom artwork remains pending where recorded in the manifest. Every pending
-challenge renders a stable ID-specific color, pattern, and icon composition.
+Custom artwork remains pending for eight challenges recorded in the manifest.
+The six owner-supplied images remain active. Every pending challenge renders a
+stable ID-specific color, pattern, and icon composition.

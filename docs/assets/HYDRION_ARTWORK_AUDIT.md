@@ -2,15 +2,24 @@
 
 Audit date: 2026-07-30
 
-The former registry mixed challenge-specific artwork with general UI artwork.
-Those files remain available to their original non-challenge surfaces, but no
-longer act as final challenge artwork.
+The registry preserves the six owner-supplied challenge images. Eight newer
+challenges previously pointed at unrelated general UI artwork and need their
+own images.
 
 | Challenge set | Previous state | Unique and appropriate | Final behavior |
 |---|---|---:|---|
-| Original six challenges | Mostly challenge-specific, with repeated card/detail files and inconsistent JPG/PNG formats | Partial | Exact unique PNG path; ID-specific fallback until supplied |
+| Original six challenges | Owner-supplied, challenge-specific artwork | Yes | Existing original asset remains mapped to its challenge |
 | Lunch, study, afternoon, backpack challenges | Unrelated generic challenge, running, intake, and pride assets | No | Exact unique PNG path; ID-specific fallback until supplied |
 | Desk, shift, travel, evening challenges | Generic goals, check, weather, and summer assets | No | Exact unique PNG path; ID-specific fallback until supplied |
+
+Retained owner-supplied assets:
+
+- `assets/UI_BETA/arounddworld-card.png`
+- `assets/UI_BETA/temp-roulette-card.png`
+- `assets/UI_BETA/eatyourwater-card.png`
+- `assets/UI_BETA/pomodoro-card.jpg`
+- `assets/UI_BETA/planttwin-card.png`
+- `assets/UI_BETA/ble_bottle.png`
 
 The canonical source of runtime paths is
 `lib/domain/challenge_visual_registry.dart`. The machine-readable request source

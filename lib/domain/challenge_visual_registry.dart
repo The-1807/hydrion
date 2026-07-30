@@ -26,7 +26,7 @@ class ChallengeVisualRegistry {
   static const identities = <String, ChallengeVisualIdentity>{
     'around-the-world-infusion-week': ChallengeVisualIdentity(
       challengeId: 'around-the-world-infusion-week',
-      assetPath: '$assetDirectory/around_the_world_infusion.png',
+      assetPath: 'assets/UI_BETA/arounddworld-card.png',
       primary: Color(0xFF287C64),
       secondary: Color(0xFFE1A34A),
       icon: Icons.local_florist_outlined,
@@ -34,7 +34,7 @@ class ChallengeVisualRegistry {
     ),
     'temperature-roulette': ChallengeVisualIdentity(
       challengeId: 'temperature-roulette',
-      assetPath: '$assetDirectory/temperature_roulette.png',
+      assetPath: 'assets/UI_BETA/temp-roulette-card.png',
       primary: Color(0xFF2479A8),
       secondary: Color(0xFFE88A5A),
       icon: Icons.device_thermostat_outlined,
@@ -42,7 +42,7 @@ class ChallengeVisualRegistry {
     ),
     'eat-your-water-day': ChallengeVisualIdentity(
       challengeId: 'eat-your-water-day',
-      assetPath: '$assetDirectory/eat_your_water.png',
+      assetPath: 'assets/UI_BETA/eatyourwater-card.png',
       primary: Color(0xFF3A8B58),
       secondary: Color(0xFFF0A65A),
       icon: Icons.restaurant_outlined,
@@ -50,7 +50,7 @@ class ChallengeVisualRegistry {
     ),
     'pomodoro-sip': ChallengeVisualIdentity(
       challengeId: 'pomodoro-sip',
-      assetPath: '$assetDirectory/pomodoro_sip.png',
+      assetPath: 'assets/UI_BETA/pomodoro-card.jpg',
       primary: Color(0xFFB64B55),
       secondary: Color(0xFFF1B658),
       icon: Icons.timer_outlined,
@@ -58,7 +58,7 @@ class ChallengeVisualRegistry {
     ),
     'plant-twin-challenge': ChallengeVisualIdentity(
       challengeId: 'plant-twin-challenge',
-      assetPath: '$assetDirectory/plant_twin.png',
+      assetPath: 'assets/UI_BETA/planttwin-card.png',
       primary: Color(0xFF468351),
       secondary: Color(0xFF84BDA0),
       icon: Icons.spa_outlined,
@@ -66,7 +66,7 @@ class ChallengeVisualRegistry {
     ),
     'bottle-bingo': ChallengeVisualIdentity(
       challengeId: 'bottle-bingo',
-      assetPath: '$assetDirectory/bottle_bingo.png',
+      assetPath: 'assets/UI_BETA/ble_bottle.png',
       primary: Color(0xFF126E82),
       secondary: Color(0xFF67C9B8),
       icon: Icons.grid_view_rounded,

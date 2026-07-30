@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/bottle_bingo.dart';
@@ -18,10 +19,11 @@ void main() {
       final visual = ChallengeVisualRegistry.forId(challenge.id);
       expect(visual.icon, isNotNull, reason: challenge.id);
       expect(visual.challengeId, challenge.id);
-      expect(
-        visual.assetPath,
-        startsWith('${ChallengeVisualRegistry.assetDirectory}/'),
-      );
+      if (!visual.assetPath.startsWith(
+        '${ChallengeVisualRegistry.assetDirectory}/',
+      )) {
+        expect(File(visual.assetPath).existsSync(), isTrue);
+      }
     }
   });
 

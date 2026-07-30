@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/domain/challenge_visual_registry.dart';
 import 'package:hydrion/ui/components/challenge_artwork.dart';
 
@@ -35,9 +34,19 @@ void main() {
     final entries = (manifest['artwork'] as List).cast<Map<String, dynamic>>();
     final ids = entries.map((entry) => entry['challenge_id']).toSet();
     final paths = entries.map((entry) => entry['path']).toList();
+    expect(entries, hasLength(8));
     expect(
       ids,
-      HydrionChallengeCatalog.challenges.map((item) => item.id).toSet(),
+      containsAll({
+        'lunch-break-refill',
+        'homework-hydration',
+        'after-school-recharge',
+        'backpack-bottle-check',
+        'desk-day-reset',
+        'shift-hydration-check',
+        'commute-cup',
+        'evening-goal-review',
+      }),
     );
     expect(paths.toSet(), hasLength(paths.length));
     for (final path in paths.cast<String>()) {
@@ -47,6 +56,14 @@ void main() {
           RegExp(r'^assets/images/challenges/[a-z0-9_]+\.png$'),
         ),
       );
+    }
+    final registryPaths =
+        ChallengeVisualRegistry.identities.values.map((item) => item.assetPath);
+    expect(registryPaths.toSet(), hasLength(14));
+    for (final identity in ChallengeVisualRegistry.identities.values) {
+      if (!ids.contains(identity.challengeId)) {
+        expect(File(identity.assetPath).existsSync(), isTrue);
+      }
     }
   });
 
