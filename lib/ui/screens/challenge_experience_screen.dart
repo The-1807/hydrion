@@ -1533,6 +1533,8 @@ class _ChallengeImageHero extends StatelessWidget {
               ChallengeArtwork(
                 key: const Key('challenge-dashboard-art'),
                 identity: identity,
+                profileValue:
+                    context.watch<UserSettingsRepository>().settings.sex,
                 cacheWidth: 720,
               ),
               DecoratedBox(
@@ -1810,6 +1812,8 @@ class _BottleBingoDashboardHero extends StatelessWidget {
               width: shortViewport ? 180 : 214,
               child: ChallengeArtwork(
                 identity: identity,
+                profileValue:
+                    context.watch<UserSettingsRepository>().settings.sex,
                 cacheWidth: 640,
               ),
             ),

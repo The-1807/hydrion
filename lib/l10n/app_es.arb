@@ -414,6 +414,8 @@
   "personalizedSuggestionAccepted": "Sugerencia diaria personalizada aceptada después de revisarla.",
   "keepCurrentGoal": "Mantener objetivo actual",
   "applySuggestedGoal": "Aplicar objetivo sugerido",
+  "suggestedGoalApplied": "Objetivo sugerido aplicado.",
+  "dailyContextSaved": "Contexto de hoy guardado.",
   "reviewSuggestion": "Revisar sugerencia",
   "generalWellnessNotice": "Esta es una estimación de bienestar general, no un consejo médico. No fuerces el consumo de líquidos.",
   "illnessSafetyNotice": "Las necesidades de líquidos pueden cambiar durante una enfermedad. Mantén la recomendación habitual y busca orientación profesional si los síntomas son importantes.",

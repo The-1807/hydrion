@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'profile_art_registry.dart';
+
 class ChallengeVisualIdentity {
   final String challengeId;
   final String assetPath;
@@ -7,6 +9,10 @@ class ChallengeVisualIdentity {
   final Color secondary;
   final IconData icon;
   final Alignment imageAlignment;
+  final String? maleAsset;
+  final String? femaleAsset;
+  final String? intersexAsset;
+  final String? notificationIconName;
 
   const ChallengeVisualIdentity({
     required this.challengeId,
@@ -15,7 +21,21 @@ class ChallengeVisualIdentity {
     required this.secondary,
     required this.icon,
     required this.imageAlignment,
+    this.maleAsset,
+    this.femaleAsset,
+    this.intersexAsset,
+    this.notificationIconName,
   });
+
+  String assetFor(Object? profileValue) => HydrionProfileArtResolver.resolve(
+        profileValue: profileValue,
+        slot: HydrionProfileArtSlot(
+          neutralAsset: assetPath,
+          maleAsset: maleAsset,
+          femaleAsset: femaleAsset,
+          intersexAsset: intersexAsset,
+        ),
+      );
 }
 
 class ChallengeVisualRegistry {
@@ -54,6 +74,7 @@ class ChallengeVisualRegistry {
       primary: Color(0xFFB64B55),
       secondary: Color(0xFFF1B658),
       icon: Icons.timer_outlined,
+      notificationIconName: 'ic_challenge_pomodoro_sip',
       imageAlignment: Alignment.centerRight,
     ),
     'plant-twin-challenge': ChallengeVisualIdentity(
@@ -106,7 +127,10 @@ class ChallengeVisualRegistry {
     ),
     'desk-day-reset': ChallengeVisualIdentity(
       challengeId: 'desk-day-reset',
-      assetPath: '$assetDirectory/desk_day_reset.png',
+      assetPath: '$assetDirectory/desk_day_reset_intersex.png',
+      maleAsset: '$assetDirectory/desk_day_reset_male.png',
+      femaleAsset: '$assetDirectory/desk_day_reset_female.png',
+      intersexAsset: '$assetDirectory/desk_day_reset_intersex.png',
       primary: Color(0xFF3A6F78),
       secondary: Color(0xFF9CC9A7),
       icon: Icons.chair_outlined,
@@ -130,7 +154,10 @@ class ChallengeVisualRegistry {
     ),
     'evening-goal-review': ChallengeVisualIdentity(
       challengeId: 'evening-goal-review',
-      assetPath: '$assetDirectory/evening_goal_review.png',
+      assetPath: '$assetDirectory/evening_goal_review_intersex.png',
+      maleAsset: '$assetDirectory/evening_goal_review_male.png',
+      femaleAsset: '$assetDirectory/evening_goal_review_female.png',
+      intersexAsset: '$assetDirectory/evening_goal_review_intersex.png',
       primary: Color(0xFF4B6380),
       secondary: Color(0xFF8FC2A1),
       icon: Icons.nights_stay_outlined,

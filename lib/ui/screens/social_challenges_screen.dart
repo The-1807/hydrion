@@ -1016,43 +1016,65 @@ class _ChallengeCard extends StatelessWidget {
                   active: joined,
                 )
               else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 92,
-                      height: 92,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            visual.primary.withValues(alpha: 0.20),
-                            visual.secondary.withValues(alpha: 0.08),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(HydrionRadii.md),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: ChallengeArtwork(
-                        identity: visual,
-                        cacheWidth: 300,
-                      ),
+                Container(
+                  key: Key('challenge-hero-${challenge.id}'),
+                  height: 176,
+                  width: double.infinity,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: Color.alphaBlend(
+                      visual.primary.withValues(alpha: 0.09),
+                      Theme.of(context).colorScheme.surfaceContainer,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
+                    borderRadius: BorderRadius.circular(HydrionRadii.md),
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                        child: ChallengeArtwork(
+                          identity: visual,
+                          profileValue: context
+                              .watch<UserSettingsRepository>()
+                              .settings
+                              .sex,
+                          fit: BoxFit.contain,
+                          cacheWidth: 720,
+                        ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(14, 20, 14, 12),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surface
+                                    .withValues(alpha: 0.94),
+                              ],
+                            ),
+                          ),
+                          child: Text(
                             copy.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               const SizedBox(height: 12),
               Text(copy.description),
@@ -1186,6 +1208,8 @@ class _BottleBingoCatalogueHeader extends StatelessWidget {
             width: 158,
             child: ChallengeArtwork(
               identity: identity,
+              profileValue:
+                  context.watch<UserSettingsRepository>().settings.sex,
               cacheWidth: 420,
             ),
           ),

@@ -497,6 +497,7 @@ class PomodoroSessionService {
       message: _completionMessage,
       priority: 1,
       requestPermissionIfNeeded: true,
+      challengeId: challengeId,
     );
     if (!result.scheduled || result.reminder == null) return state;
     final scheduled = state.copyWith(

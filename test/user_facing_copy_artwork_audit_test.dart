@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -27,51 +26,44 @@ void main() {
     }
   });
 
-  test('manifest covers every challenge with a unique exact PNG path', () {
-    final manifest = jsonDecode(
-      File('assets/images/challenges/artwork_manifest.json').readAsStringSync(),
-    ) as Map<String, dynamic>;
-    final entries = (manifest['artwork'] as List).cast<Map<String, dynamic>>();
-    final ids = entries.map((entry) => entry['challenge_id']).toSet();
-    final paths = entries.map((entry) => entry['path']).toList();
-    expect(entries, hasLength(8));
-    expect(
-      ids,
-      containsAll({
-        'lunch-break-refill',
-        'homework-hydration',
-        'after-school-recharge',
-        'backpack-bottle-check',
-        'desk-day-reset',
-        'shift-hydration-check',
-        'commute-cup',
-        'evening-goal-review',
-      }),
-    );
-    expect(paths.toSet(), hasLength(paths.length));
-    for (final path in paths.cast<String>()) {
-      expect(
-        path,
-        matches(
-          RegExp(r'^assets/images/challenges/[a-z0-9_]+\.png$'),
-        ),
-      );
-    }
-    final registryPaths =
-        ChallengeVisualRegistry.identities.values.map((item) => item.assetPath);
-    expect(registryPaths.toSet(), hasLength(14));
+  test('every registered challenge artwork path exists and stays owned', () {
+    final paths = <String>{};
     for (final identity in ChallengeVisualRegistry.identities.values) {
-      if (!ids.contains(identity.challengeId)) {
-        expect(File(identity.assetPath).existsSync(), isTrue);
+      for (final path in {
+        identity.assetPath,
+        identity.maleAsset,
+        identity.femaleAsset,
+        identity.intersexAsset,
+      }.whereType<String>()) {
+        expect(paths.add(path), isTrue, reason: path);
+        expect(File(path).existsSync(), isTrue, reason: path);
       }
     }
   });
 
+  test('profile-aware challenge artwork never defaults to male', () {
+    final desk = ChallengeVisualRegistry.forId('desk-day-reset');
+    expect(desk.assetFor('male'), endsWith('desk_day_reset_male.png'));
+    expect(desk.assetFor('female'), endsWith('desk_day_reset_female.png'));
+    expect(desk.assetFor('intersex'), endsWith('desk_day_reset_intersex.png'));
+    expect(
+      desk.assetFor('preferNotToSay'),
+      endsWith('desk_day_reset_intersex.png'),
+    );
+  });
+
   testWidgets('missing custom artwork renders a unique deliberate fallback',
       (tester) async {
-    final identity = ChallengeVisualRegistry.forId('commute-cup');
+    const identity = ChallengeVisualIdentity(
+      challengeId: 'missing-test-art',
+      assetPath: 'assets/images/challenges/not_present.png',
+      primary: Color(0xFF28756E),
+      secondary: Color(0xFFE88C67),
+      icon: Icons.directions_transit_outlined,
+      imageAlignment: Alignment.center,
+    );
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: SizedBox(
           width: 200,
           height: 150,
@@ -81,7 +73,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      find.byKey(const Key('challenge-art-fallback-commute-cup')),
+      find.byKey(const Key('challenge-art-fallback-missing-test-art')),
       findsOneWidget,
     );
     expect(find.byIcon(Icons.directions_transit_outlined), findsOneWidget);

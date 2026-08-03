@@ -1353,6 +1353,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get applySuggestedGoal => 'Apply suggested goal';
 
   @override
+  String get suggestedGoalApplied => 'Suggested goal applied.';
+
+  @override
+  String get dailyContextSaved => 'Today\'s context saved.';
+
+  @override
   String get reviewSuggestion => 'Review suggestion';
 
   @override

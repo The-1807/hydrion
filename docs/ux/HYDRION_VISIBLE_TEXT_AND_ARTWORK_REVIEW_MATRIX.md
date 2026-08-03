@@ -8,10 +8,9 @@
 | Reminders, exact alarm, permissions, weather | Yes | Yes | Yes | Pass |
 | Home, history, progress, analytics | Yes | Yes | Yes | Pass |
 | Challenge catalog and recommendations | Yes | Yes | Yes | Pass |
-| Challenge setup, active, completion, history | Yes | Yes | Yes | Pass with pending custom PNGs |
+| Challenge setup, active, completion, history | Yes | Yes | Yes | Pass |
 | Profile, settings, deletion, legal | Yes | Yes | Yes | Pass |
 | Errors, loading, snackbars, notifications, semantics | Yes | Yes | N/A | Pass |
 
-Custom artwork remains pending for eight challenges recorded in the manifest.
-The six owner-supplied images remain active. Every pending challenge renders a
-stable ID-specific color, pattern, and icon composition.
+Challenge artwork is centrally registered. Desk-Day Reset and Evening Goal
+Review include explicit male, female, and neutral/intersex variants.
