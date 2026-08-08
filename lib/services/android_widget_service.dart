@@ -13,6 +13,8 @@ import '../repositories/hydration_repository.dart';
 import '../repositories/settings_repository.dart';
 
 class AndroidWidgetService {
+  static const iosAppGroup = 'group.com.the1807.hydrion';
+  static const iosDailyWidget = 'HydrionDailyProgressWidget';
   static const dailyProvider = 'com.the1807.hydrion.HydrionDailyProgressWidget';
   static const quickLogProvider = 'com.the1807.hydrion.HydrionQuickLogWidget';
   static const challengeProvider =
@@ -122,7 +124,10 @@ class AndroidWidgetService {
   }
 
   Future<void> initialize() async {
-    if (!Platform.isAndroid) return;
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+    if (Platform.isIOS) {
+      await HomeWidget.setAppGroupId(iosAppGroup);
+    }
     hydrationRepository.addListener(_scheduleSync);
     settingsRepository.addListener(_scheduleSync);
     appLocaleRepository.addListener(_scheduleSync);
@@ -164,6 +169,15 @@ class AndroidWidgetService {
 
   Future<void> _handleClick(Uri? uri) async {
     if (uri == null) return;
+    if (uri.host == 'home') {
+      final opener = _challengeOpener;
+      if (opener == null) {
+        _pendingChallengeId = '__home__';
+      } else {
+        opener('__home__');
+      }
+      return;
+    }
     if (uri.host == quickLogHost) {
       final amount = int.tryParse(uri.queryParameters['amount'] ?? '');
       if (amount == null || amount < 50 || amount > 2000) return;
@@ -217,7 +231,7 @@ class AndroidWidgetService {
   }
 
   Future<void> sync() async {
-    if (!Platform.isAndroid || _syncing) return;
+    if ((!Platform.isAndroid && !Platform.isIOS) || _syncing) return;
     _syncing = true;
     try {
       final now = DateTime.now();
@@ -230,7 +244,12 @@ class AndroidWidgetService {
         challengeRepository.activeChallenge,
         locale: appLocaleRepository.locale,
       );
-      final data = {...hydrationData, ...challengeData};
+      final data = <String, Object>{
+        ...hydrationData,
+        ...challengeData,
+        'snapshot_schema': 1,
+        'snapshot_updated_at': now.millisecondsSinceEpoch,
+      };
       await Future.wait([
         for (final entry in data.entries)
           switch (entry.value) {
@@ -240,13 +259,17 @@ class AndroidWidgetService {
             _ => Future<bool?>.value(false),
           },
       ]);
-      await Future.wait([
-        HomeWidget.updateWidget(qualifiedAndroidName: dailyProvider),
-        HomeWidget.updateWidget(qualifiedAndroidName: quickLogProvider),
-        HomeWidget.updateWidget(qualifiedAndroidName: challengeProvider),
-      ]);
+      if (Platform.isAndroid) {
+        await Future.wait([
+          HomeWidget.updateWidget(qualifiedAndroidName: dailyProvider),
+          HomeWidget.updateWidget(qualifiedAndroidName: quickLogProvider),
+          HomeWidget.updateWidget(qualifiedAndroidName: challengeProvider),
+        ]);
+      } else {
+        await HomeWidget.updateWidget(iOSName: iosDailyWidget);
+      }
     } catch (error, stackTrace) {
-      debugPrint('Android widget sync failed: $error\n$stackTrace');
+      debugPrint('Hydrion widget sync failed: $error\n$stackTrace');
     } finally {
       _syncing = false;
     }

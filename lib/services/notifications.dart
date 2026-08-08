@@ -100,7 +100,9 @@ class FlutterLocalNotificationsHydrionAdapter
 
   @override
   bool get supportsScheduling {
-    return !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    return !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
   }
 
   @override
@@ -110,8 +112,13 @@ class FlutterLocalNotificationsHydrionAdapter
     }
     tz_data.initializeTimeZones();
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const ios = IOSInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
     await _plugin.initialize(
-      settings: const InitializationSettings(android: android),
+      settings: const InitializationSettings(android: android, iOS: ios),
     );
     _initialized = true;
   }
@@ -123,6 +130,17 @@ class FlutterLocalNotificationsHydrionAdapter
     }
     await initialize();
     try {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final ios = _plugin.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+        final permissions = await ios?.checkPermissions();
+        if (permissions == null) {
+          return HydrionNotificationPermissionState.unknown;
+        }
+        return permissions.isEnabled
+            ? HydrionNotificationPermissionState.granted
+            : HydrionNotificationPermissionState.denied;
+      }
       final android = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       final enabled = await android?.areNotificationsEnabled();
@@ -141,6 +159,18 @@ class FlutterLocalNotificationsHydrionAdapter
     }
     await initialize();
     try {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final ios = _plugin.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+        final granted = await ios?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        return granted == true
+            ? HydrionNotificationPermissionState.granted
+            : HydrionNotificationPermissionState.denied;
+      }
       final android = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       final granted = await android?.requestNotificationsPermission();
@@ -158,6 +188,10 @@ class FlutterLocalNotificationsHydrionAdapter
       return false;
     }
     await initialize();
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      // iOS calendar scheduling has no Android-style exact-alarm permission.
+      return true;
+    }
     try {
       final android = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
@@ -173,6 +207,9 @@ class FlutterLocalNotificationsHydrionAdapter
       return false;
     }
     await initialize();
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return true;
+    }
     try {
       final android = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
@@ -218,6 +255,13 @@ class FlutterLocalNotificationsHydrionAdapter
           importance: Importance.high,
           priority: Priority.high,
           category: AndroidNotificationCategory.reminder,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBanner: true,
+          presentList: true,
+          presentSound: true,
+          threadIdentifier: 'hydrion_hydration_reminders',
         ),
       ),
       androidScheduleMode: precision == ReminderSchedulePrecision.exact

@@ -257,6 +257,10 @@ class HydrionApp extends StatelessWidget {
         navigator.pushNamed('/log');
         return;
       }
+      if (challengeId == '__home__') {
+        navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+        return;
+      }
       HydrationChallenge? selected;
       for (final challenge in HydrionChallengeCatalog.challenges) {
         if (challenge.id == challengeId) {

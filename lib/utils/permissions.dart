@@ -254,7 +254,9 @@ class Permissions extends ChangeNotifier {
           prompted
               ? HydrionPermissionMessage.notificationsOff
               : HydrionPermissionMessage.notificationsNotAsked,
-          canRequest: true,
+          canRequest: !(platform == HydrionPermissionPlatform.ios && prompted),
+          settingsRequired:
+              platform == HydrionPermissionPlatform.ios && prompted,
           declined: prompted,
         ),
       HydrionNotificationPermissionState.permanentlyDenied => _capability(

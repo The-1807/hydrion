@@ -87,3 +87,4 @@ assets/UI_BETA/hyd-ad/
 *.aab
 *.ipa
 *.zip
+**/DerivedData/

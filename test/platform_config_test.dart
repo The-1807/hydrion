@@ -176,6 +176,39 @@ void main() {
     expect(codemagic, isNot(contains('SHOREBIRD_TOKEN')));
     expect(codemagic.toLowerCase(), isNot(contains('shorebird release')));
   });
+
+  test('iOS WidgetKit target shares only the canonical widget snapshot', () {
+    final project =
+        File('ios/Runner.xcodeproj/project.pbxproj').readAsStringSync();
+    final widget =
+        File('ios/HydrionWidgets/HydrionWidgets.swift').readAsStringSync();
+    final runnerEntitlements =
+        File('ios/Runner/Runner.entitlements').readAsStringSync();
+    final widgetEntitlements = File(
+      'ios/HydrionWidgets/HydrionWidgets.entitlements',
+    ).readAsStringSync();
+
+    expect(project, contains('HydrionWidgets.appex'));
+    expect(project, contains('IPHONEOS_DEPLOYMENT_TARGET = 14.0'));
+    expect(widget, contains('HydrionDailyProgressWidget'));
+    expect(
+        widget, contains('.supportedFamilies([.systemSmall, .systemMedium])'));
+    expect(widget, contains('hydrion://home'));
+    expect(widget, contains('snapshot_updated_at'));
+    for (final entitlements in [runnerEntitlements, widgetEntitlements]) {
+      expect(entitlements, contains('group.com.the1807.hydrion'));
+    }
+    for (final privateField in [
+      'pregnancy',
+      'lactation',
+      'physiologicalSex',
+      'bmi',
+      'clinicianTarget',
+      'fluidRestriction',
+    ]) {
+      expect(widget, isNot(contains(privateField)));
+    }
+  });
 }
 
 bool _isImageAsset(String path) {
