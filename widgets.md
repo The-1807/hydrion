@@ -61,7 +61,7 @@ Recommended sizes:
 - Small: progress and one primary quick-add action.
 - Medium: progress and up to three quick-add actions.
 
-### 2. Daily Progress (deferred)
+### 2. Daily Progress
 
 Display:
 
@@ -157,9 +157,17 @@ Avoid dense charts, tiny labels, or private profile details.
 
 ## Current Delivery Scope
 
-Only the state-driven Android Active Challenge widget is included now. General
-Quick Log, Daily Progress, Next Reminder, Daily Goal Review, History Snapshot,
-iOS widgets, and wearable surfaces remain deferred.
+Android ships state-driven Daily Progress, Quick Log, and Active Challenge
+widgets. iOS ships a WidgetKit Daily Progress widget in small and medium
+families. Next Reminder, Daily Goal Review, History Snapshot, and wearable
+surfaces remain deferred.
+
+The iOS extension reads the canonical Flutter-produced snapshot from
+`group.com.the1807.hydrion`. A schema version and update timestamp distinguish
+missing, current, and stale state. The extension never stores an independent
+hydration total. Flutter requests a timeline reload after hydration, goal,
+unit, locale, and challenge repository changes. Tapping the widget opens
+`hydrion://home`.
 
 ## Challenge Notification Identity
 
@@ -270,7 +278,7 @@ Flutter widgets. They require platform widget implementations and a data bridge.
 Expected implementation areas:
 
 - Android App Widget or Jetpack Glance receiver and layouts.
-- iOS WidgetKit extension if iOS widgets are included later.
+- iOS WidgetKit extension in `ios/HydrionWidgets`.
 - Shared serialized widget snapshot produced by Flutter.
 - Platform channels or an established widget bridge package.
 - Notification resource registry mapping challenge IDs to compliant Android

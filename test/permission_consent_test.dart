@@ -110,6 +110,24 @@ void main() {
     expect(location.appSettingsOpenCount, 1);
   });
 
+  test('iOS does not repeatedly prompt after notification denial', () async {
+    final notificationAdapter = FakeHydrionNotificationAdapter(
+      permission: HydrionNotificationPermissionState.denied,
+    );
+    final permissions = _permissions(
+      notifications: notificationAdapter,
+      location: FakeHydrionLocationService(),
+      platform: HydrionPermissionPlatform.ios,
+    );
+
+    await permissions.requestNotifications();
+
+    expect(notificationAdapter.requestCount, 1);
+    expect(permissions.snapshot.notifications.previouslyDeclined, isTrue);
+    expect(permissions.snapshot.notifications.canRequestDirectly, isFalse);
+    expect(permissions.snapshot.notifications.settingsRequired, isTrue);
+  });
+
   testWidgets('permission center is functional and has no dead Check action',
       (tester) async {
     final services = HydrionServices.memory(

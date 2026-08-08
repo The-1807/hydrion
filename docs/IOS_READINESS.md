@@ -10,7 +10,7 @@ manual device validation.
 - Runner test bundle identifier: `com.the1807.hydrion.RunnerTests`
 - Display name: `Hydrion`
 - Flutter version pinned in CI/Codemagic/FVM: `3.44.8`
-- iOS deployment target in `ios/Podfile`: `13.0`
+- iOS deployment target in the Podfile, Runner, tests, and WidgetKit target: `14.0`
 
 The bundle id is now aligned with the Android package identity. Changing this
 after a shipped App Store build would create a different iOS app identity.
@@ -22,7 +22,11 @@ Hydrion uses plugins that require iOS CocoaPods integration:
 - `image_picker` for local profile-photo selection
 - `geolocator` for optional foreground weather-location lookup
 - `flutter_local_notifications` for notification abstractions where platform
-  support is available
+  support is available. iOS initializes without prompting, requests alert,
+  badge, and sound permission only from user action, and uses timezone-aware
+  calendar scheduling without Android exact-alarm semantics.
+- `home_widget` for writing a privacy-filtered snapshot to the shared iOS App
+  Group and requesting WidgetKit timeline reloads
 - `shared_preferences` through Flutter plugin registration
 
 `ios/Podfile` has been added using the standard Flutter pod helper flow. Run
@@ -64,6 +68,24 @@ Codemagic is the primary Apple-compatible CI/CD path:
 
 No TestFlight upload or public App Store release is performed automatically.
 
+## iOS Reminder And Widget Architecture
+
+Reminder definitions remain in `ReminderRepository`; the operating-system
+schedule is delivery state, not application truth. Denied permission and
+scheduling failures therefore preserve the definition without presenting it as
+deliverable. Previously denied iOS permission routes to Settings rather than
+repeating the system prompt. Startup reconciliation recreates missing future
+schedules and marks expired definitions as needing a new time.
+
+`HydrionWidgets` is a WidgetKit extension for iOS 14 and later. Runner and the
+extension share `group.com.the1807.hydrion`. Flutter writes the same canonical
+daily-progress snapshot used by Android, adds a schema and update timestamp,
+and calls `WidgetCenter` through `home_widget`. WidgetKit renders safe empty and
+stale states, supports small and medium families, and opens `hydrion://home`.
+The snapshot contains hydration totals, goal, localized status, and challenge
+presentation state only; it excludes profile, BMI, life-stage, clinician, and
+fluid-restriction data.
+
 ## Manual iOS Validation
 
 Run these on a real iPhone or iOS simulator before claiming iOS release
@@ -78,6 +100,10 @@ readiness:
 - Profile photo choose, save, remove, and fallback avatar behavior
 - Weather-mode location permission prompt, denial, settings route, and fallback
 - Notification permission copy and reminder behavior on the target iOS version
+- Notification scheduling, edit, cancellation, restart reconciliation, time-zone
+  changes, foreground presentation, and actual background delivery
+- Widget installation, App Group reads, timeline refresh budget behavior,
+  small/medium layouts, dark mode, VoiceOver, and `hydrion://home` deep link
 - Local persistence after restart
 - About & Legal hub, Markdown document viewer, acceptance migration, and support
   contact
@@ -90,5 +116,7 @@ readiness:
 - Public privacy-policy URL and support URL are not verified.
 - App Store privacy questionnaire answers need owner/legal review.
 - Real-device notification delivery and permission behavior must be verified.
+- WidgetKit installation, App Group provisioning, refresh, and deep links must
+  be verified on a signed physical-device build.
 - Legal copy is implementation-aligned draft text and requires qualified legal
   review before public release.
