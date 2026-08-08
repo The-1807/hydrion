@@ -41,7 +41,7 @@ void main() {
     expect(infoPlist, contains('<string>Hydrion</string>'));
     expect(infoPlist, contains('NSLocationWhenInUseUsageDescription'));
     expect(infoPlist, contains('NSPhotoLibraryUsageDescription'));
-    expect(podfile, contains("platform :ios, '13.0'"));
+    expect(podfile, contains("platform :ios, '14.0'"));
     expect(podfile, contains('flutter_install_all_ios_pods'));
     expect(privacyManifest, contains('NSPrivacyTracking'));
     expect(privacyManifest, contains('<false/>'));
