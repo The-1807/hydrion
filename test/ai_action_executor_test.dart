@@ -1,4 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrion/l10n/app_localizations_en.dart';
+import 'package:hydrion/l10n/app_localizations_es.dart';
+import 'package:hydrion/l10n/app_localizations_fr.dart';
+import 'package:hydrion/ui/presentation/ai_result_presenter.dart';
 import 'package:hydrion/adapters/local/local_hydrion_adapters.dart';
 import 'package:hydrion/domain/hydration_contracts.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
@@ -37,7 +41,8 @@ void main() {
     );
 
     expect(result.status, HydrationAiActionExecutionStatus.rejected);
-    expect(result.message, contains('confirmation'));
+    expect(result.messageCode,
+        HydrationAiExecutionMessageCode.confirmationRequired);
     expect(hydrationRepository.logs, isEmpty);
   });
 
@@ -107,7 +112,9 @@ void main() {
     final result = await executor.execute(action, userConfirmed: false);
 
     expect(result.status, HydrationAiActionExecutionStatus.displayOnly);
-    expect(result.message, 'Take steady sips.');
+    expect(
+        result.messageCode, HydrationAiExecutionMessageCode.generatedContent);
+    expect(result.generatedMessage, 'Take steady sips.');
     expect(hydrationRepository.logs, isEmpty);
     expect(reminderRepository.reminders, isEmpty);
     expect(challengeRepository.activeChallenge, isNull);
@@ -122,7 +129,23 @@ void main() {
     final result = await executor.execute(action, userConfirmed: true);
 
     expect(result.status, HydrationAiActionExecutionStatus.rejected);
-    expect(result.message, contains('1 to 5000 ml'));
+    expect(
+        result.messageCode, HydrationAiExecutionMessageCode.validationRejected);
+    expect(result.generatedMessage, isNull);
     expect(hydrationRepository.logs, isEmpty);
+  });
+
+  test('AI execution codes have distinct safe EN FR and ES presentation', () {
+    final values = [
+      aiExecutionMessage(AppLocalizationsEn(),
+          HydrationAiExecutionMessageCode.validationRejected),
+      aiExecutionMessage(AppLocalizationsFr(),
+          HydrationAiExecutionMessageCode.validationRejected),
+      aiExecutionMessage(AppLocalizationsEs(),
+          HydrationAiExecutionMessageCode.validationRejected),
+    ];
+    expect(values.toSet(), hasLength(3));
+    expect(values,
+        everyElement(isNot(contains('HydrationAiExecutionMessageCode'))));
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/life_stage_policy.dart';
+import '../../l10n/app_localizations.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/local_profile_reset_service.dart';
 import '../components/hydrion_viewport.dart';
@@ -26,9 +27,10 @@ class _ProfileAgeReviewScreenState extends State<ProfileAgeReviewScreen> {
 
   Future<void> _correctAge() async {
     if (_saving) return;
+    final l10n = AppLocalizations.of(context);
     final age = int.tryParse(_ageController.text.trim());
     if (!HydrionLifeStagePolicy.canCreateIndependentProfile(age)) {
-      setState(() => _error = 'Enter an age from 13 to 120.');
+      setState(() => _error = l10n.ageRangeError);
       return;
     }
     setState(() {
@@ -37,7 +39,7 @@ class _ProfileAgeReviewScreenState extends State<ProfileAgeReviewScreen> {
     });
     final repository = context.read<UserSettingsRepository>();
     final saved = await repository.setProfile(
-      nickname: repository.settings.nickname ?? 'Hydrion user',
+      nickname: repository.settings.nickname ?? 'Hydrion',
       age: age,
       sex: repository.settings.sex,
     );
@@ -46,7 +48,7 @@ class _ProfileAgeReviewScreenState extends State<ProfileAgeReviewScreen> {
     if (saved) {
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
     } else {
-      setState(() => _error = 'The age could not be saved. Try again.');
+      setState(() => _error = l10n.ageSaveFailed);
     }
   }
 
@@ -54,22 +56,23 @@ class _ProfileAgeReviewScreenState extends State<ProfileAgeReviewScreen> {
     if (_saving) return;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete local profile?'),
-        content: const Text(
-          'This removes local Hydrion profile, hydration, reminder, and challenge data from this device.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete local profile'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        final l10n = AppLocalizations.of(dialogContext);
+        return AlertDialog(
+          title: Text(l10n.deleteLocalProfileQuestion),
+          content: Text(l10n.profileDeleteDeviceSummary),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(l10n.deleteLocalProfile),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed != true || !mounted) return;
     setState(() => _saving = true);
@@ -80,20 +83,19 @@ class _ProfileAgeReviewScreenState extends State<ProfileAgeReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Review profile age')),
+      appBar: AppBar(title: Text(l10n.reviewProfileAge)),
       body: SafeArea(
         child: ListView(
           padding: HydrionViewport.scrollPadding(context),
           children: [
             Text(
-              'Hydrion independent profiles support ages 13 and older.',
+              l10n.independentProfileAgeHelp,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Your existing local data is still here. If the saved age was entered incorrectly, correct it once below. Otherwise, delete the local profile and restart.',
-            ),
+            Text(l10n.ageReviewExistingDataHelp),
             const SizedBox(height: 20),
             TextField(
               key: const Key('profile-age-correction'),
@@ -102,7 +104,7 @@ class _ProfileAgeReviewScreenState extends State<ProfileAgeReviewScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
-                labelText: 'Correct age',
+                labelText: l10n.correctAge,
                 errorText: _error,
               ),
             ),
@@ -115,13 +117,13 @@ class _ProfileAgeReviewScreenState extends State<ProfileAgeReviewScreen> {
                       dimension: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Save age correction'),
+                  : Text(l10n.saveAgeCorrection),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
               key: const Key('delete-unsupported-profile'),
               onPressed: _saving ? null : _deleteProfile,
-              child: const Text('Delete local profile'),
+              child: Text(l10n.deleteLocalProfile),
             ),
           ],
         ),

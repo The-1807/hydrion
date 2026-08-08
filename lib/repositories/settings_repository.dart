@@ -68,6 +68,8 @@ class UserSettings {
   int? get usableContainerSizeMl =>
       reusableContainerEnabled ? containerSizeMl : null;
   final bool onboardingCompleted;
+  final bool missionIntroductionHandled;
+  final Set<String> recognitionEventIds;
   final bool legalAndHealthAcknowledged;
   final String? acceptedTermsVersion;
   final DateTime? acceptedTermsAt;
@@ -104,6 +106,8 @@ class UserSettings {
     this.themePreference = HydrionThemePreference.system,
     this.containerSizeMl = defaultContainerSizeMl,
     this.onboardingCompleted = false,
+    this.missionIntroductionHandled = false,
+    this.recognitionEventIds = const <String>{},
     this.legalAndHealthAcknowledged = false,
     this.acceptedTermsVersion,
     this.acceptedTermsAt,
@@ -145,6 +149,8 @@ class UserSettings {
     HydrionThemePreference? themePreference,
     int? containerSizeMl,
     bool? onboardingCompleted,
+    bool? missionIntroductionHandled,
+    Set<String>? recognitionEventIds,
     bool? legalAndHealthAcknowledged,
     String? acceptedTermsVersion,
     bool clearAcceptedTermsVersion = false,
@@ -198,6 +204,9 @@ class UserSettings {
       themePreference: themePreference ?? this.themePreference,
       containerSizeMl: containerSizeMl ?? this.containerSizeMl,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      missionIntroductionHandled:
+          missionIntroductionHandled ?? this.missionIntroductionHandled,
+      recognitionEventIds: recognitionEventIds ?? this.recognitionEventIds,
       legalAndHealthAcknowledged:
           legalAndHealthAcknowledged ?? this.legalAndHealthAcknowledged,
       acceptedTermsVersion: clearAcceptedTermsVersion
@@ -288,6 +297,8 @@ class UserSettings {
       'themePreference': themePreference.name,
       'containerSizeMl': containerSizeMl,
       'onboardingCompleted': onboardingCompleted,
+      'missionIntroductionHandled': missionIntroductionHandled,
+      'recognitionEventIds': recognitionEventIds.toList()..sort(),
       'legalAndHealthAcknowledged': legalAndHealthAcknowledged,
       'acceptedTermsVersion': acceptedTermsVersion,
       'acceptedTermsAt': acceptedTermsAt?.toIso8601String(),
@@ -339,6 +350,8 @@ class UserSettings {
         themePreference: _safeThemePreference(value['themePreference']),
         containerSizeMl: _safeContainerSize(value['containerSizeMl']),
         onboardingCompleted: _safeOnboardingCompleted(value),
+        missionIntroductionHandled: _safeMissionIntroductionHandled(value),
+        recognitionEventIds: _safeRecognitionEventIds(value),
         legalAndHealthAcknowledged: value['legalAndHealthAcknowledged'] == true,
         acceptedTermsVersion: _safeLegalVersion(value['acceptedTermsVersion']),
         acceptedTermsAt: _safeDateTime(value['acceptedTermsAt']),
@@ -388,6 +401,8 @@ class UserSettings {
       themePreference: _safeThemePreference(value['themePreference']),
       containerSizeMl: _safeContainerSize(value['containerSizeMl']),
       onboardingCompleted: _safeOnboardingCompleted(value),
+      missionIntroductionHandled: _safeMissionIntroductionHandled(value),
+      recognitionEventIds: _safeRecognitionEventIds(value),
       legalAndHealthAcknowledged: value['legalAndHealthAcknowledged'] == true,
       acceptedTermsVersion: _safeLegalVersion(value['acceptedTermsVersion']),
       acceptedTermsAt: _safeDateTime(value['acceptedTermsAt']),
@@ -427,6 +442,23 @@ class UserSettings {
       return false;
     }
     return _hasLegacyCompletedUserEvidence(value);
+  }
+
+  static bool _safeMissionIntroductionHandled(Map value) {
+    final handled = value['missionIntroductionHandled'];
+    if (handled is bool) return handled;
+    return _safeOnboardingCompleted(value);
+  }
+
+  static Set<String> _safeRecognitionEventIds(Map value) {
+    final raw = value['recognitionEventIds'];
+    if (raw is! List) return const <String>{};
+    return Set<String>.unmodifiable(
+      raw
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty && item.length <= 160)
+          .take(500),
+    );
   }
 
   static bool _hasLegacyCompletedUserEvidence(Map value) {
@@ -675,6 +707,7 @@ class UserSettingsRepository extends ChangeNotifier {
             baselineDailyGoalMl: dailyGoalMl,
             reusableContainerEnabled: reusableContainerEnabled,
             onboardingCompleted: onboardingCompleted,
+            missionIntroductionHandled: onboardingCompleted,
             legalAndHealthAcknowledged: onboardingCompleted,
             acceptedTermsVersion: onboardingCompleted
                 ? HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion
@@ -983,6 +1016,31 @@ class UserSettingsRepository extends ChangeNotifier {
     _settings = _settings.copyWith(onboardingStep: safeStep);
     await _persist();
     notifyListeners();
+  }
+
+  Future<void> setMissionIntroductionHandled(bool handled) async {
+    if (_settings.missionIntroductionHandled == handled) return;
+    _settings = _settings.copyWith(missionIntroductionHandled: handled);
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<bool> claimRecognition(String eventId) async {
+    final safeId = eventId.trim();
+    if (safeId.isEmpty ||
+        safeId.length > 160 ||
+        _settings.recognitionEventIds.contains(safeId)) {
+      return false;
+    }
+    _settings = _settings.copyWith(
+      recognitionEventIds: Set<String>.unmodifiable({
+        ..._settings.recognitionEventIds,
+        safeId,
+      }),
+    );
+    await _persist();
+    notifyListeners();
+    return true;
   }
 
   Future<void> completeOnboardingWithLegalReview({

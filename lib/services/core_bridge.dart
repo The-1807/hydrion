@@ -23,12 +23,4 @@ class CoreBridge {
     final avoidedHalfLiterBottles = totalMl / 500.0;
     return avoidedHalfLiterBottles * 0.01;
   }
-
-  Future<String> coreValidateLlmResponse(String response) async {
-    final oneLine = response.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (oneLine.isEmpty) {
-      return 'Hydrion is running locally. Take a steady sip and keep tracking.';
-    }
-    return oneLine.length > 220 ? '${oneLine.substring(0, 217)}...' : oneLine;
-  }
 }

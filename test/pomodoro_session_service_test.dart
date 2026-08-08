@@ -3,13 +3,40 @@ import 'package:hydrion/domain/pomodoro_session.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/reminder_repository.dart';
+import 'package:hydrion/repositories/app_locale_repository.dart';
 import 'package:hydrion/services/notifications.dart';
 import 'package:hydrion/services/policy_service.dart';
 import 'package:hydrion/services/pomodoro_session_service.dart';
+import 'package:hydrion/services/timed_session_notification_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 void main() {
   group('timestamp-authoritative Pomodoro timer', () {
+    test('ongoing notification follows start pause resume stop lifecycle',
+        () async {
+      final timedAdapter = FakeTimedSessionNotificationAdapter();
+      final fixture = await PomodoroFixture.create(timedAdapter: timedAdapter);
+
+      await fixture.sessions.start();
+      expect(
+        timedAdapter.active[HydrionTimedSessionKind.pomodoro]?.lifecycle,
+        HydrionTimedSessionLifecycle.running,
+      );
+      await fixture.sessions.pause();
+      expect(
+        timedAdapter.active[HydrionTimedSessionKind.pomodoro]?.lifecycle,
+        HydrionTimedSessionLifecycle.paused,
+      );
+      await fixture.sessions.resume();
+      expect(
+        timedAdapter.active[HydrionTimedSessionKind.pomodoro]?.lifecycle,
+        HydrionTimedSessionLifecycle.running,
+      );
+      await fixture.sessions.stop();
+      expect(timedAdapter.active, isEmpty);
+      expect(fixture.hydration.logs, isEmpty);
+    });
+
     test('start creates one session and countdown agrees with meter', () async {
       final fixture = await PomodoroFixture.create();
 
@@ -487,6 +514,7 @@ class PomodoroFixture {
     int sessionsPerDay = 1,
     int sessionMinutes = 25,
     FakeHydrionNotificationAdapter? adapter,
+    FakeTimedSessionNotificationAdapter? timedAdapter,
   }) async {
     final actualStore = store ?? MemoryHydrionStore();
     final clock = MutableClock(DateTime(2030, 7, 23, 9, 17, 42));
@@ -506,6 +534,10 @@ class PomodoroFixture {
     final sessions = PomodoroSessionService(
       challengeRepository: challenges,
       notificationService: notifications,
+      timedSessionNotificationService: TimedSessionNotificationService(
+        localeRepository: AppLocaleRepository.memory(),
+        adapter: timedAdapter ?? FakeTimedSessionNotificationAdapter(),
+      ),
       now: () => clock.now,
     );
     await challenges.join(

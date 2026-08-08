@@ -5,8 +5,13 @@ import 'package:geolocator/geolocator.dart' as geo;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
-import '../repositories/reminder_repository.dart';
 import '../domain/challenge_visual_registry.dart';
+import '../domain/locale_registry.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/challenge_localizations.dart';
+import '../l10n/notification_localizations.dart';
+import '../repositories/app_locale_repository.dart';
+import '../repositories/reminder_repository.dart';
 import 'policy_service.dart';
 
 enum HydrionNotificationPermissionState {
@@ -25,13 +30,11 @@ enum ReminderSchedulePrecision {
 class NotificationScheduleResult {
   final ScheduledReminder? reminder;
   final ReminderScheduleState state;
-  final String? message;
   final bool duplicatePrevented;
 
   const NotificationScheduleResult({
     required this.reminder,
     required this.state,
-    this.message,
     this.duplicatePrevented = false,
   });
 
@@ -74,9 +77,6 @@ abstract class HydrionNotificationAdapter {
 class FlutterLocalNotificationsHydrionAdapter
     implements HydrionNotificationAdapter {
   static const _channelId = 'hydrion_hydration_reminders';
-  static const _channelName = 'Hydration reminders';
-  static const _channelDescription =
-      'Local reminders for user-created Hydrion hydration check-ins.';
 
   static String? _challengeIcon(String? challengeId) {
     if (challengeId == null) return null;
@@ -85,11 +85,18 @@ class FlutterLocalNotificationsHydrionAdapter
   }
 
   final FlutterLocalNotificationsPlugin _plugin;
+  final AppLocaleRepository? _localeRepository;
   bool _initialized = false;
 
   FlutterLocalNotificationsHydrionAdapter({
     FlutterLocalNotificationsPlugin? plugin,
-  }) : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+    AppLocaleRepository? localeRepository,
+  })  : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
+        _localeRepository = localeRepository;
+
+  AppLocalizations get _l10n => lookupAppLocalizations(
+        HydrionLocaleRegistry.resolve(_localeRepository?.locale),
+      );
 
   @override
   bool get supportsScheduling {
@@ -196,16 +203,17 @@ class FlutterLocalNotificationsHydrionAdapter
       );
     }
     final scheduledAt = tz.TZDateTime.from(reminder.triggerTime, tz.local);
+    final l10n = _l10n;
     await _plugin.zonedSchedule(
       id: reminder.platformNotificationId,
-      title: 'Hydrion reminder',
+      title: l10n.reminderNotificationTitle,
       body: reminder.message,
       scheduledDate: scheduledAt,
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
-          _channelName,
-          channelDescription: _channelDescription,
+          l10n.reminderChannelName,
+          channelDescription: l10n.reminderChannelDescription,
           icon: _challengeIcon(reminder.challengeId),
           importance: Importance.high,
           priority: Priority.high,
@@ -382,16 +390,30 @@ class NotificationService {
   final ReminderRepository _reminderRepository;
   final HydrionNotificationAdapter _adapter;
   final DateTime Function() _now;
+  final AppLocaleRepository? _localeRepository;
+
+  AppLocalizations get _l10n => lookupAppLocalizations(
+        HydrionLocaleRegistry.resolve(_localeRepository?.locale),
+      );
+
+  String get focusSessionCompletionBody => _l10n.challengeText(
+        'Focus session complete. Take your planned sip when you are ready.',
+      );
 
   NotificationService({
     required ReminderPolicy reminderPolicy,
     ReminderRepository? reminderRepository,
     HydrionNotificationAdapter? adapter,
+    AppLocaleRepository? localeRepository,
     DateTime Function()? now,
   })  : _policy = reminderPolicy,
         _reminderRepository = reminderRepository ?? ReminderRepository.memory(),
-        _adapter = adapter ?? FlutterLocalNotificationsHydrionAdapter(),
-        _now = now ?? DateTime.now;
+        _adapter = adapter ??
+            FlutterLocalNotificationsHydrionAdapter(
+              localeRepository: localeRepository,
+            ),
+        _now = now ?? DateTime.now,
+        _localeRepository = localeRepository;
 
   List<ScheduledReminder> get scheduledReminders =>
       _reminderRepository.reminders;
@@ -448,7 +470,7 @@ class NotificationService {
 
     final scheduleResult = await createReminder(
       triggerTime: DateTime.fromMillisecondsSinceEpoch(reminder.triggerTime),
-      message: reminder.message,
+      message: _l10n.policyReminderMessage(reminder),
       priority: reminder.priority,
       requestPermissionIfNeeded: true,
     );
@@ -472,7 +494,6 @@ class NotificationService {
       return const NotificationScheduleResult(
         reminder: null,
         state: ReminderScheduleState.schedulingFailed,
-        message: 'Check the reminder time and message.',
       );
     }
     final duplicate = _findDuplicate(
@@ -513,7 +534,6 @@ class NotificationService {
       return const NotificationScheduleResult(
         reminder: null,
         state: ReminderScheduleState.schedulingFailed,
-        message: 'Reminder not found.',
       );
     }
     final safeTriggerTime =
@@ -528,7 +548,6 @@ class NotificationService {
       return NotificationScheduleResult(
         reminder: current,
         state: ReminderScheduleState.schedulingFailed,
-        message: 'Check the reminder time and message.',
       );
     }
     await _adapter.cancel(current);
@@ -546,7 +565,6 @@ class NotificationService {
       return NotificationScheduleResult(
         reminder: current,
         state: ReminderScheduleState.schedulingFailed,
-        message: 'Reminder update was invalid.',
       );
     }
     return _schedulePersistedReminder(
@@ -676,8 +694,6 @@ class NotificationService {
       return NotificationScheduleResult(
         reminder: updated ?? reminder,
         state: ReminderScheduleState.needsRescheduling,
-        message:
-            'That reminder time has passed. Choose a new time to schedule it.',
       );
     }
     if (!_adapter.supportsScheduling) {
@@ -689,7 +705,6 @@ class NotificationService {
       return NotificationScheduleResult(
         reminder: updated ?? reminder,
         state: ReminderScheduleState.unsupported,
-        message: 'Reminders are not available on this device.',
       );
     }
 
@@ -715,9 +730,6 @@ class NotificationService {
       return NotificationScheduleResult(
         reminder: updated ?? reminder,
         state: state,
-        message: state == ReminderScheduleState.schedulingFailed
-            ? 'Hydrion could not check notification access. Try again.'
-            : 'Allow notifications to receive this reminder.',
       );
     }
 
@@ -784,8 +796,6 @@ class NotificationService {
       return NotificationScheduleResult(
         reminder: updated ?? reminder,
         state: ReminderScheduleState.schedulingFailed,
-        message:
-            'Android did not accept this reminder. Edit the time or try again.',
       );
     } catch (_) {
       final updated = await _reminderRepository.setScheduleState(
@@ -796,8 +806,6 @@ class NotificationService {
       return NotificationScheduleResult(
         reminder: updated ?? reminder,
         state: ReminderScheduleState.schedulingFailed,
-        message:
-            'Android did not accept this reminder. Edit the time or try again.',
       );
     }
   }
@@ -815,9 +823,6 @@ class NotificationService {
       return NotificationScheduleResult(
         reminder: updated ?? reminder,
         state: state,
-        message: state == ReminderScheduleState.scheduledApproximately
-            ? 'Reminder active. Android may deliver it slightly after the selected time.'
-            : 'Reminder active. The reminder is scheduled for the selected time.',
       );
     } catch (_) {
       try {
@@ -842,7 +847,6 @@ class NotificationService {
     return NotificationScheduleResult(
       reminder: updated ?? reminder,
       state: ReminderScheduleState.needsRescheduling,
-      message: 'The time has passed. Choose a new time.',
     );
   }
 

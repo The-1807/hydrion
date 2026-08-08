@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../domain/bottle_bingo.dart';
 import '../../domain/pomodoro_session.dart';
 import '../../repositories/challenge_repository.dart';
@@ -23,6 +24,7 @@ class ChallengeHistoryPresenter {
   const ChallengeHistoryPresenter._();
 
   static List<ChallengeHistoryItem> present({
+    required AppLocalizations l10n,
     required JoinedChallenge challenge,
     required Iterable<HydrationLog> hydrationLogs,
     required HydrionVolumeUnit unit,
@@ -34,7 +36,7 @@ class ChallengeHistoryPresenter {
     };
     final items = <ChallengeHistoryItem>[
       for (final action in challenge.completedActionIds)
-        _actionItem(challenge, action, logsByAction[action], unit),
+        _actionItem(l10n, challenge, action, logsByAction[action], unit),
     ];
     final actionLogIds = <String>{
       for (final action in challenge.completedActionIds)
@@ -43,7 +45,7 @@ class ChallengeHistoryPresenter {
     if (hydrationLogQualifies != null) {
       for (final log in hydrationLogs) {
         if (!actionLogIds.contains(log.id) && hydrationLogQualifies(log)) {
-          items.add(_qualifiedHydrationItem(challenge, log, unit));
+          items.add(_qualifiedHydrationItem(l10n, challenge, log, unit));
         }
       }
     }
@@ -61,8 +63,8 @@ class ChallengeHistoryPresenter {
       for (final entry in history) {
         items.add(ChallengeHistoryItem(
           description: entry.endedEarly
-              ? 'Ended focus session ${entry.sessionNumber} early'
-              : 'Completed focus session ${entry.sessionNumber}',
+              ? l10n.historyFocusEndedEarly(session: entry.sessionNumber)
+              : l10n.historyFocusCompleted(session: entry.sessionNumber),
           timestamp: entry.completedAt,
           hasAuthenticTime: entry.hasAuthenticTime,
         ));
@@ -87,7 +89,8 @@ class ChallengeHistoryPresenter {
           continue;
         }
         items.add(ChallengeHistoryItem(
-          description: 'Completed ${board.tiles[index].title}',
+          description:
+              l10n.historyBingoTileCompleted(tile: board.tiles[index].title),
           timestamp: challenge.joinedAt,
         ));
       }
@@ -98,7 +101,7 @@ class ChallengeHistoryPresenter {
       };
       for (final line in board.completedLines(completed)) {
         items.add(ChallengeHistoryItem(
-          description: 'Completed Bottle Bingo line ${line + 1}',
+          description: l10n.historyBingoLineCompleted(line: line + 1),
           timestamp: challenge.joinedAt,
         ));
       }
@@ -109,6 +112,7 @@ class ChallengeHistoryPresenter {
   }
 
   static ChallengeHistoryItem _actionItem(
+    AppLocalizations l10n,
     JoinedChallenge challenge,
     String action,
     HydrationLog? log,
@@ -128,8 +132,11 @@ class ChallengeHistoryPresenter {
                 ? schedule[_dayIndex(challenge.joinedAt, timestamp) %
                         schedule.length]
                     .toString()
-                : 'assigned temperature');
-        description = 'Logged a $style drink$amount';
+                : l10n.assignedTemperature);
+        description = l10n.historyTemperatureDrink(
+          style: style,
+          amount: amount,
+        );
       case 'around-the-world-infusion-week':
         const themes = [
           'Citrus',
@@ -142,32 +149,43 @@ class ChallengeHistoryPresenter {
         ];
         final theme = log?.metadata.infusionTheme ??
             themes[_dayIndex(challenge.joinedAt, timestamp) % themes.length];
-        description = 'Tried the $theme infusion$amount';
+        description = l10n.historyInfusionTried(
+          theme: theme,
+          amount: amount,
+        );
       case 'pomodoro-sip':
         final session = RegExp(r'session-(\d+)').firstMatch(action)?.group(1);
         description = log != null && action.contains('pomodoro-session-')
-            ? 'Logged a Pomodoro drink$amount'
+            ? l10n.historyPomodoroDrink(amount: amount)
             : session == null
-                ? 'Completed a Pomodoro focus session$amount'
-                : 'Completed Pomodoro session $session$amount';
+                ? l10n.historyPomodoroSession(amount: amount)
+                : l10n.historyPomodoroSessionNumber(
+                    session: session,
+                    amount: amount,
+                  );
       case 'eat-your-water-day':
-        final meal = _friendlyValue(challenge.parameters['meal'], 'meal');
-        final food =
-            _friendlyValue(challenge.parameters['food'], 'water-rich food');
-        description = 'Added $food to $meal';
+        final meal =
+            _friendlyValue(challenge.parameters['meal'], l10n.mealValue);
+        final food = _friendlyValue(
+          challenge.parameters['food'],
+          l10n.waterRichFood,
+        );
+        description = l10n.historyFoodAdded(food: food, meal: meal);
       case 'plant-twin-challenge':
         final cue =
-            _friendlyValue(challenge.parameters['cue'], 'plant-care cue');
-        description = 'Completed the $cue';
+            _friendlyValue(challenge.parameters['cue'], l10n.plantCareCue);
+        description = l10n.historyCueCompleted(cue: cue);
       case 'bottle-bingo':
         final tile = _bingoTile(action, challenge.joinedAt);
         description = log == null
-            ? 'Completed ${tile?.title ?? 'a Bottle Bingo tile'}'
-            : 'Logged ${tile?.title ?? 'a Bottle Bingo drink'}$amount';
+            ? l10n.historyBingoTileCompleted(
+                tile: tile?.title ?? l10n.bottleBingoTile,
+              )
+            : l10n.historyBottleBingoDrink(amount: amount);
       default:
         description = log == null
-            ? 'Completed a challenge task'
-            : 'Logged a challenge drink$amount';
+            ? l10n.historyChallengeTaskCompleted
+            : l10n.historyChallengeDrink(amount: amount);
     }
     return ChallengeHistoryItem(
       description: description,
@@ -177,6 +195,7 @@ class ChallengeHistoryPresenter {
   }
 
   static ChallengeHistoryItem _qualifiedHydrationItem(
+    AppLocalizations l10n,
     JoinedChallenge challenge,
     HydrationLog log,
     HydrionVolumeUnit unit,
@@ -184,13 +203,20 @@ class ChallengeHistoryPresenter {
     final amount = HydrationVolumeFormatter.format(log.volumeMl, unit);
     final metadata = log.metadata;
     final description = switch (challenge.id) {
-      'temperature-roulette' =>
-        'Logged a ${_friendlyValue(metadata.temperatureStyle, 'scheduled temperature')} drink · $amount',
-      'around-the-world-infusion-week' =>
-        'Tried the ${_friendlyValue(metadata.infusionTheme, 'daily')} infusion · $amount',
-      'pomodoro-sip' => 'Logged a measured focus-session drink · $amount',
-      'bottle-bingo' => 'Logged a Bottle Bingo drink · $amount',
-      _ => 'Logged a challenge drink · $amount',
+      'temperature-roulette' => l10n.historyTemperatureDrink(
+          style: _friendlyValue(
+            metadata.temperatureStyle,
+            l10n.scheduledTemperature,
+          ),
+          amount: ' · $amount',
+        ),
+      'around-the-world-infusion-week' => l10n.historyInfusionTried(
+          theme: _friendlyValue(metadata.infusionTheme, l10n.dailyValue),
+          amount: ' · $amount',
+        ),
+      'pomodoro-sip' => l10n.historyMeasuredFocusDrink(amount: ' · $amount'),
+      'bottle-bingo' => l10n.historyBottleBingoDrink(amount: ' · $amount'),
+      _ => l10n.historyChallengeDrink(amount: ' · $amount'),
     };
     return ChallengeHistoryItem(
       description: description,
@@ -239,8 +265,9 @@ class ChallengeHistoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (items.isEmpty) {
-      return const Text('No challenge actions recorded yet.');
+      return Text(l10n.noCheckInsYet);
     }
     final localizations = MaterialLocalizations.of(context);
     return Column(

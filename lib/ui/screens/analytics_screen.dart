@@ -3,11 +3,13 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../l10n/asset_localizations.dart';
+import '../../l10n/challenge_localizations.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/eco_tracker.dart';
-import '../../services/app_refresh_controller.dart';
+import '../presentation/app_refresh_presenter.dart';
 import '../components/intake_ring.dart';
 import '../components/hydration_score_card.dart';
 import '../components/hydrion_viewport.dart';
@@ -111,9 +113,16 @@ class AnalyticsScreen extends StatelessWidget {
               child: ListTile(
                 leading: const Icon(Icons.water_drop),
                 title: Text(
-                  "Today's hydration: "
-                  '${HydrationVolumeFormatter.format(todayMl, settings.volumeUnit)} / '
-                  '${HydrationVolumeFormatter.format(targetMl, settings.volumeUnit)}',
+                  l10n.sharedTodaysHydrationProgress(
+                    HydrationVolumeFormatter.format(
+                      todayMl,
+                      settings.volumeUnit,
+                    ),
+                    HydrationVolumeFormatter.format(
+                      targetMl,
+                      settings.volumeUnit,
+                    ),
+                  ),
                 ),
                 subtitle: Text(l10n.localEntriesToday(count: todayLogs.length)),
               ),
@@ -170,6 +179,7 @@ class _WeeklyHydrationStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scene = HydrionLifestyleArtResolver.sceneFor(
       surface: HydrionLifestyleSurface.progress,
       sex: sex,
@@ -183,9 +193,11 @@ class _WeeklyHydrationStrip extends StatelessWidget {
         : (totals.reduce((a, b) => a + b) / totals.length).round();
     final loggedDays = totals.where((value) => value > 0).length;
     final rhythmSummary = loggedDays == 0
-        ? 'No hydration recorded in the last 7 days.'
-        : '${HydrationVolumeFormatter.format(average, volumeUnit)} daily average. '
-            'Target: ${HydrationVolumeFormatter.format(targetMl, volumeUnit)}.';
+        ? l10n.sharedWeeklyHydrationEmpty()
+        : l10n.sharedWeeklyHydrationAverage(
+            HydrationVolumeFormatter.format(average, volumeUnit),
+            HydrationVolumeFormatter.format(targetMl, volumeUnit),
+          );
     return HydrionSurface(
       key: const Key('weekly-hydration-strip'),
       child: LayoutBuilder(
@@ -195,7 +207,7 @@ class _WeeklyHydrationStrip extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Last 7 days',
+                l10n.challengeText('Last 7 days'),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
@@ -221,7 +233,8 @@ class _WeeklyHydrationStrip extends StatelessWidget {
                         key: const Key('progress-profile-art'),
                         fit: BoxFit.contain,
                         cacheWidth: 192,
-                        semanticLabel: scene.description,
+                        semanticLabel: AppLocalizations.of(context)
+                            .sceneDescription(scene),
                       ),
                     ),
                   ],
@@ -230,14 +243,15 @@ class _WeeklyHydrationStrip extends StatelessWidget {
                 heading,
               const SizedBox(height: 16),
               Semantics(
-                label: 'Seven day hydration chart. '
-                    '${List.generate(totals.length, (index) {
-                  final day = endDate.subtract(
-                    Duration(days: totals.length - index - 1),
-                  );
-                  return '${MaterialLocalizations.of(context).formatFullDate(day)}: '
-                      '${HydrationVolumeFormatter.format(totals[index], volumeUnit)}';
-                }).join('. ')}.',
+                label: l10n.sharedWeeklyHydrationChart(
+                  List.generate(totals.length, (index) {
+                    final day = endDate.subtract(
+                      Duration(days: totals.length - index - 1),
+                    );
+                    return '${MaterialLocalizations.of(context).formatFullDate(day)}: '
+                        '${HydrationVolumeFormatter.format(totals[index], volumeUnit)}';
+                  }).join('. '),
+                ),
                 child: SizedBox(
                   height: 128,
                   child: Row(
@@ -289,7 +303,8 @@ class _WeeklyHydrationStrip extends StatelessWidget {
                       height: 120,
                       fit: BoxFit.contain,
                       cacheWidth: 192,
-                      semanticLabel: scene.description,
+                      semanticLabel:
+                          AppLocalizations.of(context).sceneDescription(scene),
                     ),
                   ),
                 ),
@@ -324,20 +339,29 @@ class _DayBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final percent = maxMl <= 0 ? 0.0 : (valueMl / maxMl).clamp(0.0, 1.0);
     final goalMet = valueMl >= targetMl;
     final formatted = HydrationVolumeFormatter.format(valueMl, volumeUnit);
     final localizations = MaterialLocalizations.of(context);
     final label = isToday
-        ? 'Today'
+        ? l10n.today
         : DateFormat.E(
             Localizations.localeOf(context).toLanguageTag(),
           ).format(date);
     final fullDate = localizations.formatFullDate(date);
     return Semantics(
-      label: '$fullDate, $formatted${isToday ? ', today' : ''}',
+      label: l10n.sharedDayHydration(
+        fullDate,
+        formatted,
+        isToday: isToday,
+      ),
       child: Tooltip(
-        message: '$fullDate \u00b7 $formatted',
+        message: l10n.sharedDayHydration(
+          fullDate,
+          formatted,
+          isToday: false,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
+import 'package:hydrion/l10n/app_localizations_en.dart';
 import 'package:hydrion/repositories/guided_tour_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/storage/local_store.dart';
@@ -160,10 +161,12 @@ void main() {
 
   group('factual progress status', () {
     const empty = 'Start with 300 to 500 ml now and set a reminder.';
+    final l10n = AppLocalizationsEn();
 
     test('zero logs retains the empty factual state', () {
       expect(
         hydrationProgressStatus(
+          l10n: l10n,
           todayMl: 0,
           targetMl: 2200,
           entryCount: 0,
@@ -176,6 +179,7 @@ void main() {
 
     test('partial progress reports logs and remaining amount', () {
       final status = hydrationProgressStatus(
+        l10n: l10n,
         todayMl: 500,
         targetMl: 2450,
         entryCount: 2,
@@ -190,6 +194,7 @@ void main() {
     test('completed and over-goal progress uses completion state', () {
       for (final amount in [2200, 2500]) {
         final status = hydrationProgressStatus(
+          l10n: l10n,
           todayMl: amount,
           targetMl: 2200,
           entryCount: 1,
@@ -203,6 +208,7 @@ void main() {
 
     test('fluid ounces use the selected unit', () {
       final status = hydrationProgressStatus(
+        l10n: l10n,
         todayMl: 500,
         targetMl: 2200,
         entryCount: 1,
@@ -350,7 +356,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('whats-new-tour-prompt')), findsOneWidget);
-    expect(find.text('See what\u2019s new'), findsOneWidget);
+    expect(find.text(AppLocalizationsEn().seeWhatsNew), findsOneWidget);
     expect(find.byKey(const Key('tour-next')), findsNothing);
 
     await tester.tap(find.byKey(const Key('whats-new-not-now')));

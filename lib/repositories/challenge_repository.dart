@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../domain/challenge_catalog.dart';
+import '../domain/challenge_activity.dart';
 import '../domain/challenge_eligibility.dart';
 import '../domain/challenge_experience.dart';
 import '../domain/bottle_bingo.dart';
@@ -78,14 +79,24 @@ class ChallengeEditResult {
   final bool changed;
   final ChallengeEditEffect effect;
   final JoinedChallenge? challenge;
-  final String message;
+  final ChallengeEditMessageCode messageCode;
 
   const ChallengeEditResult({
     required this.changed,
     required this.effect,
-    required this.message,
+    required this.messageCode,
     this.challenge,
   });
+}
+
+enum ChallengeEditMessageCode {
+  invalidChange,
+  applied,
+  startsTomorrow,
+  restartConfirmationRequired,
+  restartFailed,
+  restarted,
+  notEditableWhileActive,
 }
 
 class JoinedChallenge {
@@ -138,8 +149,6 @@ class JoinedChallenge {
     return {
       'schemaVersion': ChallengeRepository._currentSchemaVersion,
       'id': id,
-      'name': name,
-      'description': description,
       'targetMl': targetMl,
       'durationDays': durationDays,
       'joinedAt': joinedAt.toIso8601String(),
@@ -196,8 +205,6 @@ class JoinedChallenge {
     }
 
     final id = (value['id'] ?? '').toString().trim();
-    final name = (value['name'] ?? '').toString().trim();
-    final description = (value['description'] ?? '').toString().trim();
     final targetMl = value['targetMl'];
     final durationDays = value['durationDays'];
     final joinedAt = DateTime.tryParse((value['joinedAt'] ?? '').toString());
@@ -221,9 +228,15 @@ class JoinedChallenge {
         ? Map<String, Object?>.from(value['pendingParameters'] as Map)
         : const <String, Object?>{};
 
-    if (id.isEmpty ||
-        name.isEmpty ||
-        description.isEmpty ||
+    HydrationChallenge? catalogChallenge;
+    for (final challenge in HydrionChallengeCatalog.challenges) {
+      if (challenge.id == id) {
+        catalogChallenge = challenge;
+        break;
+      }
+    }
+
+    if (catalogChallenge == null ||
         targetMl is! num ||
         !targetMl.isFinite ||
         targetMl <= 0 ||
@@ -236,8 +249,8 @@ class JoinedChallenge {
 
     return JoinedChallenge(
       id: id,
-      name: name,
-      description: description,
+      name: catalogChallenge.name,
+      description: catalogChallenge.description,
       targetMl: targetMl.round(),
       durationDays: durationDays.round(),
       joinedAt: joinedAt,
@@ -297,7 +310,7 @@ class ChallengeRepository extends ChangeNotifier {
   static const maxActiveChallenges = 2;
   static const bottleBingoHydrationTileIndexes = <int>{1, 4};
   static const _category = 'active_challenge';
-  static const _currentSchemaVersion = 5;
+  static const _currentSchemaVersion = 6;
 
   final HydrionLocalStore _store;
   final List<StorageRecoveryEvent> _recoveryEvents;
@@ -330,12 +343,38 @@ class ChallengeRepository extends ChangeNotifier {
     if (result.shouldClearStorage) {
       await store.remove(storageKey);
     }
-    return ChallengeRepository._(
+    final repository = ChallengeRepository._(
       store,
       result.challenges,
       result.history,
       result.recoveryEvents,
     );
+    if (_containsLegacyDisplayCopy(raw) &&
+        (result.challenges.isNotEmpty || result.history.isNotEmpty)) {
+      await repository._persistActiveChallenges();
+    }
+    return repository;
+  }
+
+  static bool _containsLegacyDisplayCopy(String? raw) {
+    if (raw == null) return false;
+    try {
+      final value = jsonDecode(raw);
+      if (value is! Map) return false;
+      for (final key in const ['activeChallenges', 'challengeHistory']) {
+        final records = value[key];
+        if (records is List &&
+            records.any((record) =>
+                record is Map &&
+                (record.containsKey('name') ||
+                    record.containsKey('description')))) {
+          return true;
+        }
+      }
+    } catch (_) {
+      return false;
+    }
+    return false;
   }
 
   JoinedChallenge? get activeChallenge =>
@@ -735,7 +774,7 @@ class ChallengeRepository extends ChangeNotifier {
         changed: false,
         effect: effect,
         challenge: challenge,
-        message: 'That change could not be saved.',
+        messageCode: ChallengeEditMessageCode.invalidChange,
       );
     }
     switch (effect) {
@@ -751,7 +790,7 @@ class ChallengeRepository extends ChangeNotifier {
           changed: true,
           effect: effect,
           challenge: updated,
-          message: 'Change applied.',
+          messageCode: ChallengeEditMessageCode.applied,
         );
       case ChallengeEditEffect.nextLocalDay:
         final localNow = now ?? DateTime.now();
@@ -772,8 +811,7 @@ class ChallengeRepository extends ChangeNotifier {
           changed: true,
           effect: effect,
           challenge: updated,
-          message:
-              'This change starts tomorrow. Today\u2019s progress will stay the same.',
+          messageCode: ChallengeEditMessageCode.startsTomorrow,
         );
       case ChallengeEditEffect.restartRequired:
         if (!confirmRestart) {
@@ -781,8 +819,7 @@ class ChallengeRepository extends ChangeNotifier {
             changed: false,
             effect: effect,
             challenge: challenge,
-            message:
-                'Restarting creates a new challenge attempt. Your hydration history will remain, but this challenge\u2019s progress will begin again.',
+            messageCode: ChallengeEditMessageCode.restartConfirmationRequired,
           );
         }
         final repeated = await repeatChallenge(
@@ -794,17 +831,16 @@ class ChallengeRepository extends ChangeNotifier {
           changed: repeated != null,
           effect: effect,
           challenge: repeated,
-          message: repeated == null
-              ? 'The challenge could not be restarted.'
-              : 'A new challenge attempt has started.',
+          messageCode: repeated == null
+              ? ChallengeEditMessageCode.restartFailed
+              : ChallengeEditMessageCode.restarted,
         );
       case ChallengeEditEffect.notEditableWhileActive:
         return ChallengeEditResult(
           changed: false,
           effect: effect,
           challenge: challenge,
-          message:
-              'This setting cannot be changed while the challenge is active.',
+          messageCode: ChallengeEditMessageCode.notEditableWhileActive,
         );
     }
   }
@@ -841,6 +877,177 @@ class ChallengeRepository extends ChangeNotifier {
         completedActionIds: Set<String>.unmodifiable({
           ...challenge.completedActionIds,
           actionId,
+        }),
+      ),
+    );
+    return true;
+  }
+
+  bool activityCheckpointComplete(
+    String challengeId,
+    String checkpointId, {
+    DateTime? day,
+  }) {
+    final challenge = activeChallengeFor(challengeId);
+    if (challenge == null) return false;
+    final token = _activityDayToken(challenge, day ?? DateTime.now());
+    return challenge.completedActionIds.contains(
+      '${challenge.instanceId}:$token:activity:$checkpointId',
+    );
+  }
+
+  Future<bool> completeActivityCheckpoint({
+    required String challengeId,
+    required String checkpointId,
+    DateTime? completedAt,
+    String? outcome,
+  }) async {
+    final challenge = activeChallengeFor(challengeId);
+    final definition = HydrionChallengeActivities.forId(challengeId);
+    if (challenge == null ||
+        challenge.needsSetup ||
+        definition == null ||
+        challenge.lifecycleStatus != ChallengeLifecycleStatus.active) {
+      return false;
+    }
+    final checkpointIndex = definition.checkpoints.indexWhere(
+      (checkpoint) => checkpoint.id == checkpointId,
+    );
+    if (checkpointIndex == -1) return false;
+    final time = completedAt ?? DateTime.now();
+    if (challengeId == 'commute-cup') {
+      final travelStart =
+          ((challenge.parameters['travelStartHour'] as num?) ?? 24).round();
+      if (time.hour >= travelStart) return false;
+    }
+    for (var index = 0; index < checkpointIndex; index++) {
+      if (!activityCheckpointComplete(
+        challengeId,
+        definition.checkpoints[index].id,
+        day: time,
+      )) {
+        return false;
+      }
+    }
+    final day = _activityDayToken(challenge, time);
+    final actionId = '${challenge.instanceId}:$day:activity:$checkpointId';
+    if (challenge.completedActionIds.contains(actionId)) return false;
+    final nextParameters = <String, Object?>{
+      ...challenge.parameters,
+      'lastActivityAt': time.toIso8601String(),
+      if (outcome != null && outcome.trim().isNotEmpty)
+        'lastActivityOutcome': outcome.trim(),
+    };
+    await _updateActiveChallenge(
+      challenge.copyWith(
+        parameters: Map<String, Object?>.unmodifiable(nextParameters),
+        completedActionIds: Set<String>.unmodifiable({
+          ...challenge.completedActionIds,
+          actionId,
+        }),
+      ),
+    );
+    return true;
+  }
+
+  String _activityDayToken(JoinedChallenge challenge, DateTime time) {
+    if (challenge.id != 'shift-hydration-check') {
+      return _localDayToken(time);
+    }
+    final startMinutes =
+        ((challenge.parameters['shiftStartMinutes'] as num?) ?? 0).round();
+    final durationMinutes =
+        ((challenge.parameters['shiftDurationMinutes'] as num?) ?? 0).round();
+    final crossesMidnight = startMinutes + durationMinutes > 24 * 60;
+    final currentMinutes = time.hour * 60 + time.minute;
+    if (!crossesMidnight || currentMinutes >= startMinutes) {
+      return _localDayToken(time);
+    }
+    final previousDay = DateTime(time.year, time.month, time.day - 1);
+    return _localDayToken(previousDay);
+  }
+
+  Duration activitySessionElapsed(
+    String challengeId, {
+    DateTime? now,
+  }) {
+    final challenge = activeChallengeFor(challengeId);
+    if (challenge == null) return Duration.zero;
+    final stored =
+        ((challenge.parameters['activityElapsedSeconds'] as num?) ?? 0).round();
+    if (challenge.parameters['activitySessionStatus'] != 'running') {
+      return Duration(seconds: stored.clamp(0, 86400));
+    }
+    final startedAt = DateTime.tryParse(
+      challenge.parameters['activitySessionStartedAt']?.toString() ?? '',
+    );
+    if (startedAt == null) return Duration(seconds: stored.clamp(0, 86400));
+    final live = (now ?? DateTime.now()).difference(startedAt).inSeconds;
+    return Duration(seconds: (stored + live).clamp(0, 86400));
+  }
+
+  Future<bool> startActivitySession(
+    String challengeId, {
+    DateTime? startedAt,
+  }) async {
+    final challenge = activeChallengeFor(challengeId);
+    final definition = HydrionChallengeActivities.forId(challengeId);
+    if (challenge == null ||
+        challenge.needsSetup ||
+        definition == null ||
+        definition.sessionMode == ChallengeActivitySessionMode.none) {
+      return false;
+    }
+    final status = challenge.parameters['activitySessionStatus'];
+    if (status == 'running') return false;
+    await _updateActiveChallenge(
+      challenge.copyWith(
+        parameters: Map<String, Object?>.unmodifiable({
+          ...challenge.parameters,
+          'activitySessionStatus': 'running',
+          'activitySessionStartedAt':
+              (startedAt ?? DateTime.now()).toIso8601String(),
+          if (status != 'paused') 'activityElapsedSeconds': 0,
+        }),
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> pauseActivitySession(
+    String challengeId, {
+    DateTime? pausedAt,
+  }) async {
+    final challenge = activeChallengeFor(challengeId);
+    if (challenge == null ||
+        challenge.parameters['activitySessionStatus'] != 'running') {
+      return false;
+    }
+    final elapsed =
+        activitySessionElapsed(challengeId, now: pausedAt ?? DateTime.now());
+    await _updateActiveChallenge(
+      challenge.copyWith(
+        parameters: Map<String, Object?>.unmodifiable({
+          ...challenge.parameters,
+          'activitySessionStatus': 'paused',
+          'activityElapsedSeconds': elapsed.inSeconds,
+          'activitySessionStartedAt': null,
+        }),
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> resetActivitySession(String challengeId) async {
+    final challenge = activeChallengeFor(challengeId);
+    if (challenge == null) return false;
+    await _updateActiveChallenge(
+      challenge.copyWith(
+        parameters: Map<String, Object?>.unmodifiable({
+          ...challenge.parameters,
+          'activitySessionStatus': 'stopped',
+          'activityElapsedSeconds': 0,
+          'activitySessionStartedAt': null,
         }),
       ),
     );
@@ -1118,6 +1325,18 @@ class ChallengeRepository extends ChangeNotifier {
     next['timerStatus'] = 'paused';
     next['timerEndsAt'] = '';
     next['timerReminderId'] = '';
+    final activityStartedAt = DateTime.tryParse(
+      next['activitySessionStartedAt']?.toString() ?? '',
+    );
+    if (next['activitySessionStatus'] == 'running' &&
+        activityStartedAt != null) {
+      final stored = ((next['activityElapsedSeconds'] as num?) ?? 0).round();
+      next['activityElapsedSeconds'] =
+          (stored + DateTime.now().difference(activityStartedAt).inSeconds)
+              .clamp(0, 86400);
+      next['activitySessionStatus'] = 'paused';
+      next['activitySessionStartedAt'] = null;
+    }
     return Map<String, Object?>.unmodifiable(next);
   }
 
@@ -1129,6 +1348,11 @@ class ChallengeRepository extends ChangeNotifier {
         'timerReminderId',
         'challengeReminderId',
         'dailyReminderId',
+        'lunchReminderId',
+        'shiftStartReminderId',
+        'shiftMidpointReminderId',
+        'shiftEndReminderId',
+        'reviewReminderId',
       ])
         if ((challenge.parameters[key]?.toString().trim() ?? '').isNotEmpty)
           challenge.parameters[key]!.toString().trim(),
@@ -1259,6 +1483,14 @@ class ChallengeRepository extends ChangeNotifier {
     }
     if (objectiveType == ChallengeObjectiveType.manualCheckIn) {
       final dayToken = _localDayToken(day);
+      final activity = HydrionChallengeActivities.forId(challenge.id);
+      if (activity != null) {
+        return activity.checkpoints.every(
+          (checkpoint) => challenge.completedActionIds.contains(
+            '${challenge.instanceId}:$dayToken:activity:${checkpoint.id}',
+          ),
+        );
+      }
       return challenge.completedActionIds.any(
         (action) =>
             action.contains(':$dayToken:') || action.startsWith('$dayToken:'),

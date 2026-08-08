@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../repositories/settings_repository.dart';
+import '../../repositories/app_locale_repository.dart';
 import '../../domain/daily_hydration_context.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/weather_localizations.dart';
 import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../services/notifications.dart';
@@ -48,6 +50,7 @@ class _HydrionShellState extends State<HydrionShell>
     WidgetsBinding.instance.addObserver(this);
     _scheduleDayRollover();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(context.read<AppLocaleRepository>().refreshFromAndroid());
       _evaluateWeatherAssistance();
     });
   }
@@ -70,6 +73,8 @@ class _HydrionShellState extends State<HydrionShell>
     if (!mounted) {
       return;
     }
+    await context.read<AppLocaleRepository>().refreshFromAndroid();
+    if (!mounted) return;
     setState(() {});
     _scheduleDayRollover();
     final notificationService = context.read<NotificationService>();
@@ -168,33 +173,37 @@ class _HydrionShellState extends State<HydrionShell>
       personalized.weatherAdjustmentMl.abs(),
       unit,
     );
+    final suggestionChangesGoal =
+        personalized.roundedRecommendedGoalMl != settings.dailyGoalMl;
     final useSuggestion = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text("Today's weather hydration suggestion"),
+        title: Text(l10n.weatherSuggestionTitle),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${forecast.condition} · '
-                  '${forecast.temperatureC.toStringAsFixed(1)}°C'),
+              Text(l10n.weatherConditionTemperature(
+                condition: l10n.weatherCondition(forecast.condition),
+                temperature: forecast.temperatureC.toStringAsFixed(1),
+              )),
               if (forecast.humidityPercent != null)
                 Text(
-                  'Humidity: ${forecast.humidityPercent!.round()}%',
+                  '${l10n.humidityLabel}: ${forecast.humidityPercent!.round()}%',
                 ),
               const SizedBox(height: 12),
               Text(
-                'Standard goal: '
+                '${l10n.standardGoalLabel}: '
                 '${HydrationVolumeFormatter.format(personalized.baselineGoalMl, unit)}',
               ),
               Text(
-                'Weather adjustment: '
+                '${l10n.weatherAdjustmentLabel}: '
                 '${personalized.weatherAdjustmentMl >= 0 ? '+' : ''}'
                 '$weatherAdjustment',
               ),
               Text(
-                "Today's suggested goal: "
+                '${l10n.todaySuggestedGoalLabel}: '
                 '${HydrationVolumeFormatter.format(personalized.roundedRecommendedGoalMl, unit)}',
               ),
               const SizedBox(height: 8),
@@ -209,24 +218,29 @@ class _HydrionShellState extends State<HydrionShell>
                   '${HydrationVolumeFormatter.format(personalized.reproductiveAdjustmentMl, unit)}',
                 ),
               Text(
-                'Updated: ${TimeOfDay.fromDateTime(forecast.retrievedAt).format(dialogContext)}',
+                '${l10n.updatedLabel}: ${TimeOfDay.fromDateTime(forecast.retrievedAt).format(dialogContext)}',
               ),
               const SizedBox(height: 8),
-              const Text(
-                'This suggestion uses your saved profile, location permission, and local weather. It is not medical advice.',
-              ),
+              Text(l10n.weatherSuggestionDisclosure),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep standard goal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Use suggestion'),
-          ),
+          if (suggestionChangesGoal) ...[
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(l10n.keepStandardGoal),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(l10n.useSuggestion),
+            ),
+          ] else
+            FilledButton(
+              key: const Key('weather-no-change-done'),
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(l10n.done),
+            ),
         ],
       ),
     );
@@ -235,18 +249,20 @@ class _HydrionShellState extends State<HydrionShell>
       await context.read<UserSettingsRepository>().applyWeatherGoal(
             goalMl: personalized.roundedRecommendedGoalMl,
             decidedAt: DateTime.now(),
-            explanation: l10n.personalizedSuggestionAccepted,
+            explanation:
+                WeatherGoalExplanationCode.personalizedSuggestionAccepted.name,
             localDateKey: hydrionLocalDateKey(DateTime.now()),
           );
     } else {
       await coordinator.keepPreviousGoal(
-        explanation: 'Standard goal kept after reviewing local weather.',
+        explanationCode: WeatherGoalExplanationCode.standardGoalKept,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tourRepository = context.watch<GuidedTourRepository>();
     final navigationColor =
@@ -314,29 +330,29 @@ class _HydrionShellState extends State<HydrionShell>
                 setState(() => _selectedIndex = index);
               },
               destinations: [
-                const NavigationDestination(
-                  key: Key('nav-home'),
-                  icon: Icon(Icons.water_drop_outlined),
-                  selectedIcon: Icon(Icons.water_drop),
-                  label: 'Home',
+                NavigationDestination(
+                  key: const Key('nav-home'),
+                  icon: const Icon(Icons.water_drop_outlined),
+                  selectedIcon: const Icon(Icons.water_drop),
+                  label: l10n.homeTitle,
                 ),
                 NavigationDestination(
                   key: _challengesTargetKey,
                   icon: const Icon(Icons.emoji_events_outlined),
                   selectedIcon: const Icon(Icons.emoji_events),
-                  label: 'Challenges',
+                  label: l10n.challengesTitle,
                 ),
                 NavigationDestination(
                   key: _progressTargetKey,
                   icon: const Icon(Icons.insights_outlined),
                   selectedIcon: const Icon(Icons.insights),
-                  label: 'Progress',
+                  label: l10n.progress,
                 ),
-                const NavigationDestination(
-                  key: Key('nav-profile'),
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
-                  label: 'Profile',
+                NavigationDestination(
+                  key: const Key('nav-profile'),
+                  icon: const Icon(Icons.person_outline),
+                  selectedIcon: const Icon(Icons.person),
+                  label: l10n.profileTitle,
                 ),
               ],
             ),
@@ -360,37 +376,33 @@ class _HydrionShellState extends State<HydrionShell>
         GuidedTourStep(
           targetKey: _homeTargetKey,
           destinationIndex: 0,
-          title: "Today's hydration",
-          body: 'Your daily hydration and remaining amount appear here.',
+          title: l10n.todaysHydration,
+          body: l10n.tourHydrationBody,
         ),
         GuidedTourStep(
           targetKey: _logTargetKey,
           destinationIndex: 0,
-          title: 'Log water',
-          body:
-              'Log the amount you actually drink. Use a saved container or choose another amount.',
+          title: l10n.tourLogWater,
+          body: l10n.tourLogWaterBody,
         ),
         GuidedTourStep(
           targetKey: _historyTargetKey,
           destinationIndex: 0,
-          title: 'Review and correct',
-          body:
-              'Review, edit, or remove a hydration entry if you make a mistake.',
+          title: l10n.tourReviewCorrect,
+          body: l10n.tourReviewCorrectBody,
         ),
         GuidedTourStep(
           targetKey: _challengesTargetKey,
           destinationIndex: 1,
-          title: 'Challenges',
-          body:
-              'Challenges add optional habits and tasks. Challenge water still counts normally.',
+          title: l10n.challengesTitle,
+          body: l10n.tourChallengesBody,
         ),
         GuidedTourStep(
           targetKey: _progressTargetKey,
           destinationIndex: 2,
           demonstratesPullToRefresh: true,
-          title: 'Progress and refresh',
-          body:
-              'Review your latest totals here. Pull down to refresh hydration and challenge progress.',
+          title: l10n.tourProgressRefresh,
+          body: l10n.tourProgressRefreshBody,
         ),
       ],
       child: Stack(
@@ -412,16 +424,14 @@ class _HydrionShellState extends State<HydrionShell>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'See what\u2019s new',
+                          l10n.seeWhatsNew,
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Take a short tour of hydration, challenges, and progress.',
-                        ),
+                        Text(l10n.seeWhatsNewBody),
                         const SizedBox(height: 8),
                         OverflowBar(
                           alignment: MainAxisAlignment.end,
@@ -429,7 +439,7 @@ class _HydrionShellState extends State<HydrionShell>
                             TextButton(
                               key: const Key('whats-new-not-now'),
                               onPressed: tourRepository.dismissWhatsNew,
-                              child: const Text('Not now'),
+                              child: Text(l10n.notNow),
                             ),
                             FilledButton(
                               key: const Key('whats-new-show-me'),
@@ -439,7 +449,7 @@ class _HydrionShellState extends State<HydrionShell>
                                   setState(() => _selectedIndex = 0);
                                 }
                               },
-                              child: const Text('Show me'),
+                              child: Text(l10n.showMe),
                             ),
                           ],
                         ),

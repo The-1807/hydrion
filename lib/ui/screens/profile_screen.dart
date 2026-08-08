@@ -9,6 +9,8 @@ import '../../domain/community_links.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/asset_localizations.dart';
+import '../../l10n/challenge_localizations.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/profile_photo_service.dart';
@@ -32,7 +34,7 @@ class ProfileScreen extends StatelessWidget {
       appBar: embedded
           ? null
           : AppBar(
-              title: const Text('Profile'),
+              title: Text(l10n.profileTitle),
               actions: [_ProfileMenu(embedded: embedded)],
             ),
       body: ListView(
@@ -57,7 +59,7 @@ class ProfileScreen extends StatelessWidget {
                 key: const Key('profile-edit-action'),
                 onPressed: () => _openEditor(context, settings),
                 icon: const Icon(Icons.edit_outlined),
-                label: const Text('Edit profile'),
+                label: Text(l10n.editProfile),
               ),
               OutlinedButton.icon(
                 key: const Key('profile-body-metrics-action'),
@@ -70,7 +72,7 @@ class ProfileScreen extends StatelessWidget {
                 key: const Key('profile-settings-action'),
                 onPressed: () => Navigator.of(context).pushNamed('/settings'),
                 icon: const Icon(Icons.tune),
-                label: const Text('Settings'),
+                label: Text(l10n.settingsTitle),
               ),
               if (capabilities.osNotifications)
                 OutlinedButton.icon(
@@ -78,14 +80,14 @@ class ProfileScreen extends StatelessWidget {
                   onPressed: () =>
                       Navigator.of(context).pushNamed('/reminders'),
                   icon: const Icon(Icons.notifications_none),
-                  label: const Text('Reminders'),
+                  label: Text(l10n.remindersTitle),
                 ),
               OutlinedButton.icon(
                 key: const Key('profile-legal-action'),
                 onPressed: () =>
                     Navigator.of(context).pushNamed('/legal-about'),
                 icon: const Icon(Icons.article_outlined),
-                label: const Text('Legal'),
+                label: Text(l10n.legal),
               ),
             ],
           ),
@@ -98,7 +100,7 @@ class ProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Hydration identity',
+                  l10n.hydrationIdentity,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -106,29 +108,31 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 _ProfileStat(
                   icon: Icons.flag_outlined,
-                  label: 'Daily goal',
-                  value: '${settings.dailyGoalMl} ml',
+                  label: l10n.dailyGoal,
+                  value: l10n.volumeMlValue(amount: settings.dailyGoalMl),
                 ),
                 _ProfileStat(
                   icon: Icons.straighten,
-                  label: 'Units',
+                  label: l10n.units,
                   value: settings.volumeUnit == HydrionVolumeUnit.ounces
-                      ? 'Ounces'
-                      : 'Milliliters',
+                      ? l10n.ounces
+                      : l10n.milliliters,
                 ),
                 _ProfileStat(
                   icon: Icons.local_drink_outlined,
-                  label: 'Preferred container',
+                  label: l10n.preferredContainer,
                   value: settings.usableContainerSizeMl == null
-                      ? 'Not set'
-                      : '${settings.containerSizeMl} ml',
+                      ? l10n.notSet
+                      : l10n.volumeMlValue(amount: settings.containerSizeMl),
                 ),
                 _ProfileStat(
                   icon: Icons.notifications_none,
-                  label: 'Reminders',
+                  label: l10n.remindersTitle,
                   value: reminderRepository.reminders.isEmpty
-                      ? 'No reminders yet'
-                      : '${reminderRepository.reminders.length} saved',
+                      ? l10n.noRemindersYet
+                      : l10n.savedCount(
+                          count: reminderRepository.reminders.length,
+                        ),
                 ),
               ],
             ),
@@ -140,12 +144,14 @@ class ProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Support',
+                  l10n.support,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Contact: ${HydrionCommunityConfig.contactEmail}',
+                Text(
+                  l10n.contactEmail(
+                    email: HydrionCommunityConfig.contactEmail,
+                  ),
                 ),
               ],
             ),
@@ -176,6 +182,7 @@ class _ProfileHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final nickname = settings.nickname?.trim();
     return HydrionSurface(
       gradient: HydrionGradients.ocean,
@@ -189,7 +196,7 @@ class _ProfileHero extends StatelessWidget {
               children: [
                 Text(
                   nickname == null || nickname.isEmpty
-                      ? 'Local Hydrion profile'
+                      ? l10n.challengeText('Local Hydrion profile')
                       : nickname,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         color: Colors.white,
@@ -197,7 +204,7 @@ class _ProfileHero extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: 6),
-                Text(_avatarRelationshipLabel(avatar)),
+                Text(_avatarRelationshipLabel(l10n, avatar)),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
@@ -263,6 +270,7 @@ class _ProfileLifestyleMoment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scene = HydrionLifestyleArtResolver.sceneFor(
       surface: HydrionLifestyleSurface.profile,
       sex: settings.sex,
@@ -289,7 +297,8 @@ class _ProfileLifestyleMoment extends StatelessWidget {
                 height: 132,
                 fit: BoxFit.contain,
                 cacheWidth: 256,
-                semanticLabel: scene.description,
+                semanticLabel:
+                    AppLocalizations.of(context).sceneDescription(scene),
               ),
             ),
           );
@@ -297,14 +306,16 @@ class _ProfileLifestyleMoment extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Built around your routine',
+                l10n.challengeText('Built around your routine'),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Your photo, avatar, goals, reminders, and challenge state stay local to this device.',
+              Text(
+                l10n.challengeText(
+                  'Your photo, avatar, goals, reminders, and challenge state stay local to this device.',
+                ),
               ),
             ],
           );
@@ -355,7 +366,7 @@ class _ProfileImage extends StatelessWidget {
         : Image.memory(
             bytes,
             fit: BoxFit.cover,
-            semanticLabel: 'Local profile photo',
+            semanticLabel: AppLocalizations.of(context).localProfilePhoto,
           );
     return ClipOval(
       child: SizedBox.square(
@@ -407,6 +418,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     final repository = context.read<UserSettingsRepository>();
     final messenger = ScaffoldMessenger.of(context);
     final goal = int.tryParse(_goalController.text.trim());
@@ -419,8 +431,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
     );
     if (!profileSaved || goal == null || container == null) {
       messenger.showSnackBar(
-        const SnackBar(
-            content: Text('Check the profile fields and try again.')),
+        SnackBar(content: Text(l10n.editProfileInvalid)),
       );
       return;
     }
@@ -439,6 +450,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   }
 
   Future<void> _pickPhoto() async {
+    final l10n = AppLocalizations.of(context);
     final picker = context.read<HydrionProfilePhotoPicker>();
     final repository = context.read<UserSettingsRepository>();
     final messenger = ScaffoldMessenger.of(context);
@@ -453,9 +465,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          saved
-              ? 'Profile photo saved locally.'
-              : 'That photo was too large for local profile storage.',
+          saved ? l10n.profilePhotoSaved : l10n.profilePhotoTooLarge,
         ),
       ),
     );
@@ -463,6 +473,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final settings = context.watch<UserSettingsRepository>().settings;
     final avatar = HydrionAvatarManifest.byId(settings.avatarId);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
@@ -477,20 +488,18 @@ class _ProfileEditorState extends State<_ProfileEditor> {
             children: [
               Expanded(
                 child: Text(
-                  'Edit profile',
+                  l10n.editProfile,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ),
               IconButton(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.close),
-                tooltip: 'Cancel',
+                tooltip: l10n.cancel,
               ),
             ],
           ),
-          const Text(
-            'Update your Hydrion identity and preferences. This does not restart onboarding or delete history.',
-          ),
+          Text(l10n.profileEditorSummary),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -500,9 +509,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Selected photos are used only as your local profile image. You can remove the photo and return to the default avatar any time.',
-                    ),
+                    Text(l10n.profilePhotoPrivacy),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -512,7 +519,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                           key: const Key('profile-pick-photo'),
                           onPressed: _pickPhoto,
                           icon: const Icon(Icons.photo_library_outlined),
-                          label: const Text('Choose photo'),
+                          label: Text(l10n.choosePhoto),
                         ),
                         OutlinedButton.icon(
                           key: const Key('profile-remove-photo'),
@@ -522,7 +529,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                                   .read<UserSettingsRepository>()
                                   .clearProfilePhoto(),
                           icon: const Icon(Icons.person_outline),
-                          label: const Text('Use default avatar'),
+                          label: Text(l10n.useDefaultAvatar),
                         ),
                       ],
                     ),
@@ -535,18 +542,18 @@ class _ProfileEditorState extends State<_ProfileEditor> {
           TextField(
             key: const Key('profile-edit-nickname'),
             controller: _nicknameController,
-            decoration: const InputDecoration(
-              labelText: 'Display name',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.displayName,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _avatarId,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Default profile avatar',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.defaultProfileAvatar,
+              border: const OutlineInputBorder(),
             ),
             items: HydrionAvatarManifest.avatars
                 .map(
@@ -587,32 +594,32 @@ class _ProfileEditorState extends State<_ProfileEditor> {
           TextField(
             controller: _goalController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Baseline daily goal in mL',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.baselineDailyGoalMl,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _containerController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Preferred container in mL',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.preferredContainerMl,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           HydrionHorizontalControl(
             child: SegmentedButton<HydrionBaselineSource>(
               selected: {_baselineSource},
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: HydrionBaselineSource.manual,
-                  label: Text('Standard or manual'),
+                  label: Text(l10n.standardOrManual),
                 ),
                 ButtonSegment(
                   value: HydrionBaselineSource.personalized,
-                  label: Text('Personalized'),
+                  label: Text(l10n.personalized),
                 ),
               ],
               onSelectionChanged: (value) =>
@@ -623,7 +630,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
           FilledButton(
             key: const Key('profile-save'),
             onPressed: _save,
-            child: const Text('Save profile'),
+            child: Text(l10n.saveProfile),
           ),
         ],
       ),
@@ -702,7 +709,7 @@ class _ProfileMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       key: const Key('profile-menu'),
-      tooltip: 'Profile menu',
+      tooltip: AppLocalizations.of(context).profileMenu,
       icon: Icon(
         Icons.more_horiz,
         color: embedded ? Colors.white : null,
@@ -723,11 +730,14 @@ class _ProfileMenu extends StatelessWidget {
             break;
         }
       },
-      itemBuilder: (context) => const [
-        PopupMenuItem(value: 'profile', child: Text('View Profile')),
-        PopupMenuItem(value: 'settings', child: Text('Settings')),
-        PopupMenuItem(value: 'support', child: Text('Support')),
-      ],
+      itemBuilder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return [
+          PopupMenuItem(value: 'profile', child: Text(l10n.viewProfile)),
+          PopupMenuItem(value: 'settings', child: Text(l10n.settingsTitle)),
+          PopupMenuItem(value: 'support', child: Text(l10n.support)),
+        ];
+      },
     );
   }
 }
@@ -743,6 +753,10 @@ Uint8List? _decodePhoto(String? base64Data) {
   }
 }
 
-String _avatarRelationshipLabel(HydrionAvatar avatar) {
-  return '${avatar.displayName} is your shark companion.';
+String _avatarRelationshipLabel(
+  AppLocalizations l10n,
+  HydrionAvatar avatar,
+) {
+  final name = avatar.displayName;
+  return l10n.sharedAvatarRelationship(name);
 }

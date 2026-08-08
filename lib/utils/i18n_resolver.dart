@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../repositories/settings_repository.dart';
+import '../domain/locale_registry.dart';
+import '../repositories/app_locale_repository.dart';
 
 enum LocaleSupportStatus {
   active,
@@ -9,13 +10,12 @@ enum LocaleSupportStatus {
 }
 
 class I18nResolver extends ChangeNotifier {
-  static const fallbackLocale = Locale('en');
+  static const fallbackLocale = HydrionLocaleRegistry.fallback;
 
-  static const supportedLocales = <Locale>[
-    Locale('en'),
-    Locale('es'),
-    Locale('fr'),
-  ];
+  static List<Locale> get supportedLocales =>
+      HydrionLocaleRegistry.productionLocales
+          .map((definition) => definition.locale)
+          .toList(growable: false);
 
   static const futureLocales = <Locale>[
     Locale('ar'),
@@ -24,15 +24,14 @@ class I18nResolver extends ChangeNotifier {
     Locale('zh'),
   ];
 
-  final UserSettingsRepository? _settingsRepository;
+  final AppLocaleRepository? _localeRepository;
   Locale _locale;
 
-  I18nResolver({UserSettingsRepository? settingsRepository})
-      : _settingsRepository = settingsRepository,
-        _locale = resolveLocale(
-          settingsRepository?.settings.locale,
-          supportedLocales,
-        );
+  I18nResolver({AppLocaleRepository? localeRepository})
+      : _localeRepository = localeRepository,
+        _locale = HydrionLocaleRegistry.resolve(localeRepository?.locale) {
+    localeRepository?.addListener(_handleRepositoryChange);
+  }
 
   Locale get locale => _locale;
 
@@ -41,10 +40,10 @@ class I18nResolver extends ChangeNotifier {
   }
 
   Future<void> setLocale(Locale locale) async {
-    final resolved = resolveLocale(locale, supportedLocales);
+    final resolved = HydrionLocaleRegistry.resolve(locale);
     final changed = _locale != resolved;
     _locale = resolved;
-    await _settingsRepository?.setLocale(_locale);
+    await _localeRepository?.selectLocale(_locale);
     if (changed) {
       notifyListeners();
     }
@@ -90,5 +89,18 @@ class I18nResolver extends ChangeNotifier {
 
   static bool _containsLanguage(Iterable<Locale> locales, Locale target) {
     return locales.any((locale) => locale.languageCode == target.languageCode);
+  }
+
+  void _handleRepositoryChange() {
+    final next = HydrionLocaleRegistry.resolve(_localeRepository?.locale);
+    if (_locale == next) return;
+    _locale = next;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _localeRepository?.removeListener(_handleRepositoryChange);
+    super.dispose();
   }
 }

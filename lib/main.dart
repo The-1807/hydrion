@@ -7,11 +7,14 @@ import 'adapters/elka/elka_adapter.dart';
 import 'adapters/gemini/gemini_adapter.dart';
 import 'adapters/local/local_hydrion_adapters.dart';
 import 'domain/hydration_contracts.dart';
+import 'domain/challenge_catalog.dart';
 import 'domain/body_metrics.dart';
 import 'domain/legal_document_registry.dart';
 import 'domain/life_stage_policy.dart';
 import 'l10n/app_localizations.dart';
+import 'l10n/coach_localizations.dart';
 import 'repositories/challenge_repository.dart';
+import 'repositories/app_locale_repository.dart';
 import 'repositories/body_metrics_repository.dart';
 import 'repositories/daily_hydration_context_repository.dart';
 import 'repositories/guided_tour_repository.dart';
@@ -31,6 +34,7 @@ import 'services/local_profile_reset_service.dart';
 import 'services/notifications.dart';
 import 'services/policy_service.dart';
 import 'services/pomodoro_session_service.dart';
+import 'services/timed_session_notification_service.dart';
 import 'services/provider_health.dart';
 import 'services/profile_photo_service.dart';
 import 'services/voice_client.dart';
@@ -47,6 +51,8 @@ import 'ui/screens/analytics_screen.dart';
 import 'ui/screens/hydrion_shell.dart';
 import 'ui/screens/legal_about_screen.dart';
 import 'ui/screens/log_screen.dart';
+import 'ui/screens/language_selection_screen.dart';
+import 'ui/screens/mission_screen.dart';
 import 'ui/screens/onboarding_screen.dart';
 import 'ui/screens/permission_center_screen.dart';
 import 'ui/screens/reminders_screen.dart';
@@ -56,6 +62,7 @@ import 'ui/screens/startup_screen.dart';
 import 'ui/screens/profile_screen.dart';
 import 'ui/screens/profile_age_review_screen.dart';
 import 'ui/screens/body_metrics_screen.dart';
+import 'ui/screens/challenge_experience_screen.dart';
 import 'ui/components/hydrion_system_ui.dart';
 import 'ui/theme/hydrion_design.dart';
 import 'storage/local_store.dart';
@@ -112,6 +119,9 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
   }
 
   String _routeFor(HydrionServices services) {
+    if (!services.appLocaleRepository.selectionCompleted) {
+      return '/language';
+    }
     final settings = services.settingsRepository.settings;
     if (!settings.onboardingCompleted) {
       return '/onboarding';
@@ -197,6 +207,7 @@ class HydrionApp extends StatelessWidget {
   final HydrionServices services;
   final String initialRoute;
   final Duration startupMinimumDuration;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   HydrionApp({
     super.key,
@@ -207,6 +218,62 @@ class HydrionApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    services.androidWidgetService.attachTimedSessionActionHandler(
+      (challengeId, action) async {
+        if (challengeId == PomodoroSessionService.challengeId) {
+          switch (action) {
+            case 'pause':
+              await services.pomodoroSessionService.pause();
+            case 'resume':
+              await services.pomodoroSessionService.resume();
+            case 'stop':
+              await services.pomodoroSessionService.stop();
+          }
+          return;
+        }
+        if (challengeId != 'homework-hydration') return;
+        switch (action) {
+          case 'pause':
+            await services.challengeRepository
+                .pauseActivitySession(challengeId);
+          case 'resume':
+            await services.challengeRepository
+                .startActivitySession(challengeId);
+          case 'stop':
+            await services.challengeRepository
+                .resetActivitySession(challengeId);
+        }
+        await _syncHomeworkTimedNotification(services);
+      },
+    );
+    services.androidWidgetService.attachChallengeOpener((challengeId) {
+      final navigator = _navigatorKey.currentState;
+      if (navigator == null) return;
+      if (challengeId == null) {
+        navigator.pushNamed('/challenges');
+        return;
+      }
+      if (challengeId == '__log__') {
+        navigator.pushNamed('/log');
+        return;
+      }
+      HydrationChallenge? selected;
+      for (final challenge in HydrionChallengeCatalog.challenges) {
+        if (challenge.id == challengeId) {
+          selected = challenge;
+          break;
+        }
+      }
+      if (selected == null) {
+        navigator.pushNamed('/challenges');
+        return;
+      }
+      navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => ChallengeExperienceScreen(challenge: selected!),
+        ),
+      );
+    });
     final routes = <String, WidgetBuilder>{
       '/': (_) => StartupScreen(
             warmUp: () async {
@@ -218,9 +285,15 @@ class HydrionApp extends StatelessWidget {
             isOnboardingCompleted: () =>
                 services.settingsRepository.settings.onboardingCompleted,
             nextRoute: () {
+              if (!services.appLocaleRepository.selectionCompleted) {
+                return '/language';
+              }
               final settings = services.settingsRepository.settings;
               if (!settings.onboardingCompleted) {
                 return '/onboarding';
+              }
+              if (!settings.missionIntroductionHandled) {
+                return '/mission';
               }
               final accessStage =
                   HydrionLifeStagePolicy.productAccessStage(settings.age);
@@ -242,7 +315,9 @@ class HydrionApp extends StatelessWidget {
             minimumDuration: startupMinimumDuration,
           ),
       '/home': (_) => const HydrionShell(),
+      '/language': (_) => const LanguageSelectionScreen(),
       '/onboarding': (_) => const OnboardingScreen(),
+      '/mission': (_) => const MissionScreen(fromOnboarding: true),
       '/analytics': (_) => const AnalyticsScreen(),
       '/log': (_) => const LogScreen(),
       if (services.capabilityReporter.capabilities.osNotifications)
@@ -263,6 +338,7 @@ class HydrionApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider.value(value: services.hydrationRepository),
         ChangeNotifierProvider.value(value: services.settingsRepository),
+        ChangeNotifierProvider.value(value: services.appLocaleRepository),
         ChangeNotifierProvider.value(value: services.reminderRepository),
         ChangeNotifierProvider.value(value: services.challengeRepository),
         ChangeNotifierProvider.value(value: services.bodyMetricsRepository),
@@ -287,6 +363,7 @@ class HydrionApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: services.i18n),
         Provider.value(value: services.notificationService),
         Provider.value(value: services.pomodoroSessionService),
+        Provider.value(value: services.timedSessionNotificationService),
         Provider.value(value: services.locationService),
         Provider.value(value: services.weatherForecastService),
         Provider.value(value: services.dailyWeatherGoalCoordinator),
@@ -332,6 +409,7 @@ class HydrionApp extends StatelessWidget {
             settingsRepository.settings.themePreference,
           );
           return MaterialApp(
+            navigatorKey: _navigatorKey,
             title: 'Hydrion',
             theme: buildHydrionTheme(),
             darkTheme: buildHydrionTheme(brightness: Brightness.dark),
@@ -364,11 +442,45 @@ class HydrionApp extends StatelessWidget {
   }
 }
 
+Future<void> _syncHomeworkTimedNotification(HydrionServices services) async {
+  const challengeId = 'homework-hydration';
+  final challenge =
+      services.challengeRepository.activeChallengeFor(challengeId);
+  if (challenge == null) {
+    await services.timedSessionNotificationService
+        .cancel(HydrionTimedSessionKind.homework);
+    return;
+  }
+  final status = challenge.parameters['activitySessionStatus']?.toString();
+  final totalMinutes = ((challenge.parameters['sessionMinutes'] as num?) ?? 25)
+      .round()
+      .clamp(1, 1440);
+  final remaining = Duration(minutes: totalMinutes) -
+      services.challengeRepository.activitySessionElapsed(challengeId);
+  final safeRemaining = remaining.isNegative ? Duration.zero : remaining;
+  final lifecycle = switch (status) {
+    'running' => HydrionTimedSessionLifecycle.running,
+    'paused' => HydrionTimedSessionLifecycle.paused,
+    _ => HydrionTimedSessionLifecycle.stopped,
+  };
+  await services.timedSessionNotificationService.sync(
+    HydrionTimedSessionNotification(
+      kind: HydrionTimedSessionKind.homework,
+      lifecycle: lifecycle,
+      remaining: safeRemaining,
+      completionAt: lifecycle == HydrionTimedSessionLifecycle.running
+          ? DateTime.now().add(safeRemaining)
+          : null,
+    ),
+  );
+}
+
 class HydrionServices {
   final HydrionAiRuntimeConfig aiRuntimeConfig;
   final HydrionLocalStore localStore;
   final HydrationRepository hydrationRepository;
   final UserSettingsRepository settingsRepository;
+  final AppLocaleRepository appLocaleRepository;
   final ReminderRepository reminderRepository;
   final ChallengeRepository challengeRepository;
   final BodyMetricsRepository bodyMetricsRepository;
@@ -380,6 +492,7 @@ class HydrionServices {
   final I18nResolver i18n;
   final NotificationService notificationService;
   final PomodoroSessionService pomodoroSessionService;
+  final TimedSessionNotificationService timedSessionNotificationService;
   final HydrionLocationService locationService;
   final WeatherForecastService weatherForecastService;
   final DailyWeatherGoalCoordinator dailyWeatherGoalCoordinator;
@@ -411,6 +524,7 @@ class HydrionServices {
     required this.localStore,
     required this.hydrationRepository,
     required this.settingsRepository,
+    required this.appLocaleRepository,
     required this.reminderRepository,
     required this.challengeRepository,
     required this.bodyMetricsRepository,
@@ -422,6 +536,7 @@ class HydrionServices {
     required this.i18n,
     required this.notificationService,
     required this.pomodoroSessionService,
+    required this.timedSessionNotificationService,
     required this.locationService,
     required this.weatherForecastService,
     required this.dailyWeatherGoalCoordinator,
@@ -452,6 +567,8 @@ class HydrionServices {
             AndroidWidgetService(
               hydrationRepository: hydrationRepository,
               settingsRepository: settingsRepository,
+              challengeRepository: challengeRepository,
+              appLocaleRepository: appLocaleRepository,
             );
 
   static Future<HydrionServices> local() async {
@@ -463,6 +580,7 @@ class HydrionServices {
     await services.notificationService.initialize();
     await services.permissions.refresh();
     await services.pomodoroSessionService.reconcile();
+    await _syncHomeworkTimedNotification(services);
     await services.notificationService.reconcileSchedules();
     await services.androidWidgetService.initialize();
     return services;
@@ -473,11 +591,18 @@ class HydrionServices {
     HydrionAiRuntimeConfig aiRuntimeConfig = const HydrionAiRuntimeConfig(),
     HydrionLocationService? locationService,
     HydrionNotificationAdapter? notificationAdapter,
+    HydrionTimedSessionNotificationAdapter? timedSessionNotificationAdapter,
     DailyWeatherProvider? weatherProvider,
     HydrionProfilePhotoPicker? profilePhotoPicker,
   }) async {
     final hydrationRepository = await HydrationRepository.load(store);
     final settingsRepository = await UserSettingsRepository.load(store);
+    final appLocaleRepository = await AppLocaleRepository.load(
+      store,
+      legacyLocale: settingsRepository.settings.locale,
+      establishedUser: settingsRepository.settings.onboardingCompleted ||
+          hydrationRepository.eventCount > 0,
+    );
     final reminderRepository = await ReminderRepository.load(store);
     final challengeRepository = await ChallengeRepository.load(store);
     final bodyMetricsRepository = await BodyMetricsRepository.load(store);
@@ -502,6 +627,7 @@ class HydrionServices {
       store: store,
       hydrationRepository: hydrationRepository,
       settingsRepository: settingsRepository,
+      appLocaleRepository: appLocaleRepository,
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
       bodyMetricsRepository: bodyMetricsRepository,
@@ -511,6 +637,7 @@ class HydrionServices {
       aiRuntimeConfig: aiRuntimeConfig,
       locationService: locationService,
       notificationAdapter: notificationAdapter,
+      timedSessionNotificationAdapter: timedSessionNotificationAdapter,
       weatherProvider: weatherProvider,
       profilePhotoPicker: profilePhotoPicker,
     );
@@ -520,6 +647,7 @@ class HydrionServices {
     HydrionAiRuntimeConfig aiRuntimeConfig = const HydrionAiRuntimeConfig(),
     HydrionLocationService? locationService,
     HydrionNotificationAdapter? notificationAdapter,
+    HydrionTimedSessionNotificationAdapter? timedSessionNotificationAdapter,
     DailyWeatherProvider? weatherProvider,
     HydrionProfilePhotoPicker? profilePhotoPicker,
     GuidedTourRepository? guidedTourRepository,
@@ -529,6 +657,7 @@ class HydrionServices {
       store: store,
       hydrationRepository: HydrationRepository.memory(),
       settingsRepository: UserSettingsRepository.memory(),
+      appLocaleRepository: AppLocaleRepository.memory(),
       reminderRepository: ReminderRepository.memory(),
       challengeRepository: ChallengeRepository.memory(),
       bodyMetricsRepository: BodyMetricsRepository.memory(),
@@ -542,6 +671,8 @@ class HydrionServices {
           FakeHydrionNotificationAdapter(
             permission: HydrionNotificationPermissionState.granted,
           ),
+      timedSessionNotificationAdapter: timedSessionNotificationAdapter ??
+          FakeTimedSessionNotificationAdapter(),
       weatherProvider: weatherProvider ?? _FakeDailyWeatherProvider(),
       profilePhotoPicker: profilePhotoPicker ?? FakeHydrionProfilePhotoPicker(),
     );
@@ -551,6 +682,7 @@ class HydrionServices {
     required HydrionLocalStore store,
     required HydrationRepository hydrationRepository,
     required UserSettingsRepository settingsRepository,
+    required AppLocaleRepository appLocaleRepository,
     required ReminderRepository reminderRepository,
     required ChallengeRepository challengeRepository,
     required BodyMetricsRepository bodyMetricsRepository,
@@ -560,6 +692,7 @@ class HydrionServices {
     required HydrionAiRuntimeConfig aiRuntimeConfig,
     HydrionLocationService? locationService,
     HydrionNotificationAdapter? notificationAdapter,
+    HydrionTimedSessionNotificationAdapter? timedSessionNotificationAdapter,
     DailyWeatherProvider? weatherProvider,
     HydrionProfilePhotoPicker? profilePhotoPicker,
   }) {
@@ -567,21 +700,28 @@ class HydrionServices {
     final coreBridge = CoreBridge(hydrationRepository: hydrationRepository);
     final location =
         locationService ?? const GeolocatorHydrionLocationService();
-    final i18n = I18nResolver(settingsRepository: settingsRepository);
+    final i18n = I18nResolver(localeRepository: appLocaleRepository);
     final policy = ReminderPolicy();
     final notificationService = NotificationService(
       reminderPolicy: policy,
       reminderRepository: reminderRepository,
       adapter: notificationAdapter,
+      localeRepository: appLocaleRepository,
     );
     final permissions = Permissions(
       notifications: notificationService,
       location: location,
       settings: settingsRepository,
     );
+    final timedSessionNotificationService = TimedSessionNotificationService(
+      localeRepository: appLocaleRepository,
+      adapter: timedSessionNotificationAdapter ??
+          const AndroidTimedSessionNotificationAdapter(),
+    );
     final pomodoroSessionService = PomodoroSessionService(
       challengeRepository: challengeRepository,
       notificationService: notificationService,
+      timedSessionNotificationService: timedSessionNotificationService,
     );
     final weatherForecastService = WeatherForecastService(
       provider: weatherProvider ?? OpenMeteoWeatherProvider(),
@@ -647,6 +787,11 @@ class HydrionServices {
         entryCount: entryCount,
         temperatureC: temperatureC,
       ),
+      fallbackBuilder: ({required context, required userQuery}) =>
+          lookupAppLocalizations(i18n.locale).localCoachFallback(
+        context: context,
+        userQuery: userQuery,
+      ),
     );
     final geminiProvider = GeminiHydrationAiProvider(
       config: aiRuntimeConfig.gemini,
@@ -696,10 +841,13 @@ class HydrionServices {
       bodyMetricsRepository: bodyMetricsRepository,
       dailyHydrationContextRepository: dailyHydrationContextRepository,
       personalizationStateRepository: personalizationStateRepository,
+      timedSessionNotificationService: timedSessionNotificationService,
     );
     final androidWidgetService = AndroidWidgetService(
       hydrationRepository: hydrationRepository,
       settingsRepository: settingsRepository,
+      challengeRepository: challengeRepository,
+      appLocaleRepository: appLocaleRepository,
     );
 
     return HydrionServices(
@@ -707,6 +855,7 @@ class HydrionServices {
       localStore: store,
       hydrationRepository: hydrationRepository,
       settingsRepository: settingsRepository,
+      appLocaleRepository: appLocaleRepository,
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
       bodyMetricsRepository: bodyMetricsRepository,
@@ -718,6 +867,7 @@ class HydrionServices {
       i18n: i18n,
       notificationService: notificationService,
       pomodoroSessionService: pomodoroSessionService,
+      timedSessionNotificationService: timedSessionNotificationService,
       locationService: location,
       weatherForecastService: weatherForecastService,
       dailyWeatherGoalCoordinator: dailyWeatherGoalCoordinator,

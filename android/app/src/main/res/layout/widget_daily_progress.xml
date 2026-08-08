@@ -7,49 +7,9 @@
     android:gravity="center_vertical"
     android:orientation="vertical"
     android:padding="16dp">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/widget_hydrion"
-        android:textColor="@color/widget_ink"
-        android:textSize="13sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/widget_progress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="0%"
-        android:textColor="@color/widget_ink"
-        android:textSize="28sp"
-        android:textStyle="bold" />
-
-    <ProgressBar
-        android:id="@+id/widget_progress_bar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="8dp"
-        android:layout_marginTop="4dp"
-        android:max="100"
-        android:progressBackgroundTint="@color/widget_track"
-        android:progressTint="@color/widget_accent" />
-
-    <TextView
-        android:id="@+id/widget_amount"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="7dp"
-        android:text="0 / 2200 ml"
-        android:textColor="@color/widget_ink"
-        android:textSize="12sp" />
-
-    <TextView
-        android:id="@+id/widget_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Ready for a sip"
-        android:textColor="@color/widget_muted"
-        android:textSize="11sp" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/widget_hydrion" android:textColor="@color/widget_ink" android:textSize="13sp" android:textStyle="bold" />
+    <TextView android:id="@+id/widget_progress" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="0%" android:textColor="@color/widget_ink" android:textSize="28sp" android:textStyle="bold" />
+    <ProgressBar android:id="@+id/widget_progress_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="4dp" android:max="100" android:progressBackgroundTint="@color/widget_track" android:progressTint="@color/widget_accent" />
+    <TextView android:id="@+id/widget_amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="@string/widget_placeholder_amount" android:textColor="@color/widget_ink" android:textSize="12sp" />
+    <TextView android:id="@+id/widget_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/widget_placeholder_status" android:textColor="@color/widget_muted" android:textSize="11sp" />
 </LinearLayout>

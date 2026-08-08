@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/bottle_bingo.dart';
+import 'package:hydrion/l10n/app_localizations.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
@@ -217,6 +219,7 @@ void main() {
       final histories = {
         for (final challenge in challenges.activeChallenges)
           challenge.id: ChallengeHistoryPresenter.present(
+            l10n: lookupAppLocalizations(const Locale('en')),
             challenge: challenge,
             hydrationLogs: hydration.logs,
             unit: HydrionVolumeUnit.ounces,

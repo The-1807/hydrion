@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import '../../domain/community_links.dart';
 import '../../domain/legal_document_registry.dart';
 import '../../domain/release_metadata.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/legal_localizations.dart';
 import '../../repositories/settings_repository.dart';
 import '../theme/hydrion_design.dart';
 
@@ -16,12 +18,13 @@ class LegalAboutScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final documents = HydrionLegalDocumentRegistry.userFacingDocuments.toList();
     final settings = context.watch<UserSettingsRepository>().settings;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('About & Legal'),
+        title: Text(l10n.aboutAndLegal),
       ),
       body: SafeArea(
         child: ListView(
@@ -36,14 +39,13 @@ class LegalAboutScreen extends StatelessWidget {
             _UtilityTile(
               key: const Key('legal-open-source-licenses'),
               icon: Icons.code_outlined,
-              title: 'Open Source Licenses',
-              description: 'Flutter and package license notices.',
+              title: l10n.openSourceLicenses,
+              description: l10n.openSourceLicensesSummary,
               onTap: () => showLicensePage(
                 context: context,
                 applicationName: HydrionReleaseMetadata.productName,
                 applicationVersion: HydrionReleaseMetadata.flutterVersionName,
-                applicationLegalese:
-                    'Hydrion uses open-source components under their licenses.',
+                applicationLegalese: l10n.openSourceLegalese,
               ),
             ),
             const SizedBox(height: 8),
@@ -59,7 +61,7 @@ class LegalAboutScreen extends StatelessWidget {
   }
 }
 
-class LegalDocumentScreen extends StatelessWidget {
+class LegalDocumentScreen extends StatefulWidget {
   final String documentId;
 
   const LegalDocumentScreen({
@@ -68,97 +70,120 @@ class LegalDocumentScreen extends StatelessWidget {
   });
 
   @override
+  State<LegalDocumentScreen> createState() => _LegalDocumentScreenState();
+}
+
+class _LegalDocumentScreenState extends State<LegalDocumentScreen> {
+  bool _englishDisclosureAccepted = false;
+
+  @override
   Widget build(BuildContext context) {
-    final document = HydrionLegalDocumentRegistry.byId(documentId);
+    final l10n = AppLocalizations.of(context);
+    final document = HydrionLegalDocumentRegistry.byId(widget.documentId);
     final colorScheme = Theme.of(context).colorScheme;
 
     if (document == null || document.internalOnly) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Legal document')),
+        appBar: AppBar(title: Text(l10n.legalDocument)),
         body: const _LegalMissingState(),
       );
     }
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final needsLanguageDisclosure =
+        !document.hasTranslation(languageCode) && !_englishDisclosureAccepted;
 
     return Scaffold(
       key: Key('legal-document-shell-${document.id}'),
       appBar: AppBar(
-        title: Text(document.title),
+        title: Text(l10n.legalDocumentCopy(document).title),
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return Align(
-              alignment: Alignment.topCenter,
-              child: SizedBox(
-                width: math.min(constraints.maxWidth, 820),
-                height: constraints.maxHeight,
-                child: FutureBuilder<String>(
-                  future: rootBundle.loadString(document.assetPath),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState != ConnectionState.done) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          key: Key('legal-document-loading'),
+        child: needsLanguageDisclosure
+            ? _LegalLanguageDisclosure(
+                message: l10n.legalEnglishOnlyNotice,
+                continueLabel: l10n.legalContinueInEnglish,
+                returnLabel: l10n.legalReturn,
+                onContinue: () =>
+                    setState(() => _englishDisclosureAccepted = true),
+                onReturn: () => Navigator.of(context).maybePop(),
+              )
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: math.min(constraints.maxWidth, 820),
+                      height: constraints.maxHeight,
+                      child: FutureBuilder<String>(
+                        future: rootBundle.loadString(
+                          document.assetPathFor(languageCode),
                         ),
-                      );
-                    }
-                    if (snapshot.hasError || !snapshot.hasData) {
-                      return const _LegalMissingState();
-                    }
-                    final data = _stripFrontMatter(snapshot.data!);
-                    final textTheme = Theme.of(context).textTheme;
-                    return Markdown(
-                      key: Key('legal-document-${document.id}'),
-                      data: data,
-                      selectable: true,
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                      styleSheet: MarkdownStyleSheet.fromTheme(
-                        Theme.of(context),
-                      ).copyWith(
-                        p: textTheme.bodyMedium?.copyWith(
-                          fontSize: 15,
-                          height: 1.5,
-                        ),
-                        listBullet: textTheme.bodyMedium?.copyWith(
-                          fontSize: 15,
-                          height: 1.5,
-                        ),
-                        h1: textTheme.titleLarge?.copyWith(
-                          fontSize: 22,
-                          height: 1.18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        h2: textTheme.titleMedium?.copyWith(
-                          fontSize: 18,
-                          height: 1.24,
-                          fontWeight: FontWeight.w800,
-                          color: colorScheme.primary,
-                        ),
-                        h3: textTheme.titleSmall?.copyWith(
-                          fontSize: 16,
-                          height: 1.3,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        a: TextStyle(
-                          color: colorScheme.primary,
-                          decoration: TextDecoration.underline,
-                        ),
-                        blockquoteDecoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        blockquotePadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState !=
+                              ConnectionState.done) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                key: Key('legal-document-loading'),
+                              ),
+                            );
+                          }
+                          if (snapshot.hasError || !snapshot.hasData) {
+                            return const _LegalMissingState();
+                          }
+                          final data = _stripFrontMatter(snapshot.data!);
+                          final textTheme = Theme.of(context).textTheme;
+                          return Markdown(
+                            key: Key('legal-document-${document.id}'),
+                            data: data,
+                            selectable: true,
+                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                            styleSheet: MarkdownStyleSheet.fromTheme(
+                              Theme.of(context),
+                            ).copyWith(
+                              p: textTheme.bodyMedium?.copyWith(
+                                fontSize: 15,
+                                height: 1.5,
+                              ),
+                              listBullet: textTheme.bodyMedium?.copyWith(
+                                fontSize: 15,
+                                height: 1.5,
+                              ),
+                              h1: textTheme.titleLarge?.copyWith(
+                                fontSize: 22,
+                                height: 1.18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              h2: textTheme.titleMedium?.copyWith(
+                                fontSize: 18,
+                                height: 1.24,
+                                fontWeight: FontWeight.w800,
+                                color: colorScheme.primary,
+                              ),
+                              h3: textTheme.titleSmall?.copyWith(
+                                fontSize: 16,
+                                height: 1.3,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              a: TextStyle(
+                                color: colorScheme.primary,
+                                decoration: TextDecoration.underline,
+                              ),
+                              blockquoteDecoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              blockquotePadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
       ),
       bottomNavigationBar: SafeArea(
         top: false,
@@ -172,6 +197,58 @@ class LegalDocumentScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LegalLanguageDisclosure extends StatelessWidget {
+  const _LegalLanguageDisclosure({
+    required this.message,
+    required this.continueLabel,
+    required this.returnLabel,
+    required this.onContinue,
+    required this.onReturn,
+  });
+
+  final String message;
+  final String continueLabel;
+  final String returnLabel;
+  final VoidCallback onContinue;
+  final VoidCallback onReturn;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.translate, size: 36),
+                const SizedBox(height: 16),
+                Text(message, textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    OutlinedButton(
+                      key: const Key('legal-language-return'),
+                      onPressed: onReturn,
+                      child: Text(returnLabel),
+                    ),
+                    FilledButton(
+                      key: const Key('legal-language-continue'),
+                      onPressed: onContinue,
+                      child: Text(continueLabel),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class LegalReviewScreen extends StatefulWidget {
@@ -188,14 +265,11 @@ class _LegalReviewScreenState extends State<LegalReviewScreen> {
   int _validationAttempt = 0;
 
   Future<void> _continue() async {
+    final l10n = AppLocalizations.of(context);
     if (!_legalReviewReady) {
       setState(() => _validationAttempt += 1);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Accept the Terms and acknowledge the health disclaimer to continue.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.onboardingTermsRequired)),
       );
       return;
     }
@@ -208,10 +282,11 @@ class _LegalReviewScreenState extends State<LegalReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Review Hydrion terms'),
+        title: Text(l10n.reviewHydrionTerms),
       ),
       body: SafeArea(
         child: Center(
@@ -225,12 +300,14 @@ class _LegalReviewScreenState extends State<LegalReviewScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'One quick review',
+                        l10n.legalText('One quick review'),
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Hydrion now stores versioned Terms acceptance and a separate Health and Safety acknowledgement locally. Your hydration logs and profile data are not reset.',
+                      Text(
+                        l10n.legalText(
+                          'Hydrion now stores versioned Terms acceptance and a separate Health and Safety acknowledgement locally. Your hydration logs and profile data are not reset.',
+                        ),
                       ),
                     ],
                   ),
@@ -265,7 +342,7 @@ class _LegalReviewScreenState extends State<LegalReviewScreen> {
             key: const Key('legal-review-continue'),
             onPressed: _continue,
             icon: const Icon(Icons.check),
-            label: const Text('Continue to Hydrion'),
+            label: Text(l10n.continueToHydrion),
           ),
         ),
       ),
@@ -319,6 +396,7 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final requiredDocuments = _requiredDocuments;
     return HydrionSurface(
       child: Column(
@@ -330,7 +408,7 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Legal review',
+                  l10n.legalText('Legal review'),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
                       ),
@@ -339,8 +417,10 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Hydrion is a general wellness tracker. The documents remain available below; checking the boxes records your acceptance and acknowledgement.',
+          Text(
+            l10n.legalText(
+              'Hydrion is a general wellness tracker. The documents remain available below; checking the boxes records your acceptance and acknowledgement.',
+            ),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -368,9 +448,11 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
               contentPadding: EdgeInsets.zero,
               value: widget.termsAccepted,
               onChanged: (value) => _setTermsAccepted(value == true),
-              title: const Text('I accept the Hydrion Terms of Use.'),
+              title: Text(l10n.acceptHydrionTerms),
               subtitle: Text(
-                'Version ${HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion}',
+                l10n.legalVersion(
+                  HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion,
+                ),
               ),
               controlAffinity: ListTileControlAffinity.leading,
             ),
@@ -384,11 +466,12 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
               contentPadding: EdgeInsets.zero,
               value: widget.healthAcknowledged,
               onChanged: (value) => _setHealthAcknowledged(value == true),
-              title: const Text(
-                'I acknowledge the Health and Safety Disclaimer.',
-              ),
+              title: Text(l10n.acknowledgeHealthDisclaimer),
               subtitle: Text(
-                'Version ${HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion}',
+                l10n.legalVersion(
+                  HydrionLegalAcceptancePolicy
+                      .requiredHealthAcknowledgementVersion,
+                ),
               ),
               controlAffinity: ListTileControlAffinity.leading,
             ),
@@ -463,13 +546,17 @@ class _LegalAcceptancePanelState extends State<LegalAcceptancePanel> {
       if (!widget.termsAccepted) {
         _inlineErrors.putIfAbsent(
           'terms',
-          () => 'Check this box to accept the current Terms.',
+          () => AppLocalizations.of(context).legalText(
+            'Check this box to accept the current Terms.',
+          ),
         );
       }
       if (!widget.healthAcknowledged) {
         _inlineErrors.putIfAbsent(
           'health',
-          () => 'Check this box to acknowledge the health disclaimer.',
+          () => AppLocalizations.of(context).legalText(
+            'Check this box to acknowledge the health disclaimer.',
+          ),
         );
       }
     });
@@ -514,9 +601,10 @@ class _LegalIntroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final legalStatus = settings.hasCurrentLegalReview
-        ? 'Current legal review recorded'
-        : 'Legal review needed';
+        ? l10n.legalText('Current legal review recorded')
+        : l10n.legalText('Legal review needed');
     return HydrionSurface(
       gradient: HydrionGradients.ocean,
       radius: HydrionRadii.lg,
@@ -533,16 +621,20 @@ class _LegalIntroCard extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'A local-first hydration companion for water logging, goals, reminders, and gentle challenges.',
+            Text(
+              l10n.legalText(
+                'A local-first hydration companion for water logging, goals, reminders, and gentle challenges.',
+              ),
             ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                const _IntroPill(
-                  label: 'Version ${HydrionReleaseMetadata.flutterVersionName}',
+                _IntroPill(
+                  label: l10n.legalVersion(
+                    HydrionReleaseMetadata.flutterVersionName,
+                  ),
                 ),
                 const _IntroPill(
                     label: HydrionReleaseMetadata.releaseDateLabel),
@@ -563,11 +655,12 @@ class _LegalDocumentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = AppLocalizations.of(context).legalDocumentCopy(document);
     return _UtilityTile(
       key: Key('legal-document-tile-${document.id}'),
       icon: _iconFor(document.id),
-      title: document.title,
-      description: document.description,
+      title: copy.title,
+      description: copy.description,
       onTap: () => Navigator.of(context).pushNamed(document.routeName),
       trailing: Text(
         'v${document.version}',
@@ -592,13 +685,17 @@ class _DocumentChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final copy = l10n.legalDocumentCopy(document);
     final scheme = Theme.of(context).colorScheme;
     final foregroundColor =
         highlighted ? scheme.onErrorContainer : scheme.primary;
     return Tooltip(
-      message: opened
-          ? '${document.accessibilityLabel}. Opened for version ${document.version}.'
-          : document.accessibilityLabel,
+      message: l10n.legalDocumentTooltip(
+        copy,
+        document.version,
+        opened: opened,
+      ),
       child: OutlinedButton.icon(
         key: Key('legal-open-${document.id}'),
         onPressed: onOpen,
@@ -606,7 +703,7 @@ class _DocumentChip extends StatelessWidget {
           opened ? Icons.check_circle : _iconFor(document.id),
           size: 18,
         ),
-        label: Text(opened ? '${document.title} opened' : document.title),
+        label: Text(opened ? l10n.legalDocumentOpened(copy.title) : copy.title),
         style: OutlinedButton.styleFrom(
           foregroundColor: foregroundColor,
           backgroundColor: highlighted ? scheme.errorContainer : null,
@@ -681,6 +778,7 @@ class _CreditsAndLicencesTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       key: const Key('legal-credits-licences'),
       child: Padding(
@@ -694,15 +792,17 @@ class _CreditsAndLicencesTile extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Credits and licences',
+                    l10n.legalText('Credits and licences'),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Loading animation obtained from LottieFiles and bundled for Hydrion. Source-page creator and licence evidence are recorded in THIRD_PARTY_NOTICES.md before release.',
+            Text(
+              l10n.legalText(
+                'Loading animation obtained from LottieFiles and bundled for Hydrion. Source-page creator and licence evidence are recorded in THIRD_PARTY_NOTICES.md before release.',
+              ),
             ),
           ],
         ),
@@ -716,6 +816,7 @@ class _AppInfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       key: const Key('legal-app-info'),
       child: Padding(
@@ -729,24 +830,24 @@ class _AppInfoTile extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'App information',
+                    l10n.legalText('App information'),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            const _InfoLine(
-              label: 'Version',
+            _InfoLine(
+              label: l10n.legalText('Version'),
               value: HydrionReleaseMetadata.flutterVersionName,
             ),
-            const _InfoLine(
-              label: 'Bundle',
+            _InfoLine(
+              label: l10n.legalText('Bundle'),
               value: 'com.the1807.hydrion',
             ),
-            const _InfoLine(
-              label: 'Mode',
-              value: 'Local-first MVP',
+            _InfoLine(
+              label: l10n.legalText('Mode'),
+              value: l10n.legalText('Local-first MVP'),
             ),
           ],
         ),
@@ -760,12 +861,13 @@ class _SupportTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       key: const Key('legal-support-info'),
       child: ListTile(
         minVerticalPadding: 14,
         leading: const Icon(Icons.support_agent_outlined),
-        title: const Text('Support'),
+        title: Text(l10n.support),
         subtitle: const Text(HydrionCommunityConfig.contactEmail),
         trailing: const Icon(Icons.copy_outlined),
         onTap: () async {
@@ -776,7 +878,7 @@ class _SupportTile extends StatelessWidget {
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Support email copied.')),
+            SnackBar(content: Text(l10n.supportEmailCopied)),
           );
         },
       ),
@@ -824,6 +926,7 @@ class _DocumentMetadataBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -831,9 +934,13 @@ class _DocumentMetadataBar extends StatelessWidget {
           spacing: 12,
           runSpacing: 6,
           children: [
-            Text('Version ${document.version}'),
-            Text('Effective ${_dateLabel(document.effectiveDate)}'),
-            Text('Updated ${_dateLabel(document.lastUpdated)}'),
+            Text(l10n.documentVersion(version: document.version)),
+            Text(l10n.documentEffective(
+              date: _dateLabel(document.effectiveDate),
+            )),
+            Text(l10n.documentUpdated(
+              date: _dateLabel(document.lastUpdated),
+            )),
           ],
         ),
       ),
@@ -857,12 +964,14 @@ class _LegalMissingState extends StatelessWidget {
               const Icon(Icons.error_outline, size: 42),
               const SizedBox(height: 12),
               Text(
-                'Document unavailable',
+                AppLocalizations.of(context).legalText('Document unavailable'),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Hydrion could not load this bundled legal document. Please return to About & Legal and try another document.',
+              Text(
+                AppLocalizations.of(context).legalText(
+                  'Hydrion could not load this bundled legal document. Please return to About & Legal and try another document.',
+                ),
                 textAlign: TextAlign.center,
               ),
             ],

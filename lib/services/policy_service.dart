@@ -21,15 +21,27 @@ class Result<T, E> {
 
 class Reminder {
   final int triggerTime;
-  final String message;
+  final ReminderPolicyMessageCode messageCode;
+  final int shortfallMl;
   final int priority;
 
   const Reminder({
     required this.triggerTime,
-    required this.message,
+    required this.messageCode,
+    required this.shortfallMl,
     required this.priority,
   });
 }
+
+enum ReminderPolicyMessageCode {
+  urgentShortfall,
+  urgentCheck,
+  mediumShortfall,
+  mediumCheck,
+  gentleNudge,
+}
+
+enum ReminderPolicyFailure { unavailable }
 
 class PolicyContext {
   final int shortfallMl;
@@ -50,7 +62,7 @@ class ReminderPolicy {
     return remindersSentToday < 12;
   }
 
-  Future<Result<Reminder, String>> scheduleReminder({
+  Future<Result<Reminder, ReminderPolicyFailure>> scheduleReminder({
     required int shortfallMl,
     required double lastDrinkHoursAgo,
     required double hydrationPercent,
@@ -71,7 +83,8 @@ class ReminderPolicy {
     return Result.ok(
       Reminder(
         triggerTime: trigger,
-        message: _composeMessage(context, urgency),
+        messageCode: _messageCode(context, urgency),
+        shortfallMl: context.shortfallMl,
         priority: urgency,
       ),
     );
@@ -99,18 +112,17 @@ class ReminderPolicy {
     };
   }
 
-  String _composeMessage(PolicyContext context, int urgency) {
-    final need = context.shortfallMl;
+  ReminderPolicyMessageCode _messageCode(PolicyContext context, int urgency) {
     if (urgency == 3) {
-      return need > 0
-          ? 'You are behind by ${need}ml. Take a solid sip now.'
-          : 'Quick hydration check. Take a solid sip now.';
+      return context.shortfallMl > 0
+          ? ReminderPolicyMessageCode.urgentShortfall
+          : ReminderPolicyMessageCode.urgentCheck;
     }
     if (urgency == 2) {
-      return need > 0
-          ? 'About ${need}ml to go. A medium sip keeps you on pace.'
-          : 'Stay steady. Grab a sip soon.';
+      return context.shortfallMl > 0
+          ? ReminderPolicyMessageCode.mediumShortfall
+          : ReminderPolicyMessageCode.mediumCheck;
     }
-    return 'Small hydration nudge. A few sips will keep the habit moving.';
+    return ReminderPolicyMessageCode.gentleNudge;
   }
 }

@@ -154,7 +154,7 @@ class HydrionChallengeExperiences {
       actions: ['Check the bottle.', 'Refill if useful.', 'Confirm the check.'],
       whatCounts: 'One explicit local bottle-check confirmation.',
       whatDoesNotCount: 'The check never logs water automatically.',
-      requiredParameters: [],
+      requiredParameters: ['windowStartHour', 'reminderEnabled'],
       actionKind: ChallengeActionKind.checkIn,
     ),
     ChallengeExperienceDefinition(
@@ -167,7 +167,7 @@ class HydrionChallengeExperiences {
       ],
       whatCounts: 'One explicit local study-break confirmation.',
       whatDoesNotCount: 'No school, assignment, or drink amount is inferred.',
-      requiredParameters: [],
+      requiredParameters: ['sessionMinutes', 'checkpointPattern'],
       actionKind: ChallengeActionKind.checkIn,
     ),
     ChallengeExperienceDefinition(
@@ -180,7 +180,7 @@ class HydrionChallengeExperiences {
       ],
       whatCounts: 'One explicit local after-routine confirmation.',
       whatDoesNotCount: 'The check never changes the daily goal.',
-      requiredParameters: [],
+      requiredParameters: ['windowStartHour'],
       actionKind: ChallengeActionKind.checkIn,
     ),
     ChallengeExperienceDefinition(
@@ -193,7 +193,7 @@ class HydrionChallengeExperiences {
       ],
       whatCounts: 'One explicit local bottle-ready confirmation.',
       whatDoesNotCount: 'No location or school information is collected.',
-      requiredParameters: [],
+      requiredParameters: ['preparationHour'],
       actionKind: ChallengeActionKind.checkIn,
     ),
     ChallengeExperienceDefinition(
@@ -202,7 +202,7 @@ class HydrionChallengeExperiences {
       actions: ['Take a break.', 'Review hydration.', 'Confirm the reset.'],
       whatCounts: 'One explicit local reset confirmation.',
       whatDoesNotCount: 'No drink is logged automatically.',
-      requiredParameters: [],
+      requiredParameters: ['blockMinutes', 'resetFrequencyMinutes'],
       actionKind: ChallengeActionKind.checkIn,
     ),
     ChallengeExperienceDefinition(
@@ -215,7 +215,7 @@ class HydrionChallengeExperiences {
       ],
       whatCounts: 'One explicit local work-period confirmation.',
       whatDoesNotCount: 'Hydrion does not infer employment or a schedule.',
-      requiredParameters: [],
+      requiredParameters: ['shiftStartMinutes', 'shiftDurationMinutes'],
       actionKind: ChallengeActionKind.checkIn,
     ),
     ChallengeExperienceDefinition(
@@ -228,7 +228,7 @@ class HydrionChallengeExperiences {
       ],
       whatCounts: 'One explicit local travel-cue confirmation.',
       whatDoesNotCount: 'No trip or location is tracked.',
-      requiredParameters: [],
+      requiredParameters: ['preparationHour', 'travelStartHour'],
       actionKind: ChallengeActionKind.checkIn,
     ),
     ChallengeExperienceDefinition(
@@ -241,7 +241,7 @@ class HydrionChallengeExperiences {
       ],
       whatCounts: 'One explicit local evening review.',
       whatDoesNotCount: 'The review never changes the goal automatically.',
-      requiredParameters: [],
+      requiredParameters: ['reviewHour'],
       actionKind: ChallengeActionKind.checkIn,
     ),
   ];

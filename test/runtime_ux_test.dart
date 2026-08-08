@@ -7,6 +7,8 @@ import 'package:hydrion/domain/bottle_bingo.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/profile_photo_service.dart';
+import 'package:hydrion/services/timed_session_notification_service.dart';
+import 'package:hydrion/ui/screens/onboarding_screen.dart';
 
 void main() {
   Future<void> openLogHistory(WidgetTester tester) async {
@@ -238,11 +240,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings-locale-picker')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Spanish').last);
+    await tester.tap(find.byKey(const Key('language-es')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('language-continue')));
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.pumpAndSettle();
 
-    expect(find.text('Idioma actualizado'), findsOneWidget);
-    expect(services.i18n.locale.languageCode, 'es');
+    expect(services.appLocaleRepository.locale.languageCode, 'es');
+    expect(find.text('Ajustes'), findsOneWidget);
 
     expect(find.textContaining('Gemini'), findsNothing);
     expect(find.textContaining('provider'), findsNothing);
@@ -251,7 +256,18 @@ void main() {
 
   testWidgets('user can delete the local profile from Settings',
       (tester) async {
-    final services = HydrionServices.memory();
+    final timedAdapter = FakeTimedSessionNotificationAdapter();
+    final services = HydrionServices.memory(
+      timedSessionNotificationAdapter: timedAdapter,
+    );
+    await services.timedSessionNotificationService.sync(
+      HydrionTimedSessionNotification(
+        kind: HydrionTimedSessionKind.pomodoro,
+        lifecycle: HydrionTimedSessionLifecycle.running,
+        remaining: const Duration(minutes: 20),
+        completionAt: DateTime.now().add(const Duration(minutes: 20)),
+      ),
+    );
     await services.settingsRepository.setProfile(
       nickname: 'Delete Tester',
       age: 29,
@@ -275,12 +291,52 @@ void main() {
     await tester.tap(find.byKey(const Key('settings-delete-profile-card')));
     await tester.pumpAndSettle();
     expect(find.text('Delete local profile?'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('delete-remove-device-permissions')),
+    );
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('confirm-delete-profile')));
     await tester.tap(find.byKey(const Key('confirm-delete-profile')));
     await tester.pumpAndSettle();
 
     expect(services.settingsRepository.settings.nickname, isNull);
     expect(services.hydrationRepository.logs, isEmpty);
-    expect(find.text('Welcome to Hydrion'), findsOneWidget);
+    expect(timedAdapter.active, isEmpty);
+    expect(
+      find.text('Your Hydrion profile has been deleted'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('farewell-finish')));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
+    expect(find.byType(OnboardingScreen), findsOneWidget);
+  });
+
+  testWidgets('profile deletion dialog follows the authoritative locale',
+      (tester) async {
+    final services = HydrionServices.memory();
+    await services.appLocaleRepository.selectLocale(const Locale('fr'));
+
+    await tester.pumpWidget(HydrionApp(services: services));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('settings-delete-profile-card')),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const Key('settings-delete-profile-card')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Supprimer le profil local?'), findsOneWidget);
+    expect(find.text('Delete local profile?'), findsNothing);
+
+    await services.appLocaleRepository.selectLocale(const Locale('es'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('¿Eliminar el perfil local?'), findsOneWidget);
+    expect(find.text('Supprimer le profil local?'), findsNothing);
   });
 
   testWidgets('top-level hydration data screens support pull to refresh',
@@ -529,11 +585,11 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Use suggestion'));
+    await tester.tap(find.byKey(const Key('weather-no-change-done')));
     await tester.pumpAndSettle();
     expect(
       services.settingsRepository.settings.weatherAdjustedGoalActive,
-      isTrue,
+      isFalse,
     );
   });
 

@@ -10,6 +10,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:localeConfig="@xml/locales_config"
         android:allowBackup="false"
         android:usesCleartextTraffic="false">
         <activity
@@ -73,6 +74,17 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_quick_log_info" />
+        </receiver>
+        <receiver
+            android:name=".HydrionActiveChallengeWidget"
+            android:exported="true"
+            android:label="@string/widget_active_challenge_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_active_challenge_info" />
         </receiver>
     </application>
     <!-- Required to query activities that can process text, see:

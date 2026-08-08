@@ -7,6 +7,7 @@ import '../repositories/reminder_repository.dart';
 import '../repositories/settings_repository.dart';
 import 'notifications.dart';
 import 'weather_goal_service.dart';
+import 'timed_session_notification_service.dart';
 
 enum LocalProfileResetStatus {
   completed,
@@ -23,7 +24,6 @@ enum LocalProfileSubsystemStatus {
 
 class LocalProfileResetResult {
   final LocalProfileResetStatus status;
-  final String? message;
   final LocalProfileSubsystemStatus notificationCancellation;
   final LocalProfileSubsystemStatus reminderDeletion;
   final LocalProfileSubsystemStatus challengeDeletion;
@@ -49,7 +49,6 @@ class LocalProfileResetResult {
     required this.settingsReset,
     required this.providerInvalidation,
     required this.navigationReset,
-    this.message,
   });
 
   bool get isCompleted =>
@@ -70,6 +69,7 @@ class LocalProfileResetService {
   final BodyMetricsRepository? _bodyMetricsRepository;
   final DailyHydrationContextRepository? _dailyContextRepository;
   final PersonalizationStateRepository? _personalizationStateRepository;
+  final TimedSessionNotificationService? _timedSessionNotifications;
 
   const LocalProfileResetService({
     required UserSettingsRepository settingsRepository,
@@ -81,6 +81,7 @@ class LocalProfileResetService {
     BodyMetricsRepository? bodyMetricsRepository,
     DailyHydrationContextRepository? dailyHydrationContextRepository,
     PersonalizationStateRepository? personalizationStateRepository,
+    TimedSessionNotificationService? timedSessionNotificationService,
   })  : _settingsRepository = settingsRepository,
         _hydrationRepository = hydrationRepository,
         _challengeRepository = challengeRepository,
@@ -89,9 +90,11 @@ class LocalProfileResetService {
         _weatherForecastService = weatherForecastService,
         _bodyMetricsRepository = bodyMetricsRepository,
         _dailyContextRepository = dailyHydrationContextRepository,
-        _personalizationStateRepository = personalizationStateRepository;
+        _personalizationStateRepository = personalizationStateRepository,
+        _timedSessionNotifications = timedSessionNotificationService;
 
   Future<LocalProfileResetResult> resetLocalProfile() async {
+    await _timedSessionNotifications?.cancelAll();
     final notificationsCancelled =
         await _notificationService.cancelAllReminders();
     final reminderDeletion = await _run(_reminderRepository.clear);
@@ -141,11 +144,6 @@ class LocalProfileResetService {
       navigationReset: settingsReset == LocalProfileSubsystemStatus.completed
           ? LocalProfileSubsystemStatus.completed
           : LocalProfileSubsystemStatus.failed,
-      message: localCleanupFailed
-          ? 'Some local profile data could not be removed. Reopen Hydrion and try again.'
-          : notificationsCancelled
-              ? null
-              : 'Your profile was deleted. Android notification cleanup will be retried safely.',
     );
   }
 

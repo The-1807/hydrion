@@ -110,7 +110,7 @@ void main() {
     expect(find.byKey(const Key('dummy-home')), findsOneWidget);
   });
 
-  testWidgets('fresh install bootstrap shows buffer before onboarding',
+  testWidgets('fresh install bootstrap shows buffer before language choice',
       (tester) async {
     final services = await HydrionServices.fromStore(MemoryHydrionStore());
     final servicesReady = Completer<HydrionServices>();
@@ -136,7 +136,7 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome to Hydrion'), findsOneWidget);
+    expect(find.byKey(const Key('language-continue')), findsOneWidget);
   });
 
   testWidgets('returning user bootstrap shows same buffer before home',

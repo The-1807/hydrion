@@ -9,7 +9,7 @@ class HydrionLogo extends StatelessWidget {
     super.key,
     this.size = 40,
     this.imageKey,
-    this.semanticLabel = 'Hydrion logo',
+    required this.semanticLabel,
   });
 
   @override

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../l10n/challenge_localizations.dart';
 import '../../repositories/settings_repository.dart';
 import 'intake_ring.dart';
 
 String hydrationProgressStatus({
+  required AppLocalizations l10n,
   required int todayMl,
   required int targetMl,
   required int entryCount,
@@ -13,16 +15,15 @@ String hydrationProgressStatus({
 }) {
   if (entryCount <= 0 || todayMl <= 0) return emptyStatus;
   final amount = HydrationVolumeFormatter.format(todayMl, volumeUnit);
-  final logLabel = entryCount == 1 ? 'log' : 'logs';
-  final recorded = '$amount recorded across $entryCount $logLabel today.';
+  final recorded = l10n.sharedHydrationRecorded(amount, entryCount);
   if (todayMl >= targetMl) {
-    return 'Daily goal completed. $recorded';
+    return l10n.sharedHydrationStatus(recorded, null, true);
   }
   final remaining = HydrationVolumeFormatter.format(
     (targetMl - todayMl).clamp(0, targetMl),
     volumeUnit,
   );
-  return '$recorded $remaining remaining.';
+  return l10n.sharedHydrationStatus(recorded, remaining, false);
 }
 
 class HydrationScoreCard extends StatelessWidget {
@@ -82,6 +83,7 @@ class HydrationScoreCard extends StatelessWidget {
     final status = todayMl == null || targetMl == null
         ? _tip(score, l10n)
         : hydrationProgressStatus(
+            l10n: l10n,
             todayMl: todayMl!,
             targetMl: targetMl!,
             entryCount: entryCount,

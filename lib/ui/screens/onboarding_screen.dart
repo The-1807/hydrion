@@ -5,9 +5,12 @@ import '../../domain/avatar_manifest.dart';
 import '../../domain/life_stage_policy.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/permission_localizations.dart';
 import '../../repositories/settings_repository.dart';
 import '../../utils/permissions.dart';
 import '../components/hydrion_viewport.dart';
+import '../components/recognition_moment.dart';
+import 'body_metrics_screen.dart';
 import 'legal_about_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -100,25 +103,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<bool> _persistCurrentStep(ScaffoldMessengerState messenger) async {
     final repository = context.read<UserSettingsRepository>();
+    final l10n = AppLocalizations.of(context);
     switch (_step) {
       case 0:
         return true;
       case 1:
         if (!_profileIsValid()) {
           messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Enter a nickname up to 32 characters.'),
-            ),
+            SnackBar(content: Text(l10n.onboardingNicknameInvalid)),
           );
           return false;
         }
         if (!_ageIsValid()) {
           messenger.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Hydrion independent profiles require an age from 13 to 120.',
-              ),
-            ),
+            SnackBar(content: Text(l10n.onboardingAgeInvalid)),
           );
           return false;
         }
@@ -143,11 +141,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         if (!_legalReviewReady) {
           setState(() => _legalValidationAttempt += 1);
           messenger.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Accept the Terms and acknowledge the health disclaimer to continue.',
-              ),
-            ),
+            SnackBar(content: Text(l10n.onboardingTermsRequired)),
           );
           return false;
         }
@@ -166,6 +160,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     UserSettingsRepository repository,
     ScaffoldMessengerState messenger,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final goal = int.tryParse(_goalController.text.trim());
     final container = int.tryParse(_containerController.text.trim());
     if (goal == null ||
@@ -175,10 +170,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         container < UserSettings.minContainerSizeMl ||
         container > UserSettings.maxContainerSizeMl) {
       messenger.showSnackBar(
-        const SnackBar(
-          content:
-              Text('Check your goal and container size before continuing.'),
-        ),
+        SnackBar(content: Text(l10n.onboardingGoalInvalid)),
       );
       return false;
     }
@@ -192,20 +184,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _finish() async {
     final repository = context.read<UserSettingsRepository>();
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     if (!_profileIsValid()) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Enter a nickname up to 32 characters.')),
+        SnackBar(content: Text(l10n.onboardingNicknameInvalid)),
       );
       await _goToStep(1);
       return;
     }
     if (!_ageIsValid()) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Hydrion independent profiles require an age from 13 to 120.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.onboardingAgeInvalid)),
       );
       await _goToStep(1);
       return;
@@ -230,17 +219,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (!mounted) {
       return;
     }
-    Navigator.of(context).pushReplacementNamed('/home');
+    await RecognitionMoment.showOnce(
+      context,
+      repository: repository,
+      eventId: 'onboarding-complete',
+      message: l10n.onboardingCompleteRecognition,
+    );
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed('/mission');
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final steps = _steps(context);
     final canGoBack = _step > 0;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Welcome to Hydrion'),
+        title: Text(l10n.onboardingWelcome),
       ),
       body: SafeArea(
         child: Column(
@@ -278,13 +275,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed:
                         canGoBack ? () => setState(() => _step -= 1) : null,
                     icon: const Icon(Icons.arrow_back),
-                    label: const Text('Back'),
+                    label: Text(l10n.back),
                   );
                   final next = FilledButton.icon(
                     key: const Key('onboarding-next'),
                     onPressed: _next,
                     icon: Icon(_step == 7 ? Icons.check : Icons.arrow_forward),
-                    label: Text(_step == 7 ? 'Start' : 'Continue'),
+                    label: Text(
+                      _step == 7 ? l10n.start : l10n.continueAction,
+                    ),
                   );
                   if (HydrionViewport.stackActions(
                     context,
@@ -318,38 +317,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   List<Widget> _steps(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return [
       _OnboardingPanel(
         icon: Icons.water_drop_outlined,
-        title: 'Hydrion keeps hydration local-first',
+        title: l10n.onboardingLocalFirstTitle,
         child: Column(
           children: [
             Image.asset(
               HydrionAvatarManifest.mascotAssetPath,
               key: const Key('onboarding-mascot'),
               height: 180,
-              semanticLabel: 'Hydrion mascot',
+              semanticLabel: l10n.onboardingMascotSemantics,
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Track water, goals, reminders, and solo challenges on this device. Optional provider features stay off until you choose them.',
-            ),
+            Text(l10n.onboardingLocalFirstBody),
           ],
         ),
       ),
       _OnboardingPanel(
         icon: Icons.person_outline,
-        title: 'Basic profile',
+        title: l10n.onboardingBasicProfile,
         child: Column(
           children: [
             TextField(
               key: const Key('onboarding-nickname'),
               controller: _nicknameController,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Nickname',
-                helperText: 'Required, saved locally.',
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: l10n.nickname,
+                helperText: l10n.requiredSavedLocally,
               ),
             ),
             const SizedBox(height: 12),
@@ -357,11 +355,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               key: const Key('onboarding-age'),
               controller: _ageController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Age',
-                helperText:
-                    'Optional for manual goals; required for weather mode.',
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: l10n.age,
+                helperText: l10n.ageOptionalHelp,
               ),
             ),
             const SizedBox(height: 12),
@@ -369,15 +366,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               key: const Key('onboarding-sex'),
               initialValue: _sex,
               isExpanded: true,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Sex option',
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: l10n.sexGuidanceLabel,
+                helperText: l10n.sexOptionalHelp,
               ),
               items: HydrionSex.values
                   .map(
                     (sex) => DropdownMenuItem(
                       value: sex,
-                      child: Text(_sexLabel(sex)),
+                      child: Text(_sexLabel(l10n, sex)),
                     ),
                   )
                   .toList(),
@@ -395,10 +393,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 final messenger = ScaffoldMessenger.of(context);
                 if (!_profileIsValid() || !_ageIsValid()) {
                   messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Save a nickname and supported age before adding body metrics.',
-                      ),
+                    SnackBar(
+                      content: Text(l10n.onboardingProfileNeededForMetrics),
                     ),
                   );
                   return;
@@ -410,7 +406,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           sex: _sex,
                         );
                 if (saved && context.mounted) {
-                  await Navigator.of(context).pushNamed('/body-metrics');
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const BodyMetricsScreen(
+                        returnToOnboardingAfterApply: true,
+                      ),
+                    ),
+                  );
                 }
               },
             ),
@@ -419,7 +421,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       _OnboardingPanel(
         icon: Icons.face_outlined,
-        title: 'Choose your default avatar',
+        title: l10n.chooseDefaultAvatar,
         child: _AvatarSelectionGrid(
           selectedAvatarId: _avatarId,
           onSelected: (avatarId) => setState(() => _avatarId = avatarId),
@@ -427,23 +429,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       _OnboardingPanel(
         icon: Icons.flag_outlined,
-        title: 'Goal mode',
+        title: l10n.goalMode,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             HydrionHorizontalControl(
               child: SegmentedButton<HydrionBaselineSource>(
                 key: const Key('goal-mode-selector'),
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: HydrionBaselineSource.manual,
-                    icon: Icon(Icons.tune),
-                    label: Text('Standard or manual'),
+                    icon: const Icon(Icons.tune),
+                    label: Text(l10n.standardOrManual),
                   ),
                   ButtonSegment(
                     value: HydrionBaselineSource.personalized,
-                    icon: Icon(Icons.person_outline),
-                    label: Text('Personalized estimate'),
+                    icon: const Icon(Icons.person_outline),
+                    label: Text(l10n.personalizedEstimate),
                   ),
                 ],
                 selected: {_baselineSource},
@@ -455,47 +457,45 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 12),
             Text(
               _baselineSource == HydrionBaselineSource.manual
-                  ? 'Use the standard target or enter your own target.'
-                  : 'Use locally saved body measurements to calculate a general wellness estimate.',
+                  ? l10n.standardGoalModeHelp
+                  : l10n.personalizedGoalModeHelp,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Optional weather assistance is selected separately and never replaces your baseline.',
-            ),
+            Text(l10n.weatherBaselineHelp),
           ],
         ),
       ),
       _OnboardingPanel(
         icon: Icons.local_drink_outlined,
-        title: 'Hydration setup',
+        title: l10n.hydrationSetup,
         child: Column(
           children: [
             TextField(
               key: const Key('onboarding-goal'),
               controller: _goalController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Daily goal in ml',
-                helperText: 'Supported range: 500-5000 ml.',
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: l10n.dailyGoalMlLabel,
+                helperText: l10n.dailyGoalSupportedRange,
               ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<HydrionVolumeUnit>(
               initialValue: _unit,
               isExpanded: true,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Display unit',
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: l10n.displayUnit,
               ),
-              items: const [
+              items: [
                 DropdownMenuItem(
                   value: HydrionVolumeUnit.milliliters,
-                  child: Text('Milliliters'),
+                  child: Text(l10n.milliliters),
                 ),
                 DropdownMenuItem(
                   value: HydrionVolumeUnit.ounces,
-                  child: Text('Ounces'),
+                  child: Text(l10n.ounces),
                 ),
               ],
               onChanged: (value) => setState(() => _unit = value!),
@@ -505,31 +505,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               key: const Key('onboarding-container'),
               controller: _containerController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Usual container size in ml',
-                helperText: 'Supported range: 100-2000 ml.',
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: l10n.containerSizeMlLabel,
+                helperText: l10n.containerSupportedRange,
               ),
             ),
             SwitchListTile.adaptive(
               value: _reusable,
               onChanged: (value) => setState(() => _reusable = value),
-              title: const Text('Usually reusable'),
-              subtitle: const Text(
-                'Only enable this if most logged drinks use a reusable bottle or cup.',
-              ),
+              title: Text(l10n.usuallyReusable),
+              subtitle: Text(l10n.reusableHelp),
             ),
           ],
         ),
       ),
-      const _OnboardingPanel(
+      _OnboardingPanel(
         icon: Icons.notifications_none,
-        title: 'Optional device features',
-        child: _OnboardingPermissionChoices(),
+        title: l10n.optionalDeviceFeatures,
+        child: const _OnboardingPermissionChoices(),
       ),
       _OnboardingPanel(
         icon: Icons.health_and_safety_outlined,
-        title: 'Review before you start',
+        title: l10n.reviewBeforeStart,
         child: LegalAcceptancePanel(
           termsAccepted: _termsAccepted,
           healthAcknowledged: _healthAcknowledged,
@@ -549,7 +547,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       _OnboardingPanel(
         icon: Icons.check_circle_outline,
-        title: 'Ready',
+        title: l10n.ready,
         child: Column(
           children: [
             Image.asset(
@@ -557,11 +555,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               key: const Key('onboarding-success-image'),
               height: 112,
               fit: BoxFit.contain,
-              semanticLabel: 'Onboarding ready',
+              semanticLabel: l10n.onboardingReadySemantics,
             ),
             const SizedBox(height: 12),
             Text(
-              'Hydrion will start with ${_nicknameController.text.trim().isEmpty ? 'your profile' : _nicknameController.text.trim()}, ${HydrionAvatarManifest.byId(_avatarId).displayName}, ${_goalController.text.trim()} ml/day, and local-first tracking.',
+              l10n.onboardingSummary(
+                name: _nicknameController.text.trim().isEmpty
+                    ? l10n.yourProfile
+                    : _nicknameController.text.trim(),
+                avatar: HydrionAvatarManifest.byId(_avatarId).displayName,
+                goal: _goalController.text.trim(),
+              ),
             ),
           ],
         ),
@@ -569,12 +573,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ];
   }
 
-  String _sexLabel(HydrionSex sex) {
+  String _sexLabel(AppLocalizations l10n, HydrionSex sex) {
     return switch (sex) {
-      HydrionSex.female => 'Female',
-      HydrionSex.male => 'Male',
-      HydrionSex.intersex => 'Intersex',
-      HydrionSex.preferNotToSay => 'Prefer not to say',
+      HydrionSex.female => l10n.sexFemale,
+      HydrionSex.male => l10n.sexMale,
+      HydrionSex.intersex => l10n.sexIntersex,
+      HydrionSex.preferNotToSay => l10n.preferNotToSay,
     };
   }
 }
@@ -594,6 +598,7 @@ class _OnboardingPermissionChoicesState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final permissions = context.watch<Permissions>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -601,13 +606,15 @@ class _OnboardingPermissionChoicesState
         _CapabilityChoice(
           key: const Key('onboarding-reminder-capability'),
           icon: Icons.notifications_active_outlined,
-          title: 'Hydration reminders',
-          description:
-              'Hydrion can send local reminders on this device. You can enable them now or later.',
+          title: l10n.hydrationReminders,
+          description: l10n.remindersCapabilityHelp,
+          enabled: permissions.snapshot.notifications.isGranted,
           status: _remindersSkipped
-              ? 'Not now — reminders can be enabled in Settings.'
-              : permissions.snapshot.notifications.explanation,
-          enableLabel: 'Enable reminders',
+              ? l10n.remindersNotNowHelp
+              : l10n.permissionMessage(
+                  permissions.snapshot.notifications.message,
+                ),
+          enableLabel: l10n.enableReminders,
           notNowKey: const Key('onboarding-reminders-not-now'),
           enableKey: const Key('onboarding-enable-reminders'),
           onEnable: () async {
@@ -622,13 +629,13 @@ class _OnboardingPermissionChoicesState
         _CapabilityChoice(
           key: const Key('onboarding-weather-capability'),
           icon: Icons.cloud_outlined,
-          title: 'Weather assistance',
-          description:
-              'Hydrion can use approximate location to retrieve local weather and offer a temporary hydration suggestion. Your standard goal still works without it.',
+          title: l10n.weatherAssistance,
+          description: l10n.weatherCapabilityHelp,
+          enabled: permissions.snapshot.location.isGranted,
           status: _weatherSkipped
-              ? 'Not now — your standard hydration goal remains active.'
-              : permissions.snapshot.location.explanation,
-          enableLabel: 'Enable weather assistance',
+              ? l10n.weatherNotNowHelp
+              : l10n.permissionMessage(permissions.snapshot.location.message),
+          enableLabel: l10n.enableWeatherAssistance,
           notNowKey: const Key('onboarding-weather-not-now'),
           enableKey: const Key('onboarding-enable-weather'),
           onEnable: () async {
@@ -662,6 +669,7 @@ class _CapabilityChoice extends StatefulWidget {
   final String title;
   final String description;
   final String status;
+  final bool enabled;
   final String enableLabel;
   final Key enableKey;
   final Key notNowKey;
@@ -674,6 +682,7 @@ class _CapabilityChoice extends StatefulWidget {
     required this.title,
     required this.description,
     required this.status,
+    required this.enabled,
     required this.enableLabel,
     required this.enableKey,
     required this.notNowKey,
@@ -700,6 +709,7 @@ class _CapabilityChoiceState extends State<_CapabilityChoice> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
@@ -726,35 +736,57 @@ class _CapabilityChoiceState extends State<_CapabilityChoice> {
             Text(widget.description),
             const SizedBox(height: 6),
             Text(
-              _requesting ? 'Waiting for the device result...' : widget.status,
+              _requesting
+                  ? l10n.waitingForDevice
+                  : widget.enabled
+                      ? l10n.enabled
+                      : widget.status,
+              semanticsLabel: widget.enabled
+                  ? l10n.capabilityEnabled(title: widget.title)
+                  : l10n.capabilityStatus(
+                      title: widget.title,
+                      status: widget.status,
+                    ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton(
-                  key: widget.enableKey,
-                  onPressed: _requesting ? null : _enable,
-                  child: _requesting
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(widget.enableLabel),
-                ),
-                TextButton(
-                  key: widget.notNowKey,
-                  onPressed: _requesting
-                      ? null
-                      : () async {
-                          await widget.onNotNow();
-                        },
-                  child: const Text('Not now'),
-                ),
-              ],
-            ),
+            if (widget.enabled)
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    semanticLabel: l10n.enabled,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(l10n.enabled),
+                ],
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton(
+                    key: widget.enableKey,
+                    onPressed: _requesting ? null : _enable,
+                    child: _requesting
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(widget.enableLabel),
+                  ),
+                  TextButton(
+                    key: widget.notNowKey,
+                    onPressed: _requesting
+                        ? null
+                        : () async {
+                            await widget.onNotNow();
+                          },
+                    child: Text(l10n.notNow),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -818,13 +850,14 @@ class _AvatarChoiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       selected: selected,
       label: selected
-          ? '${avatar.displayName} avatar selected'
-          : 'Select ${avatar.displayName} avatar',
+          ? l10n.avatarSelectedSemantics(avatar: avatar.displayName)
+          : l10n.selectAvatarSemantics(avatar: avatar.displayName),
       child: InkWell(
         key: Key('avatar-${avatar.id}'),
         onTap: onTap,

@@ -120,13 +120,13 @@ class WeatherForecastResult {
   final WeatherForecastStatus status;
   final WeatherSnapshot? forecast;
   final bool fromCache;
-  final String? message;
+  final String? diagnosticCode;
 
   const WeatherForecastResult({
     required this.status,
     this.forecast,
     this.fromCache = false,
-    this.message,
+    this.diagnosticCode,
   });
 
   bool get isSuccess =>
@@ -241,7 +241,7 @@ class WeatherForecastService {
         status: WeatherForecastStatus.missingApiKey,
         forecast: _staleFallback(cached),
         fromCache: cached != null,
-        message: 'Weather provider is not configured.',
+        diagnosticCode: 'provider_unconfigured',
       );
     }
 
@@ -261,7 +261,7 @@ class WeatherForecastService {
             cached == null ? error.status : WeatherForecastStatus.staleCache,
         forecast: _staleFallback(cached),
         fromCache: cached != null,
-        message: error.message,
+        diagnosticCode: error.status.name,
       );
     } on TimeoutException {
       return WeatherForecastResult(
@@ -270,7 +270,7 @@ class WeatherForecastService {
             : WeatherForecastStatus.staleCache,
         forecast: _staleFallback(cached),
         fromCache: cached != null,
-        message: 'Weather request timed out.',
+        diagnosticCode: 'request_timeout',
       );
     }
   }
@@ -491,7 +491,7 @@ class WeatherGoalDecision {
   final int weatherAdjustmentMl;
   final int userAdjustmentMl;
   final int recommendedGoalMl;
-  final String explanation;
+  final WeatherGoalExplanationCode explanationCode;
   final bool eligible;
 
   const WeatherGoalDecision({
@@ -499,9 +499,16 @@ class WeatherGoalDecision {
     required this.weatherAdjustmentMl,
     required this.userAdjustmentMl,
     required this.recommendedGoalMl,
-    required this.explanation,
+    required this.explanationCode,
     required this.eligible,
   });
+}
+
+enum WeatherGoalExplanationCode {
+  standardGoalActive,
+  boundedAdjustment,
+  personalizedSuggestionAccepted,
+  standardGoalKept,
 }
 
 class DeterministicWeatherGoalService {
@@ -522,8 +529,7 @@ class DeterministicWeatherGoalService {
         weatherAdjustmentMl: 0,
         userAdjustmentMl: 0,
         recommendedGoalMl: baseline,
-        explanation:
-            'Manual goal kept because weather-informed goals require age, an explicit sex option, location permission, and a forecast provider.',
+        explanationCode: WeatherGoalExplanationCode.standardGoalActive,
         eligible: false,
       );
     }
@@ -562,8 +568,7 @@ class DeterministicWeatherGoalService {
       weatherAdjustmentMl: weatherAdjustment,
       userAdjustmentMl: userAdjustment,
       recommendedGoalMl: _roundToNearest50(recommended),
-      explanation:
-          'Baseline $baseline ml plus bounded weather adjustment $weatherAdjustment ml and user adjustment $userAdjustment ml.',
+      explanationCode: WeatherGoalExplanationCode.boundedAdjustment,
       eligible: true,
     );
   }
@@ -618,19 +623,34 @@ enum WeatherModeSetupStatus {
   weatherUnavailable,
 }
 
+enum WeatherUserMessageCode {
+  profileIncomplete,
+  manualGoalChangedToday,
+  locationBlocked,
+  locationPermissionRequired,
+  locationServicesDisabled,
+  locationTimeout,
+  locationUnavailable,
+  weatherTimeout,
+  weatherOffline,
+  weatherBusy,
+  weatherUnavailableInBuild,
+  weatherUnavailable,
+}
+
 class WeatherModeSetupResult {
   final WeatherModeSetupStatus status;
   final WeatherGoalDecision? decision;
   final WeatherSnapshot? forecast;
   final bool forecastFromCache;
-  final String? message;
+  final WeatherUserMessageCode? messageCode;
 
   const WeatherModeSetupResult({
     required this.status,
     this.decision,
     this.forecast,
     this.forecastFromCache = false,
-    this.message,
+    this.messageCode,
   });
 
   bool get isReady => status == WeatherModeSetupStatus.ready;
@@ -640,13 +660,13 @@ class DailyWeatherGoalResult {
   final DailyWeatherGoalStatus status;
   final WeatherGoalDecision? decision;
   final WeatherSnapshot? forecast;
-  final String? message;
+  final WeatherUserMessageCode? messageCode;
 
   const DailyWeatherGoalResult({
     required this.status,
     this.decision,
     this.forecast,
-    this.message,
+    this.messageCode,
   });
 }
 
@@ -685,7 +705,7 @@ class DailyWeatherGoalCoordinator {
     if (locationPermission != HydrionLocationPermissionState.granted) {
       return WeatherModeSetupResult(
         status: WeatherModeSetupStatus.locationPermissionRequired,
-        message: _locationPermissionMessage(locationPermission),
+        messageCode: _locationPermissionCode(locationPermission),
       );
     }
 
@@ -693,7 +713,7 @@ class DailyWeatherGoalCoordinator {
     if (!location.isSuccess || location.coordinates == null) {
       return WeatherModeSetupResult(
         status: WeatherModeSetupStatus.locationUnavailable,
-        message: _locationStatusMessage(location.status),
+        messageCode: _locationStatusCode(location.status),
       );
     }
 
@@ -707,7 +727,7 @@ class DailyWeatherGoalCoordinator {
         status: WeatherModeSetupStatus.weatherUnavailable,
         forecast: forecastResult.forecast,
         forecastFromCache: forecastResult.fromCache,
-        message: _weatherStatusMessage(forecastResult.status),
+        messageCode: _weatherStatusCode(forecastResult.status),
       );
     }
 
@@ -726,8 +746,7 @@ class DailyWeatherGoalCoordinator {
         decision: decision,
         forecast: forecastResult.forecast,
         forecastFromCache: forecastResult.fromCache,
-        message:
-            'Complete age and sex in Profile before enabling weather-informed goals.',
+        messageCode: WeatherUserMessageCode.profileIncomplete,
       );
     }
 
@@ -771,17 +790,15 @@ class DailyWeatherGoalCoordinator {
       );
     }
     if (settings.lastWeatherGoalLocalDate == localDateKey) {
-      return DailyWeatherGoalResult(
+      return const DailyWeatherGoalResult(
         status: DailyWeatherGoalStatus.alreadyHandledToday,
-        message: settings.lastWeatherGoalExplanation,
       );
     }
     if (_sameLocalDay(settings.lastManualGoalEditAt, currentTime) &&
         !settings.weatherAdjustedGoalActive) {
       return const DailyWeatherGoalResult(
         status: DailyWeatherGoalStatus.manualGoalChangedToday,
-        message:
-            'Manual goal was edited today, so Hydrion will not replace it silently.',
+        messageCode: WeatherUserMessageCode.manualGoalChangedToday,
       );
     }
 
@@ -793,7 +810,7 @@ class DailyWeatherGoalCoordinator {
     if (locationPermission != HydrionLocationPermissionState.granted) {
       return DailyWeatherGoalResult(
         status: DailyWeatherGoalStatus.locationPermissionRequired,
-        message: _locationPermissionMessage(locationPermission),
+        messageCode: _locationPermissionCode(locationPermission),
       );
     }
 
@@ -810,7 +827,7 @@ class DailyWeatherGoalCoordinator {
     if (!location.isSuccess || location.coordinates == null) {
       return DailyWeatherGoalResult(
         status: DailyWeatherGoalStatus.locationUnavailable,
-        message: _locationStatusMessage(location.status),
+        messageCode: _locationStatusCode(location.status),
       );
     }
 
@@ -822,7 +839,7 @@ class DailyWeatherGoalCoordinator {
       return DailyWeatherGoalResult(
         status: DailyWeatherGoalStatus.weatherUnavailable,
         forecast: forecastResult.forecast,
-        message: _weatherStatusMessage(forecastResult.status),
+        messageCode: _weatherStatusCode(forecastResult.status),
       );
     }
 
@@ -843,7 +860,7 @@ class DailyWeatherGoalCoordinator {
       await _settingsRepository.applyWeatherGoal(
         goalMl: decision.recommendedGoalMl,
         decidedAt: currentTime,
-        explanation: decision.explanation,
+        explanation: decision.explanationCode.name,
         localDateKey: localDateKey,
         autoApplyEnabled: true,
       );
@@ -870,7 +887,7 @@ class DailyWeatherGoalCoordinator {
     await _settingsRepository.applyWeatherGoal(
       goalMl: decision.recommendedGoalMl,
       decidedAt: currentTime,
-      explanation: decision.explanation,
+      explanation: decision.explanationCode.name,
       localDateKey: WeatherForecastService._localDateKey(currentTime),
       autoApplyEnabled: doNotAskEachDay,
     );
@@ -880,14 +897,14 @@ class DailyWeatherGoalCoordinator {
   }
 
   Future<void> keepPreviousGoal({
-    required String explanation,
+    required WeatherGoalExplanationCode explanationCode,
     DateTime? now,
   }) {
     final currentTime = now ?? DateTime.now();
     return _settingsRepository.keepPreviousWeatherGoal(
       decidedAt: currentTime,
       localDateKey: WeatherForecastService._localDateKey(currentTime),
-      explanation: explanation,
+      explanation: explanationCode.name,
     );
   }
 
@@ -936,47 +953,46 @@ class DailyWeatherGoalCoordinator {
         localA.day == localB.day;
   }
 
-  String _locationPermissionMessage(
+  WeatherUserMessageCode _locationPermissionCode(
     HydrionLocationPermissionState permission,
   ) {
     return switch (permission) {
       HydrionLocationPermissionState.permanentlyDenied =>
-        'Location access is blocked. Enable it in device settings to use weather assistance.',
+        WeatherUserMessageCode.locationBlocked,
       HydrionLocationPermissionState.denied =>
-        'Allow location access to use local weather assistance.',
+        WeatherUserMessageCode.locationPermissionRequired,
       HydrionLocationPermissionState.serviceDisabled =>
-        'Turn on device location services to use weather assistance.',
-      _ => 'Hydrion could not access your location. Try again.',
+        WeatherUserMessageCode.locationServicesDisabled,
+      _ => WeatherUserMessageCode.locationUnavailable,
     };
   }
 
-  String _locationStatusMessage(HydrionLocationLookupStatus status) {
+  WeatherUserMessageCode _locationStatusCode(
+      HydrionLocationLookupStatus status) {
     return switch (status) {
       HydrionLocationLookupStatus.serviceDisabled =>
-        'Turn on device location services to use weather assistance.',
+        WeatherUserMessageCode.locationServicesDisabled,
       HydrionLocationLookupStatus.permissionDenied =>
-        'Allow location access to use local weather assistance.',
+        WeatherUserMessageCode.locationPermissionRequired,
       HydrionLocationLookupStatus.permanentlyDenied =>
-        'Location access is blocked. Enable it in device settings.',
+        WeatherUserMessageCode.locationBlocked,
       HydrionLocationLookupStatus.timeout =>
-        'Location lookup took too long. Check your signal and try again.',
-      _ => 'Your location is unavailable right now. Try again later.',
+        WeatherUserMessageCode.locationTimeout,
+      _ => WeatherUserMessageCode.locationUnavailable,
     };
   }
 
-  String _weatherStatusMessage(WeatherForecastStatus status) {
+  WeatherUserMessageCode _weatherStatusCode(WeatherForecastStatus status) {
     return switch (status) {
-      WeatherForecastStatus.timeout =>
-        'Weather lookup took too long. Try again shortly.',
-      WeatherForecastStatus.noNetwork =>
-        'Weather is unavailable while the device is offline.',
+      WeatherForecastStatus.timeout => WeatherUserMessageCode.weatherTimeout,
+      WeatherForecastStatus.noNetwork => WeatherUserMessageCode.weatherOffline,
       WeatherForecastStatus.rateLimited ||
       WeatherForecastStatus.serviceUnavailable =>
-        'The weather service is busy right now. Try again shortly.',
+        WeatherUserMessageCode.weatherBusy,
       WeatherForecastStatus.missingApiKey ||
       WeatherForecastStatus.unconfigured =>
-        'Weather assistance is unavailable in this build.',
-      _ => 'Local weather is unavailable right now. Try again later.',
+        WeatherUserMessageCode.weatherUnavailableInBuild,
+      _ => WeatherUserMessageCode.weatherUnavailable,
     };
   }
 }

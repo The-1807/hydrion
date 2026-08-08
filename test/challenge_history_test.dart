@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
+import 'package:hydrion/l10n/app_localizations.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/storage/local_store.dart';
@@ -42,6 +43,7 @@ void main() {
     HydrionVolumeUnit unit = HydrionVolumeUnit.milliliters,
   }) =>
       ChallengeHistoryPresenter.present(
+        l10n: lookupAppLocalizations(const Locale('en')),
         challenge: active,
         hydrationLogs: logs,
         unit: unit,
@@ -224,6 +226,26 @@ void main() {
     }
   });
 
+  test('challenge history descriptions render from the selected locale', () {
+    final active = challenge(
+      'eat-your-water-day',
+      parameters: const {'meal': 'lunch', 'food': 'cucumber'},
+      actions: const {'eat-your-water-day:2026-7-1'},
+    );
+
+    String description(String languageCode) =>
+        ChallengeHistoryPresenter.present(
+          l10n: lookupAppLocalizations(Locale(languageCode)),
+          challenge: active,
+          hydrationLogs: const [],
+          unit: HydrionVolumeUnit.milliliters,
+        ).single.description;
+
+    expect(description('en'), 'Added cucumber to lunch');
+    expect(description('fr'), 'cucumber ajouté à lunch');
+    expect(description('es'), 'Se añadió cucumber a lunch');
+  });
+
   group('localized history view', () {
     Future<void> pumpView(
       WidgetTester tester, {
@@ -237,7 +259,10 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(MaterialApp(
         locale: const Locale('en', 'US'),
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
         supportedLocales: const [Locale('en', 'US')],
         theme: ThemeData.light(),
         darkTheme: ThemeData.dark(),
@@ -297,7 +322,10 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           locale: const Locale('en', 'US'),
-          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
           supportedLocales: const [Locale('en', 'US')],
           home: Scaffold(
             body: ChallengeHistoryView(

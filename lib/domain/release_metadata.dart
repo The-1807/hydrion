@@ -53,19 +53,4 @@ class HydrionReleaseMetadata {
   static bool get requiresAlphaBetaNotice =>
       buildStage == HydrionBuildStage.alpha ||
       buildStage == HydrionBuildStage.beta;
-
-  static String get legalDocumentOpenRequiredMessage =>
-      legalDocumentOpenRequiredMessageFor(buildStage);
-
-  static String legalDocumentOpenRequiredMessageFor(
-    HydrionBuildStage stage,
-  ) {
-    return switch (stage) {
-      HydrionBuildStage.alpha ||
-      HydrionBuildStage.beta =>
-        'Open the required legal document before continuing.',
-      HydrionBuildStage.production =>
-        'Open the required legal document before continuing.',
-    };
-  }
 }

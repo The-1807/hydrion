@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../l10n/challenge_localizations.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
-import '../../services/app_refresh_controller.dart';
+import '../presentation/app_refresh_presenter.dart';
 import '../components/intake_ring.dart';
 import '../components/hydrion_viewport.dart';
 
@@ -160,7 +161,7 @@ class _LogScreenState extends State<LogScreen> {
                           source: _sourceLabel(log.source, l10n),
                           timestamp: timestamp,
                         ) +
-                        _metadataSummary(log.metadata),
+                        _metadataSummary(log.metadata, l10n),
                     editTooltip: l10n.editLogTooltip,
                     deleteTooltip: l10n.deleteLogTooltip,
                     onEdit: () => _editLog(log),
@@ -194,29 +195,31 @@ class _LogScreenState extends State<LogScreen> {
   String _sourceLabel(String source, AppLocalizations l10n) {
     if (source.startsWith('challenge:')) {
       final id = source.split(':').elementAtOrNull(1);
-      return switch (id) {
-        'temperature-roulette' => 'Temperature Roulette',
-        'around-the-world-infusion-week' => 'Infusion Week',
-        'pomodoro-sip' => 'Pomodoro Sip',
-        'bottle-bingo' => 'Bottle Bingo',
-        _ => 'Challenge drink',
-      };
+      return id == null
+          ? l10n.challengeText('Challenge drink')
+          : l10n.challengeCopy(id).title;
     }
     return switch (source) {
       'local' => l10n.localEntry,
-      'quick-add' => 'Quick log',
-      'wearable' => 'Wearable log',
-      'voice' => 'Voice log',
-      _ => 'Hydration entry',
+      'quick-add' => l10n.challengeText('Quick log'),
+      'wearable' => l10n.challengeText('Wearable log'),
+      'voice' => l10n.challengeText('Voice log'),
+      _ => l10n.challengeText('Hydration entry'),
     };
   }
 
-  String _metadataSummary(HydrationMetadata metadata) {
+  String _metadataSummary(
+    HydrationMetadata metadata,
+    AppLocalizations l10n,
+  ) {
     final details = <String>[
-      if (metadata.temperatureStyle != null) metadata.temperatureStyle!,
-      if (metadata.infusionTheme != null) metadata.infusionTheme!,
-      if (metadata.noAddedSugar == true) 'No added sugar',
-      if (metadata.mealContext != null) metadata.mealContext!,
+      if (metadata.temperatureStyle != null)
+        l10n.challengeText(metadata.temperatureStyle!),
+      if (metadata.infusionTheme != null)
+        l10n.challengeText(metadata.infusionTheme!),
+      if (metadata.noAddedSugar == true) l10n.challengeText('No added sugar'),
+      if (metadata.mealContext != null)
+        l10n.challengeText(metadata.mealContext!),
     ];
     return details.isEmpty ? '' : '\n${details.join(' \u00b7 ')}';
   }
@@ -366,7 +369,7 @@ class _EditLogDialogState extends State<_EditLogDialog> {
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: widget.unit == HydrionVolumeUnit.ounces
-                    ? 'Amount in fluid ounces'
+                    ? l10n.amountInFluidOunces
                     : l10n.amountInMl,
                 border: const OutlineInputBorder(),
               ),
@@ -376,7 +379,7 @@ class _EditLogDialogState extends State<_EditLogDialog> {
               key: const Key('edit-log-timestamp'),
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.schedule),
-              title: const Text('Date and time'),
+              title: Text(l10n.dateAndTime),
               subtitle: Text(MaterialLocalizations.of(context)
                   .formatFullDate(_timestamp.toLocal())),
               onTap: _chooseTimestamp,
@@ -384,17 +387,18 @@ class _EditLogDialogState extends State<_EditLogDialog> {
             DropdownButtonFormField<String?>(
               key: const Key('edit-log-temperature'),
               initialValue: _temperatureStyle,
-              decoration: const InputDecoration(labelText: 'Temperature style'),
-              items: const [
-                DropdownMenuItem(value: null, child: Text('Not specified')),
-                DropdownMenuItem(value: 'Cool', child: Text('Cool')),
+              decoration: InputDecoration(labelText: l10n.temperatureStyle),
+              items: [
+                DropdownMenuItem(value: null, child: Text(l10n.notSpecified)),
+                DropdownMenuItem(
+                    value: 'Cool', child: Text(l10n.temperatureCool)),
                 DropdownMenuItem(
                   value: 'Room temperature',
-                  child: Text('Room temperature'),
+                  child: Text(l10n.temperatureRoom),
                 ),
                 DropdownMenuItem(
                   value: 'Comfortably warm',
-                  child: Text('Comfortably warm'),
+                  child: Text(l10n.temperatureWarm),
                 ),
               ],
               onChanged: (value) => setState(() => _temperatureStyle = value),
@@ -403,12 +407,12 @@ class _EditLogDialogState extends State<_EditLogDialog> {
             TextField(
               key: const Key('edit-log-infusion'),
               controller: _infusionController,
-              decoration: const InputDecoration(labelText: 'Infusion theme'),
+              decoration: InputDecoration(labelText: l10n.infusionTheme),
             ),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               value: _noAddedSugar,
-              title: const Text('No added sugar'),
+              title: Text(l10n.noAddedSugar),
               onChanged: (value) =>
                   setState(() => _noAddedSugar = value ?? false),
             ),

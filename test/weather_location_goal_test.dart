@@ -10,6 +10,10 @@ import 'package:hydrion/services/location_service.dart';
 import 'package:hydrion/services/notifications.dart';
 import 'package:hydrion/services/policy_service.dart';
 import 'package:hydrion/services/weather_goal_service.dart';
+import 'package:hydrion/l10n/app_localizations_en.dart';
+import 'package:hydrion/l10n/app_localizations_es.dart';
+import 'package:hydrion/l10n/app_localizations_fr.dart';
+import 'package:hydrion/l10n/weather_localizations.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 void main() {
@@ -37,7 +41,7 @@ void main() {
       expect(harness.settings.settings.dailyGoalMl, 2450);
       expect(harness.settings.settings.baselineDailyGoalMl, 2200);
       expect(harness.settings.settings.lastWeatherGoalExplanation,
-          contains('Baseline 2200 ml'));
+          WeatherGoalExplanationCode.boundedAdjustment.name);
     });
 
     test('next-day auto apply can be restored to confirmation', () async {
@@ -75,7 +79,7 @@ void main() {
         now: DateTime(2026, 7, 6, 8),
       );
       await harness.coordinator.keepPreviousGoal(
-        explanation: 'Standard goal kept.',
+        explanationCode: WeatherGoalExplanationCode.standardGoalKept,
         now: DateTime(2026, 7, 6, 8),
       );
 
@@ -107,7 +111,8 @@ void main() {
 
       expect(permanentResult.status,
           DailyWeatherGoalStatus.locationPermissionRequired);
-      expect(permanentResult.message, contains('device settings'));
+      expect(
+          permanentResult.messageCode, WeatherUserMessageCode.locationBlocked);
     });
 
     test(
@@ -223,8 +228,21 @@ void main() {
 
       expect(result.status, DailyWeatherGoalStatus.weatherUnavailable);
       expect(result.decision, isNull);
-      expect(result.message, contains('offline'));
+      expect(result.messageCode, WeatherUserMessageCode.weatherOffline);
       expect(harness.settings.settings.dailyGoalMl, 2200);
+    });
+
+    test('weather result codes localize in English French and Spanish', () {
+      final values = [
+        AppLocalizationsEn()
+            .weatherUserMessage(WeatherUserMessageCode.weatherOffline),
+        AppLocalizationsFr()
+            .weatherUserMessage(WeatherUserMessageCode.weatherOffline),
+        AppLocalizationsEs()
+            .weatherUserMessage(WeatherUserMessageCode.weatherOffline),
+      ];
+      expect(values.toSet(), hasLength(3));
+      expect(values, everyElement(isNot(contains('WeatherUserMessageCode'))));
     });
 
     test('neutral weather produces a valid zero adjustment', () async {
