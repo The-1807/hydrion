@@ -10,13 +10,15 @@ import '../../domain/daily_hydration_context.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/asset_localizations.dart';
+import '../../l10n/challenge_localizations.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/body_metrics_repository.dart';
 import '../../repositories/daily_hydration_context_repository.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/personalization_state_repository.dart';
 import '../../repositories/settings_repository.dart';
-import '../../services/app_refresh_controller.dart';
+import '../presentation/app_refresh_presenter.dart';
 import '../../services/challenge_recommendation_service.dart';
 import '../../services/current_weather_context.dart';
 import '../../utils/permissions.dart';
@@ -159,7 +161,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
           const SizedBox(height: 16),
         ] else ...[
           Text(
-            'Active challenges',
+            l10n.challengeText('Active challenges'),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
@@ -175,7 +177,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
             const SizedBox(height: 12),
           ],
           Text(
-            'Other challenges',
+            l10n.challengeText('Other challenges'),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
@@ -215,7 +217,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
         ],
         if (challengeRepository.pausedChallenges.isNotEmpty) ...[
           Text(
-            'Paused',
+            l10n.pausedChallengesTitle,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
@@ -226,15 +228,14 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
               child: ListTile(
                 key: Key('paused-challenge-${paused.id}'),
                 leading: const Icon(Icons.pause_circle_outline),
-                title: Text(paused.name),
-                subtitle:
-                    const Text('Progress saved. New logs are not evaluated.'),
+                title: Text(l10n.challengeCopy(paused.id).title),
+                subtitle: Text(l10n.pausedChallengeSummary),
                 trailing: TextButton(
                   onPressed: challengeRepository.hasRoomForAnotherChallenge
                       ? () =>
                           challengeRepository.resumeChallenge(paused.instanceId)
                       : null,
-                  child: const Text('Resume'),
+                  child: Text(l10n.resumeAction),
                 ),
                 onTap: () => _openChallenge(context, paused.id),
               ),
@@ -244,7 +245,7 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
         if (challengeRepository.challengeHistory.any((challenge) =>
             challenge.lifecycleStatus != ChallengeLifecycleStatus.paused)) ...[
           Text(
-            'Challenge history',
+            l10n.challengeText('Challenge history'),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
@@ -309,14 +310,15 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
   ) {
     final date = challenge.endedAt ?? challenge.joinedAt;
     final dateLabel = MaterialLocalizations.of(context).formatMediumDate(date);
-    final status = switch (challenge.lifecycleStatus) {
+    final l10n = AppLocalizations.of(context);
+    final status = l10n.challengeText(switch (challenge.lifecycleStatus) {
       ChallengeLifecycleStatus.completed => 'Completed',
       ChallengeLifecycleStatus.left => 'Left',
       ChallengeLifecycleStatus.archived => 'Completed',
       ChallengeLifecycleStatus.paused => 'Paused',
       ChallengeLifecycleStatus.active => 'Active',
-    };
-    return '$status \u00b7 $dateLabel';
+    });
+    return l10n.sharedHistoryStatus(status, dateLabel);
   }
 }
 
@@ -336,6 +338,7 @@ class _RecommendedChallengeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final copy = ChallengeCopy.forChallenge(context, challenge);
     return HydrionSurface(
       key: const Key('recommended-challenge-card'),
       child: Column(
@@ -348,7 +351,7 @@ class _RecommendedChallengeCard extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 6),
-          Text(challenge.name),
+          Text(copy.title),
           Text(_recommendationExplanation(l10n, recommendation)),
           Text(l10n.noAutomaticChallenge),
           const SizedBox(height: 10),
@@ -544,6 +547,7 @@ class _ChallengeHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hasActive = activeChallengeCount > 0;
     final scene = HydrionLifestyleArtResolver.sceneFor(
       surface: HydrionLifestyleSurface.challenges,
@@ -573,9 +577,8 @@ class _ChallengeHero extends StatelessWidget {
                 Expanded(
                   child: Text(
                     hasActive
-                        ? '$activeChallengeCount active '
-                            '${activeChallengeCount == 1 ? 'challenge' : 'challenges'}'
-                        : 'Challenge dock',
+                        ? l10n.sharedActiveChallengeCount(activeChallengeCount)
+                        : l10n.challengeText('Challenge dock'),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,
@@ -589,22 +592,22 @@ class _ChallengeHero extends StatelessWidget {
                     child: Image.asset(
                       scene.assetPath,
                       fit: BoxFit.contain,
-                      semanticLabel: scene.description,
+                      semanticLabel:
+                          AppLocalizations.of(context).sceneDescription(scene),
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(hasActive
+            Text(l10n.challengeText(hasActive
                 ? 'Your active challenges are listed once below with their own progress and actions.'
-                : 'Pick a local challenge that adds texture to the routine without turning hydration into pressure.'),
+                : 'Pick a local challenge that adds texture to the routine without turning hydration into pressure.')),
             if (hasActive) ...[
               const SizedBox(height: 8),
-              Text(
-                "Today's total hydration: "
-                '${HydrationVolumeFormatter.format(todayTotalMl, volumeUnit)}',
-              ),
+              Text(l10n.sharedTodayHydration(
+                HydrationVolumeFormatter.format(todayTotalMl, volumeUnit),
+              )),
             ],
           ],
         ),
@@ -997,7 +1000,7 @@ class _ChallengeCard extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: '${copy.title}. Open challenge details.',
+      label: l10n.sharedOpenChallengeDetails(copy.title),
       child: InkWell(
         key: Key('challenge-card-${challenge.id}'),
         onTap: openDetails,
@@ -1102,12 +1105,32 @@ class _ChallengeCard extends StatelessWidget {
                 ],
                 Text(
                   isBottleBingo
-                      ? '${bingoCompleted.length} of 25 tiles · ${bingoLines.length} of 12 lines'
+                      ? l10n.challengeBingoHeroProgress(
+                          bingoCompleted.length,
+                          bingoLines.length,
+                          compact: false,
+                        )
                       : hydrationMetric
                           ? challenge.id == 'pomodoro-sip'
-                              ? '${progress.completedDays}/${progress.durationDays} days \u00b7 ${active?.completedActionIds.length ?? 0} sip check-ins \u00b7 ${HydrationVolumeFormatter.format(progress.todayMl, volumeUnit)} measured'
-                              : "Today's challenge hydration: ${HydrationVolumeFormatter.format(progress.todayMl, volumeUnit)}"
-                          : '${progress.completedDays}/${progress.durationDays} days checked in',
+                              ? l10n.sharedPomodoroProgress(
+                                  progress.completedDays,
+                                  progress.durationDays,
+                                  active?.completedActionIds.length ?? 0,
+                                  HydrationVolumeFormatter.format(
+                                    progress.todayMl,
+                                    volumeUnit,
+                                  ),
+                                )
+                              : l10n.sharedChallengeHydration(
+                                  HydrationVolumeFormatter.format(
+                                    progress.todayMl,
+                                    volumeUnit,
+                                  ),
+                                )
+                          : l10n.sharedChallengeDays(
+                              progress.completedDays,
+                              progress.durationDays,
+                            ),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -1118,8 +1141,9 @@ class _ChallengeCard extends StatelessWidget {
                 children: [
                   if (!isBottleBingo)
                     _StatusChip(
-                      label:
-                          '${HydrationVolumeFormatter.format(targetMl, volumeUnit)}/day',
+                      label: l10n.sharedDailyTarget(
+                        HydrationVolumeFormatter.format(targetMl, volumeUnit),
+                      ),
                       active: false,
                     ),
                   _StatusChip(
@@ -1140,14 +1164,18 @@ class _ChallengeCard extends StatelessWidget {
                     onPressed: openDetails,
                     icon: Icon(
                         joined ? Icons.dashboard_outlined : Icons.info_outline),
-                    label: Text(joined ? 'Continue' : 'View setup'),
+                    label: Text(l10n.challengeText(
+                      joined ? 'Continue' : 'Set up challenge',
+                    )),
                   ),
                 ],
               ),
               if (joinBlocked) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'You already have two active challenges. Pause or leave one before starting another.',
+                  l10n.challengeText(
+                    'You already have two active challenges. Pause or leave one before starting another.',
+                  ),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -1178,6 +1206,7 @@ class _BottleBingoCatalogueHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final largeText = MediaQuery.textScalerOf(context).scale(14) / 14 > 1.2;
     return Container(
@@ -1244,7 +1273,7 @@ class _BottleBingoCatalogueHeader extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Bottle Bingo',
+                              l10n.challengeCopy('bottle-bingo').title,
                               style: (largeText
                                       ? Theme.of(context).textTheme.titleMedium
                                       : Theme.of(context).textTheme.titleLarge)
@@ -1255,8 +1284,10 @@ class _BottleBingoCatalogueHeader extends StatelessWidget {
                             ),
                             if (!largeText) ...[
                               const SizedBox(height: 6),
-                              const Text(
-                                'Build a line with everyday hydration habits.',
+                              Text(
+                                l10n.challengeText(
+                                  'Build a line with everyday hydration habits.',
+                                ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1265,11 +1296,17 @@ class _BottleBingoCatalogueHeader extends StatelessWidget {
                             Text(
                               largeText
                                   ? active
-                                      ? 'Board active'
-                                      : 'Open board'
+                                      ? l10n.challengeText('Board active')
+                                      : l10n.challengeText('Open board')
                                   : active
-                                      ? '$completedTiles of 25 tiles · $completedLines of 12 lines'
-                                      : 'Open the board preview',
+                                      ? l10n.challengeBingoHeroProgress(
+                                          completedTiles,
+                                          completedLines,
+                                          compact: false,
+                                        )
+                                      : l10n.challengeText(
+                                          'Open the board preview',
+                                        ),
                               style:
                                   const TextStyle(fontWeight: FontWeight.w800),
                             ),

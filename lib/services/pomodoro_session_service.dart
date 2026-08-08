@@ -2,17 +2,17 @@ import '../domain/pomodoro_session.dart';
 import '../repositories/challenge_repository.dart';
 import '../repositories/hydration_repository.dart';
 import 'notifications.dart';
+import 'timed_session_notification_service.dart';
 
 class PomodoroSessionService {
   static const challengeId = 'pomodoro-sip';
   static const _stateKey = 'pomodoroSession';
   static const _consumedSessionIdsKey = 'pomodoroConsumedSessionIds';
   static const _pendingDrinkKey = 'pomodoroPendingDrink';
-  static const _completionMessage =
-      'Focus session complete. Take your planned sip when you’re ready.';
 
   final ChallengeRepository _challenges;
   final NotificationService _notifications;
+  final TimedSessionNotificationService? _timedNotifications;
   final DateTime Function() _now;
   final Set<String> _inFlightOperations = <String>{};
   Future<PomodoroSessionState?>? _timerTransition;
@@ -20,9 +20,11 @@ class PomodoroSessionService {
   PomodoroSessionService({
     required ChallengeRepository challengeRepository,
     required NotificationService notificationService,
+    TimedSessionNotificationService? timedSessionNotificationService,
     DateTime Function()? now,
   })  : _challenges = challengeRepository,
         _notifications = notificationService,
+        _timedNotifications = timedSessionNotificationService,
         _now = now ?? DateTime.now;
 
   PomodoroSessionState? currentState() {
@@ -494,7 +496,7 @@ class PomodoroSessionService {
     if (!end.isAfter(_now())) return state;
     final result = await _notifications.createReminder(
       triggerTime: end,
-      message: _completionMessage,
+      message: _notifications.focusSessionCompletionBody,
       priority: 1,
       requestPermissionIfNeeded: true,
       challengeId: challengeId,
@@ -544,6 +546,28 @@ class PomodoroSessionService {
       'timerPausedSeconds': state.pausedRemaining.inSeconds,
       'timerReminderId': state.reminderId ?? '',
     }, challengeId: challengeId);
+    await _syncTimedNotification(state);
+  }
+
+  Future<void> _syncTimedNotification(PomodoroSessionState state) async {
+    final notifications = _timedNotifications;
+    if (notifications == null) return;
+    final snapshot = state.snapshot(_now());
+    final lifecycle = switch (state.lifecycle) {
+      PomodoroSessionLifecycle.running => HydrionTimedSessionLifecycle.running,
+      PomodoroSessionLifecycle.paused => HydrionTimedSessionLifecycle.paused,
+      _ => HydrionTimedSessionLifecycle.stopped,
+    };
+    await notifications.sync(
+      HydrionTimedSessionNotification(
+        kind: HydrionTimedSessionKind.pomodoro,
+        lifecycle: lifecycle,
+        remaining: snapshot.remainingDuration,
+        completionAt: lifecycle == HydrionTimedSessionLifecycle.running
+            ? state.completionAt
+            : null,
+      ),
+    );
   }
 
   PomodoroSessionState _migrateLegacyState(

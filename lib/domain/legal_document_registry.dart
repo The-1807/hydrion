@@ -13,6 +13,9 @@ class HydrionLegalDocument {
   final String routeName;
   final Uri? publicUrl;
   final String accessibilityLabel;
+  final String canonicalLanguage;
+  final Map<String, String> translatedAssetPaths;
+  final Set<String> professionallyReviewedLanguages;
 
   const HydrionLegalDocument({
     required this.id,
@@ -29,7 +32,20 @@ class HydrionLegalDocument {
     required this.routeName,
     required this.publicUrl,
     required this.accessibilityLabel,
+    this.canonicalLanguage = 'en',
+    this.translatedAssetPaths = const {},
+    this.professionallyReviewedLanguages = const {'en'},
   });
+
+  bool hasTranslation(String languageCode) =>
+      languageCode == canonicalLanguage ||
+      translatedAssetPaths.containsKey(languageCode);
+
+  String assetPathFor(String languageCode) =>
+      translatedAssetPaths[languageCode] ?? assetPath;
+
+  bool isProfessionallyReviewed(String languageCode) =>
+      professionallyReviewedLanguages.contains(languageCode);
 }
 
 class HydrionLegalDocumentRegistry {

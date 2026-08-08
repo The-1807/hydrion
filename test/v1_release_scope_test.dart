@@ -6,13 +6,19 @@ import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/domain/challenge_experience.dart';
 import 'package:hydrion/domain/companion_state.dart';
 import 'package:hydrion/domain/legal_document_registry.dart';
+import 'package:hydrion/domain/hydration_contracts.dart';
 import 'package:hydrion/domain/release_metadata.dart';
 import 'package:hydrion/domain/ui_asset_manifest.dart';
+import 'package:hydrion/l10n/app_localizations_en.dart';
+import 'package:hydrion/l10n/app_localizations_es.dart';
+import 'package:hydrion/l10n/app_localizations_fr.dart';
+import 'package:hydrion/l10n/coach_localizations.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
+import 'package:hydrion/ui/presentation/companion_presenter.dart';
 
 void main() {
   test('avatar manifest preserves supplied shark identities and assets', () {
@@ -222,7 +228,6 @@ void main() {
     );
 
     expect(weatherState.mood, HydrionCompanionMood.hotWeather);
-    expect(weatherState.message, contains('Heat added'));
 
     final completeState = director.select(
       hydrationPercent: 101,
@@ -232,7 +237,50 @@ void main() {
     );
 
     expect(completeState.mood, HydrionCompanionMood.goalComplete);
-    expect(completeState.title, 'Goal reached');
+  });
+
+  test('companion copy is presentation-owned in English French and Spanish',
+      () {
+    final copies = [
+      companionCopy(AppLocalizationsEn(), HydrionCompanionMood.goalComplete),
+      companionCopy(AppLocalizationsFr(), HydrionCompanionMood.goalComplete),
+      companionCopy(AppLocalizationsEs(), HydrionCompanionMood.goalComplete),
+    ];
+    expect(copies.map((copy) => copy.title).toSet(), hasLength(3));
+    expect(copies.map((copy) => copy.message).toSet(), hasLength(3));
+  });
+
+  test('local coach fallback is deterministic and locale-owned', () {
+    final context = HydrationContext(
+      dailySummary: DailyHydrationSummary(
+        date: DateTime(2026, 8, 2),
+        consumedMl: 640,
+        targetMl: 2200,
+        entryCount: 2,
+      ),
+      lifetimeMl: 8400,
+      eventCount: 2,
+      reminder: const ReminderContext.empty(),
+      challenge: const ChallengeContext.none(),
+      capabilities: const CapabilityContext.standalone(),
+    );
+    final copies = [
+      AppLocalizationsEn(),
+      AppLocalizationsFr(),
+      AppLocalizationsEs(),
+    ]
+        .map((l10n) => l10n.localCoachFallback(
+              context: context,
+              userQuery: 'pace',
+            ))
+        .toList();
+
+    expect(copies.toSet(), hasLength(3));
+    for (final copy in copies) {
+      expect(copy, contains('640'));
+      expect(copy, contains('pace'));
+      expect(copy, isNot(contains('Exception')));
+    }
   });
 
   test('weather goal recommendation is deterministic bounded and explainable',
@@ -259,7 +307,10 @@ void main() {
     expect(decision.weatherAdjustmentMl, 500);
     expect(decision.userAdjustmentMl, 80);
     expect(decision.recommendedGoalMl, 2800);
-    expect(decision.explanation, contains('Baseline 2200 ml'));
+    expect(
+      decision.explanationCode,
+      WeatherGoalExplanationCode.boundedAdjustment,
+    );
 
     final notificationDeniedDecision = service.recommend(
       WeatherGoalInputs(
@@ -294,7 +345,10 @@ void main() {
 
     expect(ineligible.eligible, isFalse);
     expect(ineligible.recommendedGoalMl, 2200);
-    expect(ineligible.explanation, contains('Manual goal kept'));
+    expect(
+      ineligible.explanationCode,
+      WeatherGoalExplanationCode.standardGoalActive,
+    );
   });
 
   test('EPA rules are not bound to personalized hydration or safety claims',

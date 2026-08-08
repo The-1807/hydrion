@@ -3,7 +3,25 @@
     <string name="widget_hydrion">Hydrion</string>
     <string name="widget_daily_progress_name">Progression Hydrion</string>
     <string name="widget_daily_progress_description">Consultez votre progression et votre objectif du jour.</string>
-    <string name="widget_quick_log_name">Ajout rapide Hydrion</string>
-    <string name="widget_quick_log_widget_description">Consultez la progression et ajoutez rapidement la quantité enregistrée.</string>
+    <string name="widget_quick_log_name">Ajout rapide et progression Hydrion</string>
+    <string name="widget_quick_log_widget_description">Consultez la progression et ajoutez une quantité mesurée.</string>
     <string name="widget_quick_log_description">Ajouter la quantité d’eau affichée</string>
+    <string name="widget_custom_log_description">Ouvrir Hydrion pour ajouter une quantité personnalisée</string>
+    <string name="widget_custom_log">Autre</string>
+    <string name="widget_active_challenge_name">Défi Hydrion actif</string>
+    <string name="widget_active_challenge_description">Consultez et poursuivez votre défi Hydrion actif.</string>
+    <string name="widget_active_challenge_action">Ouvrir le défi actif</string>
+    <string name="widget_active_challenge">DÉFI ACTIF</string>
+    <string name="widget_no_active_challenge">Aucun défi actif</string>
+    <string name="widget_open_challenges">Ouvrez Hydrion pour choisir un défi.</string>
+    <string name="widget_open_challenge">Ouvrir le défi</string>
+    <string name="widget_open_active_challenge_description">Ouvrir le défi Hydrion actif</string>
+    <string name="timed_session_channel_name">Sessions chronométrées actives</string>
+    <string name="timed_session_channel_description">État et commandes d’une session de concentration Hydrion active.</string>
+    <string name="timed_session_paused">En pause</string>
+    <string name="timed_session_pause">Pause</string>
+    <string name="timed_session_stop">Arrêter</string>
+    <string name="timed_session_open">Ouvrir</string>
+    <string name="widget_placeholder_amount">0 / 2200 ml</string>
+    <string name="widget_placeholder_status">Pret pour une gorgee</string>
 </resources>

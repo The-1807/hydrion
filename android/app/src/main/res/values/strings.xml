@@ -2,8 +2,26 @@
 <resources>
     <string name="widget_hydrion">Hydrion</string>
     <string name="widget_daily_progress_name">Hydrion Daily Progress</string>
-    <string name="widget_daily_progress_description">See the current hydration progress and goal.</string>
-    <string name="widget_quick_log_name">Hydrion Quick Log</string>
-    <string name="widget_quick_log_widget_description">See progress and quickly log your saved amount.</string>
+    <string name="widget_daily_progress_description">See today’s hydration progress and applied goal.</string>
+    <string name="widget_quick_log_name">Hydrion Quick Log + Progress</string>
+    <string name="widget_quick_log_widget_description">See progress and quickly log a measured amount.</string>
     <string name="widget_quick_log_description">Log the displayed amount of water</string>
+    <string name="widget_custom_log_description">Open Hydrion to log a custom amount</string>
+    <string name="widget_custom_log">Custom</string>
+    <string name="widget_active_challenge_name">Hydrion Active Challenge</string>
+    <string name="widget_active_challenge_description">See and continue your active Hydrion challenge.</string>
+    <string name="widget_active_challenge_action">Open active challenge</string>
+    <string name="widget_active_challenge">ACTIVE CHALLENGE</string>
+    <string name="widget_no_active_challenge">No active challenge</string>
+    <string name="widget_open_challenges">Open Hydrion to choose a challenge.</string>
+    <string name="widget_open_challenge">Open challenge</string>
+    <string name="widget_open_active_challenge_description">Open the active Hydrion challenge</string>
+    <string name="timed_session_channel_name">Active timed sessions</string>
+    <string name="timed_session_channel_description">Status and controls for an active Hydrion focus session.</string>
+    <string name="timed_session_paused">Paused</string>
+    <string name="timed_session_pause">Pause</string>
+    <string name="timed_session_stop">Stop</string>
+    <string name="timed_session_open">Open</string>
+    <string name="widget_placeholder_amount">0 / 2200 ml</string>
+    <string name="widget_placeholder_status">Ready for a sip</string>
 </resources>

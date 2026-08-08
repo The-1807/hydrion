@@ -37,7 +37,7 @@ them.
 
 ## Proposed Widget Areas
 
-### 1. Quick Log
+### 1. Quick Log (deferred)
 
 The highest-priority widget.
 
@@ -61,7 +61,7 @@ Recommended sizes:
 - Small: progress and one primary quick-add action.
 - Medium: progress and up to three quick-add actions.
 
-### 2. Daily Progress
+### 2. Daily Progress (deferred)
 
 Display:
 
@@ -155,19 +155,11 @@ Display:
 
 Avoid dense charts, tiny labels, or private profile details.
 
-## Recommended Delivery Order
+## Current Delivery Scope
 
-1. Quick Log.
-2. Daily Progress.
-3. Active Challenge.
-4. Pomodoro Sip.
-5. Bottle Bingo.
-6. Next Reminder.
-7. Daily Goal Review.
-8. History Snapshot.
-
-Quick Log, Daily Progress, and Active Challenge provide the strongest value for
-the least surface complexity.
+Only the state-driven Android Active Challenge widget is included now. General
+Quick Log, Daily Progress, Next Reminder, Daily Goal Review, History Snapshot,
+iOS widgets, and wearable surfaces remain deferred.
 
 ## Challenge Notification Identity
 
@@ -294,7 +286,7 @@ reviewed against the repository's current Flutter and Android versions.
 - All 14 challenges have distinct icon identities.
 - The eight pending challenge images can be added without changing widget or
   notification identity.
-- Quick logging updates the same canonical hydration data as the application.
+- Widget refresh and navigation never create challenge or hydration progress.
 - Challenge notifications use the correct challenge identity.
 - No audience or internal metadata appears in any widget or notification.
 - Android small notification icons comply with monochrome drawable rules.

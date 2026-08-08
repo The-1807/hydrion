@@ -9,6 +9,11 @@ typedef LocalHydrationAdviceBuilder = String Function({
   required double temperatureC,
 });
 
+typedef LocalHydrationFallbackBuilder = String Function({
+  required HydrationContext context,
+  required String userQuery,
+});
+
 class LocalHydrationSummaryService implements HydrationSummaryService {
   final HydrationRepository _hydrationRepository;
   final UserSettingsRepository _settingsRepository;
@@ -53,17 +58,20 @@ class LocalChallengeGenerator implements ChallengeGenerator {
 class LocalHydrationCoach implements HydrationCoach, HydrationAiProvider {
   final HydrationContextProvider _contextProvider;
   final HydrationAiActionValidator _actionValidator;
-  final LocalHydrationAdviceBuilder? _adviceBuilder;
+  final LocalHydrationAdviceBuilder _adviceBuilder;
+  final LocalHydrationFallbackBuilder _fallbackBuilder;
   bool _initialized = false;
 
   LocalHydrationCoach({
     required HydrationContextProvider contextProvider,
     HydrationAiActionValidator actionValidator =
         const HydrationAiActionValidator(),
-    LocalHydrationAdviceBuilder? adviceBuilder,
+    required LocalHydrationAdviceBuilder adviceBuilder,
+    required LocalHydrationFallbackBuilder fallbackBuilder,
   })  : _contextProvider = contextProvider,
         _actionValidator = actionValidator,
-        _adviceBuilder = adviceBuilder;
+        _adviceBuilder = adviceBuilder,
+        _fallbackBuilder = fallbackBuilder;
 
   Future<void> initialize() async {
     if (_initialized) {
@@ -83,35 +91,12 @@ class LocalHydrationCoach implements HydrationCoach, HydrationAiProvider {
 
     final hydration = hydrationPercent.clamp(0.0, 100.0);
     final entries = (entryCount ?? activityMinutes ?? 0).clamp(0, 24);
-    final localizedAdvice = _adviceBuilder?.call(
+    final localizedAdvice = _adviceBuilder(
       hydrationPercent: hydration,
       entryCount: entries,
       temperatureC: temperatureC,
     );
-    if (localizedAdvice != null) {
-      final action = CoachMessageAction(message: _normalize(localizedAdvice));
-      return _actionValidator
-          .validate(action, const CapabilityContext.standalone())
-          .action
-          .message;
-    }
-
-    final heat =
-        temperatureC >= 28 ? ' Warm conditions raise your fluid needs.' : '';
-
-    final advice = switch (hydration) {
-      >= 85.0 =>
-        'You are on a strong hydration pace. Keep taking small sips through the day.$heat',
-      >= 65.0 =>
-        'You are close to target. Add a glass of water in the next hour to stay steady.$heat',
-      _ =>
-        'Start with 300 to 500 ml now, then check in again after your next drink.$heat',
-    };
-
-    final entryNote = entries >= 3
-        ? ' You have $entries local entries today, which makes the trend more reliable.'
-        : ' Add entries when you drink so Hydrion can track the day honestly.';
-    final action = CoachMessageAction(message: _normalize('$advice$entryNote'));
+    final action = CoachMessageAction(message: _normalize(localizedAdvice));
     return _actionValidator
         .validate(action, const CapabilityContext.standalone())
         .action
@@ -144,30 +129,18 @@ class LocalHydrationCoach implements HydrationCoach, HydrationAiProvider {
     required String userQuery,
   }) async {
     await initialize();
-    final totalMl = context.dailySummary.consumedMl;
-    final lifetimeMl = context.lifetimeMl;
-    final eventCount = context.eventCount;
-    final suffix =
-        userQuery.trim().isEmpty ? '' : ' You asked: ${userQuery.trim()}';
-    final eventLabel = eventCount == 1 ? 'log' : 'logs';
-    final contextText = eventCount == 0
-        ? 'No saved hydration logs yet.'
-        : 'Today: $totalMl ml. Lifetime tracked: $lifetimeMl ml across $eventCount saved $eventLabel.';
-
     return [
       CoachMessageAction(
-        message: _normalize(
-          'Hydrion is using on-device guidance. $contextText$suffix',
-        ),
+        message: _normalize(_fallbackBuilder(
+          context: context,
+          userQuery: userQuery,
+        )),
       ),
     ];
   }
 
   String _normalize(String response) {
     final oneLine = response.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (oneLine.isEmpty) {
-      return 'Hydrion is running locally. Take a steady sip and keep tracking.';
-    }
     return oneLine.length > 220 ? '${oneLine.substring(0, 217)}...' : oneLine;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../theme/hydrion_design.dart';
 
 /// V1 keeps Coach visible as a clearly non-interactive preview.
@@ -10,6 +11,7 @@ class ChatCoachScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final content = Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(HydrionSpacing.lg),
@@ -24,17 +26,17 @@ class ChatCoachScreen extends StatelessWidget {
                 children: [
                   const Icon(Icons.water_drop_outlined, size: 72),
                   const SizedBox(height: HydrionSpacing.lg),
-                  Text('Coach',
+                  Text(l10n.coachPreviewTitle,
                       style: Theme.of(context).textTheme.headlineSmall),
                   const SizedBox(height: HydrionSpacing.sm),
                   Text(
-                    'Hydrion Coach is being prepared for a future update.',
+                    l10n.coachPreviewComingSoon,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: HydrionSpacing.sm),
                   Text(
-                    'For now, keep logging water and tracking your daily progress.',
+                    l10n.coachPreviewGuidance,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
@@ -47,6 +49,9 @@ class ChatCoachScreen extends StatelessWidget {
     );
 
     if (embedded) return content;
-    return Scaffold(appBar: AppBar(title: const Text('Coach')), body: content);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.coachPreviewTitle)),
+      body: content,
+    );
   }
 }

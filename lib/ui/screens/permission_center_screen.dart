@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../l10n/permission_localizations.dart';
 import '../../utils/permissions.dart';
 import '../components/hydrion_viewport.dart';
 
@@ -39,28 +41,27 @@ class _PermissionCenterScreenState extends State<PermissionCenterScreen>
   Widget build(BuildContext context) {
     final permissions = context.watch<Permissions>();
     final snapshot = permissions.snapshot;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Permissions'), centerTitle: true),
+      appBar: AppBar(title: Text(l10n.permissions), centerTitle: true),
       body: ListView(
         key: const Key('permission-center-scroll-view'),
         padding: HydrionViewport.scrollPadding(context),
         children: [
-          const Text(
-            'Optional device access',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+          Text(
+            l10n.optionalDeviceAccess,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Hydrion works with a standard hydration goal even when you skip these options.',
-          ),
+          Text(l10n.optionalDeviceAccessHelp),
           const SizedBox(height: 16),
           _PermissionCard(
             key: const Key('permission-notifications-card'),
             icon: Icons.notifications_outlined,
-            title: 'Hydration reminders',
+            title: l10n.hydrationReminders,
             capability: snapshot.notifications,
-            allowLabel: 'Allow notifications',
-            continueLabel: 'Continue without reminders',
+            allowLabel: l10n.allowNotifications,
+            continueLabel: l10n.continueWithoutReminders,
             onAllow: permissions.requestNotifications,
             onSettings: permissions.openNotificationSettings,
           ),
@@ -68,10 +69,10 @@ class _PermissionCenterScreenState extends State<PermissionCenterScreen>
           _PermissionCard(
             key: const Key('permission-location-card'),
             icon: Icons.location_on_outlined,
-            title: 'Weather assistance',
+            title: l10n.weatherAssistance,
             capability: snapshot.location,
-            allowLabel: 'Allow location',
-            continueLabel: 'Continue with standard goal',
+            allowLabel: l10n.allowLocation,
+            continueLabel: l10n.continueWithStandardGoal,
             onAllow: permissions.requestLocation,
             onSettings: snapshot.location.state ==
                     HydrionPermissionState.temporarilyUnavailable
@@ -82,10 +83,10 @@ class _PermissionCenterScreenState extends State<PermissionCenterScreen>
           _PermissionCard(
             key: const Key('permission-exact-alarm-card'),
             icon: Icons.alarm_outlined,
-            title: 'Precise reminder timing',
+            title: l10n.preciseReminderTiming,
             capability: snapshot.exactAlarms,
-            allowLabel: 'Open Alarms and reminders settings',
-            continueLabel: 'Continue with approximate scheduling',
+            allowLabel: l10n.openAlarmSettings,
+            continueLabel: l10n.continueApproximateScheduling,
             onAllow: permissions.requestExactAlarms,
             onSettings: permissions.openAppSettings,
           ),
@@ -99,7 +100,7 @@ class _PermissionCenterScreenState extends State<PermissionCenterScreen>
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.refresh),
-            label: const Text('Refresh status'),
+            label: Text(l10n.refreshStatus),
           ),
         ],
       ),
@@ -150,6 +151,7 @@ class _PermissionCardState extends State<_PermissionCard> {
   @override
   Widget build(BuildContext context) {
     final capability = widget.capability;
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -172,8 +174,8 @@ class _PermissionCardState extends State<_PermissionCard> {
                       const SizedBox(height: 4),
                       Text(
                         _requesting
-                            ? 'Requesting'
-                            : _stateLabel(capability.state),
+                            ? l10n.requesting
+                            : l10n.permissionState(capability.state),
                       ),
                     ],
                   ),
@@ -183,8 +185,8 @@ class _PermissionCardState extends State<_PermissionCard> {
             const SizedBox(height: 10),
             Text(
               _requesting
-                  ? 'Waiting for the device permission result...'
-                  : capability.explanation,
+                  ? l10n.waitingPermissionResult
+                  : l10n.permissionMessage(capability.message),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -192,7 +194,7 @@ class _PermissionCardState extends State<_PermissionCard> {
               runSpacing: 8,
               children: [
                 if (capability.canRequestDirectly ||
-                    (widget.title == 'Precise reminder timing' &&
+                    (widget.title == l10n.preciseReminderTiming &&
                         capability.state == HydrionPermissionState.denied))
                   FilledButton(
                     onPressed: _requesting ? null : () => _run(widget.onAllow),
@@ -207,7 +209,7 @@ class _PermissionCardState extends State<_PermissionCard> {
                   OutlinedButton(
                     onPressed:
                         _requesting ? null : () => _run(widget.onSettings),
-                    child: const Text('Open device settings'),
+                    child: Text(l10n.openDeviceSettings),
                   ),
                 if (!capability.isGranted)
                   TextButton(
@@ -221,23 +223,5 @@ class _PermissionCardState extends State<_PermissionCard> {
         ),
       ),
     );
-  }
-
-  String _stateLabel(HydrionPermissionState state) {
-    return switch (state) {
-      HydrionPermissionState.notRequested => 'Not requested',
-      HydrionPermissionState.granted => 'Allowed',
-      HydrionPermissionState.approximateGranted =>
-        'Approximate location allowed',
-      HydrionPermissionState.preciseGranted => 'Precise location allowed',
-      HydrionPermissionState.denied => 'Denied',
-      HydrionPermissionState.permanentlyDenied => 'Blocked',
-      HydrionPermissionState.restricted => 'Restricted',
-      HydrionPermissionState.notRequired => 'Not required',
-      HydrionPermissionState.unsupported => 'Unsupported',
-      HydrionPermissionState.temporarilyUnavailable =>
-        'Temporarily unavailable',
-      HydrionPermissionState.unknown => 'Status unavailable',
-    };
   }
 }

@@ -26,6 +26,32 @@ enum HydrionPermissionPlatform {
   unknown,
 }
 
+enum HydrionPermissionMessage {
+  notificationUnchecked,
+  locationUnchecked,
+  alarmUnchecked,
+  notificationsAllowed,
+  notificationsOff,
+  notificationsNotAsked,
+  notificationsBlocked,
+  notificationStatusUnavailableAndroid,
+  notificationsUnsupported,
+  notificationStatusTemporary,
+  preciseLocationAllowed,
+  approximateLocationAllowed,
+  locationOff,
+  locationNotAsked,
+  locationBlocked,
+  locationRestricted,
+  locationServicesOff,
+  locationUnsupported,
+  locationStatusTemporary,
+  exactAlarmNotRequired,
+  exactAlarmAndroidOnly,
+  exactSchedulingAvailable,
+  exactSchedulingApproximate,
+}
+
 class HydrionPermissionCapability {
   final HydrionPermissionState state;
   final HydrionPermissionPlatform platform;
@@ -33,7 +59,7 @@ class HydrionPermissionCapability {
   final bool settingsRequired;
   final bool fallbackAvailable;
   final bool previouslyDeclined;
-  final String explanation;
+  final HydrionPermissionMessage message;
   final String? internalFailureReason;
 
   const HydrionPermissionCapability({
@@ -43,7 +69,7 @@ class HydrionPermissionCapability {
     required this.settingsRequired,
     required this.fallbackAvailable,
     required this.previouslyDeclined,
-    required this.explanation,
+    required this.message,
     this.internalFailureReason,
   });
 
@@ -70,7 +96,7 @@ class HydrionPermissionSnapshot {
   factory HydrionPermissionSnapshot.unknown(
     HydrionPermissionPlatform platform,
   ) {
-    HydrionPermissionCapability pending(String explanation) {
+    HydrionPermissionCapability pending(HydrionPermissionMessage message) {
       return HydrionPermissionCapability(
         state: HydrionPermissionState.unknown,
         platform: platform,
@@ -78,14 +104,14 @@ class HydrionPermissionSnapshot {
         settingsRequired: false,
         fallbackAvailable: true,
         previouslyDeclined: false,
-        explanation: explanation,
+        message: message,
       );
     }
 
     return HydrionPermissionSnapshot(
-      notifications: pending('Notification status has not been checked yet.'),
-      location: pending('Location status has not been checked yet.'),
-      exactAlarms: pending('Alarm scheduling status has not been checked yet.'),
+      notifications: pending(HydrionPermissionMessage.notificationUnchecked),
+      location: pending(HydrionPermissionMessage.locationUnchecked),
+      exactAlarms: pending(HydrionPermissionMessage.alarmUnchecked),
       refreshedAt: DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
@@ -218,7 +244,7 @@ class Permissions extends ChangeNotifier {
     return switch (state) {
       HydrionNotificationPermissionState.granted => _capability(
           HydrionPermissionState.granted,
-          'Notifications are allowed for Hydrion.',
+          HydrionPermissionMessage.notificationsAllowed,
           fallback: false,
         ),
       HydrionNotificationPermissionState.denied => _capability(
@@ -226,14 +252,14 @@ class Permissions extends ChangeNotifier {
               ? HydrionPermissionState.denied
               : HydrionPermissionState.notRequested,
           prompted
-              ? 'Notifications are off. You can allow them here or in device settings.'
-              : 'Hydrion has not asked to send notifications yet.',
+              ? HydrionPermissionMessage.notificationsOff
+              : HydrionPermissionMessage.notificationsNotAsked,
           canRequest: true,
           declined: prompted,
         ),
       HydrionNotificationPermissionState.permanentlyDenied => _capability(
           HydrionPermissionState.permanentlyDenied,
-          'Notifications are blocked. Open device settings to allow them.',
+          HydrionPermissionMessage.notificationsBlocked,
           settingsRequired: true,
           declined: true,
         ),
@@ -242,15 +268,15 @@ class Permissions extends ChangeNotifier {
               ? HydrionPermissionState.unknown
               : HydrionPermissionState.unsupported,
           platform == HydrionPermissionPlatform.android
-              ? 'Hydrion could not read the Android notification status.'
-              : 'Hydrion notifications are not supported on this platform.',
+              ? HydrionPermissionMessage.notificationStatusUnavailableAndroid
+              : HydrionPermissionMessage.notificationsUnsupported,
           failure: platform == HydrionPermissionPlatform.android
               ? 'notification_query_unavailable'
               : null,
         ),
       HydrionNotificationPermissionState.unknown => _capability(
           HydrionPermissionState.unknown,
-          'Notification status is temporarily unavailable. Refresh to try again.',
+          HydrionPermissionMessage.notificationStatusTemporary,
           failure: 'notification_query_failed',
         ),
     };
@@ -266,13 +292,13 @@ class Permissions extends ChangeNotifier {
         if (accuracy == HydrionLocationAccuracy.precise) {
           return _capability(
             HydrionPermissionState.preciseGranted,
-            'Precise foreground location is allowed. Approximate location is sufficient for Hydrion weather.',
+            HydrionPermissionMessage.preciseLocationAllowed,
             fallback: false,
           );
         }
         return _capability(
           HydrionPermissionState.approximateGranted,
-          'Approximate foreground location is allowed and is sufficient for weather assistance.',
+          HydrionPermissionMessage.approximateLocationAllowed,
           fallback: false,
         );
       case HydrionLocationPermissionState.denied:
@@ -281,39 +307,39 @@ class Permissions extends ChangeNotifier {
               ? HydrionPermissionState.denied
               : HydrionPermissionState.notRequested,
           prompted
-              ? 'Location is off. Your standard hydration goal still works.'
-              : 'Hydrion has not asked for location yet.',
+              ? HydrionPermissionMessage.locationOff
+              : HydrionPermissionMessage.locationNotAsked,
           canRequest: true,
           declined: prompted,
         );
       case HydrionLocationPermissionState.permanentlyDenied:
         return _capability(
           HydrionPermissionState.permanentlyDenied,
-          'Location is blocked. Open device settings to enable weather assistance.',
+          HydrionPermissionMessage.locationBlocked,
           settingsRequired: true,
           declined: true,
         );
       case HydrionLocationPermissionState.restricted:
         return _capability(
           HydrionPermissionState.restricted,
-          'Location access is restricted by the device.',
+          HydrionPermissionMessage.locationRestricted,
           settingsRequired: true,
         );
       case HydrionLocationPermissionState.serviceDisabled:
         return _capability(
           HydrionPermissionState.temporarilyUnavailable,
-          'Device location services are off. Your standard goal remains available.',
+          HydrionPermissionMessage.locationServicesOff,
           settingsRequired: true,
         );
       case HydrionLocationPermissionState.unsupported:
         return _capability(
           HydrionPermissionState.unsupported,
-          'Location-based weather assistance is not supported on this platform.',
+          HydrionPermissionMessage.locationUnsupported,
         );
       case HydrionLocationPermissionState.unknown:
         return _capability(
           HydrionPermissionState.unknown,
-          'Location status is temporarily unavailable. Refresh to try again.',
+          HydrionPermissionMessage.locationStatusTemporary,
           failure: 'location_query_failed',
         );
     }
@@ -326,27 +352,27 @@ class Permissions extends ChangeNotifier {
             ? HydrionPermissionState.notRequired
             : HydrionPermissionState.unsupported,
         platform == HydrionPermissionPlatform.android
-            ? 'Special exact-alarm access is not required on this device.'
-            : 'Exact-alarm access is Android-specific.',
+            ? HydrionPermissionMessage.exactAlarmNotRequired
+            : HydrionPermissionMessage.exactAlarmAndroidOnly,
       );
     }
     if (available) {
       return _capability(
         HydrionPermissionState.granted,
-        'Exact reminder scheduling is available.',
+        HydrionPermissionMessage.exactSchedulingAvailable,
         fallback: false,
       );
     }
     return _capability(
       HydrionPermissionState.denied,
-      'Exact scheduling is unavailable. Hydrion will continue with approximate reminders.',
+      HydrionPermissionMessage.exactSchedulingApproximate,
       settingsRequired: true,
     );
   }
 
   HydrionPermissionCapability _capability(
     HydrionPermissionState state,
-    String explanation, {
+    HydrionPermissionMessage message, {
     bool canRequest = false,
     bool settingsRequired = false,
     bool fallback = true,
@@ -360,7 +386,7 @@ class Permissions extends ChangeNotifier {
       settingsRequired: settingsRequired,
       fallbackAvailable: fallback,
       previouslyDeclined: declined,
-      explanation: explanation,
+      message: message,
       internalFailureReason: failure,
     );
   }

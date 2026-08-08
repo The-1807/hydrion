@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:gravity="center_vertical"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_active_challenge"
+        android:textColor="@color/widget_muted"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_challenge_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:text="@string/widget_no_active_challenge"
+        android:textColor="@color/widget_ink"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_challenge_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:text="@string/widget_open_challenges"
+        android:textColor="@color/widget_muted"
+        android:textSize="13sp" />
+
+    <ProgressBar
+        android:id="@+id/widget_challenge_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:layout_marginTop="10dp"
+        android:max="100"
+        android:progressBackgroundTint="@color/widget_track"
+        android:progressTint="@color/widget_accent" />
+
+    <TextView
+        android:id="@+id/widget_challenge_action"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/widget_action_background"
+        android:contentDescription="@string/widget_open_active_challenge_description"
+        android:gravity="center"
+        android:minHeight="44dp"
+        android:paddingHorizontal="14dp"
+        android:text="@string/widget_open_challenge"
+        android:textColor="@android:color/white"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+</LinearLayout>

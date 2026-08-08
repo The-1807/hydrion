@@ -1181,7 +1181,7 @@ abstract class AppLocalizations {
   /// No description provided for @amountInMl.
   ///
   /// In en, this message translates to:
-  /// **'Amount in ml'**
+  /// **'Amount in mL'**
   String get amountInMl;
 
   /// No description provided for @cancel.
@@ -2010,6 +2010,12 @@ abstract class AppLocalizations {
   /// **'ft and in'**
   String get feetInchesLabel;
 
+  /// No description provided for @feetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'ft'**
+  String get feetLabel;
+
   /// No description provided for @inchesLabel.
   ///
   /// In en, this message translates to:
@@ -2163,7 +2169,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileDeletionPersonalizationDisclosure.
   ///
   /// In en, this message translates to:
-  /// **'This clears your local profile, body metrics, daily contexts, hydration history, reminders, challenges, recommendation state, and weather cache on this device. Android notification and location permissions are not revoked and remain controlled in device settings.'**
+  /// **'This clears your local profile, body metrics, daily contexts, hydration history, reminders, challenges, recommendation state, and weather cache on this device. Your language and appearance preferences remain saved.'**
   String get profileDeletionPersonalizationDisclosure;
 
   /// No description provided for @dailyContextTitle.
@@ -2555,6 +2561,2492 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Approximately {weeks} weeks, {days} days.'**
   String pregnancyDurationSummary({required int weeks, required int days});
+
+  /// No description provided for @missionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Why Hydrion exists'**
+  String get missionTitle;
+
+  /// No description provided for @missionSemanticLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion mission'**
+  String get missionSemanticLabel;
+
+  /// No description provided for @missionHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration should be easier to understand and easier to manage.'**
+  String get missionHeadline;
+
+  /// No description provided for @learnMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn more'**
+  String get learnMore;
+
+  /// No description provided for @missionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion supports safer, more consistent habits while keeping personal information local and under your control. Community participation may be offered later through Discord, an external service with separate account and privacy practices. Hydrion will not send profile or health information automatically.'**
+  String get missionDetails;
+
+  /// No description provided for @communityComingLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Community link coming later'**
+  String get communityComingLater;
+
+  /// No description provided for @continueToTutorial.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to tutorial'**
+  String get continueToTutorial;
+
+  /// No description provided for @profileDeletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile deleted'**
+  String get profileDeletedTitle;
+
+  /// No description provided for @profileDeletionCompletedSemanticLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Local profile deletion completed'**
+  String get profileDeletionCompletedSemanticLabel;
+
+  /// No description provided for @profileDeletedHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Hydrion profile has been deleted'**
+  String get profileDeletedHeadline;
+
+  /// No description provided for @profileDeletedFarewell.
+  ///
+  /// In en, this message translates to:
+  /// **'Wherever your hydration journey continues, please take care, stay hydrated, and share what you have learned with someone who may benefit.'**
+  String get profileDeletedFarewell;
+
+  /// No description provided for @learnAboutMission.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn about Hydrion\'s mission'**
+  String get learnAboutMission;
+
+  /// No description provided for @finish.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get finish;
+
+  /// No description provided for @deleteLocalProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete local profile'**
+  String get deleteLocalProfile;
+
+  /// No description provided for @deleteLocalProfileSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes profile-owned Hydrion data while preserving language and appearance preferences.'**
+  String get deleteLocalProfileSummary;
+
+  /// No description provided for @deleteLocalProfileQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete local profile?'**
+  String get deleteLocalProfileQuestion;
+
+  /// No description provided for @removeDevicePermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Also remove Hydrion device permissions'**
+  String get removeDevicePermissions;
+
+  /// No description provided for @removeDevicePermissionsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Android 13 and newer can schedule removal of notification and location permissions after you finish the farewell. Exact-alarm and other special access remain controlled in system settings.'**
+  String get removeDevicePermissionsHelp;
+
+  /// No description provided for @reviewPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Review permissions'**
+  String get reviewPermissions;
+
+  /// No description provided for @deleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteAction;
+
+  /// No description provided for @profileDeletionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile could not be deleted. Close Hydrion, reopen it, and try again.'**
+  String get profileDeletionFailed;
+
+  /// No description provided for @profileDeletionCleanupPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile deleted. Android reminder cleanup will retry automatically.'**
+  String get profileDeletionCleanupPending;
+
+  /// No description provided for @weatherSuggestionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s weather hydration suggestion'**
+  String get weatherSuggestionTitle;
+
+  /// No description provided for @humidityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Humidity'**
+  String get humidityLabel;
+
+  /// No description provided for @standardGoalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard goal'**
+  String get standardGoalLabel;
+
+  /// No description provided for @todaySuggestedGoalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s suggested goal'**
+  String get todaySuggestedGoalLabel;
+
+  /// No description provided for @updatedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated'**
+  String get updatedLabel;
+
+  /// No description provided for @weatherSuggestionDisclosure.
+  ///
+  /// In en, this message translates to:
+  /// **'This suggestion uses your saved profile, location permission, and local weather. It is not medical advice.'**
+  String get weatherSuggestionDisclosure;
+
+  /// No description provided for @keepStandardGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep standard goal'**
+  String get keepStandardGoal;
+
+  /// No description provided for @useSuggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Use suggestion'**
+  String get useSuggestion;
+
+  /// No description provided for @pomodoroSessionNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pomodoro session'**
+  String get pomodoroSessionNotificationTitle;
+
+  /// No description provided for @homeworkSessionNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Homework session'**
+  String get homeworkSessionNotificationTitle;
+
+  /// No description provided for @sessionPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get sessionPaused;
+
+  /// No description provided for @pauseAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pauseAction;
+
+  /// No description provided for @resumeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get resumeAction;
+
+  /// No description provided for @stopAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get stopAction;
+
+  /// No description provided for @openAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get openAction;
+
+  /// No description provided for @waterNotLoggedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Water was not logged. Please retry.'**
+  String get waterNotLoggedRetry;
+
+  /// No description provided for @loggedFormattedVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged {amount}'**
+  String loggedFormattedVolume({required String amount});
+
+  /// No description provided for @dailyGoalReachedRecognition.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily goal reached. Nicely done.'**
+  String get dailyGoalReachedRecognition;
+
+  /// No description provided for @sevenDayStreakRecognition.
+  ///
+  /// In en, this message translates to:
+  /// **'Seven-day hydration streak. A steady routine is taking shape.'**
+  String get sevenDayStreakRecognition;
+
+  /// No description provided for @profileMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile menu'**
+  String get profileMenu;
+
+  /// No description provided for @viewProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'View Profile'**
+  String get viewProfile;
+
+  /// No description provided for @support.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get support;
+
+  /// No description provided for @addChallengeDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Add challenge details'**
+  String get addChallengeDetails;
+
+  /// No description provided for @challengeDetailsAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge details added'**
+  String get challengeDetailsAdded;
+
+  /// No description provided for @challengeDetailsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'All water counts toward your daily goal. Challenge details record what today\'s task needs.'**
+  String get challengeDetailsHelp;
+
+  /// No description provided for @challengeDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge details'**
+  String get challengeDetailsTitle;
+
+  /// No description provided for @temperatureStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature style'**
+  String get temperatureStyle;
+
+  /// No description provided for @temperatureCool.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool'**
+  String get temperatureCool;
+
+  /// No description provided for @temperatureRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Room temperature'**
+  String get temperatureRoom;
+
+  /// No description provided for @temperatureWarm.
+  ///
+  /// In en, this message translates to:
+  /// **'Comfortably warm'**
+  String get temperatureWarm;
+
+  /// No description provided for @infusionTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Infusion theme'**
+  String get infusionTheme;
+
+  /// No description provided for @noAddedSugar.
+  ///
+  /// In en, this message translates to:
+  /// **'No added sugar'**
+  String get noAddedSugar;
+
+  /// No description provided for @useDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Use details'**
+  String get useDetails;
+
+  /// No description provided for @history.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get history;
+
+  /// No description provided for @customAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom amount'**
+  String get customAmount;
+
+  /// No description provided for @momentum.
+  ///
+  /// In en, this message translates to:
+  /// **'Momentum'**
+  String get momentum;
+
+  /// No description provided for @applySuggestedGoalQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply suggested goal?'**
+  String get applySuggestedGoalQuestion;
+
+  /// No description provided for @applySuggestedGoalConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply this suggested daily goal and continue?'**
+  String get applySuggestedGoalConfirmation;
+
+  /// No description provided for @refineInputs.
+  ///
+  /// In en, this message translates to:
+  /// **'No, refine inputs'**
+  String get refineInputs;
+
+  /// No description provided for @confirmApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, apply'**
+  String get confirmApply;
+
+  /// No description provided for @enterMeasurementsWithKeyboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter measurements with the keyboard'**
+  String get enterMeasurementsWithKeyboard;
+
+  /// No description provided for @recalculatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Recalculated {date}'**
+  String recalculatedAt({required String date});
+
+  /// No description provided for @volumeMlValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} mL'**
+  String volumeMlValue({required int amount});
+
+  /// No description provided for @baselineMlValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: {amount} mL'**
+  String baselineMlValue({required String label, required int amount});
+
+  /// No description provided for @routineFitsDay.
+  ///
+  /// In en, this message translates to:
+  /// **'A routine that fits your day'**
+  String get routineFitsDay;
+
+  /// No description provided for @routineFitsDayBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep logging the water you actually drink. Small check-ins build a useful daily picture.'**
+  String get routineFitsDayBody;
+
+  /// No description provided for @amountLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} left'**
+  String amountLeft({required String amount});
+
+  /// No description provided for @weatherAdjusted.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather-adjusted'**
+  String get weatherAdjusted;
+
+  /// No description provided for @noReusableContainerSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'No reusable container saved. Add one in Settings to use it here and in Bottle Bingo.'**
+  String get noReusableContainerSaved;
+
+  /// No description provided for @savedContainerHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved container: {amount}. Select it here to use the same amount as Bottle Bingo.'**
+  String savedContainerHelp({required String amount});
+
+  /// No description provided for @firstLogWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'First log waiting'**
+  String get firstLogWaiting;
+
+  /// No description provided for @momentumEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'One small entry gives the day a shape.'**
+  String get momentumEmptyBody;
+
+  /// No description provided for @momentumDataBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your shark has real data to react to.'**
+  String get momentumDataBody;
+
+  /// No description provided for @challengePick.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge pick'**
+  String get challengePick;
+
+  /// No description provided for @activeChallenge.
+  ///
+  /// In en, this message translates to:
+  /// **'Active challenge'**
+  String get activeChallenge;
+
+  /// No description provided for @bottleBingoReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottle Bingo is ready when you want a playful routine.'**
+  String get bottleBingoReady;
+
+  /// No description provided for @activeChallengeGentle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep today gentle; progress comes from normal logs.'**
+  String get activeChallengeGentle;
+
+  /// No description provided for @progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get progress;
+
+  /// No description provided for @logHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Log history'**
+  String get logHistory;
+
+  /// No description provided for @greetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning, {name}'**
+  String greetingMorning({required String name});
+
+  /// No description provided for @greetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon, {name}'**
+  String greetingAfternoon({required String name});
+
+  /// No description provided for @greetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening, {name}'**
+  String greetingEvening({required String name});
+
+  /// No description provided for @greetingFallbackName.
+  ///
+  /// In en, this message translates to:
+  /// **'there'**
+  String get greetingFallbackName;
+
+  /// No description provided for @recentLogCounted.
+  ///
+  /// In en, this message translates to:
+  /// **'Your recent {amount} log is counted. Give your routine time before deciding what comes next.'**
+  String recentLogCounted({required String amount});
+
+  /// No description provided for @noWaterLoggedToday.
+  ///
+  /// In en, this message translates to:
+  /// **'No water is logged yet today. Add what you have actually consumed when you are ready.'**
+  String get noWaterLoggedToday;
+
+  /// No description provided for @todayLogSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {count, plural, =1{1 log} other{{count} logs}} today. About {remaining} remains.'**
+  String todayLogSummary({required int count, required String remaining});
+
+  /// No description provided for @todayLogSummaryWithContainer.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {count, plural, =1{1 log} other{{count} logs}} today. About {remaining} remains; your {container} container is available as a quick-log amount.'**
+  String todayLogSummaryWithContainer(
+      {required int count,
+      required String remaining,
+      required String container});
+
+  /// No description provided for @goalCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal completed'**
+  String get goalCompleted;
+
+  /// No description provided for @noHydrationLoggedToday.
+  ///
+  /// In en, this message translates to:
+  /// **'No hydration logged today'**
+  String get noHydrationLoggedToday;
+
+  /// No description provided for @todaysHydration.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s hydration'**
+  String get todaysHydration;
+
+  /// No description provided for @onboardingNicknameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a nickname up to 32 characters.'**
+  String get onboardingNicknameInvalid;
+
+  /// No description provided for @onboardingAgeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion independent profiles require an age from 13 to 120.'**
+  String get onboardingAgeInvalid;
+
+  /// No description provided for @onboardingTermsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept the Terms and acknowledge the health disclaimer to continue.'**
+  String get onboardingTermsRequired;
+
+  /// No description provided for @onboardingGoalInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your goal and container size before continuing.'**
+  String get onboardingGoalInvalid;
+
+  /// No description provided for @onboardingCompleteRecognition.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Hydrion setup is complete.'**
+  String get onboardingCompleteRecognition;
+
+  /// No description provided for @onboardingWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Hydrion'**
+  String get onboardingWelcome;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @start.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get start;
+
+  /// No description provided for @continueAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueAction;
+
+  /// No description provided for @onboardingLocalFirstTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion keeps hydration local-first'**
+  String get onboardingLocalFirstTitle;
+
+  /// No description provided for @onboardingMascotSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion mascot'**
+  String get onboardingMascotSemantics;
+
+  /// No description provided for @onboardingLocalFirstBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Track water, goals, reminders, and solo challenges on this device. Optional provider features stay off until you choose them.'**
+  String get onboardingLocalFirstBody;
+
+  /// No description provided for @onboardingBasicProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic profile'**
+  String get onboardingBasicProfile;
+
+  /// No description provided for @nickname.
+  ///
+  /// In en, this message translates to:
+  /// **'Nickname'**
+  String get nickname;
+
+  /// No description provided for @requiredSavedLocally.
+  ///
+  /// In en, this message translates to:
+  /// **'Required, saved locally.'**
+  String get requiredSavedLocally;
+
+  /// No description provided for @age.
+  ///
+  /// In en, this message translates to:
+  /// **'Age'**
+  String get age;
+
+  /// No description provided for @ageOptionalHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Used only for personalized guidance.'**
+  String get ageOptionalHelp;
+
+  /// No description provided for @sexGuidanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sex used for hydration guidance'**
+  String get sexGuidanceLabel;
+
+  /// No description provided for @sexOptionalHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Choose prefer not to say at any time.'**
+  String get sexOptionalHelp;
+
+  /// No description provided for @onboardingProfileNeededForMetrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Save a nickname and supported age before adding body metrics.'**
+  String get onboardingProfileNeededForMetrics;
+
+  /// No description provided for @chooseDefaultAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your default avatar'**
+  String get chooseDefaultAvatar;
+
+  /// No description provided for @goalMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal mode'**
+  String get goalMode;
+
+  /// No description provided for @standardOrManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard or manual'**
+  String get standardOrManual;
+
+  /// No description provided for @personalizedEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Personalized estimate'**
+  String get personalizedEstimate;
+
+  /// No description provided for @standardGoalModeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the standard target or enter your own target.'**
+  String get standardGoalModeHelp;
+
+  /// No description provided for @personalizedGoalModeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Use locally saved body measurements to calculate a general wellness estimate.'**
+  String get personalizedGoalModeHelp;
+
+  /// No description provided for @weatherBaselineHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional weather assistance is selected separately and never replaces your baseline.'**
+  String get weatherBaselineHelp;
+
+  /// No description provided for @hydrationSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration setup'**
+  String get hydrationSetup;
+
+  /// No description provided for @dailyGoalMlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily goal in ml'**
+  String get dailyGoalMlLabel;
+
+  /// No description provided for @dailyGoalSupportedRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported range: 500-5000 ml.'**
+  String get dailyGoalSupportedRange;
+
+  /// No description provided for @displayUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Display unit'**
+  String get displayUnit;
+
+  /// No description provided for @milliliters.
+  ///
+  /// In en, this message translates to:
+  /// **'Milliliters'**
+  String get milliliters;
+
+  /// No description provided for @ounces.
+  ///
+  /// In en, this message translates to:
+  /// **'Ounces'**
+  String get ounces;
+
+  /// No description provided for @containerSizeMlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Usual container size in ml'**
+  String get containerSizeMlLabel;
+
+  /// No description provided for @containerSupportedRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported range: 100-2000 ml.'**
+  String get containerSupportedRange;
+
+  /// No description provided for @usuallyReusable.
+  ///
+  /// In en, this message translates to:
+  /// **'Usually reusable'**
+  String get usuallyReusable;
+
+  /// No description provided for @reusableHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Only enable this if most logged drinks use a reusable bottle or cup.'**
+  String get reusableHelp;
+
+  /// No description provided for @optionalDeviceFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional device features'**
+  String get optionalDeviceFeatures;
+
+  /// No description provided for @reviewBeforeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Review before you start'**
+  String get reviewBeforeStart;
+
+  /// No description provided for @ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get ready;
+
+  /// No description provided for @onboardingReadySemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding ready'**
+  String get onboardingReadySemantics;
+
+  /// No description provided for @onboardingSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion will start with {name}, {avatar}, {goal} ml/day, and local-first tracking.'**
+  String onboardingSummary(
+      {required String name, required String avatar, required String goal});
+
+  /// No description provided for @yourProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'your profile'**
+  String get yourProfile;
+
+  /// No description provided for @sexFemale.
+  ///
+  /// In en, this message translates to:
+  /// **'Female'**
+  String get sexFemale;
+
+  /// No description provided for @sexMale.
+  ///
+  /// In en, this message translates to:
+  /// **'Male'**
+  String get sexMale;
+
+  /// No description provided for @sexIntersex.
+  ///
+  /// In en, this message translates to:
+  /// **'Intersex'**
+  String get sexIntersex;
+
+  /// No description provided for @preferNotToSay.
+  ///
+  /// In en, this message translates to:
+  /// **'Prefer not to say'**
+  String get preferNotToSay;
+
+  /// No description provided for @hydrationReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration reminders'**
+  String get hydrationReminders;
+
+  /// No description provided for @remindersCapabilityHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion can send local reminders on this device. You can enable them now or later.'**
+  String get remindersCapabilityHelp;
+
+  /// No description provided for @remindersNotNowHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now - reminders can be enabled in Settings.'**
+  String get remindersNotNowHelp;
+
+  /// No description provided for @enableReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable reminders'**
+  String get enableReminders;
+
+  /// No description provided for @weatherAssistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather assistance'**
+  String get weatherAssistance;
+
+  /// No description provided for @weatherCapabilityHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion can use approximate location to retrieve local weather and offer a temporary hydration suggestion. Your standard goal still works without it.'**
+  String get weatherCapabilityHelp;
+
+  /// No description provided for @weatherNotNowHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now - your standard hydration goal remains active.'**
+  String get weatherNotNowHelp;
+
+  /// No description provided for @enableWeatherAssistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable weather assistance'**
+  String get enableWeatherAssistance;
+
+  /// No description provided for @waitingForDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the device result...'**
+  String get waitingForDevice;
+
+  /// No description provided for @enabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled'**
+  String get enabled;
+
+  /// No description provided for @capabilityEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: Enabled'**
+  String capabilityEnabled({required String title});
+
+  /// No description provided for @capabilityStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: {status}'**
+  String capabilityStatus({required String title, required String status});
+
+  /// No description provided for @avatarSelectedSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{avatar} avatar selected'**
+  String avatarSelectedSemantics({required String avatar});
+
+  /// No description provided for @selectAvatarSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Select {avatar} avatar'**
+  String selectAvatarSemantics({required String avatar});
+
+  /// No description provided for @skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skip;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @pullToRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull to refresh'**
+  String get pullToRefresh;
+
+  /// No description provided for @tourStepSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{tour} step {current} of {total}'**
+  String tourStepSemantics(
+      {required String tour, required int current, required int total});
+
+  /// No description provided for @achievementSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievement'**
+  String get achievementSemantics;
+
+  /// No description provided for @noCheckInsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No check-ins yet.'**
+  String get noCheckInsYet;
+
+  /// No description provided for @coachPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach'**
+  String get coachPreviewTitle;
+
+  /// No description provided for @coachPreviewComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion Coach is being prepared for a future update.'**
+  String get coachPreviewComingSoon;
+
+  /// No description provided for @coachPreviewGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'For now, keep logging water and tracking your daily progress.'**
+  String get coachPreviewGuidance;
+
+  /// No description provided for @reminderNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion reminder'**
+  String get reminderNotificationTitle;
+
+  /// No description provided for @reminderChannelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration reminders'**
+  String get reminderChannelName;
+
+  /// No description provided for @reminderChannelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Local reminders for user-created Hydrion hydration check-ins.'**
+  String get reminderChannelDescription;
+
+  /// No description provided for @challengeAroundWorldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Around the World Infusion Week'**
+  String get challengeAroundWorldTitle;
+
+  /// No description provided for @challengeAroundWorldDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Try seven no-added-sugar infusion themes while maintaining your normal hydration goal.'**
+  String get challengeAroundWorldDescription;
+
+  /// No description provided for @challengeTemperatureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature Roulette'**
+  String get challengeTemperatureTitle;
+
+  /// No description provided for @challengeTemperatureDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare comfortable water temperatures as a preference experiment.'**
+  String get challengeTemperatureDescription;
+
+  /// No description provided for @challengeEatWaterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Eat Your Water Day'**
+  String get challengeEatWaterTitle;
+
+  /// No description provided for @challengeEatWaterDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Include one selected water-rich food in a meal without inventing hydration volume.'**
+  String get challengeEatWaterDescription;
+
+  /// No description provided for @challengePomodoroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pomodoro Sip'**
+  String get challengePomodoroTitle;
+
+  /// No description provided for @challengePomodoroDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair modest hydration check-ins with manually confirmed focus-session breaks.'**
+  String get challengePomodoroDescription;
+
+  /// No description provided for @challengePlantTwinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plant Twin Challenge'**
+  String get challengePlantTwinTitle;
+
+  /// No description provided for @challengePlantTwinDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use one plant-care cue as a reminder to review your hydration routine.'**
+  String get challengePlantTwinDescription;
+
+  /// No description provided for @challengeBottleBingoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottle Bingo'**
+  String get challengeBottleBingoTitle;
+
+  /// No description provided for @challengeBottleBingoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete a weekly mix of explicit hydration actions and non-hydration check-ins.'**
+  String get challengeBottleBingoDescription;
+
+  /// No description provided for @challengeLunchRefillTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lunch Break Refill'**
+  String get challengeLunchRefillTitle;
+
+  /// No description provided for @challengeLunchRefillDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a lunch break to check and refill your bottle when useful.'**
+  String get challengeLunchRefillDescription;
+
+  /// No description provided for @challengeHomeworkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Homework Hydration'**
+  String get challengeHomeworkTitle;
+
+  /// No description provided for @challengeHomeworkDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair a comfortable hydration check with a study break.'**
+  String get challengeHomeworkDescription;
+
+  /// No description provided for @challengeAfterSchoolTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'After-School Recharge'**
+  String get challengeAfterSchoolTitle;
+
+  /// No description provided for @challengeAfterSchoolDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause after your daytime routine and review your hydration.'**
+  String get challengeAfterSchoolDescription;
+
+  /// No description provided for @challengeBackpackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backpack Bottle Check'**
+  String get challengeBackpackTitle;
+
+  /// No description provided for @challengeBackpackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a packing cue to prepare a reusable bottle.'**
+  String get challengeBackpackDescription;
+
+  /// No description provided for @challengeDeskResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Desk-Day Reset'**
+  String get challengeDeskResetTitle;
+
+  /// No description provided for @challengeDeskResetDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use an optional seated break to review your hydration.'**
+  String get challengeDeskResetDescription;
+
+  /// No description provided for @challengeShiftCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shift Hydration Check'**
+  String get challengeShiftCheckTitle;
+
+  /// No description provided for @challengeShiftCheckDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an optional hydration check midway through a work period.'**
+  String get challengeShiftCheckDescription;
+
+  /// No description provided for @challengeCommuteCupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Commute Cup'**
+  String get challengeCommuteCupTitle;
+
+  /// No description provided for @challengeCommuteCupDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use departure or arrival as an optional hydration cue.'**
+  String get challengeCommuteCupDescription;
+
+  /// No description provided for @challengeEveningReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Evening Goal Review'**
+  String get challengeEveningReviewTitle;
+
+  /// No description provided for @challengeEveningReviewDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review your day and decide whether your plan still feels right.'**
+  String get challengeEveningReviewDescription;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @aboutAndLegal.
+  ///
+  /// In en, this message translates to:
+  /// **'About & Legal'**
+  String get aboutAndLegal;
+
+  /// No description provided for @openSourceLicenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Source Licenses'**
+  String get openSourceLicenses;
+
+  /// No description provided for @openSourceLicensesSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Flutter and package license notices.'**
+  String get openSourceLicensesSummary;
+
+  /// No description provided for @openSourceLegalese.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion uses open-source components under their licenses.'**
+  String get openSourceLegalese;
+
+  /// No description provided for @legalDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Legal document'**
+  String get legalDocument;
+
+  /// No description provided for @reviewHydrionTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Review Hydrion terms'**
+  String get reviewHydrionTerms;
+
+  /// No description provided for @continueToHydrion.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to Hydrion'**
+  String get continueToHydrion;
+
+  /// No description provided for @acceptHydrionTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'I accept the Hydrion Terms of Use.'**
+  String get acceptHydrionTerms;
+
+  /// No description provided for @acknowledgeHealthDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'I acknowledge the Health and Safety Disclaimer.'**
+  String get acknowledgeHealthDisclaimer;
+
+  /// No description provided for @supportEmailCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Support email copied.'**
+  String get supportEmailCopied;
+
+  /// No description provided for @documentVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String documentVersion({required Object version});
+
+  /// No description provided for @documentEffective.
+  ///
+  /// In en, this message translates to:
+  /// **'Effective {date}'**
+  String documentEffective({required Object date});
+
+  /// No description provided for @documentUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {date}'**
+  String documentUpdated({required Object date});
+
+  /// No description provided for @homeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get homeTitle;
+
+  /// No description provided for @pausedChallengesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get pausedChallengesTitle;
+
+  /// No description provided for @pausedChallengeSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress saved. New logs are not evaluated.'**
+  String get pausedChallengeSummary;
+
+  /// No description provided for @weatherConditionTemperature.
+  ///
+  /// In en, this message translates to:
+  /// **'{condition} - {temperature}°C'**
+  String weatherConditionTemperature(
+      {required Object condition, required Object temperature});
+
+  /// No description provided for @weatherClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get weatherClear;
+
+  /// No description provided for @weatherCloudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudy'**
+  String get weatherCloudy;
+
+  /// No description provided for @weatherFog.
+  ///
+  /// In en, this message translates to:
+  /// **'Fog'**
+  String get weatherFog;
+
+  /// No description provided for @weatherRain.
+  ///
+  /// In en, this message translates to:
+  /// **'Rain'**
+  String get weatherRain;
+
+  /// No description provided for @weatherSnow.
+  ///
+  /// In en, this message translates to:
+  /// **'Snow'**
+  String get weatherSnow;
+
+  /// No description provided for @weatherStorm.
+  ///
+  /// In en, this message translates to:
+  /// **'Storm'**
+  String get weatherStorm;
+
+  /// No description provided for @weatherMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get weatherMixed;
+
+  /// No description provided for @weatherUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get weatherUnknown;
+
+  /// No description provided for @tourHydrationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your daily hydration and remaining amount appear here.'**
+  String get tourHydrationBody;
+
+  /// No description provided for @tourLogWater.
+  ///
+  /// In en, this message translates to:
+  /// **'Log water'**
+  String get tourLogWater;
+
+  /// No description provided for @tourLogWaterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Log the amount you actually drink. Use a saved container or choose another amount.'**
+  String get tourLogWaterBody;
+
+  /// No description provided for @tourReviewCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Review and correct'**
+  String get tourReviewCorrect;
+
+  /// No description provided for @tourReviewCorrectBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Review, edit, or remove a hydration entry if you make a mistake.'**
+  String get tourReviewCorrectBody;
+
+  /// No description provided for @tourChallengesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenges add optional habits and tasks. Challenge water still counts normally.'**
+  String get tourChallengesBody;
+
+  /// No description provided for @tourProgressRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress and refresh'**
+  String get tourProgressRefresh;
+
+  /// No description provided for @tourProgressRefreshBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Review your latest totals here. Pull down to refresh hydration and challenge progress.'**
+  String get tourProgressRefreshBody;
+
+  /// No description provided for @seeWhatsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'See what\'s new'**
+  String get seeWhatsNew;
+
+  /// No description provided for @seeWhatsNewBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a short tour of hydration, challenges, and progress.'**
+  String get seeWhatsNewBody;
+
+  /// No description provided for @showMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Show me'**
+  String get showMe;
+
+  /// No description provided for @challengeOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge options'**
+  String get challengeOptions;
+
+  /// No description provided for @challengeSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge settings'**
+  String get challengeSettings;
+
+  /// No description provided for @leaveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get leaveAction;
+
+  /// No description provided for @challengeTutorialSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} tutorial'**
+  String challengeTutorialSemantics({required Object title});
+
+  /// No description provided for @tourOpenTile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a tile'**
+  String get tourOpenTile;
+
+  /// No description provided for @tourOpenTileBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open any tile to see exactly what it requires.'**
+  String get tourOpenTileBody;
+
+  /// No description provided for @tourAutomaticTiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic tiles'**
+  String get tourAutomaticTiles;
+
+  /// No description provided for @tourAutomaticTilesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Some tiles update automatically from your normal hydration logs.'**
+  String get tourAutomaticTilesBody;
+
+  /// No description provided for @tourActionsCheckIns.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions and check-ins'**
+  String get tourActionsCheckIns;
+
+  /// No description provided for @tourActionsCheckInsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Other tiles ask for a measured drink or a simple check-in.'**
+  String get tourActionsCheckInsBody;
+
+  /// No description provided for @tourMakeBingo.
+  ///
+  /// In en, this message translates to:
+  /// **'Make Bingo'**
+  String get tourMakeBingo;
+
+  /// No description provided for @tourMakeBingoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete five tiles in a row, column, or diagonal to make Bingo.'**
+  String get tourMakeBingoBody;
+
+  /// No description provided for @tourStartFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a focus session'**
+  String get tourStartFocus;
+
+  /// No description provided for @tourStartFocusBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Start the timer when you begin a focus session.'**
+  String get tourStartFocusBody;
+
+  /// No description provided for @tourChooseAfterTimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose after the timer'**
+  String get tourChooseAfterTimer;
+
+  /// No description provided for @tourChooseAfterTimerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When it ends, confirm a sip or log a measured drink.'**
+  String get tourChooseAfterTimerBody;
+
+  /// No description provided for @tourSipNoWater.
+  ///
+  /// In en, this message translates to:
+  /// **'Sip check-ins add no water'**
+  String get tourSipNoWater;
+
+  /// No description provided for @tourSipNoWaterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A sip check-in never adds a guessed hydration amount.'**
+  String get tourSipNoWaterBody;
+
+  /// No description provided for @tourMeasuredDrinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Measured drinks count normally'**
+  String get tourMeasuredDrinks;
+
+  /// No description provided for @tourMeasuredDrinksBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A measured drink updates normal hydration and may qualify another active challenge.'**
+  String get tourMeasuredDrinksBody;
+
+  /// No description provided for @tourTodaysTemperature.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s temperature'**
+  String get tourTodaysTemperature;
+
+  /// No description provided for @tourTodaysTemperatureBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Review today\'s assigned temperature style.'**
+  String get tourTodaysTemperatureBody;
+
+  /// No description provided for @tourWeatherBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When enabled, local weather may influence the recommendation.'**
+  String get tourWeatherBody;
+
+  /// No description provided for @tourLogWithContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Log with context'**
+  String get tourLogWithContext;
+
+  /// No description provided for @tourLogWithContextBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the challenge action or add temperature details when logging from Home.'**
+  String get tourLogWithContextBody;
+
+  /// No description provided for @tourTodaysInfusion.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s infusion'**
+  String get tourTodaysInfusion;
+
+  /// No description provided for @tourTodaysInfusionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Review today\'s infusion theme.'**
+  String get tourTodaysInfusionBody;
+
+  /// No description provided for @tourPrepareNoSugar.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepare without added sugar'**
+  String get tourPrepareNoSugar;
+
+  /// No description provided for @tourPrepareNoSugarBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the theme without adding sugar.'**
+  String get tourPrepareNoSugarBody;
+
+  /// No description provided for @tourLogWhatYouDrink.
+  ///
+  /// In en, this message translates to:
+  /// **'Log what you drink'**
+  String get tourLogWhatYouDrink;
+
+  /// No description provided for @tourLogWhatYouDrinkBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Record the measured amount you actually drink.'**
+  String get tourLogWhatYouDrinkBody;
+
+  /// No description provided for @whatChallengeIs.
+  ///
+  /// In en, this message translates to:
+  /// **'What this challenge is'**
+  String get whatChallengeIs;
+
+  /// No description provided for @whatYouWillDo.
+  ///
+  /// In en, this message translates to:
+  /// **'What you will do'**
+  String get whatYouWillDo;
+
+  /// No description provided for @whatCounts.
+  ///
+  /// In en, this message translates to:
+  /// **'What counts'**
+  String get whatCounts;
+
+  /// No description provided for @whatDoesNotCount.
+  ///
+  /// In en, this message translates to:
+  /// **'What does not count'**
+  String get whatDoesNotCount;
+
+  /// No description provided for @duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get duration;
+
+  /// No description provided for @challengeDurationHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} local calendar days. The challenge starts when joined. Daily requirements reset at local midnight; missed days are not silently recovered.'**
+  String challengeDurationHelp({required Object days});
+
+  /// No description provided for @completeSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete schedule'**
+  String get completeSchedule;
+
+  /// No description provided for @challengeScheduleDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {day}: {item}'**
+  String challengeScheduleDay({required Object day, required Object item});
+
+  /// No description provided for @howItWorks.
+  ///
+  /// In en, this message translates to:
+  /// **'How it works'**
+  String get howItWorks;
+
+  /// No description provided for @hydrationProgressPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration, progress, and privacy'**
+  String get hydrationProgressPrivacy;
+
+  /// No description provided for @hydrationProgressPrivacyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your usual hydration goal stays active. Measured drinks appear throughout Hydrion, while check-ins add no water. Challenge setup and progress stay on this device.'**
+  String get hydrationProgressPrivacyBody;
+
+  /// No description provided for @requiredSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Required setup'**
+  String get requiredSetup;
+
+  /// No description provided for @requiredSetupHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the details that fit your routine.'**
+  String get requiredSetupHelp;
+
+  /// No description provided for @amountInFluidOunces.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount in fluid ounces'**
+  String get amountInFluidOunces;
+
+  /// No description provided for @dateAndTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Date and time'**
+  String get dateAndTime;
+
+  /// No description provided for @notSpecified.
+  ///
+  /// In en, this message translates to:
+  /// **'Not specified'**
+  String get notSpecified;
+
+  /// No description provided for @addReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add reminder'**
+  String get addReminder;
+
+  /// No description provided for @editReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit reminder'**
+  String get editReminder;
+
+  /// No description provided for @reminderDefaultMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Time for a gentle hydration check-in.'**
+  String get reminderDefaultMessage;
+
+  /// No description provided for @messageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get messageLabel;
+
+  /// No description provided for @minutesFromNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes from now'**
+  String get minutesFromNow;
+
+  /// No description provided for @minutesRangeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 5 to 1440 minutes.'**
+  String get minutesRangeHelp;
+
+  /// No description provided for @priorityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority'**
+  String get priorityLabel;
+
+  /// No description provided for @reminderDetailsInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Check reminder details and try again.'**
+  String get reminderDetailsInvalid;
+
+  /// No description provided for @ageRangeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an age from 13 to 120.'**
+  String get ageRangeError;
+
+  /// No description provided for @ageSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The age could not be saved. Try again.'**
+  String get ageSaveFailed;
+
+  /// No description provided for @profileDeleteDeviceSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes local Hydrion profile, hydration, reminder, and challenge data from this device.'**
+  String get profileDeleteDeviceSummary;
+
+  /// No description provided for @reviewProfileAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Review profile age'**
+  String get reviewProfileAge;
+
+  /// No description provided for @independentProfileAgeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion independent profiles support ages 13 and older.'**
+  String get independentProfileAgeHelp;
+
+  /// No description provided for @ageReviewExistingDataHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Your existing local data is still here. If the saved age was entered incorrectly, correct it once below. Otherwise, delete the local profile and restart.'**
+  String get ageReviewExistingDataHelp;
+
+  /// No description provided for @correctAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct age'**
+  String get correctAge;
+
+  /// No description provided for @saveAgeCorrection.
+  ///
+  /// In en, this message translates to:
+  /// **'Save age correction'**
+  String get saveAgeCorrection;
+
+  /// No description provided for @optionalDeviceAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional device access'**
+  String get optionalDeviceAccess;
+
+  /// No description provided for @optionalDeviceAccessHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion works with a standard hydration goal even when you skip these options.'**
+  String get optionalDeviceAccessHelp;
+
+  /// No description provided for @preciseReminderTiming.
+  ///
+  /// In en, this message translates to:
+  /// **'Precise reminder timing'**
+  String get preciseReminderTiming;
+
+  /// No description provided for @allowNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow notifications'**
+  String get allowNotifications;
+
+  /// No description provided for @continueWithoutReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue without reminders'**
+  String get continueWithoutReminders;
+
+  /// No description provided for @allowLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location'**
+  String get allowLocation;
+
+  /// No description provided for @continueWithStandardGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with standard goal'**
+  String get continueWithStandardGoal;
+
+  /// No description provided for @openAlarmSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Alarms and reminders settings'**
+  String get openAlarmSettings;
+
+  /// No description provided for @continueApproximateScheduling.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with approximate scheduling'**
+  String get continueApproximateScheduling;
+
+  /// No description provided for @refreshStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh status'**
+  String get refreshStatus;
+
+  /// No description provided for @requesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Requesting'**
+  String get requesting;
+
+  /// No description provided for @waitingPermissionResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the device permission result...'**
+  String get waitingPermissionResult;
+
+  /// No description provided for @openDeviceSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open device settings'**
+  String get openDeviceSettings;
+
+  /// No description provided for @permissionNotRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Not requested'**
+  String get permissionNotRequested;
+
+  /// No description provided for @permissionApproximateEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Approximate location enabled'**
+  String get permissionApproximateEnabled;
+
+  /// No description provided for @permissionPreciseEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Precise location enabled'**
+  String get permissionPreciseEnabled;
+
+  /// No description provided for @permissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Denied'**
+  String get permissionDenied;
+
+  /// No description provided for @permissionBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked'**
+  String get permissionBlocked;
+
+  /// No description provided for @permissionRestricted.
+  ///
+  /// In en, this message translates to:
+  /// **'Restricted'**
+  String get permissionRestricted;
+
+  /// No description provided for @permissionNotRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Not required'**
+  String get permissionNotRequired;
+
+  /// No description provided for @permissionUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported'**
+  String get permissionUnsupported;
+
+  /// No description provided for @permissionTemporarilyUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporarily unavailable'**
+  String get permissionTemporarilyUnavailable;
+
+  /// No description provided for @permissionStatusUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Status unavailable'**
+  String get permissionStatusUnavailable;
+
+  /// No description provided for @permissionNotificationUnchecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification status has not been checked yet.'**
+  String get permissionNotificationUnchecked;
+
+  /// No description provided for @permissionLocationUnchecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Location status has not been checked yet.'**
+  String get permissionLocationUnchecked;
+
+  /// No description provided for @permissionAlarmUnchecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Alarm scheduling status has not been checked yet.'**
+  String get permissionAlarmUnchecked;
+
+  /// No description provided for @permissionNotificationsAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are allowed for Hydrion.'**
+  String get permissionNotificationsAllowed;
+
+  /// No description provided for @permissionNotificationsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are off. You can allow them here or in device settings.'**
+  String get permissionNotificationsOff;
+
+  /// No description provided for @permissionNotificationsNotAsked.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion has not asked to send notifications yet.'**
+  String get permissionNotificationsNotAsked;
+
+  /// No description provided for @permissionNotificationsBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are blocked. Open device settings to allow them.'**
+  String get permissionNotificationsBlocked;
+
+  /// No description provided for @permissionNotificationStatusUnavailableAndroid.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion could not read the Android notification status.'**
+  String get permissionNotificationStatusUnavailableAndroid;
+
+  /// No description provided for @permissionNotificationsUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion notifications are not supported on this platform.'**
+  String get permissionNotificationsUnsupported;
+
+  /// No description provided for @permissionNotificationStatusTemporary.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification status is temporarily unavailable. Refresh to try again.'**
+  String get permissionNotificationStatusTemporary;
+
+  /// No description provided for @permissionPreciseLocationAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Precise foreground location is allowed. Approximate location is sufficient for Hydrion weather.'**
+  String get permissionPreciseLocationAllowed;
+
+  /// No description provided for @permissionApproximateLocationAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Approximate foreground location is allowed and is sufficient for weather assistance.'**
+  String get permissionApproximateLocationAllowed;
+
+  /// No description provided for @permissionLocationOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is off. Your standard hydration goal still works.'**
+  String get permissionLocationOff;
+
+  /// No description provided for @permissionLocationNotAsked.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion has not asked for location yet.'**
+  String get permissionLocationNotAsked;
+
+  /// No description provided for @permissionLocationBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is blocked. Open device settings to enable weather assistance.'**
+  String get permissionLocationBlocked;
+
+  /// No description provided for @permissionLocationRestricted.
+  ///
+  /// In en, this message translates to:
+  /// **'Location access is restricted by the device.'**
+  String get permissionLocationRestricted;
+
+  /// No description provided for @permissionLocationServicesOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Device location services are off. Your standard goal remains available.'**
+  String get permissionLocationServicesOff;
+
+  /// No description provided for @permissionLocationUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Location-based weather assistance is not supported on this platform.'**
+  String get permissionLocationUnsupported;
+
+  /// No description provided for @permissionLocationStatusTemporary.
+  ///
+  /// In en, this message translates to:
+  /// **'Location status is temporarily unavailable. Refresh to try again.'**
+  String get permissionLocationStatusTemporary;
+
+  /// No description provided for @permissionExactAlarmNotRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Special exact-alarm access is not required on this device.'**
+  String get permissionExactAlarmNotRequired;
+
+  /// No description provided for @permissionExactAlarmAndroidOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact-alarm access is Android-specific.'**
+  String get permissionExactAlarmAndroidOnly;
+
+  /// No description provided for @permissionExactSchedulingAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact reminder scheduling is available.'**
+  String get permissionExactSchedulingAvailable;
+
+  /// No description provided for @permissionExactSchedulingApproximate.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact scheduling is unavailable. Hydrion will continue with approximate reminders.'**
+  String get permissionExactSchedulingApproximate;
+
+  /// No description provided for @historyFocusEndedEarly.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended focus session {session} early'**
+  String historyFocusEndedEarly({required Object session});
+
+  /// No description provided for @historyFocusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed focus session {session}'**
+  String historyFocusCompleted({required Object session});
+
+  /// No description provided for @historyBingoTileCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed {tile}'**
+  String historyBingoTileCompleted({required Object tile});
+
+  /// No description provided for @historyBingoLineCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed Bottle Bingo line {line}'**
+  String historyBingoLineCompleted({required Object line});
+
+  /// No description provided for @historyTemperatureDrink.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged a {style} drink{amount}'**
+  String historyTemperatureDrink(
+      {required Object amount, required Object style});
+
+  /// No description provided for @historyInfusionTried.
+  ///
+  /// In en, this message translates to:
+  /// **'Tried the {theme} infusion{amount}'**
+  String historyInfusionTried({required Object amount, required Object theme});
+
+  /// No description provided for @historyPomodoroDrink.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged a Pomodoro drink{amount}'**
+  String historyPomodoroDrink({required Object amount});
+
+  /// No description provided for @historyPomodoroSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed a Pomodoro focus session{amount}'**
+  String historyPomodoroSession({required Object amount});
+
+  /// No description provided for @historyPomodoroSessionNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed Pomodoro session {session}{amount}'**
+  String historyPomodoroSessionNumber(
+      {required Object amount, required Object session});
+
+  /// No description provided for @historyFoodAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {food} to {meal}'**
+  String historyFoodAdded({required Object food, required Object meal});
+
+  /// No description provided for @historyCueCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed the {cue}'**
+  String historyCueCompleted({required Object cue});
+
+  /// No description provided for @historyChallengeTaskCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed a challenge task'**
+  String get historyChallengeTaskCompleted;
+
+  /// No description provided for @historyChallengeDrink.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged a challenge drink{amount}'**
+  String historyChallengeDrink({required Object amount});
+
+  /// No description provided for @historyBottleBingoDrink.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged a Bottle Bingo drink{amount}'**
+  String historyBottleBingoDrink({required Object amount});
+
+  /// No description provided for @historyMeasuredFocusDrink.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged a measured focus-session drink{amount}'**
+  String historyMeasuredFocusDrink({required Object amount});
+
+  /// No description provided for @assignedTemperature.
+  ///
+  /// In en, this message translates to:
+  /// **'assigned temperature'**
+  String get assignedTemperature;
+
+  /// No description provided for @scheduledTemperature.
+  ///
+  /// In en, this message translates to:
+  /// **'scheduled temperature'**
+  String get scheduledTemperature;
+
+  /// No description provided for @dailyValue.
+  ///
+  /// In en, this message translates to:
+  /// **'daily'**
+  String get dailyValue;
+
+  /// No description provided for @mealValue.
+  ///
+  /// In en, this message translates to:
+  /// **'meal'**
+  String get mealValue;
+
+  /// No description provided for @waterRichFood.
+  ///
+  /// In en, this message translates to:
+  /// **'water-rich food'**
+  String get waterRichFood;
+
+  /// No description provided for @plantCareCue.
+  ///
+  /// In en, this message translates to:
+  /// **'plant-care cue'**
+  String get plantCareCue;
+
+  /// No description provided for @bottleBingoTile.
+  ///
+  /// In en, this message translates to:
+  /// **'a Bottle Bingo tile'**
+  String get bottleBingoTile;
+
+  /// No description provided for @bottleBingoDrink.
+  ///
+  /// In en, this message translates to:
+  /// **'a Bottle Bingo drink'**
+  String get bottleBingoDrink;
+
+  /// No description provided for @editProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit profile'**
+  String get editProfile;
+
+  /// No description provided for @localProfilePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Local profile photo'**
+  String get localProfilePhoto;
+
+  /// No description provided for @profilePhotoSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile photo saved locally.'**
+  String get profilePhotoSaved;
+
+  /// No description provided for @profilePhotoTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'That photo was too large for local profile storage.'**
+  String get profilePhotoTooLarge;
+
+  /// No description provided for @profileEditorSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your Hydrion identity and preferences. This does not restart onboarding or delete history.'**
+  String get profileEditorSummary;
+
+  /// No description provided for @profilePhotoPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected photos are used only as your local profile image. You can remove the photo and return to the default avatar any time.'**
+  String get profilePhotoPrivacy;
+
+  /// No description provided for @legal.
+  ///
+  /// In en, this message translates to:
+  /// **'Legal'**
+  String get legal;
+
+  /// No description provided for @hydrationIdentity.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration identity'**
+  String get hydrationIdentity;
+
+  /// No description provided for @dailyGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily goal'**
+  String get dailyGoal;
+
+  /// No description provided for @units.
+  ///
+  /// In en, this message translates to:
+  /// **'Units'**
+  String get units;
+
+  /// No description provided for @preferredContainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred container'**
+  String get preferredContainer;
+
+  /// No description provided for @notSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get notSet;
+
+  /// No description provided for @noRemindersYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No reminders yet'**
+  String get noRemindersYet;
+
+  /// No description provided for @savedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} saved'**
+  String savedCount({required int count});
+
+  /// No description provided for @contactEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact: {email}'**
+  String contactEmail({required String email});
+
+  /// No description provided for @editProfileInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the profile fields and try again.'**
+  String get editProfileInvalid;
+
+  /// No description provided for @choosePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose photo'**
+  String get choosePhoto;
+
+  /// No description provided for @useDefaultAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Use default avatar'**
+  String get useDefaultAvatar;
+
+  /// No description provided for @displayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name'**
+  String get displayName;
+
+  /// No description provided for @defaultProfileAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Default profile avatar'**
+  String get defaultProfileAvatar;
+
+  /// No description provided for @baselineDailyGoalMl.
+  ///
+  /// In en, this message translates to:
+  /// **'Baseline daily goal in mL'**
+  String get baselineDailyGoalMl;
+
+  /// No description provided for @preferredContainerMl.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred container in mL'**
+  String get preferredContainerMl;
+
+  /// No description provided for @personalized.
+  ///
+  /// In en, this message translates to:
+  /// **'Personalized'**
+  String get personalized;
+
+  /// No description provided for @saveProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Save profile'**
+  String get saveProfile;
+
+  /// No description provided for @whyHydrionExists.
+  ///
+  /// In en, this message translates to:
+  /// **'Why Hydrion exists'**
+  String get whyHydrionExists;
+
+  /// No description provided for @missionAndCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission and community'**
+  String get missionAndCommunity;
+
+  /// No description provided for @help.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get help;
+
+  /// No description provided for @replayAppTour.
+  ///
+  /// In en, this message translates to:
+  /// **'App tour - Replay the quick guide'**
+  String get replayAppTour;
+
+  /// No description provided for @appearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearance;
+
+  /// No description provided for @useDeviceSetting.
+  ///
+  /// In en, this message translates to:
+  /// **'Use device setting'**
+  String get useDeviceSetting;
+
+  /// No description provided for @automaticDayNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic day/night'**
+  String get automaticDayNight;
+
+  /// No description provided for @dayTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get dayTheme;
+
+  /// No description provided for @nightTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Night'**
+  String get nightTheme;
+
+  /// No description provided for @deviceSetting.
+  ///
+  /// In en, this message translates to:
+  /// **'Device setting'**
+  String get deviceSetting;
+
+  /// No description provided for @autoDayNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto day/night'**
+  String get autoDayNight;
+
+  /// No description provided for @dailyGoalPerDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} mL/day'**
+  String dailyGoalPerDay({required int amount});
+
+  /// No description provided for @amountInOz.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount in oz'**
+  String get amountInOz;
+
+  /// No description provided for @containerSharedHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'One saved amount is used by Home and Bottle Bingo.'**
+  String get containerSharedHelp;
+
+  /// No description provided for @containerAmountInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount from 100 to 2000 mL.'**
+  String get containerAmountInvalid;
+
+  /// No description provided for @permissionsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Review reminders, weather location, and Android alarm access.'**
+  String get permissionsSummary;
+
+  /// No description provided for @legalPrivacySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Legal, privacy, and support'**
+  String get legalPrivacySupport;
+
+  /// No description provided for @widgetNoActiveChallenge.
+  ///
+  /// In en, this message translates to:
+  /// **'No active challenge'**
+  String get widgetNoActiveChallenge;
+
+  /// No description provided for @widgetChooseChallenge.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Hydrion to choose a challenge.'**
+  String get widgetChooseChallenge;
+
+  /// No description provided for @widgetOpenChallenges.
+  ///
+  /// In en, this message translates to:
+  /// **'Open challenges'**
+  String get widgetOpenChallenges;
+
+  /// No description provided for @widgetChallengePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge paused'**
+  String get widgetChallengePaused;
+
+  /// No description provided for @widgetActivityActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity active'**
+  String get widgetActivityActive;
+
+  /// No description provided for @widgetActivityPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity paused'**
+  String get widgetActivityPaused;
+
+  /// No description provided for @widgetActivityComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s activity complete'**
+  String get widgetActivityComplete;
+
+  /// No description provided for @widgetCheckpointProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed} of {total} checkpoints today'**
+  String widgetCheckpointProgress({required int completed, required int total});
+
+  /// No description provided for @widgetOpenToContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Hydrion to continue'**
+  String get widgetOpenToContinue;
+
+  /// No description provided for @widgetOpenChallenge.
+  ///
+  /// In en, this message translates to:
+  /// **'Open challenge'**
+  String get widgetOpenChallenge;
 }
 
 class _AppLocalizationsDelegate

@@ -175,7 +175,10 @@ void main() {
       );
       expect(warning.changed, isFalse);
       expect(warning.effect, ChallengeEditEffect.restartRequired);
-      expect(warning.message, contains('new challenge attempt'));
+      expect(
+        warning.messageCode,
+        ChallengeEditMessageCode.restartConfirmationRequired,
+      );
 
       final restarted = await repository.editParameter(
         challengeId: 'pomodoro-sip',

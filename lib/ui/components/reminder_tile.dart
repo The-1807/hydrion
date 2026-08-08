@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../services/notifications.dart';
 import '../../services/reminder_feedback.dart';
+import '../presentation/reminder_feedback_presenter.dart';
 
 class ReminderTile extends StatefulWidget {
   final int shortfallMl;
@@ -50,7 +51,7 @@ class _ReminderTileState extends State<ReminderTile> {
           content: Text(
             reminder == null
                 ? l10n.noLocalReminderNeeded
-                : ReminderFeedback.status(reminder),
+                : reminderFeedbackText(l10n, ReminderFeedback.status(reminder)),
           ),
         ),
       );
@@ -78,23 +79,24 @@ class _ReminderTileState extends State<ReminderTile> {
     final scheduledAt = nextReminder?.triggerTime;
     final notificationStatus = nextReminder == null
         ? (capabilities.osNotifications
-            ? 'Local notifications can be scheduled after permission.'
+            ? l10n.osNotificationsAvailableSentence
             : l10n.osNotificationsDisabledSentence)
-        : ReminderFeedback.status(nextReminder);
+        : reminderFeedbackText(l10n, ReminderFeedback.status(nextReminder));
 
     return ListTile(
       leading: Icon(Icons.notifications, color: scheme.primary),
       title: Text(
-        'Hydration reminder',
+        l10n.hydrationReminders,
         style: Theme.of(context).textTheme.titleMedium,
       ),
       subtitle: Text(
         scheduledAt == null
-            ? 'No reminders saved. $notificationStatus'
-            : '${reminders.length} saved. Next: '
-                '${scheduledAt.hour.toString().padLeft(2, '0')}:'
-                '${scheduledAt.minute.toString().padLeft(2, '0')}. '
-                '$notificationStatus',
+            ? l10n.reminderTileNoSaved(notificationStatus: notificationStatus)
+            : l10n.reminderTileSaved(
+                count: reminders.length,
+                time: TimeOfDay.fromDateTime(scheduledAt).format(context),
+                notificationStatus: notificationStatus,
+              ),
         style: Theme.of(context)
             .textTheme
             .bodyMedium

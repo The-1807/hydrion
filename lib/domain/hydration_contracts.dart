@@ -490,18 +490,31 @@ enum HydrationAiActionExecutionStatus {
   rejected,
 }
 
+enum HydrationAiExecutionMessageCode {
+  validationRejected,
+  confirmationRequired,
+  generatedContent,
+  hydrationLogRejected,
+  hydrationLogApplied,
+  reminderApplied,
+  challengeApplied,
+  unsupportedAction,
+}
+
 class HydrationAiActionExecutionResult {
   final HydrationAiAction originalAction;
   final HydrationAiActionValidationResult validationResult;
   final HydrationAiActionExecutionStatus status;
-  final String message;
+  final HydrationAiExecutionMessageCode messageCode;
+  final String? generatedMessage;
   final String? appliedEntityId;
 
   const HydrationAiActionExecutionResult({
     required this.originalAction,
     required this.validationResult,
     required this.status,
-    required this.message,
+    required this.messageCode,
+    this.generatedMessage,
     this.appliedEntityId,
   });
 

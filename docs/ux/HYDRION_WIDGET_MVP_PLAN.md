@@ -1,28 +1,38 @@
-# Hydrion Android Widget MVP
+# Hydrion Android Active Challenge Widget
 
 ## Included
 
-### Daily Progress
+Hydrion ships one state-driven Android home-screen widget for the current
+active challenge. It reads the canonical persisted challenge record and shows:
 
-A small Android home-screen widget shows today's total, current goal, percentage, status, and a progress bar.
+- the challenge title;
+- a concise active, paused, available, or completed state;
+- today's deliberate checkpoint progress where applicable;
+- one action that opens the exact challenge activity.
 
-### Quick Log + Progress
+When there is no active challenge, the widget offers a privacy-safe route to
+the challenge list. Refreshing or tapping the widget never records challenge
+progress and never creates a hydration log.
 
-A medium Android home-screen widget adds one quick-log action. It uses the saved reusable-container amount when enabled and otherwise uses 250 ml. The action enters Hydrion through the existing hydration repository. Repeated taps against the same widget state share an action id and are deduplicated.
+The widget uses `home_widget` for the Flutter/native bridge and Android
+`RemoteViews` for launcher rendering. It has no independent progress database.
+Snapshots exclude age, sex, pregnancy, BMI, clinical targets, restrictions,
+hydration totals, and eligibility metadata.
 
-Both widgets use `home_widget` for the Flutter/native bridge and native `RemoteViews` for reliable Android rendering. Data remains local. Widgets never expose BMI, age, reproductive state, clinical targets, restrictions, eligibility metadata, or internal identifiers.
+## Visual And Accessibility Rules
 
-## Notification Icon Decision
-
-Full challenge illustrations depend on color and detail and are unsuitable for Android's monochrome small-icon mask. Hydrion therefore keeps a compliant system small icon. The Pomodoro Sip notification may use its dedicated monochrome timer vector because it remains legible under Android masking. Challenge identity otherwise belongs in notification title/body and the destination screen.
+- Use a compact Hydrion challenge presentation rather than detailed hero art.
+- Maintain readable light and dark colors.
+- Allow title and state text to wrap without clipping.
+- Keep the action target at least 44 dp high.
+- Give the action a clear TalkBack description.
+- Use a privacy-safe preview and tolerate stale snapshots.
 
 ## Physical Android Checklist
 
-- Add both widgets from the launcher picker.
-- Verify small and medium layouts at minimum and expanded sizes.
-- Verify light/dark launcher backgrounds and large system font.
-- Log in-app and confirm both widgets refresh.
-- Tap Quick Log twice rapidly and confirm only one immediate entry.
-- Wait for refresh, tap again, and confirm a later intentional entry.
-- Trigger Pomodoro completion and inspect its small icon in collapsed and expanded notification views.
-- Verify tapping widget content opens Hydrion.
+- Add Active Challenge from the launcher picker.
+- Verify empty, active, paused, and completed-day states.
+- Verify small and expanded launcher sizes and large system font.
+- Complete a checkpoint in-app and confirm the widget refreshes.
+- Tap the widget and confirm the exact challenge opens.
+- Confirm widget refresh and navigation create no progress or hydration log.

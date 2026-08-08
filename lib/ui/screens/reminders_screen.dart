@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/challenge_localizations.dart';
 import '../../repositories/reminder_repository.dart';
 import '../../services/notifications.dart';
 import '../../services/reminder_feedback.dart';
+import '../presentation/reminder_feedback_presenter.dart';
 import '../components/hydrion_viewport.dart';
 
 class RemindersScreen extends StatelessWidget {
@@ -40,12 +42,14 @@ class RemindersScreen extends StatelessWidget {
               ),
               title: Text(
                 notificationsEnabled
-                    ? 'Local reminders'
+                    ? l10n.challengeText('Local reminders')
                     : l10n.osNotificationsDisabledTitle,
               ),
               subtitle: Text(
                 notificationsEnabled
-                    ? 'Allow notifications to receive Hydrion reminders. Android settings may affect delivery.'
+                    ? l10n.challengeText(
+                        'Allow notifications to receive Hydrion reminders. Android settings may affect delivery.',
+                      )
                     : l10n.standaloneRemindersLocalOnly,
               ),
             ),
@@ -85,7 +89,10 @@ class RemindersScreen extends StatelessWidget {
                 child: _ReminderCard(
                   reminder: reminder,
                   timestamp: _formatTimestamp(context, reminder.triggerTime),
-                  status: ReminderFeedback.status(reminder),
+                  status: reminderFeedbackText(
+                    l10n,
+                    ReminderFeedback.status(reminder),
+                  ),
                   onEdit: () => _showReminderDialog(
                     context,
                     existing: reminder,
@@ -114,7 +121,7 @@ class RemindersScreen extends StatelessWidget {
         key: const Key('add-reminder-button'),
         onPressed: () => _showReminderDialog(context),
         icon: const Icon(Icons.add_alert_outlined),
-        label: const Text('Add reminder'),
+        label: Text(l10n.addReminder),
       ),
     );
   }
@@ -123,8 +130,9 @@ class RemindersScreen extends StatelessWidget {
     BuildContext context, {
     ScheduledReminder? existing,
   }) async {
+    final l10n = AppLocalizations.of(context);
     final messageController = TextEditingController(
-      text: existing?.message ?? 'Time for a gentle hydration check-in.',
+      text: existing?.message ?? l10n.reminderDefaultMessage,
     );
     final minutesController = TextEditingController(
       text: existing == null
@@ -143,12 +151,15 @@ class RemindersScreen extends StatelessWidget {
     final saved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
+        final dialogL10n = AppLocalizations.of(dialogContext);
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
               insetPadding: HydrionViewport.dialogInsetPadding(dialogContext),
               scrollable: true,
-              title: Text(existing == null ? 'Add reminder' : 'Edit reminder'),
+              title: Text(existing == null
+                  ? dialogL10n.addReminder
+                  : dialogL10n.editReminder),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -157,9 +168,9 @@ class RemindersScreen extends StatelessWidget {
                     controller: messageController,
                     minLines: 1,
                     maxLines: 3,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Message',
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: dialogL10n.messageLabel,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -167,10 +178,10 @@ class RemindersScreen extends StatelessWidget {
                     key: const Key('reminder-minutes-field'),
                     controller: minutesController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Minutes from now',
-                      helperText: 'Use 5 to 1440 minutes.',
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: dialogL10n.minutesFromNow,
+                      helperText: dialogL10n.minutesRangeHelp,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -178,9 +189,9 @@ class RemindersScreen extends StatelessWidget {
                     key: const Key('reminder-priority-field'),
                     controller: priorityController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Priority',
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: dialogL10n.priorityLabel,
                     ),
                   ),
                   SwitchListTile.adaptive(
@@ -189,18 +200,18 @@ class RemindersScreen extends StatelessWidget {
                     onChanged: (value) {
                       setDialogState(() => enabled = value);
                     },
-                    title: const Text('Enabled'),
+                    title: Text(dialogL10n.enabled),
                   ),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(dialogL10n.cancel),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Save'),
+                  child: Text(dialogL10n.save),
                 ),
               ],
             );
@@ -225,7 +236,7 @@ class RemindersScreen extends StatelessWidget {
 
     if (minutes == null || minutes < 5 || minutes > 1440 || message.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Check reminder details and try again.')),
+        SnackBar(content: Text(l10n.reminderDetailsInvalid)),
       );
       return;
     }
@@ -254,7 +265,7 @@ class RemindersScreen extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ReminderFeedback.result(result),
+          reminderFeedbackText(l10n, ReminderFeedback.result(result)),
         ),
       ),
     );
@@ -299,6 +310,7 @@ class _ReminderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final colors = Theme.of(context).colorScheme;
     final copy = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,7 +343,7 @@ class _ReminderCard extends StatelessWidget {
     final actions = <Widget>[
       IconButton(
         key: Key('edit-reminder-${reminder.id}'),
-        tooltip: 'Edit reminder',
+        tooltip: l10n.editReminder,
         icon: const Icon(Icons.edit_outlined),
         onPressed: onEdit,
       ),

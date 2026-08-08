@@ -233,6 +233,42 @@ void main() {
     expect(find.text('Medidas corporales'), findsWidgets);
   });
 
+  testWidgets('height editor saves exact metric and imperial values',
+      (tester) async {
+    final repository = BodyMetricsRepository.memory();
+    await pumpScreen(
+      tester,
+      locale: const Locale('en'),
+      sex: HydrionSex.female,
+      bodyMetricsRepository: repository,
+    );
+
+    await tester.ensureVisible(find.text('Add height'));
+    await tester.tap(find.text('Add height'));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('manual-height')), '180');
+    await tester.tap(find.byKey(const Key('save-height')));
+    await tester.pumpAndSettle();
+    expect(repository.metrics.heightCm, 180);
+    expect(
+        repository.metrics.preferredHeightUnit, HydrionHeightUnit.centimetres);
+
+    await tester.ensureVisible(find.text('Update height'));
+    await tester.tap(find.text('Update height'));
+    await tester.pump();
+    await tester.tap(find.text('ft and in'));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('height-feet')), '5');
+    await tester.enterText(find.byKey(const Key('height-inches')), '9');
+    await tester.tap(find.byKey(const Key('save-height')));
+    await tester.pumpAndSettle();
+
+    expect(repository.metrics.heightCm, closeTo(175.26, 0.001));
+    expect(repository.metrics.preferredHeightUnit,
+        HydrionHeightUnit.feetAndInches);
+    expect(find.textContaining('5 ft 9 in'), findsOneWidget);
+  });
+
   testWidgets('suggestion requires review and explicit apply', (tester) async {
     await pumpScreen(
       tester,

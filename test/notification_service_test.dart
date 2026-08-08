@@ -1,4 +1,10 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrion/l10n/app_localizations_en.dart';
+import 'package:hydrion/l10n/app_localizations_es.dart';
+import 'package:hydrion/l10n/app_localizations_fr.dart';
+import 'package:hydrion/l10n/notification_localizations.dart';
+import 'package:hydrion/repositories/app_locale_repository.dart';
 import 'package:hydrion/repositories/reminder_repository.dart';
 import 'package:hydrion/services/notifications.dart';
 import 'package:hydrion/services/policy_service.dart';
@@ -512,5 +518,39 @@ void main() {
 
     expect(opened, isTrue);
     expect(adapter.settingsOpenCount, 1);
+  });
+
+  test('policy reminder bodies are localized from typed state', () {
+    const reminder = Reminder(
+      triggerTime: 0,
+      messageCode: ReminderPolicyMessageCode.mediumShortfall,
+      shortfallMl: 420,
+      priority: 2,
+    );
+    final english = AppLocalizationsEn().policyReminderMessage(reminder);
+    final french = AppLocalizationsFr().policyReminderMessage(reminder);
+    final spanish = AppLocalizationsEs().policyReminderMessage(reminder);
+
+    expect({english, french, spanish}, hasLength(3));
+    for (final body in [english, french, spanish]) {
+      expect(body, contains('420'));
+      expect(body, isNot(contains('ReminderPolicyMessageCode')));
+      expect(body, isNot(contains('Exception')));
+    }
+    expect(french, isNot(english));
+    expect(spanish, isNot(english));
+  });
+
+  test('focus-session completion body follows the authoritative locale', () {
+    String bodyFor(String languageCode) => NotificationService(
+          reminderPolicy: ReminderPolicy(),
+          localeRepository: AppLocaleRepository.memory(
+            locale: Locale(languageCode),
+          ),
+        ).focusSessionCompletionBody;
+
+    final bodies = [bodyFor('en'), bodyFor('fr'), bodyFor('es')];
+    expect(bodies.toSet(), hasLength(3));
+    expect(bodies, everyElement(isNot(contains('Exception'))));
   });
 }

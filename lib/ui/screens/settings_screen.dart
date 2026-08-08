@@ -3,13 +3,16 @@ import 'package:provider/provider.dart';
 
 import '../../domain/avatar_manifest.dart';
 import '../../l10n/app_localizations.dart';
+import '../../repositories/app_locale_repository.dart';
+import '../../domain/locale_registry.dart';
 import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/local_profile_reset_service.dart';
-import '../../utils/i18n_resolver.dart';
 import '../components/hydrion_logo.dart';
 import '../components/hydrion_viewport.dart';
 import '../components/intake_ring.dart';
+import 'mission_screen.dart';
+import 'language_selection_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -19,17 +22,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  Locale? _selected;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _selected ??= context.read<I18nResolver>().locale;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final i18n = context.watch<I18nResolver>();
     final l10n = AppLocalizations.of(context);
     final settings = context.watch<UserSettingsRepository>().settings;
 
@@ -46,20 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           const _BodyMetricsCard(),
           const SizedBox(height: 12),
-          _LanguageCard(
-            selected: _selected ?? i18n.locale,
-            onChanged: (locale) async {
-              final messenger = ScaffoldMessenger.of(context);
-              setState(() => _selected = locale);
-              await i18n.loadLocale(locale);
-              if (!mounted) return;
-              messenger.showSnackBar(
-                SnackBar(
-                    content:
-                        Text(lookupAppLocalizations(locale).languageUpdated)),
-              );
-            },
-          ),
+          const _LanguageCard(),
           const SizedBox(height: 12),
           _ThemeCard(settings: settings),
           const SizedBox(height: 12),
@@ -72,6 +53,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const _HelpCard(),
           const SizedBox(height: 12),
           const _LegalAboutCard(),
+          const SizedBox(height: 12),
+          const _MissionCard(),
           const SizedBox(height: 12),
           const _DeleteProfileCard(),
         ],
@@ -108,9 +91,11 @@ class _DeleteProfileCard extends StatefulWidget {
 
 class _DeleteProfileCardState extends State<_DeleteProfileCard> {
   bool _deleting = false;
+  bool _removeDevicePermissions = true;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: ListTile(
         key: const Key('settings-delete-profile-card'),
@@ -118,10 +103,8 @@ class _DeleteProfileCardState extends State<_DeleteProfileCard> {
           Icons.delete_outline,
           color: Theme.of(context).colorScheme.error,
         ),
-        title: const Text('Delete local profile'),
-        subtitle: const Text(
-          'Removes local Hydrion data. Android notification and location permissions remain controlled by device settings.',
-        ),
+        title: Text(l10n.deleteLocalProfile),
+        subtitle: Text(l10n.deleteLocalProfileSummary),
         trailing: _deleting
             ? const SizedBox.square(
                 dimension: 24,
@@ -134,36 +117,64 @@ class _DeleteProfileCardState extends State<_DeleteProfileCard> {
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
-    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete local profile?'),
-        content: Text(l10n.profileDeletionPersonalizationDisclosure),
-        actions: [
-          TextButton(
-            key: const Key('delete-review-permissions'),
-            onPressed: () {
-              Navigator.pop(dialogContext, false);
-              Navigator.of(context).pushNamed('/permissions');
-            },
-            child: const Text('Review permissions'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            key: const Key('confirm-delete-profile'),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        return Consumer<AppLocaleRepository>(
+          builder: (context, localeRepository, _) {
+            final l10n = lookupAppLocalizations(localeRepository.locale);
+            return AlertDialog(
+              title: Text(l10n.deleteLocalProfileQuestion),
+              content: SingleChildScrollView(
+                child: StatefulBuilder(
+                  builder: (context, setDialogState) => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.profileDeletionPersonalizationDisclosure),
+                      const SizedBox(height: 12),
+                      CheckboxListTile(
+                        key: const Key('delete-remove-device-permissions'),
+                        contentPadding: EdgeInsets.zero,
+                        value: _removeDevicePermissions,
+                        title: Text(l10n.removeDevicePermissions),
+                        subtitle: Text(l10n.removeDevicePermissionsHelp),
+                        onChanged: (value) => setDialogState(
+                          () => _removeDevicePermissions = value ?? true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  key: const Key('delete-review-permissions'),
+                  onPressed: () {
+                    Navigator.pop(dialogContext, false);
+                    Navigator.of(context).pushNamed('/permissions');
+                  },
+                  child: Text(l10n.reviewPermissions),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  key: const Key('confirm-delete-profile'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                    foregroundColor:
+                        Theme.of(dialogContext).colorScheme.onError,
+                  ),
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: Text(l10n.deleteAction),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
     if (confirmed != true || !context.mounted) return;
     final resetService = context.read<LocalProfileResetService>();
@@ -172,26 +183,51 @@ class _DeleteProfileCardState extends State<_DeleteProfileCard> {
     if (!context.mounted) return;
     setState(() => _deleting = false);
     if (!result.isCompleted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Profile could not be deleted. Close Hydrion, reopen it, and try again.',
-          ),
+        SnackBar(
+          content: Text(l10n.profileDeletionFailed),
         ),
       );
       return;
     }
     if (result.hasPendingNotificationCleanup) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Profile deleted. Android reminder cleanup will retry automatically.',
-          ),
+        SnackBar(
+          content: Text(l10n.profileDeletionCleanupPending),
         ),
       );
     }
-    Navigator.of(context)
-        .pushNamedAndRemoveUntil('/onboarding', (route) => false);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => ProfileDeletionFarewellScreen(
+          removeDevicePermissions: _removeDevicePermissions,
+        ),
+      ),
+      (route) => false,
+    );
+  }
+}
+
+class _MissionCard extends StatelessWidget {
+  const _MissionCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Card(
+      child: ListTile(
+        key: const Key('settings-hydrion-mission'),
+        leading: const Icon(Icons.water_drop_outlined),
+        title: Text(l10n.whyHydrionExists),
+        subtitle: Text(l10n.missionAndCommunity),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const MissionScreen()),
+        ),
+      ),
+    );
   }
 }
 
@@ -200,12 +236,13 @@ class _HelpCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: ListTile(
         key: const Key('settings-replay-app-tour'),
         leading: const Icon(Icons.help_outline),
-        title: const Text('Help'),
-        subtitle: const Text('App tour \u00b7 Replay the quick guide'),
+        title: Text(l10n.help),
+        subtitle: Text(l10n.replayAppTour),
         trailing: const Icon(Icons.chevron_right),
         onTap: () {
           context.read<GuidedTourRepository>().replayCoreTour();
@@ -224,6 +261,7 @@ class _ThemeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -231,33 +269,33 @@ class _ThemeCard extends StatelessWidget {
           key: const Key('settings-theme-picker'),
           initialValue: settings.themePreference,
           isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Appearance',
-            prefixIcon: Icon(Icons.brightness_6_outlined),
+          decoration: InputDecoration(
+            labelText: l10n.appearance,
+            prefixIcon: const Icon(Icons.brightness_6_outlined),
           ),
-          items: const [
+          items: [
             DropdownMenuItem(
               value: HydrionThemePreference.system,
-              child: Text('Use device setting'),
+              child: Text(l10n.useDeviceSetting),
             ),
             DropdownMenuItem(
               value: HydrionThemePreference.automatic,
-              child: Text('Automatic day/night'),
+              child: Text(l10n.automaticDayNight),
             ),
             DropdownMenuItem(
               value: HydrionThemePreference.light,
-              child: Text('Day'),
+              child: Text(l10n.dayTheme),
             ),
             DropdownMenuItem(
               value: HydrionThemePreference.dark,
-              child: Text('Night'),
+              child: Text(l10n.nightTheme),
             ),
           ],
-          selectedItemBuilder: (context) => const [
-            Text('Device setting', overflow: TextOverflow.ellipsis),
-            Text('Auto day/night', overflow: TextOverflow.ellipsis),
-            Text('Day', overflow: TextOverflow.ellipsis),
-            Text('Night', overflow: TextOverflow.ellipsis),
+          selectedItemBuilder: (context) => [
+            Text(l10n.deviceSetting, overflow: TextOverflow.ellipsis),
+            Text(l10n.autoDayNight, overflow: TextOverflow.ellipsis),
+            Text(l10n.dayTheme, overflow: TextOverflow.ellipsis),
+            Text(l10n.nightTheme, overflow: TextOverflow.ellipsis),
           ],
           onChanged: (preference) async {
             if (preference == null) return;
@@ -303,6 +341,7 @@ class _ProfileSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final avatar = HydrionAvatarManifest.byId(settings.avatarId);
     return Card(
       child: ListTile(
@@ -313,8 +352,8 @@ class _ProfileSummaryCard extends StatelessWidget {
         ),
         title: Text(settings.nickname?.trim().isNotEmpty == true
             ? settings.nickname!.trim()
-            : 'Profile'),
-        subtitle: Text('${settings.dailyGoalMl} ml/day'),
+            : l10n.profileTitle),
+        subtitle: Text(l10n.dailyGoalPerDay(amount: settings.dailyGoalMl)),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => Navigator.of(context).pushNamed('/profile'),
       ),
@@ -323,34 +362,26 @@ class _ProfileSummaryCard extends StatelessWidget {
 }
 
 class _LanguageCard extends StatelessWidget {
-  final Locale selected;
-  final ValueChanged<Locale> onChanged;
-  const _LanguageCard({required this.selected, required this.onChanged});
+  const _LanguageCard();
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: DropdownButtonFormField<Locale>(
-          key: const Key('settings-locale-picker'),
-          initialValue: selected,
-          isExpanded: true,
-          decoration: InputDecoration(labelText: l10n.appLanguageLabel),
-          items: I18nResolver.supportedLocales
-              .map((locale) => DropdownMenuItem(
-                    value: locale,
-                    child: Text(switch (locale.languageCode) {
-                      'es' => l10n.localeNameSpanish,
-                      'fr' => l10n.localeNameFrench,
-                      _ => l10n.localeNameEnglish,
-                    }),
-                  ))
-              .toList(),
-          onChanged: (locale) {
-            if (locale != null) onChanged(locale);
-          },
+      child: ListTile(
+        key: const Key('settings-locale-picker'),
+        leading: const Icon(Icons.language),
+        title: Text(l10n.appLanguageLabel),
+        subtitle: Text(
+          HydrionLocaleRegistry.definitionFor(
+            context.watch<AppLocaleRepository>().locale,
+          ).nativeName,
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const LanguageSelectionScreen(fromSettings: true),
+          ),
         ),
       ),
     );
@@ -443,13 +474,14 @@ class _ReusableContainerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: ListTile(
         leading: const Icon(Icons.local_drink_outlined),
-        title: const Text('Reusable container'),
+        title: Text(l10n.reusableContainerTitle),
         subtitle: Text(
           settings.usableContainerSizeMl == null
-              ? 'Not set'
+              ? l10n.notSet
               : HydrationVolumeFormatter.format(
                   settings.containerSizeMl,
                   settings.volumeUnit,
@@ -462,6 +494,7 @@ class _ReusableContainerCard extends StatelessWidget {
   }
 
   Future<void> _editContainer(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final repository = context.read<UserSettingsRepository>();
     final unit = settings.volumeUnit;
     final initial = HydrationVolumeFormatter.fromMilliliters(
@@ -476,7 +509,7 @@ class _ReusableContainerCard extends StatelessWidget {
     final value = await showDialog<double>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Reusable container'),
+        title: Text(AppLocalizations.of(dialogContext).reusableContainerTitle),
         content: TextField(
           key: const Key('reusable-container-input'),
           controller: controller,
@@ -484,9 +517,9 @@ class _ReusableContainerCard extends StatelessWidget {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             labelText: unit == HydrionVolumeUnit.ounces
-                ? 'Amount in oz'
-                : 'Amount in ml',
-            helperText: 'One saved amount is used by Home and Bottle Bingo.',
+                ? AppLocalizations.of(dialogContext).amountInOz
+                : AppLocalizations.of(dialogContext).amountInMl,
+            helperText: AppLocalizations.of(dialogContext).containerSharedHelp,
           ),
         ),
         actions: [
@@ -494,11 +527,11 @@ class _ReusableContainerCard extends StatelessWidget {
             TextButton(
               key: const Key('clear-reusable-container'),
               onPressed: () => Navigator.pop(dialogContext, -1.0),
-              child: const Text('Clear'),
+              child: Text(AppLocalizations.of(dialogContext).clear),
             ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(dialogContext).cancel),
           ),
           FilledButton(
             key: const Key('save-reusable-container'),
@@ -506,7 +539,7 @@ class _ReusableContainerCard extends StatelessWidget {
               dialogContext,
               double.tryParse(controller.text.trim()),
             ),
-            child: const Text('Save'),
+            child: Text(AppLocalizations.of(dialogContext).save),
           ),
         ],
       ),
@@ -521,7 +554,7 @@ class _ReusableContainerCard extends StatelessWidget {
     final saved = await repository.setContainerSizeMl(ml);
     if (!saved && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter an amount from 100 to 2000 ml.')),
+        SnackBar(content: Text(l10n.containerAmountInvalid)),
       );
     }
   }
@@ -531,14 +564,13 @@ class _PermissionsCard extends StatelessWidget {
   const _PermissionsCard();
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: ListTile(
         key: const Key('settings-permission-center'),
         leading: const Icon(Icons.verified_user_outlined),
-        title: const Text('Permissions'),
-        subtitle: const Text(
-          'Review reminders, weather location, and Android alarm access.',
-        ),
+        title: Text(l10n.permissions),
+        subtitle: Text(l10n.permissionsSummary),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => Navigator.of(context).pushNamed('/permissions'),
       ),
@@ -550,10 +582,11 @@ class _LegalAboutCard extends StatelessWidget {
   const _LegalAboutCard();
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: ListTile(
         leading: const Icon(Icons.gavel_outlined),
-        title: const Text('Legal, privacy, and support'),
+        title: Text(l10n.legalPrivacySupport),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => Navigator.of(context).pushNamed('/legal-about'),
       ),

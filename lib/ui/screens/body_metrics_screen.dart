@@ -7,13 +7,19 @@ import '../../domain/body_metrics.dart';
 import '../../domain/daily_hydration_context.dart';
 import '../../domain/hydration_recommendation.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/challenge_localizations.dart';
 import '../../repositories/body_metrics_repository.dart';
 import '../../repositories/daily_hydration_context_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../services/daily_hydration_recommendation_coordinator.dart';
 
 class BodyMetricsScreen extends StatefulWidget {
-  const BodyMetricsScreen({super.key});
+  final bool returnToOnboardingAfterApply;
+
+  const BodyMetricsScreen({
+    super.key,
+    this.returnToOnboardingAfterApply = false,
+  });
 
   @override
   State<BodyMetricsScreen> createState() => _BodyMetricsScreenState();
@@ -38,6 +44,8 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   final _clinicianTarget = TextEditingController();
   final _manualWeight = TextEditingController();
   final _manualHeight = TextEditingController();
+  final _heightFeet = TextEditingController();
+  final _heightInches = TextEditingController();
   late HydrionActivityIntensity _intensity;
   late HydrionEnvironmentExposure _environment;
   late HydrionSweatLevel _sweat;
@@ -48,6 +56,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   bool _editingHeight = false;
   bool _editingPersonalization = false;
   bool _editingContext = false;
+  bool _savingHeight = false;
 
   @override
   void didChangeDependencies() {
@@ -89,6 +98,8 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     _clinicianTarget.dispose();
     _manualWeight.dispose();
     _manualHeight.dispose();
+    _heightFeet.dispose();
+    _heightInches.dispose();
     _activityMinutes.dispose();
     _pregnancyDuration.dispose();
     super.dispose();
@@ -103,6 +114,38 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
             ? _heightCm
             : HydrionBodyMetricsPolicy.centimetresToInches(_heightCm))
         .toStringAsFixed(1);
+    final totalInches =
+        HydrionBodyMetricsPolicy.centimetresToInches(_heightCm).round();
+    _heightFeet.text = (totalInches ~/ 12).toString();
+    _heightInches.text = (totalInches % 12).toString();
+  }
+
+  double? _enteredHeightCm() {
+    if (_heightUnit == HydrionHeightUnit.centimetres) {
+      return double.tryParse(_manualHeight.text.trim());
+    }
+    final feet = int.tryParse(_heightFeet.text.trim());
+    final inches = int.tryParse(_heightInches.text.trim());
+    if (feet == null ||
+        inches == null ||
+        feet < 0 ||
+        inches < 0 ||
+        inches > 11) {
+      return null;
+    }
+    return HydrionBodyMetricsPolicy.inchesToCentimetres(
+      (feet * 12 + inches).toDouble(),
+    );
+  }
+
+  bool get _heightEntryValid =>
+      HydrionBodyMetricsPolicy.validHeight(_enteredHeightCm());
+
+  String _imperialHeightLabel(double centimetres, AppLocalizations l10n) {
+    final totalInches =
+        HydrionBodyMetricsPolicy.centimetresToInches(centimetres).round();
+    return '${totalInches ~/ 12} ${l10n.feetLabel} '
+        '${totalInches % 12} ${l10n.inchesLabel}';
   }
 
   void _syncPregnancyDurationField() {
@@ -220,6 +263,13 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   }
 
   Future<void> _saveHeight() async {
+    if (_savingHeight) return;
+    final enteredHeight = _enteredHeightCm();
+    if (!HydrionBodyMetricsPolicy.validHeight(enteredHeight)) return;
+    setState(() {
+      _savingHeight = true;
+      _heightCm = enteredHeight!;
+    });
     final settings = context.read<UserSettingsRepository>().settings;
     final saved = await context.read<BodyMetricsRepository>().update(
           heightCm: _heightCm,
@@ -227,6 +277,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
           femaleProfile: settings.sex == HydrionSex.female,
         );
     if (!mounted) return;
+    setState(() => _savingHeight = false);
     if (saved) {
       setState(() => _editingHeight = false);
       await _refreshRecommendation();
@@ -300,6 +351,27 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   Future<void> _applyRecommendation() async {
     final recommendation = _recommendation;
     if (recommendation == null) return;
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.applySuggestedGoalQuestion),
+        content: Text(l10n.applySuggestedGoalConfirmation),
+        actions: [
+          TextButton(
+            key: const Key('suggested-goal-no'),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.refineInputs),
+          ),
+          FilledButton(
+            key: const Key('suggested-goal-yes'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.confirmApply),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     await context.read<DailyHydrationRecommendationCoordinator>().apply(
           recommendation,
           now: DateTime.now(),
@@ -310,6 +382,9 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
       SnackBar(
           content: Text(AppLocalizations.of(context).suggestedGoalApplied)),
     );
+    if (widget.returnToOnboardingAfterApply) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   Future<void> _keepCurrentGoal() async {
@@ -402,7 +477,8 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                 ],
                 decoration: InputDecoration(
-                  labelText: l10n.accessibleNumericEntry,
+                  labelText:
+                      '${l10n.weightLabel} (${_weightUnit == HydrionWeightUnit.kilograms ? l10n.kilogramsLabel : l10n.poundsLabel})',
                 ),
                 onChanged: (value) {
                   final entered = double.tryParse(value);
@@ -420,40 +496,35 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
                 onDone: _saveWeight,
               ),
             ],
-            _MeasurementSummaryTile(
-              label: l10n.heightLabel,
-              value: metrics.heightCm == null
-                  ? l10n.notAdded
-                  : '${metrics.heightCm!.round()} ${l10n.centimetresLabel}',
-              updatedAt: metrics.heightUpdatedAt,
-              actionLabel:
-                  metrics.heightCm == null ? l10n.addHeight : l10n.updateHeight,
-              onPressed: () => setState(() {
-                _heightCm = metrics.heightCm ?? 170;
-                _heightUnit = metrics.preferredHeightUnit;
-                _syncManualFields();
-                _editingHeight = true;
-                _editingWeight = false;
-              }),
-            ),
-            if (_editingHeight) ...[
-              _MetricWheel(
-                key: const Key('height-wheel'),
-                title: l10n.heightLabel,
-                valueCount: 111,
-                initialIndex: (_heightCm - 120).round().clamp(0, 110),
-                labelAt: (index) {
-                  final cm = 120.0 + index;
-                  return _heightUnit == HydrionHeightUnit.centimetres
-                      ? '${cm.round()} ${l10n.centimetresLabel}'
-                      : '${(HydrionBodyMetricsPolicy.centimetresToInches(cm) / 12).floor()} ${l10n.feetInchesLabel}';
-                },
-                onChanged: (index) => setState(() {
-                  _heightCm = 120.0 + index;
+            if (!_editingHeight)
+              _MeasurementSummaryTile(
+                label: l10n.heightLabel,
+                value: metrics.heightCm == null
+                    ? l10n.notAdded
+                    : metrics.preferredHeightUnit ==
+                            HydrionHeightUnit.centimetres
+                        ? '${metrics.heightCm!.round()} ${l10n.centimetresLabel}'
+                        : _imperialHeightLabel(metrics.heightCm!, l10n),
+                updatedAt: metrics.heightUpdatedAt,
+                actionLabel: metrics.heightCm == null
+                    ? l10n.addHeight
+                    : l10n.updateHeight,
+                onPressed: () => setState(() {
+                  _heightCm = metrics.heightCm ?? 170;
+                  _heightUnit = metrics.preferredHeightUnit;
                   _syncManualFields();
+                  _editingHeight = true;
+                  _editingWeight = false;
                 }),
-                unitControl: SegmentedButton<HydrionHeightUnit>(
+              ),
+            if (_editingHeight) ...[
+              Text(l10n.heightLabel,
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              SegmentedButton<HydrionHeightUnit>(
+                  key: const Key('height-unit-selector'),
                   selected: {_heightUnit},
+                  showSelectedIcon: false,
                   segments: [
                     ButtonSegment(
                       value: HydrionHeightUnit.centimetres,
@@ -465,34 +536,72 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
                     ),
                   ],
                   onSelectionChanged: (selection) => setState(() {
-                    _heightUnit = selection.single;
-                    _syncManualFields();
-                  }),
+                        _heightUnit = selection.single;
+                        _syncManualFields();
+                      })),
+              const SizedBox(height: 12),
+              if (_heightUnit == HydrionHeightUnit.centimetres)
+                TextField(
+                  key: const Key('manual-height'),
+                  controller: _manualHeight,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                  scrollPadding: const EdgeInsets.only(bottom: 120),
+                  decoration: InputDecoration(
+                    labelText: '${l10n.heightLabel} (${l10n.centimetresLabel})',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const Key('height-feet'),
+                        controller: _heightFeet,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        scrollPadding: const EdgeInsets.only(bottom: 120),
+                        decoration: InputDecoration(labelText: l10n.feetLabel),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        key: const Key('height-inches'),
+                        controller: _heightInches,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        scrollPadding: const EdgeInsets.only(bottom: 120),
+                        decoration:
+                            InputDecoration(labelText: l10n.inchesLabel),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              TextField(
-                key: const Key('manual-height'),
-                controller: _manualHeight,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+              if (!_heightEntryValid)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    l10n.bodyMetricsInvalid,
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
                 ),
-                decoration: InputDecoration(
-                  labelText: l10n.accessibleNumericEntry,
-                ),
-                onChanged: (value) {
-                  final entered = double.tryParse(value);
-                  if (entered == null) return;
-                  final cm = _heightUnit == HydrionHeightUnit.centimetres
-                      ? entered
-                      : HydrionBodyMetricsPolicy.inchesToCentimetres(entered);
-                  if (HydrionBodyMetricsPolicy.validHeight(cm)) {
-                    _heightCm = cm;
-                  }
-                },
-              ),
               _EditorActions(
                 onCancel: () => setState(() => _editingHeight = false),
-                onDone: _saveHeight,
+                onDone:
+                    _heightEntryValid && !_savingHeight ? _saveHeight : null,
+                doneKey: const Key('save-height'),
               ),
             ],
             _BmiCard(
@@ -626,7 +735,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
               ),
               ExpansionTile(
                 title: Text('${l10n.weightLabel} / ${l10n.heightLabel}'),
-                subtitle: Text(l10n.accessibleNumericEntry),
+                subtitle: Text(l10n.enterMeasurementsWithKeyboard),
                 children: [
                   TextField(
                     controller: _manualWeight,
@@ -860,12 +969,12 @@ DateTime? _latestMeasurementDate(HydrionBodyMetrics metrics) {
   return weight.isAfter(height) ? weight : height;
 }
 
-String _formatUpdateDate(DateTime value) {
+String _formatUpdateDate(DateTime value, AppLocalizations l10n) {
   final now = DateTime.now();
   if (value.year == now.year &&
       value.month == now.month &&
       value.day == now.day) {
-    return 'today';
+    return l10n.today;
   }
   return '${value.year}-${value.month.toString().padLeft(2, '0')}-'
       '${value.day.toString().padLeft(2, '0')}';
@@ -891,15 +1000,17 @@ class _MeasurementSummaryTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final updatedLabel = updatedAt == null
         ? null
-        : (_formatUpdateDate(updatedAt!) == 'today'
+        : (_formatUpdateDate(updatedAt!, l10n) == l10n.today
             ? l10n.updatedToday
-            : l10n.updatedOn(date: _formatUpdateDate(updatedAt!)));
+            : l10n.updatedOn(date: _formatUpdateDate(updatedAt!, l10n)));
     return ListTile(
       key: Key('measurement-summary-${label.toLowerCase()}'),
       contentPadding: EdgeInsets.zero,
       title: Text(label),
       subtitle: Text(
-        updatedLabel == null ? value : '$value\n$updatedLabel',
+        updatedLabel == null
+            ? value
+            : l10n.sharedValueUpdated(value, updatedLabel),
       ),
       isThreeLine: updatedAt != null,
       trailing: TextButton(onPressed: onPressed, child: Text(actionLabel)),
@@ -909,7 +1020,7 @@ class _MeasurementSummaryTile extends StatelessWidget {
 
 class _EditorActions extends StatelessWidget {
   final VoidCallback onCancel;
-  final VoidCallback onDone;
+  final VoidCallback? onDone;
   final Key? doneKey;
 
   const _EditorActions({
@@ -1181,13 +1292,18 @@ class _BmiCard extends StatelessWidget {
             if (weightKg != null && heightCm != null) ...[
               const SizedBox(height: 8),
               Text(
-                'Calculated from ${weightKg!.toStringAsFixed(1)} '
-                '${l10n.kilogramsLabel} and ${heightCm!.round()} '
-                '${l10n.centimetresLabel}.',
+                l10n.sharedBmiCalculation(
+                  weightKg!.toStringAsFixed(1),
+                  l10n.kilogramsLabel,
+                  heightCm!.round(),
+                  l10n.centimetresLabel,
+                ),
               ),
             ],
             if (recalculatedAt != null)
-              Text('Recalculated ${_formatUpdateDate(recalculatedAt!)}'),
+              Text(l10n.recalculatedAt(
+                date: _formatUpdateDate(recalculatedAt!, l10n),
+              )),
             const SizedBox(height: 8),
             Text(l10n.bmiDisclaimer),
           ],
@@ -1343,11 +1459,21 @@ class _RecommendationCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             if (result != null) ...[
-              Text('${result.roundedRecommendedGoalMl} mL'),
-              Text('${l10n.baselineLabel}: ${result.baselineGoalMl} mL'),
+              Text(l10n.volumeMlValue(
+                amount: result.roundedRecommendedGoalMl,
+              )),
+              Text(l10n.baselineMlValue(
+                label: l10n.baselineLabel,
+                amount: result.baselineGoalMl,
+              )),
               Text(
-                '${l10n.adjustmentsLabel}: '
-                '${result.reproductiveAdjustmentMl + result.activityAdjustmentMl + result.weatherAdjustmentMl + result.userAdjustmentMl} mL',
+                l10n.sharedAdjustments(
+                  l10n.adjustmentsLabel,
+                  result.reproductiveAdjustmentMl +
+                      result.activityAdjustmentMl +
+                      result.weatherAdjustmentMl +
+                      result.userAdjustmentMl,
+                ),
               ),
               if (result.safetyNotices.contains(
                 HydrationFactorCode.fluidRestriction,

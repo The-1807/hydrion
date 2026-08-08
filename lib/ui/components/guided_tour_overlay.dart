@@ -4,6 +4,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_en.dart';
+import '../../l10n/challenge_localizations.dart';
 import '../../repositories/guided_tour_repository.dart';
 import '../theme/hydrion_design.dart';
 
@@ -581,6 +584,9 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
   }
 
   Widget _buildOverlay(BuildContext context, Size constrainedSize) {
+    final l10n =
+        Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+            AppLocalizationsEn();
     final media = MediaQuery.of(context);
     final size = Size(
       math.min(media.size.width, constrainedSize.width),
@@ -632,7 +638,7 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
                       key: const Key('tour-step-announcement'),
                       liveRegion: true,
                       label: '${widget.step.title}. ${widget.step.body} '
-                          'Step ${widget.index + 1} of ${widget.total}.',
+                          '${l10n.sharedTourStep(widget.index + 1, widget.total)}.',
                       child: ExcludeSemantics(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -649,7 +655,10 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
                                   vertical: 5,
                                 ),
                                 child: Text(
-                                  'Step ${widget.index + 1} of ${widget.total}',
+                                  l10n.sharedTourStep(
+                                    widget.index + 1,
+                                    widget.total,
+                                  ),
                                   key: const Key('tour-progress'),
                                   style: Theme.of(context)
                                       .textTheme
@@ -700,7 +709,7 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
                       onPressed: _actionInProgress
                           ? null
                           : () => _runAction(widget.onSkip),
-                      child: const Text('Skip'),
+                      child: Text(l10n.skip),
                     ),
                     if (widget.onBack != null)
                       OutlinedButton(
@@ -708,7 +717,7 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
                         onPressed: _actionInProgress
                             ? null
                             : () => _runAction(widget.onBack),
-                        child: const Text('Back'),
+                        child: Text(l10n.back),
                       ),
                     FilledButton(
                       key: const Key('tour-next'),
@@ -716,7 +725,9 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
                           ? null
                           : () => _runAction(widget.onNext),
                       child: Text(
-                        widget.index == widget.total - 1 ? 'Finish' : 'Next',
+                        widget.index == widget.total - 1
+                            ? l10n.finish
+                            : l10n.next,
                       ),
                     ),
                   ],
@@ -738,8 +749,11 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
         child: Semantics(
           scopesRoute: true,
           explicitChildNodes: true,
-          label:
-              '${widget.tourLabel} step ${widget.index + 1} of ${widget.total}',
+          label: l10n.tourStepSemantics(
+            tour: widget.tourLabel,
+            current: widget.index + 1,
+            total: widget.total,
+          ),
           child: Material(
             color: Colors.transparent,
             child: Stack(
@@ -815,8 +829,7 @@ class _TourStepOverlayState extends State<_TourStepOverlay>
                                   Icon(Icons.arrow_downward,
                                       color: scheme.primary),
                                   const SizedBox(width: 6),
-                                  const Flexible(
-                                      child: Text('Pull to refresh')),
+                                  Flexible(child: Text(l10n.pullToRefresh)),
                                 ],
                               ),
                             ),

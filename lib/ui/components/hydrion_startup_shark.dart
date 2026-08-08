@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class HydrionStartupShark extends StatelessWidget {
   static const sharkAssetPath = 'assets/buffer/Shark.json';
   static const sharkSourceAssetPath = 'assets/buffer/Shark.lottie';
@@ -42,8 +44,15 @@ class HydrionStartupShark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = Localizations.of<AppLocalizations>(
+          context,
+          AppLocalizations,
+        ) ??
+        lookupAppLocalizations(
+          Localizations.maybeLocaleOf(context) ?? const Locale('en'),
+        );
     return Semantics(
-      label: 'Hydrion shark startup animation',
+      label: l10n.onboardingMascotSemantics,
       image: true,
       child: RepaintBoundary(
         child: SizedBox.square(

@@ -9,6 +9,14 @@ import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/ui/screens/startup_screen.dart';
 
 void main() {
+  Future<void> chooseEnglish(WidgetTester tester) async {
+    expect(find.byKey(const Key('language-continue')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('language-en')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('language-continue')));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('first run shows onboarding and completion persists',
       (tester) async {
     final store = MemoryHydrionStore();
@@ -16,6 +24,8 @@ void main() {
 
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
+
+    await chooseEnglish(tester);
 
     expect(find.text('Welcome to Hydrion'), findsOneWidget);
     expect(find.byKey(const Key('onboarding-mascot')), findsOneWidget);
@@ -64,6 +74,9 @@ void main() {
     await tester.tap(find.byKey(const Key('onboarding-next')));
     await tester.pumpAndSettle();
 
+    expect(find.text('Why Hydrion exists'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('mission-continue')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('home-logo')), findsOneWidget);
 
     final reloaded = await UserSettingsRepository.load(store);
@@ -71,6 +84,7 @@ void main() {
     expect(reloaded.settings.age, 29);
     expect(reloaded.settings.sex, HydrionSex.female);
     expect(reloaded.settings.onboardingCompleted, isTrue);
+    expect(reloaded.settings.missionIntroductionHandled, isTrue);
     expect(reloaded.settings.legalAndHealthAcknowledged, isTrue);
     expect(
       reloaded.settings.acceptedTermsVersion,
@@ -105,6 +119,8 @@ void main() {
 
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
+
+    await chooseEnglish(tester);
 
     await tester.tap(find.byKey(const Key('onboarding-next')));
     await tester.pumpAndSettle();

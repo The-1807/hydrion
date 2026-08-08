@@ -629,7 +629,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get editHydrationLog => 'Editar registro de hidratación';
 
   @override
-  String get amountInMl => 'Cantidad en ml';
+  String get amountInMl => 'Cantidad en mL';
 
   @override
   String get cancel => 'Cancelar';
@@ -1183,6 +1183,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get feetInchesLabel => 'pies y pulgadas';
 
   @override
+  String get feetLabel => 'pies';
+
+  @override
   String get inchesLabel => 'pulg';
 
   @override
@@ -1265,7 +1268,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileDeletionPersonalizationDisclosure =>
-      'Esto borra de este dispositivo el perfil local, las medidas corporales, los contextos diarios, el historial de hidratación, los recordatorios, los desafíos, el estado de recomendaciones y la caché meteorológica. Los permisos de notificación y ubicación de Android no se revocan y se controlan en los ajustes del dispositivo.';
+      'Esto borra de este dispositivo el perfil local, las medidas corporales, los contextos diarios, el historial de hidratación, los recordatorios, los desafíos, el estado de recomendaciones y la caché meteorológica. Tus preferencias de idioma y apariencia permanecen guardadas.';
 
   @override
   String get dailyContextTitle => 'Contexto de hoy';
@@ -1354,7 +1357,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get adjustmentsLabel => 'Ajustes';
 
   @override
-  String get weatherAdjustmentLabel => 'Ajuste meteorológico';
+  String get weatherAdjustmentLabel => 'Ajuste por clima';
 
   @override
   String get activityAdjustmentLabel => 'Ajuste de actividad';
@@ -1481,4 +1484,1472 @@ class AppLocalizationsEs extends AppLocalizations {
   String pregnancyDurationSummary({required int weeks, required int days}) {
     return 'Aproximadamente $weeks semanas y $days días.';
   }
+
+  @override
+  String get missionTitle => 'Por qué existe Hydrion';
+
+  @override
+  String get missionSemanticLabel => 'Misión de Hydrion';
+
+  @override
+  String get missionHeadline =>
+      'La hidratación debería ser más fácil de entender y gestionar.';
+
+  @override
+  String get learnMore => 'Más información';
+
+  @override
+  String get missionDetails =>
+      'Hydrion fomenta hábitos más seguros y constantes, manteniendo la información personal de forma local y bajo tu control. En el futuro podrá ofrecerse participación comunitaria mediante Discord, un servicio externo con prácticas de cuenta y privacidad independientes. Hydrion no enviará automáticamente información del perfil ni de salud.';
+
+  @override
+  String get communityComingLater => 'Enlace comunitario próximamente';
+
+  @override
+  String get continueToTutorial => 'Continuar al tutorial';
+
+  @override
+  String get profileDeletedTitle => 'Perfil eliminado';
+
+  @override
+  String get profileDeletionCompletedSemanticLabel =>
+      'Eliminación del perfil local completada';
+
+  @override
+  String get profileDeletedHeadline => 'Tu perfil de Hydrion se ha eliminado';
+
+  @override
+  String get profileDeletedFarewell =>
+      'Dondequiera que continúe tu camino de hidratación, cuídate, mantente hidratado y comparte lo aprendido con alguien a quien pueda ayudar.';
+
+  @override
+  String get learnAboutMission => 'Conoce la misión de Hydrion';
+
+  @override
+  String get finish => 'Finalizar';
+
+  @override
+  String get deleteLocalProfile => 'Eliminar perfil local';
+
+  @override
+  String get deleteLocalProfileSummary =>
+      'Elimina los datos del perfil de Hydrion y conserva las preferencias de idioma y apariencia.';
+
+  @override
+  String get deleteLocalProfileQuestion => '¿Eliminar el perfil local?';
+
+  @override
+  String get removeDevicePermissions =>
+      'Eliminar también los permisos de Hydrion';
+
+  @override
+  String get removeDevicePermissionsHelp =>
+      'Android 13 y versiones posteriores pueden programar la eliminación de los permisos de notificación y ubicación después de terminar la despedida. El acceso a alarmas exactas y otros accesos especiales siguen controlándose en los ajustes del sistema.';
+
+  @override
+  String get reviewPermissions => 'Revisar permisos';
+
+  @override
+  String get deleteAction => 'Eliminar';
+
+  @override
+  String get profileDeletionFailed =>
+      'No se pudo eliminar el perfil. Cierra Hydrion, vuelve a abrirlo e inténtalo de nuevo.';
+
+  @override
+  String get profileDeletionCleanupPending =>
+      'Perfil eliminado. La limpieza de recordatorios de Android volverá a intentarse automáticamente.';
+
+  @override
+  String get weatherSuggestionTitle =>
+      'Sugerencia de hidratación según el clima de hoy';
+
+  @override
+  String get humidityLabel => 'Humedad';
+
+  @override
+  String get standardGoalLabel => 'Objetivo estándar';
+
+  @override
+  String get todaySuggestedGoalLabel => 'Objetivo sugerido para hoy';
+
+  @override
+  String get updatedLabel => 'Actualizado';
+
+  @override
+  String get weatherSuggestionDisclosure =>
+      'Esta sugerencia usa tu perfil guardado, el permiso de ubicación y el clima local. No constituye consejo médico.';
+
+  @override
+  String get keepStandardGoal => 'Mantener el objetivo estándar';
+
+  @override
+  String get useSuggestion => 'Usar sugerencia';
+
+  @override
+  String get pomodoroSessionNotificationTitle => 'Sesión Pomodoro';
+
+  @override
+  String get homeworkSessionNotificationTitle => 'Sesión de estudio';
+
+  @override
+  String get sessionPaused => 'En pausa';
+
+  @override
+  String get pauseAction => 'Pausar';
+
+  @override
+  String get resumeAction => 'Reanudar';
+
+  @override
+  String get stopAction => 'Detener';
+
+  @override
+  String get openAction => 'Abrir';
+
+  @override
+  String get waterNotLoggedRetry =>
+      'No se registró el agua. Inténtalo de nuevo.';
+
+  @override
+  String loggedFormattedVolume({required String amount}) {
+    return 'Se registró $amount';
+  }
+
+  @override
+  String get dailyGoalReachedRecognition =>
+      'Objetivo diario alcanzado. Bien hecho.';
+
+  @override
+  String get sevenDayStreakRecognition =>
+      'Racha de hidratación de siete días. Una rutina constante está tomando forma.';
+
+  @override
+  String get profileMenu => 'Menú del perfil';
+
+  @override
+  String get viewProfile => 'Ver perfil';
+
+  @override
+  String get support => 'Asistencia';
+
+  @override
+  String get addChallengeDetails => 'Añadir detalles del reto';
+
+  @override
+  String get challengeDetailsAdded => 'Detalles del reto añadidos';
+
+  @override
+  String get challengeDetailsHelp =>
+      'Toda el agua cuenta para tu objetivo diario. Los detalles del reto registran lo que necesita la tarea de hoy.';
+
+  @override
+  String get challengeDetailsTitle => 'Detalles del reto';
+
+  @override
+  String get temperatureStyle => 'Temperatura';
+
+  @override
+  String get temperatureCool => 'Fresca';
+
+  @override
+  String get temperatureRoom => 'Temperatura ambiente';
+
+  @override
+  String get temperatureWarm => 'Agradablemente tibia';
+
+  @override
+  String get infusionTheme => 'Tema de la infusión';
+
+  @override
+  String get noAddedSugar => 'Sin azúcar añadido';
+
+  @override
+  String get useDetails => 'Usar detalles';
+
+  @override
+  String get history => 'Historial';
+
+  @override
+  String get customAmount => 'Cantidad personalizada';
+
+  @override
+  String get momentum => 'Impulso';
+
+  @override
+  String get applySuggestedGoalQuestion => '¿Aplicar el objetivo sugerido?';
+
+  @override
+  String get applySuggestedGoalConfirmation =>
+      '¿Aplicar este objetivo diario sugerido y continuar?';
+
+  @override
+  String get refineInputs => 'No, ajustar datos';
+
+  @override
+  String get confirmApply => 'Sí, aplicar';
+
+  @override
+  String get enterMeasurementsWithKeyboard =>
+      'Introducir las medidas con el teclado';
+
+  @override
+  String recalculatedAt({required String date}) {
+    return 'Recalculado el $date';
+  }
+
+  @override
+  String volumeMlValue({required int amount}) {
+    return '$amount mL';
+  }
+
+  @override
+  String baselineMlValue({required String label, required int amount}) {
+    return '$label: $amount mL';
+  }
+
+  @override
+  String get routineFitsDay => 'Una rutina que se adapta a tu día';
+
+  @override
+  String get routineFitsDayBody =>
+      'Sigue registrando el agua que realmente bebes. Los pequeños registros crean una imagen útil del día.';
+
+  @override
+  String amountLeft({required String amount}) {
+    return 'Quedan $amount';
+  }
+
+  @override
+  String get weatherAdjusted => 'Ajustado al clima';
+
+  @override
+  String get noReusableContainerSaved =>
+      'No hay un recipiente reutilizable guardado. Añade uno en Ajustes para usarlo aquí y en Bottle Bingo.';
+
+  @override
+  String savedContainerHelp({required String amount}) {
+    return 'Recipiente guardado: $amount. Selecciónalo aquí para usar la misma cantidad en Bottle Bingo.';
+  }
+
+  @override
+  String get firstLogWaiting => 'Primer registro pendiente';
+
+  @override
+  String get momentumEmptyBody => 'Un pequeño registro da forma al día.';
+
+  @override
+  String get momentumDataBody =>
+      'Tu tiburón tiene datos reales a los que responder.';
+
+  @override
+  String get challengePick => 'Elegir reto';
+
+  @override
+  String get activeChallenge => 'Reto activo';
+
+  @override
+  String get bottleBingoReady =>
+      'Bottle Bingo está listo cuando quieras una rutina divertida.';
+
+  @override
+  String get activeChallengeGentle =>
+      'Mantén un ritmo suave hoy; el progreso viene de los registros normales.';
+
+  @override
+  String get progress => 'Progreso';
+
+  @override
+  String get logHistory => 'Historial de registros';
+
+  @override
+  String greetingMorning({required String name}) {
+    return 'Buenos días, $name';
+  }
+
+  @override
+  String greetingAfternoon({required String name}) {
+    return 'Buenas tardes, $name';
+  }
+
+  @override
+  String greetingEvening({required String name}) {
+    return 'Buenas noches, $name';
+  }
+
+  @override
+  String get greetingFallbackName => 'tú';
+
+  @override
+  String recentLogCounted({required String amount}) {
+    return 'Tu registro reciente de $amount está contabilizado. Dale tiempo a tu rutina antes de decidir qué hacer después.';
+  }
+
+  @override
+  String get noWaterLoggedToday =>
+      'Todavía no hay agua registrada hoy. Añade lo que realmente hayas bebido cuando estés listo.';
+
+  @override
+  String todayLogSummary({required int count, required String remaining}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count registros',
+      one: '1 registro',
+    );
+    return 'Tienes $_temp0 hoy. Quedan unos $remaining.';
+  }
+
+  @override
+  String todayLogSummaryWithContainer(
+      {required int count,
+      required String remaining,
+      required String container}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count registros',
+      one: '1 registro',
+    );
+    return 'Tienes $_temp0 hoy. Quedan unos $remaining; tu recipiente de $container está disponible como cantidad rápida.';
+  }
+
+  @override
+  String get goalCompleted => 'Objetivo completado';
+
+  @override
+  String get noHydrationLoggedToday => 'No hay hidratación registrada hoy';
+
+  @override
+  String get todaysHydration => 'Hidratación de hoy';
+
+  @override
+  String get onboardingNicknameInvalid =>
+      'Introduce un apodo de hasta 32 caracteres.';
+
+  @override
+  String get onboardingAgeInvalid =>
+      'Los perfiles independientes de Hydrion requieren una edad de 13 a 120 años.';
+
+  @override
+  String get onboardingTermsRequired =>
+      'Acepta los Términos y reconoce el aviso de salud para continuar.';
+
+  @override
+  String get onboardingGoalInvalid =>
+      'Revisa tu objetivo y el tamaño del recipiente antes de continuar.';
+
+  @override
+  String get onboardingCompleteRecognition =>
+      'La configuración de Hydrion está completa.';
+
+  @override
+  String get onboardingWelcome => 'Te damos la bienvenida a Hydrion';
+
+  @override
+  String get back => 'Atrás';
+
+  @override
+  String get start => 'Empezar';
+
+  @override
+  String get continueAction => 'Continuar';
+
+  @override
+  String get onboardingLocalFirstTitle =>
+      'Hydrion mantiene la hidratación de forma local';
+
+  @override
+  String get onboardingMascotSemantics => 'Mascota de Hydrion';
+
+  @override
+  String get onboardingLocalFirstBody =>
+      'Registra agua, objetivos, recordatorios y retos individuales en este dispositivo. Las funciones opcionales de proveedores permanecen desactivadas hasta que las elijas.';
+
+  @override
+  String get onboardingBasicProfile => 'Perfil básico';
+
+  @override
+  String get nickname => 'Apodo';
+
+  @override
+  String get requiredSavedLocally => 'Obligatorio, guardado localmente.';
+
+  @override
+  String get age => 'Edad';
+
+  @override
+  String get ageOptionalHelp =>
+      'Opcional. Se usa solo para orientación personalizada.';
+
+  @override
+  String get sexGuidanceLabel =>
+      'Sexo usado para la orientación de hidratación';
+
+  @override
+  String get sexOptionalHelp =>
+      'Opcional. Puedes elegir no responder en cualquier momento.';
+
+  @override
+  String get onboardingProfileNeededForMetrics =>
+      'Guarda un apodo y una edad válida antes de añadir medidas corporales.';
+
+  @override
+  String get chooseDefaultAvatar => 'Elige tu avatar predeterminado';
+
+  @override
+  String get goalMode => 'Modo de objetivo';
+
+  @override
+  String get standardOrManual => 'Estándar o manual';
+
+  @override
+  String get personalizedEstimate => 'Estimación personalizada';
+
+  @override
+  String get standardGoalModeHelp =>
+      'Usa el objetivo estándar o introduce tu propio objetivo.';
+
+  @override
+  String get personalizedGoalModeHelp =>
+      'Usa las medidas corporales guardadas localmente para calcular una estimación general de bienestar.';
+
+  @override
+  String get weatherBaselineHelp =>
+      'La asistencia meteorológica opcional se elige por separado y nunca reemplaza tu referencia.';
+
+  @override
+  String get hydrationSetup => 'Configuración de hidratación';
+
+  @override
+  String get dailyGoalMlLabel => 'Objetivo diario en ml';
+
+  @override
+  String get dailyGoalSupportedRange => 'Rango admitido: 500-5000 ml.';
+
+  @override
+  String get displayUnit => 'Unidad de visualización';
+
+  @override
+  String get milliliters => 'Mililitros';
+
+  @override
+  String get ounces => 'Onzas';
+
+  @override
+  String get containerSizeMlLabel => 'Tamaño habitual del recipiente en ml';
+
+  @override
+  String get containerSupportedRange => 'Rango admitido: 100-2000 ml.';
+
+  @override
+  String get usuallyReusable => 'Normalmente reutilizable';
+
+  @override
+  String get reusableHelp =>
+      'Activa esto solo si la mayoría de las bebidas registradas usan una botella o taza reutilizable.';
+
+  @override
+  String get optionalDeviceFeatures => 'Funciones opcionales del dispositivo';
+
+  @override
+  String get reviewBeforeStart => 'Revisar antes de empezar';
+
+  @override
+  String get ready => 'Listo';
+
+  @override
+  String get onboardingReadySemantics => 'Configuración lista';
+
+  @override
+  String onboardingSummary(
+      {required String name, required String avatar, required String goal}) {
+    return 'Hydrion empezará con $name, $avatar, $goal ml/día y seguimiento local.';
+  }
+
+  @override
+  String get yourProfile => 'tu perfil';
+
+  @override
+  String get sexFemale => 'Mujer';
+
+  @override
+  String get sexMale => 'Hombre';
+
+  @override
+  String get sexIntersex => 'Intersexual';
+
+  @override
+  String get preferNotToSay => 'Prefiero no responder';
+
+  @override
+  String get hydrationReminders => 'Recordatorios de hidratación';
+
+  @override
+  String get remindersCapabilityHelp =>
+      'Hydrion puede enviar recordatorios locales en este dispositivo. Puedes activarlos ahora o más tarde.';
+
+  @override
+  String get remindersNotNowHelp =>
+      'Ahora no - los recordatorios se pueden activar en Ajustes.';
+
+  @override
+  String get enableReminders => 'Activar recordatorios';
+
+  @override
+  String get weatherAssistance => 'Asistencia meteorológica';
+
+  @override
+  String get weatherCapabilityHelp =>
+      'Hydrion puede usar una ubicación aproximada para obtener el tiempo local y ofrecer una sugerencia temporal de hidratación. Tu objetivo estándar sigue funcionando sin ella.';
+
+  @override
+  String get weatherNotNowHelp =>
+      'Ahora no - tu objetivo de hidratación estándar sigue activo.';
+
+  @override
+  String get enableWeatherAssistance => 'Activar asistencia meteorológica';
+
+  @override
+  String get waitingForDevice => 'Esperando el resultado del dispositivo...';
+
+  @override
+  String get enabled => 'Activado';
+
+  @override
+  String capabilityEnabled({required String title}) {
+    return '$title: activado';
+  }
+
+  @override
+  String capabilityStatus({required String title, required String status}) {
+    return '$title: $status';
+  }
+
+  @override
+  String avatarSelectedSemantics({required String avatar}) {
+    return 'Avatar $avatar seleccionado';
+  }
+
+  @override
+  String selectAvatarSemantics({required String avatar}) {
+    return 'Seleccionar avatar $avatar';
+  }
+
+  @override
+  String get skip => 'Omitir';
+
+  @override
+  String get next => 'Siguiente';
+
+  @override
+  String get pullToRefresh => 'Desliza para actualizar';
+
+  @override
+  String tourStepSemantics(
+      {required String tour, required int current, required int total}) {
+    return '$tour, paso $current de $total';
+  }
+
+  @override
+  String get achievementSemantics => 'Logro';
+
+  @override
+  String get noCheckInsYet => 'Aún no hay registros.';
+
+  @override
+  String get coachPreviewTitle => 'Coach';
+
+  @override
+  String get coachPreviewComingSoon =>
+      'El Coach de Hydrion se está preparando para una actualización futura.';
+
+  @override
+  String get coachPreviewGuidance =>
+      'Por ahora, sigue registrando agua y controlando tu progreso diario.';
+
+  @override
+  String get reminderNotificationTitle => 'Recordatorio de Hydrion';
+
+  @override
+  String get reminderChannelName => 'Recordatorios de hidratación';
+
+  @override
+  String get reminderChannelDescription =>
+      'Recordatorios locales para los controles de hidratación de Hydrion creados por el usuario.';
+
+  @override
+  String get challengeAroundWorldTitle => 'Semana de infusiones por el mundo';
+
+  @override
+  String get challengeAroundWorldDescription =>
+      'Prueba siete temas de infusión sin azúcar añadido mientras mantienes tu objetivo habitual de hidratación.';
+
+  @override
+  String get challengeTemperatureTitle => 'Ruleta de temperaturas';
+
+  @override
+  String get challengeTemperatureDescription =>
+      'Compara temperaturas agradables del agua como experimento de preferencia.';
+
+  @override
+  String get challengeEatWaterTitle => 'Come tu agua';
+
+  @override
+  String get challengeEatWaterDescription =>
+      'Incluye un alimento rico en agua elegido en una comida sin inventar volumen de hidratación.';
+
+  @override
+  String get challengePomodoroTitle => 'Sorbo Pomodoro';
+
+  @override
+  String get challengePomodoroDescription =>
+      'Combina controles moderados de hidratación con descansos de concentración confirmados manualmente.';
+
+  @override
+  String get challengePlantTwinTitle => 'Reto de la planta gemela';
+
+  @override
+  String get challengePlantTwinDescription =>
+      'Usa una señal de cuidado de plantas para revisar tu rutina de hidratación.';
+
+  @override
+  String get challengeBottleBingoTitle => 'Bingo de la botella';
+
+  @override
+  String get challengeBottleBingoDescription =>
+      'Completa una combinación semanal de acciones explícitas de hidratación y controles sin hidratación.';
+
+  @override
+  String get challengeLunchRefillTitle => 'Recarga del almuerzo';
+
+  @override
+  String get challengeLunchRefillDescription =>
+      'Aprovecha el almuerzo para revisar y llenar tu botella si hace falta.';
+
+  @override
+  String get challengeHomeworkTitle => 'Hidratación y estudio';
+
+  @override
+  String get challengeHomeworkDescription =>
+      'Asocia una revisión cómoda con una pausa de estudio.';
+
+  @override
+  String get challengeAfterSchoolTitle => 'Recarga de la tarde';
+
+  @override
+  String get challengeAfterSchoolDescription =>
+      'Haz una pausa tras tu rutina y revisa tu hidratación.';
+
+  @override
+  String get challengeBackpackTitle => 'Revisión de la botella';
+
+  @override
+  String get challengeBackpackDescription =>
+      'Usa la preparación de la mochila para dejar lista tu botella.';
+
+  @override
+  String get challengeDeskResetTitle => 'Pausa sentado';
+
+  @override
+  String get challengeDeskResetDescription =>
+      'Usa una pausa opcional para revisar tu hidratación.';
+
+  @override
+  String get challengeShiftCheckTitle => 'Revisión a mitad de jornada';
+
+  @override
+  String get challengeShiftCheckDescription =>
+      'Añade una revisión opcional a mitad de un periodo de trabajo.';
+
+  @override
+  String get challengeCommuteCupTitle => 'Vaso de viaje';
+
+  @override
+  String get challengeCommuteCupDescription =>
+      'Usa la salida o la llegada como recordatorio opcional.';
+
+  @override
+  String get challengeEveningReviewTitle => 'Revisión de la tarde';
+
+  @override
+  String get challengeEveningReviewDescription =>
+      'Revisa tu día y decide si tu plan todavía te resulta adecuado.';
+
+  @override
+  String get profileTitle => 'Perfil';
+
+  @override
+  String get aboutAndLegal => 'Acerca de e información legal';
+
+  @override
+  String get openSourceLicenses => 'Licencias de código abierto';
+
+  @override
+  String get openSourceLicensesSummary =>
+      'Avisos de licencias de Flutter y paquetes.';
+
+  @override
+  String get openSourceLegalese =>
+      'Hydrion utiliza componentes de código abierto conforme a sus licencias.';
+
+  @override
+  String get legalDocument => 'Documento legal';
+
+  @override
+  String get reviewHydrionTerms => 'Revisar los términos de Hydrion';
+
+  @override
+  String get continueToHydrion => 'Continuar a Hydrion';
+
+  @override
+  String get acceptHydrionTerms => 'Acepto los Términos de uso de Hydrion.';
+
+  @override
+  String get acknowledgeHealthDisclaimer =>
+      'Reconozco el Aviso de salud y seguridad.';
+
+  @override
+  String get supportEmailCopied => 'Correo de asistencia copiado.';
+
+  @override
+  String documentVersion({required Object version}) {
+    return 'Versión $version';
+  }
+
+  @override
+  String documentEffective({required Object date}) {
+    return 'Vigente desde $date';
+  }
+
+  @override
+  String documentUpdated({required Object date}) {
+    return 'Actualizado el $date';
+  }
+
+  @override
+  String get homeTitle => 'Inicio';
+
+  @override
+  String get pausedChallengesTitle => 'En pausa';
+
+  @override
+  String get pausedChallengeSummary =>
+      'Progreso guardado. Los registros nuevos no se evalúan.';
+
+  @override
+  String weatherConditionTemperature(
+      {required Object condition, required Object temperature}) {
+    return '$condition - $temperature °C';
+  }
+
+  @override
+  String get weatherClear => 'Despejado';
+
+  @override
+  String get weatherCloudy => 'Nublado';
+
+  @override
+  String get weatherFog => 'Niebla';
+
+  @override
+  String get weatherRain => 'Lluvia';
+
+  @override
+  String get weatherSnow => 'Nieve';
+
+  @override
+  String get weatherStorm => 'Tormenta';
+
+  @override
+  String get weatherMixed => 'Variable';
+
+  @override
+  String get weatherUnknown => 'Desconocido';
+
+  @override
+  String get tourHydrationBody =>
+      'Tu hidratación diaria y la cantidad restante aparecen aquí.';
+
+  @override
+  String get tourLogWater => 'Registrar agua';
+
+  @override
+  String get tourLogWaterBody =>
+      'Registra la cantidad que realmente bebes. Usa un recipiente guardado o elige otra cantidad.';
+
+  @override
+  String get tourReviewCorrect => 'Revisar y corregir';
+
+  @override
+  String get tourReviewCorrectBody =>
+      'Revisa, edita o elimina una entrada de hidratación si cometes un error.';
+
+  @override
+  String get tourChallengesBody =>
+      'Los retos añaden hábitos y tareas opcionales. El agua de los retos sigue contando normalmente.';
+
+  @override
+  String get tourProgressRefresh => 'Progreso y actualización';
+
+  @override
+  String get tourProgressRefreshBody =>
+      'Consulta aquí tus últimos totales. Desliza hacia abajo para actualizar la hidratación y el progreso de los retos.';
+
+  @override
+  String get seeWhatsNew => 'Ver novedades';
+
+  @override
+  String get seeWhatsNewBody =>
+      'Haz un recorrido breve por la hidratación, los retos y el progreso.';
+
+  @override
+  String get showMe => 'Mostrar';
+
+  @override
+  String get challengeOptions => 'Opciones del reto';
+
+  @override
+  String get challengeSettings => 'Ajustes del reto';
+
+  @override
+  String get leaveAction => 'Salir';
+
+  @override
+  String challengeTutorialSemantics({required Object title}) {
+    return 'Tutorial de $title';
+  }
+
+  @override
+  String get tourOpenTile => 'Abrir una casilla';
+
+  @override
+  String get tourOpenTileBody =>
+      'Abre una casilla para ver exactamente qué requiere.';
+
+  @override
+  String get tourAutomaticTiles => 'Casillas automáticas';
+
+  @override
+  String get tourAutomaticTilesBody =>
+      'Algunas casillas se actualizan automáticamente con tus registros habituales de hidratación.';
+
+  @override
+  String get tourActionsCheckIns => 'Acciones y confirmaciones';
+
+  @override
+  String get tourActionsCheckInsBody =>
+      'Otras casillas piden una bebida medida o una confirmación sencilla.';
+
+  @override
+  String get tourMakeBingo => 'Hacer Bingo';
+
+  @override
+  String get tourMakeBingoBody =>
+      'Completa cinco casillas en una fila, columna o diagonal para hacer Bingo.';
+
+  @override
+  String get tourStartFocus => 'Iniciar una sesión de concentración';
+
+  @override
+  String get tourStartFocusBody =>
+      'Inicia el temporizador al comenzar una sesión de concentración.';
+
+  @override
+  String get tourChooseAfterTimer => 'Elegir después del temporizador';
+
+  @override
+  String get tourChooseAfterTimerBody =>
+      'Al terminar, confirma un sorbo o registra una bebida medida.';
+
+  @override
+  String get tourSipNoWater => 'Las confirmaciones de sorbo no añaden agua';
+
+  @override
+  String get tourSipNoWaterBody =>
+      'Una confirmación de sorbo nunca añade una cantidad estimada de hidratación.';
+
+  @override
+  String get tourMeasuredDrinks => 'Las bebidas medidas cuentan normalmente';
+
+  @override
+  String get tourMeasuredDrinksBody =>
+      'Una bebida medida actualiza la hidratación normal y puede contar para otro reto activo.';
+
+  @override
+  String get tourTodaysTemperature => 'Temperatura de hoy';
+
+  @override
+  String get tourTodaysTemperatureBody =>
+      'Revisa el estilo de temperatura asignado para hoy.';
+
+  @override
+  String get tourWeatherBody =>
+      'Cuando está activada, la meteorología local puede influir en la recomendación.';
+
+  @override
+  String get tourLogWithContext => 'Registrar con contexto';
+
+  @override
+  String get tourLogWithContextBody =>
+      'Usa la acción del reto o añade detalles de temperatura al registrar desde Inicio.';
+
+  @override
+  String get tourTodaysInfusion => 'Infusión de hoy';
+
+  @override
+  String get tourTodaysInfusionBody => 'Revisa el tema de infusión de hoy.';
+
+  @override
+  String get tourPrepareNoSugar => 'Preparar sin azúcar añadido';
+
+  @override
+  String get tourPrepareNoSugarBody => 'Usa el tema sin añadir azúcar.';
+
+  @override
+  String get tourLogWhatYouDrink => 'Registrar lo que bebes';
+
+  @override
+  String get tourLogWhatYouDrinkBody =>
+      'Registra la cantidad medida que realmente bebes.';
+
+  @override
+  String get whatChallengeIs => 'En qué consiste este reto';
+
+  @override
+  String get whatYouWillDo => 'Qué harás';
+
+  @override
+  String get whatCounts => 'Qué cuenta';
+
+  @override
+  String get whatDoesNotCount => 'Qué no cuenta';
+
+  @override
+  String get duration => 'Duración';
+
+  @override
+  String challengeDurationHelp({required Object days}) {
+    return '$days días naturales locales. El reto comienza al unirte. Los requisitos diarios se reinician a medianoche local; los días perdidos no se recuperan automáticamente.';
+  }
+
+  @override
+  String get completeSchedule => 'Programa completo';
+
+  @override
+  String challengeScheduleDay({required Object day, required Object item}) {
+    return 'Día $day: $item';
+  }
+
+  @override
+  String get howItWorks => 'Cómo funciona';
+
+  @override
+  String get hydrationProgressPrivacy => 'Hidratación, progreso y privacidad';
+
+  @override
+  String get hydrationProgressPrivacyBody =>
+      'Tu objetivo de hidratación habitual permanece activo. Las bebidas medidas aparecen en Hydrion, mientras que las confirmaciones no añaden agua. Los ajustes y el progreso del reto permanecen en este dispositivo.';
+
+  @override
+  String get requiredSetup => 'Configuración obligatoria';
+
+  @override
+  String get requiredSetupHelp =>
+      'Elige los detalles que se adapten a tu rutina.';
+
+  @override
+  String get amountInFluidOunces => 'Cantidad en onzas líquidas';
+
+  @override
+  String get dateAndTime => 'Fecha y hora';
+
+  @override
+  String get notSpecified => 'Sin especificar';
+
+  @override
+  String get addReminder => 'Añadir recordatorio';
+
+  @override
+  String get editReminder => 'Editar recordatorio';
+
+  @override
+  String get reminderDefaultMessage =>
+      'Es hora de hacer una revisión tranquila de hidratación.';
+
+  @override
+  String get messageLabel => 'Mensaje';
+
+  @override
+  String get minutesFromNow => 'Minutos desde ahora';
+
+  @override
+  String get minutesRangeHelp => 'Usa entre 5 y 1440 minutos.';
+
+  @override
+  String get priorityLabel => 'Prioridad';
+
+  @override
+  String get reminderDetailsInvalid =>
+      'Revisa los datos del recordatorio e inténtalo de nuevo.';
+
+  @override
+  String get ageRangeError => 'Introduce una edad de 13 a 120 años.';
+
+  @override
+  String get ageSaveFailed => 'No se pudo guardar la edad. Inténtalo de nuevo.';
+
+  @override
+  String get profileDeleteDeviceSummary =>
+      'Esto elimina de este dispositivo el perfil local de Hydrion y los datos de hidratación, recordatorios y retos.';
+
+  @override
+  String get reviewProfileAge => 'Revisar la edad del perfil';
+
+  @override
+  String get independentProfileAgeHelp =>
+      'Los perfiles independientes de Hydrion admiten edades de 13 años o más.';
+
+  @override
+  String get ageReviewExistingDataHelp =>
+      'Tus datos locales siguen aquí. Si la edad guardada se introdujo incorrectamente, corrígela una vez a continuación. De lo contrario, elimina el perfil local y empieza de nuevo.';
+
+  @override
+  String get correctAge => 'Corregir edad';
+
+  @override
+  String get saveAgeCorrection => 'Guardar corrección de edad';
+
+  @override
+  String get optionalDeviceAccess => 'Acceso opcional al dispositivo';
+
+  @override
+  String get optionalDeviceAccessHelp =>
+      'Hydrion funciona con un objetivo de hidratación estándar aunque omitas estas opciones.';
+
+  @override
+  String get preciseReminderTiming => 'Horario preciso de recordatorios';
+
+  @override
+  String get allowNotifications => 'Permitir notificaciones';
+
+  @override
+  String get continueWithoutReminders => 'Continuar sin recordatorios';
+
+  @override
+  String get allowLocation => 'Permitir ubicación';
+
+  @override
+  String get continueWithStandardGoal => 'Continuar con el objetivo estándar';
+
+  @override
+  String get openAlarmSettings => 'Abrir ajustes de Alarmas y recordatorios';
+
+  @override
+  String get continueApproximateScheduling =>
+      'Continuar con programación aproximada';
+
+  @override
+  String get refreshStatus => 'Actualizar estado';
+
+  @override
+  String get requesting => 'Solicitando';
+
+  @override
+  String get waitingPermissionResult =>
+      'Esperando el resultado del permiso del dispositivo...';
+
+  @override
+  String get openDeviceSettings => 'Abrir ajustes del dispositivo';
+
+  @override
+  String get permissionNotRequested => 'No solicitado';
+
+  @override
+  String get permissionApproximateEnabled => 'Ubicación aproximada activada';
+
+  @override
+  String get permissionPreciseEnabled => 'Ubicación precisa activada';
+
+  @override
+  String get permissionDenied => 'Denegado';
+
+  @override
+  String get permissionBlocked => 'Bloqueado';
+
+  @override
+  String get permissionRestricted => 'Restringido';
+
+  @override
+  String get permissionNotRequired => 'No requerido';
+
+  @override
+  String get permissionUnsupported => 'No compatible';
+
+  @override
+  String get permissionTemporarilyUnavailable => 'Temporalmente no disponible';
+
+  @override
+  String get permissionStatusUnavailable => 'Estado no disponible';
+
+  @override
+  String get permissionNotificationUnchecked =>
+      'El estado de las notificaciones aún no se ha comprobado.';
+
+  @override
+  String get permissionLocationUnchecked =>
+      'El estado de la ubicación aún no se ha comprobado.';
+
+  @override
+  String get permissionAlarmUnchecked =>
+      'El estado de la programación de alarmas aún no se ha comprobado.';
+
+  @override
+  String get permissionNotificationsAllowed =>
+      'Las notificaciones están permitidas para Hydrion.';
+
+  @override
+  String get permissionNotificationsOff =>
+      'Las notificaciones están desactivadas. Puedes permitirlas aquí o en los ajustes del dispositivo.';
+
+  @override
+  String get permissionNotificationsNotAsked =>
+      'Hydrion aún no ha pedido permiso para enviar notificaciones.';
+
+  @override
+  String get permissionNotificationsBlocked =>
+      'Las notificaciones están bloqueadas. Abre los ajustes del dispositivo para permitirlas.';
+
+  @override
+  String get permissionNotificationStatusUnavailableAndroid =>
+      'Hydrion no pudo leer el estado de las notificaciones de Android.';
+
+  @override
+  String get permissionNotificationsUnsupported =>
+      'Las notificaciones de Hydrion no son compatibles con esta plataforma.';
+
+  @override
+  String get permissionNotificationStatusTemporary =>
+      'El estado de las notificaciones no está disponible temporalmente. Actualiza para volver a intentarlo.';
+
+  @override
+  String get permissionPreciseLocationAllowed =>
+      'La ubicación precisa en primer plano está permitida. La ubicación aproximada es suficiente para el tiempo de Hydrion.';
+
+  @override
+  String get permissionApproximateLocationAllowed =>
+      'La ubicación aproximada en primer plano está permitida y es suficiente para la asistencia meteorológica.';
+
+  @override
+  String get permissionLocationOff =>
+      'La ubicación está desactivada. Tu objetivo de hidratación estándar sigue funcionando.';
+
+  @override
+  String get permissionLocationNotAsked =>
+      'Hydrion aún no ha solicitado la ubicación.';
+
+  @override
+  String get permissionLocationBlocked =>
+      'La ubicación está bloqueada. Abre los ajustes del dispositivo para activar la asistencia meteorológica.';
+
+  @override
+  String get permissionLocationRestricted =>
+      'El dispositivo restringe el acceso a la ubicación.';
+
+  @override
+  String get permissionLocationServicesOff =>
+      'Los servicios de ubicación están desactivados. Tu objetivo estándar sigue disponible.';
+
+  @override
+  String get permissionLocationUnsupported =>
+      'La asistencia meteorológica basada en la ubicación no es compatible con esta plataforma.';
+
+  @override
+  String get permissionLocationStatusTemporary =>
+      'El estado de la ubicación no está disponible temporalmente. Actualiza para volver a intentarlo.';
+
+  @override
+  String get permissionExactAlarmNotRequired =>
+      'El acceso especial a alarmas exactas no es necesario en este dispositivo.';
+
+  @override
+  String get permissionExactAlarmAndroidOnly =>
+      'El acceso a alarmas exactas es específico de Android.';
+
+  @override
+  String get permissionExactSchedulingAvailable =>
+      'La programación precisa de recordatorios está disponible.';
+
+  @override
+  String get permissionExactSchedulingApproximate =>
+      'La programación exacta no está disponible. Hydrion continuará con recordatorios aproximados.';
+
+  @override
+  String historyFocusEndedEarly({required Object session}) {
+    return 'Sesión de concentración $session terminada antes de tiempo';
+  }
+
+  @override
+  String historyFocusCompleted({required Object session}) {
+    return 'Sesión de concentración $session completada';
+  }
+
+  @override
+  String historyBingoTileCompleted({required Object tile}) {
+    return '$tile completado';
+  }
+
+  @override
+  String historyBingoLineCompleted({required Object line}) {
+    return 'Línea $line de Bingo de botella completada';
+  }
+
+  @override
+  String historyTemperatureDrink(
+      {required Object amount, required Object style}) {
+    return 'Bebida $style registrada$amount';
+  }
+
+  @override
+  String historyInfusionTried({required Object amount, required Object theme}) {
+    return 'Infusión $theme probada$amount';
+  }
+
+  @override
+  String historyPomodoroDrink({required Object amount}) {
+    return 'Bebida Pomodoro registrada$amount';
+  }
+
+  @override
+  String historyPomodoroSession({required Object amount}) {
+    return 'Sesión de concentración Pomodoro completada$amount';
+  }
+
+  @override
+  String historyPomodoroSessionNumber(
+      {required Object amount, required Object session}) {
+    return 'Sesión Pomodoro $session completada$amount';
+  }
+
+  @override
+  String historyFoodAdded({required Object food, required Object meal}) {
+    return 'Se añadió $food a $meal';
+  }
+
+  @override
+  String historyCueCompleted({required Object cue}) {
+    return '$cue completado';
+  }
+
+  @override
+  String get historyChallengeTaskCompleted => 'Tarea del reto completada';
+
+  @override
+  String historyChallengeDrink({required Object amount}) {
+    return 'Bebida del reto registrada$amount';
+  }
+
+  @override
+  String historyBottleBingoDrink({required Object amount}) {
+    return 'Bebida de Bingo de botella registrada$amount';
+  }
+
+  @override
+  String historyMeasuredFocusDrink({required Object amount}) {
+    return 'Bebida medida de la sesión registrada$amount';
+  }
+
+  @override
+  String get assignedTemperature => 'temperatura asignada';
+
+  @override
+  String get scheduledTemperature => 'temperatura programada';
+
+  @override
+  String get dailyValue => 'diaria';
+
+  @override
+  String get mealValue => 'comida';
+
+  @override
+  String get waterRichFood => 'alimento rico en agua';
+
+  @override
+  String get plantCareCue => 'recordatorio de cuidado de la planta';
+
+  @override
+  String get bottleBingoTile => 'una casilla de Bingo de botella';
+
+  @override
+  String get bottleBingoDrink => 'una bebida de Bingo de botella';
+
+  @override
+  String get editProfile => 'Editar perfil';
+
+  @override
+  String get localProfilePhoto => 'Foto de perfil local';
+
+  @override
+  String get profilePhotoSaved => 'Foto de perfil guardada localmente.';
+
+  @override
+  String get profilePhotoTooLarge =>
+      'Esa foto es demasiado grande para el almacenamiento local del perfil.';
+
+  @override
+  String get profileEditorSummary =>
+      'Actualiza tu identidad y preferencias de Hydrion. Esto no reinicia la configuración inicial ni elimina el historial.';
+
+  @override
+  String get profilePhotoPrivacy =>
+      'Las fotos seleccionadas solo se usan como imagen de perfil local. Puedes eliminar la foto y volver al avatar predeterminado en cualquier momento.';
+
+  @override
+  String get legal => 'Información legal';
+
+  @override
+  String get hydrationIdentity => 'Perfil de hidratación';
+
+  @override
+  String get dailyGoal => 'Objetivo diario';
+
+  @override
+  String get units => 'Unidades';
+
+  @override
+  String get preferredContainer => 'Recipiente preferido';
+
+  @override
+  String get notSet => 'Sin configurar';
+
+  @override
+  String get noRemindersYet => 'Aún no hay recordatorios';
+
+  @override
+  String savedCount({required int count}) {
+    return '$count guardado(s)';
+  }
+
+  @override
+  String contactEmail({required String email}) {
+    return 'Contacto: $email';
+  }
+
+  @override
+  String get editProfileInvalid =>
+      'Revisa los campos del perfil e inténtalo de nuevo.';
+
+  @override
+  String get choosePhoto => 'Elegir foto';
+
+  @override
+  String get useDefaultAvatar => 'Usar avatar predeterminado';
+
+  @override
+  String get displayName => 'Nombre visible';
+
+  @override
+  String get defaultProfileAvatar => 'Avatar de perfil predeterminado';
+
+  @override
+  String get baselineDailyGoalMl => 'Objetivo diario base en mL';
+
+  @override
+  String get preferredContainerMl => 'Recipiente preferido en mL';
+
+  @override
+  String get personalized => 'Personalizado';
+
+  @override
+  String get saveProfile => 'Guardar perfil';
+
+  @override
+  String get whyHydrionExists => 'Por qué existe Hydrion';
+
+  @override
+  String get missionAndCommunity => 'Misión y comunidad';
+
+  @override
+  String get help => 'Ayuda';
+
+  @override
+  String get replayAppTour =>
+      'Recorrido de la aplicación - Repetir la guía rápida';
+
+  @override
+  String get appearance => 'Apariencia';
+
+  @override
+  String get useDeviceSetting => 'Usar configuración del dispositivo';
+
+  @override
+  String get automaticDayNight => 'Día/noche automático';
+
+  @override
+  String get dayTheme => 'Día';
+
+  @override
+  String get nightTheme => 'Noche';
+
+  @override
+  String get deviceSetting => 'Configuración del dispositivo';
+
+  @override
+  String get autoDayNight => 'Día/noche auto';
+
+  @override
+  String dailyGoalPerDay({required int amount}) {
+    return '$amount mL/día';
+  }
+
+  @override
+  String get amountInOz => 'Cantidad en oz';
+
+  @override
+  String get containerSharedHelp =>
+      'Una cantidad guardada se usa en Inicio y Bingo de botella.';
+
+  @override
+  String get containerAmountInvalid =>
+      'Introduce una cantidad de 100 a 2000 mL.';
+
+  @override
+  String get permissionsSummary =>
+      'Revisa los recordatorios, la ubicación meteorológica y el acceso a alarmas de Android.';
+
+  @override
+  String get legalPrivacySupport => 'Información legal, privacidad y ayuda';
+
+  @override
+  String get widgetNoActiveChallenge => 'No hay un reto activo';
+
+  @override
+  String get widgetChooseChallenge => 'Abre Hydrion para elegir un reto.';
+
+  @override
+  String get widgetOpenChallenges => 'Ver retos';
+
+  @override
+  String get widgetChallengePaused => 'Reto en pausa';
+
+  @override
+  String get widgetActivityActive => 'Actividad activa';
+
+  @override
+  String get widgetActivityPaused => 'Actividad en pausa';
+
+  @override
+  String get widgetActivityComplete => 'Actividad de hoy completada';
+
+  @override
+  String widgetCheckpointProgress(
+      {required int completed, required int total}) {
+    return '$completed de $total pasos hoy';
+  }
+
+  @override
+  String get widgetOpenToContinue => 'Abre Hydrion para continuar';
+
+  @override
+  String get widgetOpenChallenge => 'Abrir reto';
 }

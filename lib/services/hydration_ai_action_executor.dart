@@ -38,7 +38,7 @@ class LocalHydrationAiActionExecutor
         originalAction: action,
         validationResult: validation,
         status: HydrationAiActionExecutionStatus.rejected,
-        message: validation.reason,
+        messageCode: HydrationAiExecutionMessageCode.validationRejected,
       );
     }
 
@@ -47,7 +47,7 @@ class LocalHydrationAiActionExecutor
         originalAction: action,
         validationResult: validation,
         status: HydrationAiActionExecutionStatus.rejected,
-        message: 'User confirmation is required before Hydrion changes state.',
+        messageCode: HydrationAiExecutionMessageCode.confirmationRequired,
       );
     }
 
@@ -57,7 +57,8 @@ class LocalHydrationAiActionExecutor
         originalAction: action,
         validationResult: validation,
         status: HydrationAiActionExecutionStatus.displayOnly,
-        message: safeAction.message,
+        messageCode: HydrationAiExecutionMessageCode.generatedContent,
+        generatedMessage: safeAction.message,
       );
     }
 
@@ -73,14 +74,14 @@ class LocalHydrationAiActionExecutor
           originalAction: action,
           validationResult: validation,
           status: HydrationAiActionExecutionStatus.rejected,
-          message: 'Hydrion rejected the suggested hydration log.',
+          messageCode: HydrationAiExecutionMessageCode.hydrationLogRejected,
         );
       }
       return HydrationAiActionExecutionResult(
         originalAction: action,
         validationResult: validation,
         status: HydrationAiActionExecutionStatus.applied,
-        message: 'Hydration log applied.',
+        messageCode: HydrationAiExecutionMessageCode.hydrationLogApplied,
         appliedEntityId: log.id,
       );
     }
@@ -95,7 +96,7 @@ class LocalHydrationAiActionExecutor
         originalAction: action,
         validationResult: validation,
         status: HydrationAiActionExecutionStatus.applied,
-        message: 'Local reminder definition applied.',
+        messageCode: HydrationAiExecutionMessageCode.reminderApplied,
         appliedEntityId: reminder.id,
       );
     }
@@ -113,7 +114,7 @@ class LocalHydrationAiActionExecutor
         originalAction: action,
         validationResult: validation,
         status: HydrationAiActionExecutionStatus.applied,
-        message: 'Local challenge applied.',
+        messageCode: HydrationAiExecutionMessageCode.challengeApplied,
         appliedEntityId: safeAction.challengeId,
       );
     }
@@ -122,7 +123,7 @@ class LocalHydrationAiActionExecutor
       originalAction: action,
       validationResult: validation,
       status: HydrationAiActionExecutionStatus.rejected,
-      message: 'Hydrion does not execute this action type.',
+      messageCode: HydrationAiExecutionMessageCode.unsupportedAction,
     );
   }
 }

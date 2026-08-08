@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../repositories/settings_repository.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/challenge_localizations.dart';
 
 class HydrationVolumeFormatter {
   static const double _mlPerOunce = 29.5735295625;
@@ -132,6 +134,13 @@ class _HydrationProgressGaugeState extends State<HydrationProgressGauge>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = Localizations.of<AppLocalizations>(
+          context,
+          AppLocalizations,
+        ) ??
+        lookupAppLocalizations(
+          Localizations.maybeLocaleOf(context) ?? const Locale('en'),
+        );
     final scheme = Theme.of(context).colorScheme;
     final percent = (_visibleProgress * 100).round();
     final actualPercent = (_safeRatio * 100).round();
@@ -159,19 +168,23 @@ class _HydrationProgressGaugeState extends State<HydrationProgressGauge>
             ? Colors.white
             : scheme.primary;
     final status = invalidGoal
-        ? 'Set a daily goal'
+        ? l10n.challengeText('Set a daily goal')
         : overGoal
-            ? 'Over goal, ease up'
+            ? l10n.challengeText('Over goal, ease up')
             : percent >= 100
-                ? 'Goal reached'
-                : 'Daily progress';
-    final semanticsLabel = 'Hydration progress gauge, $actualPercent percent. '
-        '$consumedLabel consumed of $goalLabel daily goal. $status.';
+                ? l10n.challengeText('Goal reached')
+                : l10n.challengeText('Daily progress');
+    final semanticsLabel = l10n.sharedGaugeSemantics(
+      actualPercent,
+      consumedLabel,
+      goalLabel,
+      status,
+    );
 
     return Semantics(
       key: const Key('hydration-progress-gauge-semantics'),
       label: semanticsLabel,
-      value: '$actualPercent percent',
+      value: l10n.sharedPercent(actualPercent),
       child: SizedBox(
         key: const Key('hydration-progress-gauge'),
         width: widget.width,

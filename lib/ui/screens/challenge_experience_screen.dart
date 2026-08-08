@@ -5,22 +5,27 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/challenge_experience.dart';
+import '../../domain/challenge_activity.dart';
 import '../../domain/bottle_bingo.dart';
 import '../../domain/challenge_visual_registry.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../domain/pomodoro_session.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/challenge_localizations.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
-import '../../services/app_refresh_controller.dart';
+import '../presentation/app_refresh_presenter.dart';
 import '../../services/weather_goal_service.dart';
 import '../../services/notifications.dart';
 import '../../services/pomodoro_session_service.dart';
+import '../../services/timed_session_notification_service.dart';
 import '../components/intake_ring.dart';
 import '../components/challenge_artwork.dart';
 import '../components/guided_tour_overlay.dart';
 import '../components/hydrion_viewport.dart';
+import '../components/recognition_moment.dart';
 import '../presentation/challenge_history_presenter.dart';
 import '../presentation/challenge_copy.dart';
 import '../theme/hydrion_design.dart';
@@ -52,6 +57,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final l10n = AppLocalizations.of(context);
     final active = context
         .read<ChallengeRepository>()
         .activeChallengeFor(widget.challenge.id);
@@ -65,7 +71,8 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
           text: key == 'amountMl' && storedValue is num
               ? HydrationVolumeFormatter.fromMilliliters(storedValue, unit)
                   .toStringAsFixed(unit == HydrionVolumeUnit.ounces ? 1 : 0)
-              : storedValue?.toString() ?? _defaultParameterValue(key, unit),
+              : storedValue?.toString() ??
+                  _defaultParameterValue(l10n, key, unit),
         ),
       );
     }
@@ -81,6 +88,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final copy = ChallengeCopy.forChallenge(context, widget.challenge);
     final challengeRepository = context.watch<ChallengeRepository>();
     final active = challengeRepository.activeChallengeFor(widget.challenge.id);
@@ -103,7 +111,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
           if (active != null)
             PopupMenuButton<String>(
               key: const Key('challenge-overflow-menu'),
-              tooltip: 'Challenge options',
+              tooltip: l10n.challengeOptions,
               onSelected: (value) {
                 if (value == 'settings') {
                   _showChallengeSettings(context, active);
@@ -113,13 +121,13 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   _leaveChallenge(context, active);
                 }
               },
-              itemBuilder: (_) => const [
+              itemBuilder: (_) => [
                 PopupMenuItem(
                   value: 'settings',
-                  child: Text('Challenge settings'),
+                  child: Text(l10n.challengeSettings),
                 ),
-                PopupMenuItem(value: 'pause', child: Text('Pause')),
-                PopupMenuItem(value: 'leave', child: Text('Leave')),
+                PopupMenuItem(value: 'pause', child: Text(l10n.pauseAction)),
+                PopupMenuItem(value: 'leave', child: Text(l10n.leaveAction)),
               ],
             ),
         ],
@@ -149,103 +157,102 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         ),
       ),
     );
-    final tutorial = _contextualTutorial(active);
+    final tutorial = _contextualTutorial(context, active);
     if (active == null || active.needsSetup || tutorial == null) {
       return scaffold;
     }
     return ContextualGuidedTourOverlay(
       tourId: tutorial.id,
-      semanticsLabel: '${copy.title} tutorial',
+      semanticsLabel: l10n.challengeTutorialSemantics(title: copy.title),
       steps: tutorial.steps,
       child: scaffold,
     );
   }
 
-  _ContextualTutorial? _contextualTutorial(JoinedChallenge? active) {
+  _ContextualTutorial? _contextualTutorial(
+    BuildContext context,
+    JoinedChallenge? active,
+  ) {
     if (active == null) return null;
+    final l10n = AppLocalizations.of(context);
     final id = '${active.id}:release18-v1';
     return switch (active.id) {
       'bottle-bingo' => _ContextualTutorial(id, [
           GuidedTourStep(
             targetKey: _tutorialPrimaryTarget,
-            title: 'Open a tile',
-            body: 'Open any tile to see exactly what it requires.',
+            title: l10n.tourOpenTile,
+            body: l10n.tourOpenTileBody,
           ),
           GuidedTourStep(
             targetKey: _tutorialProgressTarget,
-            title: 'Automatic tiles',
-            body:
-                'Some tiles update automatically from your normal hydration logs.',
+            title: l10n.tourAutomaticTiles,
+            body: l10n.tourAutomaticTilesBody,
           ),
           GuidedTourStep(
             targetKey: _tutorialSecondaryTarget,
-            title: 'Actions and check-ins',
-            body: 'Other tiles ask for a measured drink or a simple check-in.',
+            title: l10n.tourActionsCheckIns,
+            body: l10n.tourActionsCheckInsBody,
           ),
           GuidedTourStep(
             targetKey: _tutorialPrimaryTarget,
-            title: 'Make Bingo',
-            body:
-                'Complete five tiles in a row, column, or diagonal to make Bingo.',
+            title: l10n.tourMakeBingo,
+            body: l10n.tourMakeBingoBody,
           ),
         ]),
       'pomodoro-sip' => _ContextualTutorial(id, [
           GuidedTourStep(
             targetKey: _tutorialPrimaryTarget,
-            title: 'Start a focus session',
-            body: 'Start the timer when you begin a focus session.',
+            title: l10n.tourStartFocus,
+            body: l10n.tourStartFocusBody,
           ),
           GuidedTourStep(
             targetKey: _tutorialSecondaryTarget,
-            title: 'Choose after the timer',
-            body: 'When it ends, confirm a sip or log a measured drink.',
+            title: l10n.tourChooseAfterTimer,
+            body: l10n.tourChooseAfterTimerBody,
           ),
           GuidedTourStep(
             targetKey: _tutorialSecondaryTarget,
-            title: 'Sip check-ins add no water',
-            body: 'A sip check-in never adds a guessed hydration amount.',
+            title: l10n.tourSipNoWater,
+            body: l10n.tourSipNoWaterBody,
           ),
           GuidedTourStep(
             targetKey: _tutorialProgressTarget,
-            title: 'Measured drinks count normally',
-            body:
-                'A measured drink updates normal hydration and may qualify another active challenge.',
+            title: l10n.tourMeasuredDrinks,
+            body: l10n.tourMeasuredDrinksBody,
           ),
         ]),
       'temperature-roulette' => _ContextualTutorial(id, [
           GuidedTourStep(
             targetKey: _tutorialPrimaryTarget,
-            title: "Today's temperature",
-            body: "Review today's assigned temperature style.",
+            title: l10n.tourTodaysTemperature,
+            body: l10n.tourTodaysTemperatureBody,
           ),
           GuidedTourStep(
             targetKey: _tutorialSecondaryTarget,
-            title: 'Weather assistance',
-            body:
-                'When enabled, local weather may influence the recommendation.',
+            title: l10n.weatherAssistance,
+            body: l10n.tourWeatherBody,
           ),
           GuidedTourStep(
             targetKey: _tutorialProgressTarget,
-            title: 'Log with context',
-            body:
-                'Use the challenge action or add temperature details when logging from Home.',
+            title: l10n.tourLogWithContext,
+            body: l10n.tourLogWithContextBody,
           ),
         ]),
       'around-the-world-infusion-week' => _ContextualTutorial(id, [
           GuidedTourStep(
             targetKey: _tutorialPrimaryTarget,
-            title: "Today's infusion",
-            body: "Review today's infusion theme.",
+            title: l10n.tourTodaysInfusion,
+            body: l10n.tourTodaysInfusionBody,
           ),
           GuidedTourStep(
             targetKey: _tutorialSecondaryTarget,
-            title: 'Prepare without added sugar',
-            body: 'Use the theme without adding sugar.',
+            title: l10n.tourPrepareNoSugar,
+            body: l10n.tourPrepareNoSugarBody,
           ),
           GuidedTourStep(
             targetKey: _tutorialProgressTarget,
-            title: 'Log what you drink',
-            body: 'Record the measured amount you actually drink.',
+            title: l10n.tourLogWhatYouDrink,
+            body: l10n.tourLogWhatYouDrinkBody,
           ),
         ]),
       _ => null,
@@ -253,6 +260,8 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
   }
 
   List<Widget> _previewAndSetup(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final copy = l10n.challengeCopy(widget.challenge.id);
     final repository = context.watch<ChallengeRepository>();
     final active = repository.activeChallengeFor(widget.challenge.id);
     final completingSetup = active != null;
@@ -260,49 +269,65 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         !completingSetup && !repository.hasRoomForAnotherChallenge;
     return [
       _ChallengeImageHero(
-        challengeName: widget.challenge.name,
+        challengeName: copy.title,
         identity: ChallengeVisualRegistry.forId(widget.challenge.id),
       ),
-      _Section(title: 'What this challenge is', body: definition.purpose),
       _Section(
-        title: 'What you will do',
+        title: l10n.whatChallengeIs,
+        body: l10n.challengeText(definition.purpose),
+      ),
+      _Section(
+        title: l10n.whatYouWillDo,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (var i = 0; i < definition.actions.length; i++)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: Text('${i + 1}. ${definition.actions[i]}'),
+                child: Text(l10n.challengeNumbered(
+                  i + 1,
+                  l10n.challengeText(definition.actions[i]),
+                )),
               ),
           ],
         ),
       ),
-      _Section(title: 'What counts', body: definition.whatCounts),
-      _Section(title: 'What does not count', body: definition.whatDoesNotCount),
       _Section(
-        title: 'Duration',
-        body:
-            '${widget.challenge.durationDays} local calendar days. The challenge starts when joined. Daily requirements reset at local midnight; missed days are not silently recovered.',
+        title: l10n.whatCounts,
+        body: l10n.challengeText(definition.whatCounts),
+      ),
+      _Section(
+        title: l10n.whatDoesNotCount,
+        body: l10n.challengeText(definition.whatDoesNotCount),
+      ),
+      _Section(
+        title: l10n.duration,
+        body: l10n.challengeDurationHelp(days: widget.challenge.durationDays),
       ),
       if (definition.schedule.isNotEmpty)
         _Section(
-          title: 'Complete schedule',
+          title: l10n.completeSchedule,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var i = 0; i < definition.schedule.length; i++)
-                Text('Day ${i + 1}: ${definition.schedule[i]}'),
+                Text(l10n.challengeScheduleDay(
+                  day: i + 1,
+                  item: l10n.challengeText(definition.schedule[i]),
+                )),
             ],
           ),
         ),
-      const _Section(
-        title: 'Hydration relationship',
-        body:
-            'Your normal hydration goal remains active. Water logged here also appears on Home, History, Progress, and Analytics. Only drinks that match the challenge task complete it. Check-ins add no water.',
-      ),
-      const _Section(
-        title: 'Privacy and persistence',
-        body: 'Challenge configuration and progress remain on this device.',
+      _Section(
+        title: l10n.howItWorks,
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(bottom: 8),
+          title: Text(l10n.hydrationProgressPrivacy),
+          children: [
+            Text(l10n.hydrationProgressPrivacyBody),
+          ],
+        ),
       ),
       HydrionSurface(
         child: Form(
@@ -310,12 +335,10 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Required setup',
+              Text(l10n.requiredSetup,
                   style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
-              const Text(
-                'Choose the required values below. Field-level guidance appears only where an option needs explanation.',
-              ),
+              Text(l10n.requiredSetupHelp),
               const SizedBox(height: 12),
               for (final key in definition.requiredParameters) ...[
                 _ChallengeParameterField(
@@ -341,28 +364,32 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   label: Text(
                     !joinBlocked
                         ? completingSetup
-                            ? 'Complete setup'
-                            : 'Join challenge'
-                        : 'Pause or leave one challenge first',
+                            ? l10n.challengeText('Complete setup')
+                            : l10n.challengeText('Join challenge')
+                        : l10n.challengeText(
+                            'Pause or leave one challenge first',
+                          ),
                     textAlign: TextAlign.center,
                   ),
                 ),
               ),
               if (joinBlocked) ...[
                 const SizedBox(height: 8),
-                const Text(
-                  'You already have two active challenges. Pause or leave one before starting another.',
+                Text(
+                  l10n.challengeText(
+                    'You already have two active challenges. Pause or leave one before starting another.',
+                  ),
                 ),
                 const SizedBox(height: 8),
                 for (final activeChallenge in repository.activeChallenges)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.emoji_events_outlined),
-                    title: Text(activeChallenge.name),
+                    title: Text(l10n.challengeCopy(activeChallenge.id).title),
                     trailing: TextButton(
                       onPressed: () =>
                           _pauseChallenge(context, activeChallenge),
-                      child: const Text('Pause'),
+                      child: Text(l10n.challengeText('Pause')),
                     ),
                   ),
               ],
@@ -374,15 +401,18 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
   }
 
   List<Widget> _pausedView(BuildContext context, JoinedChallenge paused) {
+    final l10n = AppLocalizations.of(context);
+    final copy = l10n.challengeCopy(paused.id);
     return [
       _ChallengeImageHero(
-        challengeName: widget.challenge.name,
+        challengeName: copy.title,
         identity: ChallengeVisualRegistry.forId(widget.challenge.id),
       ),
-      const _Section(
-        title: 'Challenge paused',
-        body:
-            'Your progress and hydration history are safe. This challenge is not evaluating new hydration while paused.',
+      _Section(
+        title: l10n.challengeText('Challenge paused'),
+        body: l10n.challengeText(
+          'Your progress and hydration history are safe. This challenge is not evaluating new hydration while paused.',
+        ),
       ),
       HydrionSurface(
         child: Column(
@@ -398,9 +428,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                               .resumeChallenge(paused.instanceId);
                           if (!resumed.changed && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  'Pause or leave an active challenge before resuming this one.',
+                                  l10n.challengeText(
+                                    'Pause or leave an active challenge before resuming this one.',
+                                  ),
                                 ),
                               ),
                             );
@@ -408,11 +440,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                         }
                       : null,
               icon: const Icon(Icons.play_arrow),
-              label: const Text('Resume challenge'),
+              label: Text(l10n.challengeText('Resume challenge')),
             ),
             TextButton(
               onPressed: () => _leavePausedChallenge(context, paused),
-              child: const Text('Leave challenge'),
+              child: Text(l10n.challengeText('Leave challenge')),
             ),
           ],
         ),
@@ -424,6 +456,8 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     BuildContext context,
     JoinedChallenge completed,
   ) {
+    final l10n = AppLocalizations.of(context);
+    final copy = l10n.challengeCopy(completed.id);
     final hydration = context.watch<HydrationRepository>();
     final repository = context.read<ChallengeRepository>();
     final settings = context.read<UserSettingsRepository>().settings;
@@ -446,21 +480,21 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
               dailyGoalMl: settings.dailyGoalMl,
             );
             final lines = board.completedLines(indexes);
-            return 'You completed ${indexes.length} tiles and ${lines.length} Bingo ${lines.length == 1 ? 'line' : 'lines'}.';
+            return l10n.challengeBingoCompletion(indexes.length, lines.length);
           }()
-        : _completionSummary(completed);
+        : _completionSummary(l10n, completed);
     return [
       _ChallengeImageHero(
-        challengeName: widget.challenge.name,
+        challengeName: copy.title,
         identity: ChallengeVisualRegistry.forId(widget.challenge.id),
       ),
       _Section(
-        title: 'Challenge complete',
+        title: l10n.challengeText('Challenge complete'),
         body: summary,
       ),
       if (contribution > 0)
         _Section(
-          title: 'Measured hydration contribution',
+          title: l10n.challengeText('Measured hydration contribution'),
           body: HydrationVolumeFormatter.format(
             contribution,
             settings.volumeUnit,
@@ -476,17 +510,17 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   ? () => repository.repeatChallenge(completed.instanceId)
                   : null,
               icon: const Icon(Icons.replay),
-              label: const Text('Repeat challenge'),
+              label: Text(l10n.challengeText('Repeat challenge')),
             ),
             OutlinedButton.icon(
               style: _challengeOutlinedStyle(context),
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.explore_outlined),
-              label: const Text('Explore another challenge'),
+              label: Text(l10n.challengeText('Explore another challenge')),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
+              child: Text(l10n.challengeText('Close')),
             ),
           ],
         ),
@@ -494,21 +528,28 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     ];
   }
 
-  String _completionSummary(JoinedChallenge challenge) {
+  String _completionSummary(
+    AppLocalizations l10n,
+    JoinedChallenge challenge,
+  ) {
     return switch (challenge.id) {
       'temperature-roulette' =>
-        'You completed ${challenge.durationDays} days of assigned temperature styles.',
-      'around-the-world-infusion-week' =>
-        'You completed the infusion themes in this attempt.',
-      'eat-your-water-day' => 'You completed the water-rich food task.',
+        l10n.challengeTemperatureCompletion(challenge.durationDays),
+      'around-the-world-infusion-week' => l10n
+          .challengeText('You completed the infusion themes in this attempt.'),
+      'eat-your-water-day' =>
+        l10n.challengeText('You completed the water-rich food task.'),
       'pomodoro-sip' =>
-        'You completed focus sessions and recorded ${challenge.completedActionIds.length} sip check-ins.',
-      'bottle-bingo' => 'You completed this Bottle Bingo board.',
-      _ => 'You completed this challenge attempt.',
+        l10n.challengePomodoroCompletion(challenge.completedActionIds.length),
+      'bottle-bingo' =>
+        l10n.challengeText('You completed this Bottle Bingo board.'),
+      _ => l10n.challengeText('You completed this challenge attempt.'),
     };
   }
 
   List<Widget> _dashboard(BuildContext context, JoinedChallenge active) {
+    final l10n = AppLocalizations.of(context);
+    final localizedChallenge = l10n.challengeCopy(active.id);
     final hydration = context.watch<HydrationRepository>();
     final settings = context.watch<UserSettingsRepository>().settings;
     final repository = context.read<ChallengeRepository>();
@@ -525,7 +566,8 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       targetMlOverride: settings.dailyGoalMl,
       challengeId: active.id,
     );
-    final instruction = _instruction(active, day);
+    final instruction = _instruction(l10n, active, day);
+    final activityDefinition = HydrionChallengeActivities.forId(active.id);
     if (widget.challenge.id == 'bottle-bingo') {
       return _bottleBingoDashboard(
         context,
@@ -538,16 +580,26 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     }
     return [
       _ChallengeImageHero(
-        challengeName: widget.challenge.name,
+        challengeName: localizedChallenge.title,
         identity: ChallengeVisualRegistry.forId(widget.challenge.id),
       ),
       _Section(
         title: challengeComplete
-            ? 'Completed · ${active.durationDays} days'
-            : 'Active · Day ${day + 1} of ${active.durationDays}',
-        body: widget.challenge.description,
+            ? l10n.challengeCompletedStatus(active.durationDays)
+            : l10n.challengeActiveStatus(day + 1, active.durationDays),
+        body: localizedChallenge.description,
       ),
-      _Section(title: "Today's instruction", body: instruction),
+      _Section(
+        title: l10n.challengeText("Today's instruction"),
+        body: instruction,
+      ),
+      if (activityDefinition != null)
+        _ChallengeActivityPanel(
+          definition: activityDefinition,
+          active: active,
+          onProgress: () => _completeIfFinished(context, active.id),
+          onOpenLog: () => Navigator.pushNamed(context, '/log'),
+        ),
       if (widget.challenge.id == 'temperature-roulette')
         _TemperatureChallengePanel(
           key: _tutorialPrimaryTarget,
@@ -569,45 +621,32 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         _PlantCuePanel(active: active),
       if (widget.challenge.id == 'pomodoro-sip')
         _PomodoroTimerCard(key: _tutorialPrimaryTarget, active: active),
-      KeyedSubtree(
-        key: _tutorialSecondaryTarget,
-        child: _Section(
-          title: "Today's parameters",
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: active.parameters.entries
-                .where((entry) => const {
-                      'amountMl',
-                      'noAddedSugar',
-                      'weatherOrdering',
-                      'meal',
-                      'food',
-                      'cutoffHour',
-                      'targetPercent',
-                      'sessionMinutes',
-                      'sessionsPerDay',
-                      'shortBreakMinutes',
-                      'notifications',
-                      'autoStartNext',
-                      'challengeDurationDays',
-                      'difficulty',
-                      'reminderPreference',
-                      'cue',
-                    }.contains(entry.key))
-                .map((entry) => Chip(
-                      label: Text(_parameterSummary(
-                        entry.key,
-                        entry.value,
-                        settings.volumeUnit,
-                      )),
-                    ))
-                .toList(),
+      if (active.parameters.entries.any(_isVisibleParameter))
+        KeyedSubtree(
+          key: _tutorialSecondaryTarget,
+          child: _Section(
+            title: l10n.challengeText("Today's parameters"),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: active.parameters.entries
+                  .where(_isVisibleParameter)
+                  .map((entry) => Chip(
+                        label: Text(_parameterSummary(
+                          context,
+                          entry.key,
+                          entry.value,
+                          settings.volumeUnit,
+                        )),
+                      ))
+                  .toList(),
+            ),
           ),
         ),
-      ),
       _ProgressSection(
-        title: "Today's total hydration",
+        title: l10n.challengeText(
+          "Today's hydration toward your current daily goal",
+        ),
         valueMl: total,
         targetMl: settings.dailyGoalMl,
         unit: settings.volumeUnit,
@@ -617,21 +656,25 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         KeyedSubtree(
           key: _tutorialProgressTarget,
           child: _ProgressSection(
-            title: 'Challenge-qualified hydration',
+            title: l10n.challengeText('Challenge-qualified hydration'),
             valueMl: qualified.todayMl,
             targetMl: qualified.targetMl,
             unit: settings.volumeUnit,
           ),
         ),
       _Section(
-        title: 'Challenge progress',
-        body:
-            '${qualified.completedDays}/${qualified.durationDays} days completed. ${active.completedActionIds.length} challenge actions recorded.',
+        title: l10n.challengeText('Challenge progress'),
+        body: l10n.challengeProgressSummary(
+          qualified.completedDays,
+          qualified.durationDays,
+          active.completedActionIds.length,
+        ),
       ),
       _Section(
-        title: 'History',
+        title: l10n.challengeText('History'),
         child: ChallengeHistoryView(
           items: ChallengeHistoryPresenter.present(
+            l10n: l10n,
             challenge: active,
             hydrationLogs: hydration.logs,
             unit: settings.volumeUnit,
@@ -644,16 +687,17 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            FilledButton.icon(
-              key: Key('challenge-primary-action-${widget.challenge.id}'),
-              onPressed: challengeComplete
-                  ? null
-                  : () => _performPrimaryAction(context, active, day),
-              icon: Icon(definition.actionKind == ChallengeActionKind.checkIn
-                  ? Icons.check_circle_outline
-                  : Icons.water_drop),
-              label: Text(_primaryActionLabel(active)),
-            ),
+            if (activityDefinition == null)
+              FilledButton.icon(
+                key: Key('challenge-primary-action-${widget.challenge.id}'),
+                onPressed: challengeComplete
+                    ? null
+                    : () => _performPrimaryAction(context, active, day),
+                icon: Icon(definition.actionKind == ChallengeActionKind.checkIn
+                    ? Icons.check_circle_outline
+                    : Icons.water_drop),
+                label: Text(_primaryActionLabel(active)),
+              ),
             if (widget.challenge.id == 'pomodoro-sip') ...[
               const SizedBox(height: 8),
               OutlinedButton.icon(
@@ -670,31 +714,34 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         ),
       ),
       _Section(
-        title: 'Challenge settings',
+        title: l10n.challengeText('Challenge settings'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Small preferences can apply now or tomorrow. Structural changes create a new attempt and keep hydration history.',
+            Text(
+              l10n.challengeText(
+                'Small preferences can apply now or tomorrow. Schedule changes begin with the next activity, while your hydration history stays intact.',
+              ),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               style: _challengeOutlinedStyle(context),
               key: _tutorialHelpTarget,
-              onPressed: _contextualTutorial(active) == null
+              onPressed: _contextualTutorial(context, active) == null
                   ? null
-                  : () => context
-                      .read<GuidedTourRepository>()
-                      .replayContextualTour(_contextualTutorial(active)!.id),
+                  : () =>
+                      context.read<GuidedTourRepository>().replayContextualTour(
+                            _contextualTutorial(context, active)!.id,
+                          ),
               icon: const Icon(Icons.help_outline),
-              label: const Text('How it works'),
+              label: Text(l10n.challengeText('How it works')),
             ),
             OutlinedButton.icon(
               style: _challengeOutlinedStyle(context),
               key: Key('challenge-edit-settings-${active.id}'),
               onPressed: () => _showChallengeSettings(context, active),
               icon: const Icon(Icons.tune),
-              label: const Text('Edit challenge settings'),
+              label: Text(l10n.challengeText('Edit challenge settings')),
             ),
           ],
         ),
@@ -710,6 +757,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     required ChallengeRepository repository,
     required int todayTotalMl,
   }) {
+    final l10n = AppLocalizations.of(context);
     final board = BottleBingoBoard.forInstance(
       active.joinedAt.microsecondsSinceEpoch,
     );
@@ -720,6 +768,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     );
     final lines = board.completedLines(completed);
     final history = ChallengeHistoryPresenter.present(
+      l10n: l10n,
       challenge: active,
       hydrationLogs: hydration.logs,
       unit: settings.volumeUnit,
@@ -748,7 +797,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         onConfigureAmount: () => _showChallengeSettings(context, active),
       ),
       _Section(
-        title: 'Recent activity',
+        title: l10n.challengeText('Recent activity'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -760,7 +809,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   key: const Key('bottle-bingo-see-all-activity'),
                   onPressed: () => _showAllBingoActivity(context, history),
                   icon: const Icon(Icons.history),
-                  label: const Text('See all activity'),
+                  label: Text(l10n.challengeText('See all activity')),
                 ),
               ),
           ],
@@ -768,29 +817,32 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       ),
       const _BottleBingoInformation(),
       _Section(
-        title: 'Challenge settings',
+        title: l10n.challengeText('Challenge settings'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             OutlinedButton.icon(
               style: _challengeOutlinedStyle(context),
               key: _tutorialHelpTarget,
-              onPressed: () => context
-                  .read<GuidedTourRepository>()
-                  .replayContextualTour(_contextualTutorial(active)!.id),
+              onPressed: () =>
+                  context.read<GuidedTourRepository>().replayContextualTour(
+                        _contextualTutorial(context, active)!.id,
+                      ),
               icon: const Icon(Icons.help_outline),
-              label: const Text('Replay board guide'),
+              label: Text(l10n.challengeText('Replay board guide')),
             ),
             OutlinedButton.icon(
               style: _challengeOutlinedStyle(context),
               key: Key('challenge-edit-settings-${active.id}'),
               onPressed: () => _showChallengeSettings(context, active),
               icon: const Icon(Icons.tune),
-              label: const Text('Edit challenge settings'),
+              label: Text(l10n.challengeText('Edit challenge settings')),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Pause or leave this challenge from the options menu above. Your hydration records remain intact.',
+            Text(
+              l10n.challengeText(
+                'Pause or leave this challenge from the options menu above. Your hydration records remain intact.',
+              ),
             ),
           ],
         ),
@@ -802,6 +854,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     BuildContext context,
     List<ChallengeHistoryItem> history,
   ) async {
+    final l10n = AppLocalizations.of(context);
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -817,7 +870,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bottle Bingo activity',
+                  l10n.challengeText('Bottle Bingo activity'),
                   style: Theme.of(sheetContext).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 12),
@@ -837,7 +890,10 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     final weatherCoordinator = context.read<DailyWeatherGoalCoordinator>();
     final messenger = ScaffoldMessenger.of(context);
     final unit = settingsRepository.settings.volumeUnit;
-    final parameters = <String, Object?>{};
+    final existing = repository.activeChallengeFor(widget.challenge.id);
+    final parameters = <String, Object?>{
+      ...?existing?.parameters,
+    };
     for (final entry in _controllers.entries) {
       final raw = entry.value.text.trim();
       parameters[entry.key] = entry.key == 'amountMl'
@@ -852,9 +908,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       final goal = settingsRepository.settings.dailyGoalMl;
       if (total > goal) {
         messenger.showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Choose a smaller sip amount or fewer sessions so the plan does not exceed your normal goal.',
+              AppLocalizations.of(context).challengeText(
+                'Choose a smaller sip amount or fewer sessions so the plan does not exceed your normal goal.',
+              ),
             ),
           ),
         );
@@ -927,11 +985,17 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     if (widget.challenge.id == 'bottle-bingo') {
       parameters['bingoBoardVersion'] = 2;
     }
-    if (repository.activeChallengeFor(widget.challenge.id) != null) {
+    if (existing != null) {
+      final notifications = context.read<NotificationService>();
+      for (final reminderId in _activityReminderIds(existing)) {
+        await notifications.deleteReminder(reminderId);
+      }
       await repository.updateParameters(
         parameters,
         challengeId: widget.challenge.id,
       );
+      if (!context.mounted) return;
+      await _scheduleActivityReminders(context, parameters);
       return;
     }
     final joined = await repository.join(
@@ -947,9 +1011,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     );
     if (!joined && context.mounted) {
       messenger.showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'You already have two active challenges. Pause or leave one before starting another.',
+            AppLocalizations.of(context).challengeText(
+              'You already have two active challenges. Pause or leave one before starting another.',
+            ),
           ),
         ),
       );
@@ -957,7 +1023,106 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         widget.challenge.id == 'pomodoro-sip' &&
         context.mounted) {
       await context.read<PomodoroSessionService>().start();
+    } else if (joined && context.mounted) {
+      await _scheduleActivityReminders(context, parameters);
     }
+  }
+
+  List<String> _activityReminderIds(JoinedChallenge challenge) => [
+        for (final key in const [
+          'lunchReminderId',
+          'shiftStartReminderId',
+          'shiftMidpointReminderId',
+          'shiftEndReminderId',
+          'reviewReminderId',
+        ])
+          if ((challenge.parameters[key]?.toString().trim() ?? '').isNotEmpty)
+            challenge.parameters[key]!.toString(),
+      ];
+
+  Future<void> _scheduleActivityReminders(
+    BuildContext context,
+    Map<String, Object?> parameters,
+  ) async {
+    final id = widget.challenge.id;
+    if (!const {
+      'lunch-break-refill',
+      'shift-hydration-check',
+      'evening-goal-review',
+    }.contains(id)) {
+      return;
+    }
+    if (id == 'lunch-break-refill' &&
+        parameters['reminderEnabled'] != 'enabled') {
+      return;
+    }
+    final notifications = context.read<NotificationService>();
+    final now = DateTime.now();
+    DateTime nextAtMinutes(int minutes) {
+      var next = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        minutes ~/ 60,
+        minutes % 60,
+      );
+      if (!next.isAfter(now)) next = next.add(const Duration(days: 1));
+      return next;
+    }
+
+    final requests = <(String, int, String)>[];
+    if (id == 'lunch-break-refill') {
+      requests.add((
+        'lunchReminderId',
+        ((parameters['windowStartHour'] as num).round() * 60),
+        'Lunch Break Refill is ready for a bottle check.',
+      ));
+    } else if (id == 'evening-goal-review') {
+      requests.add((
+        'reviewReminderId',
+        ((parameters['reviewHour'] as num).round() * 60),
+        'Evening Goal Review is ready when you are.',
+      ));
+    } else {
+      final start = (parameters['shiftStartMinutes'] as num).round();
+      final duration = (parameters['shiftDurationMinutes'] as num).round();
+      requests.addAll([
+        (
+          'shiftStartReminderId',
+          start % (24 * 60),
+          'Your Shift Hydration start check is ready.',
+        ),
+        (
+          'shiftMidpointReminderId',
+          (start + duration ~/ 2) % (24 * 60),
+          'Your Shift Hydration midpoint check is ready.',
+        ),
+        (
+          'shiftEndReminderId',
+          (start + duration) % (24 * 60),
+          'Your Shift Hydration end review is ready.',
+        ),
+      ]);
+    }
+
+    final reminderParameters = <String, Object?>{...parameters};
+    for (final request in requests) {
+      final result = await notifications.createReminder(
+        triggerTime: nextAtMinutes(request.$2),
+        message: request.$3,
+        priority: 1,
+        requestPermissionIfNeeded: true,
+        challengeId: id,
+      );
+      if (result.reminder != null) {
+        reminderParameters[request.$1] = result.reminder!.id;
+      }
+    }
+    if (!context.mounted) return;
+    await context.read<ChallengeRepository>().updateParameters(
+          reminderParameters,
+          challengeId: id,
+        );
   }
 
   Future<void> _performPrimaryAction(
@@ -973,9 +1138,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       if (state?.lifecycle != PomodoroSessionLifecycle.completed ||
           state?.completionCommitted != true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Complete this focus session before confirming your sip.',
+              AppLocalizations.of(context).challengeText(
+                'Complete this focus session before confirming your sip.',
+              ),
             ),
           ),
         );
@@ -987,9 +1154,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       if (!context.mounted) return;
       if (log == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'That sip was already recorded or could not be saved. Check your history before trying again.',
+              AppLocalizations.of(context).challengeText(
+                'That sip was already recorded or could not be saved. Check your history before trying again.',
+              ),
             ),
           ),
         );
@@ -1013,9 +1182,13 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     }
     if (definition.actionKind == ChallengeActionKind.automaticQualification) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Log water normally; qualifying records update this challenge automatically.')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).challengeText(
+              'Log water normally; qualifying records update this challenge automatically.',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -1053,9 +1226,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       await _completeIfFinished(context, active.id);
     } else if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Complete the focus session first, or check whether this drink was already recorded.',
+            AppLocalizations.of(context).challengeText(
+              'Complete the focus session first, or check whether this drink was already recorded.',
+            ),
           ),
         ),
       );
@@ -1066,6 +1241,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     BuildContext context,
     DateTime now,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final repository = context.read<ChallengeRepository>();
     final temperature = repository.temperatureForDay(
       'temperature-roulette',
@@ -1084,12 +1260,14 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add drink details'),
+          title: Text(l10n.challengeText('Add drink details')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'The measured drink counts once. Confirm only details that apply so another active challenge can recognize it.',
+              Text(
+                l10n.challengeText(
+                  'The measured drink counts once. Confirm only details that apply so another active challenge can recognize it.',
+                ),
               ),
               if (temperature != null)
                 CheckboxListTile(
@@ -1098,7 +1276,9 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   onChanged: (value) => setDialogState(
                     () => matchesTemperature = value == true,
                   ),
-                  title: Text('Matches today’s $temperature temperature'),
+                  title: Text(l10n.challengeMatchesTemperature(
+                    l10n.challengeText(temperature),
+                  )),
                 ),
               if (infusion != null)
                 CheckboxListTile(
@@ -1107,14 +1287,16 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   onChanged: (value) => setDialogState(
                     () => matchesInfusion = value == true,
                   ),
-                  title: Text('$infusion infusion with no added sugar'),
+                  title: Text(l10n.challengeMatchesInfusion(
+                    l10n.challengeText(infusion),
+                  )),
                 ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: Text(l10n.challengeText('Cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(
@@ -1125,7 +1307,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   noAddedSugar: matchesInfusion ? true : null,
                 ),
               ),
-              child: const Text('Log measured drink'),
+              child: Text(l10n.challengeText('Log measured drink')),
             ),
           ],
         ),
@@ -1172,27 +1354,66 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     for (final reminderId in change.obsoleteReminderIds) {
       await notifications.deleteReminder(reminderId);
     }
+    if (change.changed && context.mounted) {
+      await RecognitionMoment.showOnce(
+        context,
+        repository: context.read<UserSettingsRepository>(),
+        eventId:
+            'challenge-complete:${change.challenge?.instanceId ?? challengeId}',
+        message: AppLocalizations.of(context).challengeText(
+          'Challenge complete. Your steady effort counted.',
+        ),
+      );
+    }
   }
 
-  String _instruction(JoinedChallenge active, int day) {
+  String _instruction(
+    AppLocalizations l10n,
+    JoinedChallenge active,
+    int day,
+  ) {
     final amount = active.parameters['amountMl'];
+    final cue = active.parameters['cue']?.toString().trim();
     final amountText = amount is int
         ? HydrationVolumeFormatter.format(
             amount, context.read<UserSettingsRepository>().settings.volumeUnit)
         : 'your chosen amount';
     return switch (widget.challenge.id) {
       'around-the-world-infusion-week' =>
-        "Today's theme: ${definition.schedule[day % definition.schedule.length]}. Confirm no added sugar and log the actual $amountText consumed.",
-      'temperature-roulette' =>
-        "Today's assigned style: ${((active.parameters['temperatureSchedule'] as List?) ?? definition.schedule)[day % definition.schedule.length]}. Log $amountText. ${active.parameters['weatherContext'] ?? 'Today’s standard temperature plan is in use.'}",
-      'eat-your-water-day' =>
-        'Include ${active.parameters['food']} with ${active.parameters['meal']}, then confirm the food task.',
-      'pomodoro-sip' =>
-        'After each ${active.parameters['sessionMinutes']}-minute focus session, choose Took a sip for a check-in or log a measured $amountText drink.',
-      'bottle-bingo' =>
-        'Review a Bingo tile, follow its exact amount or check-in rule, and complete it once.',
-      _ =>
-        'Complete today’s ${active.parameters['cue']} cue and confirm it locally. Log consumed water separately.',
+        l10n.challengeInfusionDailyInstruction(
+          l10n.challengeText(
+            definition.schedule[day % definition.schedule.length],
+          ),
+          amountText,
+        ),
+      'temperature-roulette' => l10n.challengeTemperatureDailyInstruction(
+          l10n.challengeText(
+            ((active.parameters['temperatureSchedule'] as List?) ??
+                    definition.schedule)[day % definition.schedule.length]
+                .toString(),
+          ),
+          amountText,
+          l10n.challengeText(
+            active.parameters['weatherContext']?.toString() ??
+                'Today’s standard temperature plan is in use.',
+          ),
+        ),
+      'eat-your-water-day' => l10n.challengeFoodDailyInstruction(
+          active.parameters['food'].toString(),
+          active.parameters['meal'].toString(),
+        ),
+      'pomodoro-sip' => l10n.challengePomodoroDailyInstruction(
+          (active.parameters['sessionMinutes'] as num).round(),
+          amountText,
+        ),
+      'bottle-bingo' => l10n.challengeText(
+          'Review a Bingo tile, follow its exact amount or check-in rule, and complete it once.',
+        ),
+      _ when cue != null && cue.isNotEmpty =>
+        l10n.challengeCueDailyInstruction(cue),
+      _ => l10n.challengeText(
+          'Complete today’s activity, then mark it complete. Log measured water separately.',
+        ),
     };
   }
 
@@ -1203,7 +1424,8 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
           : 'Confirm task complete';
     }
     if (definition.actionKind == ChallengeActionKind.automaticQualification) {
-      return 'Review qualifying rule';
+      return AppLocalizations.of(context)
+          .challengeText('Review qualifying rule');
     }
     final amount = active.parameters['amountMl'];
     return amount is int
@@ -1222,6 +1444,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     BuildContext context,
     JoinedChallenge active,
   ) async {
+    final l10n = AppLocalizations.of(context);
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -1242,7 +1465,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Challenge settings',
+                  l10n.challengeText('Challenge settings'),
                   style: Theme.of(sheetContext).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 8),
@@ -1250,8 +1473,8 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   key: const Key('challenge-edit-notifications'),
                   contentPadding: EdgeInsets.zero,
                   value: notificationsEnabled,
-                  title: const Text('Session notifications'),
-                  subtitle: const Text('Applies immediately'),
+                  title: Text(l10n.challengeText('Session notifications')),
+                  subtitle: Text(l10n.challengeText('Applies immediately')),
                   onChanged: (enabled) async {
                     final repository = context.read<ChallengeRepository>();
                     final notifications = context.read<NotificationService>();
@@ -1284,9 +1507,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   key: const Key('challenge-edit-serving'),
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.local_drink_outlined),
-                  title: const Text('Future serving amount'),
-                  subtitle: const Text(
-                    'Applies next local day. Today\u2019s progress stays the same.',
+                  title: Text(l10n.challengeText('Future serving amount')),
+                  subtitle: Text(
+                    l10n.challengeText(
+                      'Applies next local day. Today\u2019s progress stays the same.',
+                    ),
                   ),
                   onTap: () async {
                     Navigator.pop(sheetContext);
@@ -1297,9 +1522,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                   key: const Key('challenge-restart-attempt'),
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.restart_alt),
-                  title: const Text('Restart challenge attempt'),
-                  subtitle: const Text(
-                    'Keeps hydration history and starts challenge progress again.',
+                  title: Text(l10n.challengeText('Restart challenge attempt')),
+                  subtitle: Text(
+                    l10n.challengeText(
+                      'Keeps hydration history and starts challenge progress again.',
+                    ),
                   ),
                   onTap: () async {
                     Navigator.pop(sheetContext);
@@ -1318,6 +1545,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     BuildContext context,
     JoinedChallenge active,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final unit = context.read<UserSettingsRepository>().settings.volumeUnit;
     final current = ((active.parameters['amountMl'] as num?) ?? 250).round();
     final controller = TextEditingController(
@@ -1327,21 +1555,22 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     final value = await showDialog<double>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Future serving amount'),
+        title: Text(l10n.challengeText('Future serving amount')),
         content: TextField(
           key: const Key('challenge-future-amount-field'),
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             suffixText: unit == HydrionVolumeUnit.ounces ? 'fl oz' : 'ml',
-            helperText:
-                'This change starts tomorrow. Today\u2019s progress will stay the same.',
+            helperText: l10n.challengeText(
+              'This change starts tomorrow. Today\u2019s progress will stay the same.',
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(l10n.challengeText('Cancel')),
           ),
           FilledButton(
             key: const Key('challenge-save-future-amount'),
@@ -1349,7 +1578,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
               dialogContext,
               double.tryParse(controller.text),
             ),
-            child: const Text('Save for tomorrow'),
+            child: Text(l10n.challengeText('Save for tomorrow')),
           ),
         ],
       ),
@@ -1362,8 +1591,9 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
           value: HydrationVolumeFormatter.toMilliliters(value, unit),
         );
     if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(result.message)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(challengeEditMessage(l10n, result.messageCode)),
+      ));
     }
   }
 
@@ -1371,22 +1601,25 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     BuildContext context,
     JoinedChallenge active,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Restart this challenge?'),
-        content: const Text(
-          'Restarting creates a new challenge attempt. Your hydration history will remain, but this challenge\u2019s progress will begin again.',
+        title: Text(l10n.challengeText('Restart this challenge?')),
+        content: Text(
+          l10n.challengeText(
+            'Restarting creates a new challenge attempt. Your hydration history will remain, but this challenge\u2019s progress will begin again.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep current attempt'),
+            child: Text(l10n.challengeText('Keep current attempt')),
           ),
           FilledButton(
             key: const Key('challenge-confirm-restart'),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Restart'),
+            child: Text(l10n.challengeText('Restart')),
           ),
         ],
       ),
@@ -1397,7 +1630,11 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
         .repeatChallenge(active.instanceId);
     if (repeated != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A new challenge attempt has started.')),
+        SnackBar(
+          content: Text(
+            l10n.challengeText('A new challenge attempt has started.'),
+          ),
+        ),
       );
     }
   }
@@ -1406,24 +1643,29 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     BuildContext screenContext,
     JoinedChallenge active,
   ) async {
+    final l10n = AppLocalizations.of(screenContext);
     final repository = screenContext.read<ChallengeRepository>();
     final notifications = screenContext.read<NotificationService>();
+    final timedNotifications =
+        screenContext.read<TimedSessionNotificationService>();
     final navigator = Navigator.of(screenContext);
     final confirmed = await showDialog<bool>(
       context: screenContext,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Leave this challenge?'),
-        content: const Text(
-          'Your hydration history stays intact. Challenge setup and unfinished task progress will be removed.',
+        title: Text(l10n.challengeText('Leave this challenge?')),
+        content: Text(
+          l10n.challengeText(
+            'Your hydration history stays intact. Challenge setup and unfinished task progress will be removed.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep challenge'),
+            child: Text(l10n.challengeText('Keep challenge')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Leave challenge'),
+            child: Text(l10n.challengeText('Leave challenge')),
           ),
         ],
       ),
@@ -1433,6 +1675,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     for (final reminderId in change.obsoleteReminderIds) {
       await notifications.deleteReminder(reminderId);
     }
+    await _cancelTimedNotification(timedNotifications, active.id);
     if (mounted) navigator.pop();
   }
 
@@ -1440,22 +1683,25 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     BuildContext context,
     JoinedChallenge active,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Pause this challenge?'),
-        content: const Text(
-          'Progress and hydration history will stay. New hydration will not qualify until you resume.',
+        title: Text(l10n.challengeText('Pause this challenge?')),
+        content: Text(
+          l10n.challengeText(
+            'Progress and hydration history will stay. New hydration will not qualify until you resume.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep active'),
+            child: Text(l10n.challengeText('Keep active')),
           ),
           FilledButton(
             key: const Key('challenge-confirm-pause'),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Pause'),
+            child: Text(l10n.challengeText('Pause')),
           ),
         ],
       ),
@@ -1463,39 +1709,60 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     if (confirmed != true || !context.mounted) return;
     final repository = context.read<ChallengeRepository>();
     final notifications = context.read<NotificationService>();
+    final timedNotifications = context.read<TimedSessionNotificationService>();
     final change = await repository.pauseChallenge(active.id);
     for (final reminderId in change.obsoleteReminderIds) {
       await notifications.deleteReminder(reminderId);
     }
+    await _cancelTimedNotification(timedNotifications, active.id);
   }
 
   Future<void> _leavePausedChallenge(
     BuildContext context,
     JoinedChallenge paused,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Leave this paused challenge?'),
-        content: const Text(
-          'Hydration history stays. This attempt will remain in challenge history.',
+        title: Text(l10n.challengeText('Leave this paused challenge?')),
+        content: Text(
+          l10n.challengeText(
+            'Hydration history stays. This attempt will remain in challenge history.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep paused'),
+            child: Text(l10n.challengeText('Keep paused')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Leave'),
+            child: Text(l10n.challengeText('Leave')),
           ),
         ],
       ),
     );
     if (confirmed != true || !context.mounted) return;
+    final timedNotifications = context.read<TimedSessionNotificationService>();
     await context
         .read<ChallengeRepository>()
         .leavePausedChallenge(paused.instanceId);
+    await _cancelTimedNotification(timedNotifications, paused.id);
+  }
+
+  Future<void> _cancelTimedNotification(
+    TimedSessionNotificationService notifications,
+    String challengeId,
+  ) async {
+    final kind = switch (challengeId) {
+      'pomodoro-sip' => HydrionTimedSessionKind.pomodoro,
+      'homework-hydration' => HydrionTimedSessionKind.homework,
+      _ => null,
+    };
+    if (kind != null) {
+      await notifications.cancel(kind);
+    }
   }
 }
 
@@ -1513,7 +1780,8 @@ class _ChallengeImageHero extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Semantics(
-        label: '$challengeName illustration',
+        label: AppLocalizations.of(context)
+            .challengeIllustrationSemantics(challengeName),
         image: true,
         child: Container(
           height: 210,
@@ -1582,6 +1850,7 @@ class _TemperatureChallengePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final stored = active.parameters['temperatureSchedule'];
     final schedule = stored is List && stored.isNotEmpty
         ? stored.map((item) => item.toString()).toList()
@@ -1589,12 +1858,14 @@ class _TemperatureChallengePanel extends StatelessWidget {
     final assigned = schedule[day % schedule.length];
     const styles = ['Cool', 'Room temperature', 'Comfortably warm'];
     return _Section(
-      title: 'Temperature Roulette',
+      title: l10n.challengeText('Temperature Roulette'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Semantics(
-            label: "Today's assigned temperature is $assigned",
+            label: l10n.challengeTemperatureAssigned(
+              l10n.challengeText(assigned),
+            ),
             child: Row(
               children: [
                 for (final style in styles)
@@ -1630,14 +1901,14 @@ class _TemperatureChallengePanel extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            style,
+                            l10n.challengeText(style),
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.labelMedium,
                           ),
                           if (style == assigned)
-                            const Padding(
-                              padding: EdgeInsets.only(top: 4),
-                              child: Text('TODAY'),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(l10n.challengeText('TODAY')),
                             ),
                         ],
                       ),
@@ -1647,8 +1918,10 @@ class _TemperatureChallengePanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Text(active.parameters['weatherContext']?.toString() ??
-              'Weather guidance is off. Today\u2019s standard schedule is active.'),
+          Text(l10n.challengeText(
+            active.parameters['weatherContext']?.toString() ??
+                'Weather guidance is off. Today\u2019s standard schedule is active.',
+          )),
           const SizedBox(height: 12),
           Wrap(
             spacing: 6,
@@ -1658,7 +1931,10 @@ class _TemperatureChallengePanel extends StatelessWidget {
                 Chip(
                   avatar:
                       index == day ? const Icon(Icons.today, size: 18) : null,
-                  label: Text('Day ${index + 1}: ${schedule[index]}'),
+                  label: Text(l10n.challengeScheduleItem(
+                    index + 1,
+                    l10n.challengeText(schedule[index]),
+                  )),
                 ),
             ],
           ),
@@ -1684,14 +1960,17 @@ class _InfusionJourneyPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final amount = ((active.parameters['amountMl'] as num?) ?? 0).round();
     return _Section(
-      title: 'Seven-day infusion journey',
+      title: l10n.challengeText('Seven-day infusion journey'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Today's theme: ${schedule[day % schedule.length]}",
+            l10n.challengeTodayTheme(
+              l10n.challengeText(schedule[day % schedule.length]),
+            ),
             style: Theme.of(context)
                 .textTheme
                 .titleMedium
@@ -1699,9 +1978,9 @@ class _InfusionJourneyPanel extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            amount > 0
-                ? 'Prepare without added sugar and log ${HydrationVolumeFormatter.format(amount, unit)} after drinking it.'
-                : 'Prepare without added sugar and log only what you drink.',
+            l10n.challengeInfusionInstruction(
+              amount > 0 ? HydrationVolumeFormatter.format(amount, unit) : null,
+            ),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -1718,7 +1997,10 @@ class _InfusionJourneyPanel extends StatelessWidget {
                             : Icons.circle_outlined,
                     size: 18,
                   ),
-                  label: Text('${index + 1}. ${schedule[index]}'),
+                  label: Text(l10n.challengeNumbered(
+                    index + 1,
+                    l10n.challengeText(schedule[index]),
+                  )),
                 ),
             ],
           ),
@@ -1734,17 +2016,24 @@ class _EatYourWaterPanel extends StatelessWidget {
   const _EatYourWaterPanel({required this.active});
 
   @override
-  Widget build(BuildContext context) => _Section(
-        title: 'Meal check-in',
-        child: ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const CircleAvatar(child: Icon(Icons.restaurant)),
-          title: Text('${active.parameters['food']}'),
-          subtitle: Text(
-            'Add it to ${active.parameters['meal']}. Food completion and fluid hydration stay separate; only drinks you log change hydration.',
-          ),
-        ),
-      );
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final food = active.parameters['food']?.toString().trim();
+    final meal = active.parameters['meal']?.toString().trim();
+    return _Section(
+      title: l10n.challengeText('Meal check-in'),
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const CircleAvatar(child: Icon(Icons.restaurant)),
+        title: Text(food?.isNotEmpty == true
+            ? food!
+            : l10n.challengeText('Water-rich food')),
+        subtitle: Text(l10n.challengeMealInstruction(
+          meal?.isNotEmpty == true ? meal : null,
+        )),
+      ),
+    );
+  }
 }
 
 class _PlantCuePanel extends StatelessWidget {
@@ -1753,17 +2042,26 @@ class _PlantCuePanel extends StatelessWidget {
   const _PlantCuePanel({required this.active});
 
   @override
-  Widget build(BuildContext context) => _Section(
-        title: 'Today’s real-world cue',
-        child: ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const CircleAvatar(child: Icon(Icons.local_florist)),
-          title: Text('${active.parameters['cue']}'),
-          subtitle: const Text(
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _Section(
+      title: l10n.challengeText('Today’s real-world cue'),
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const CircleAvatar(child: Icon(Icons.local_florist)),
+        title: Text(
+          active.parameters['cue']?.toString().trim().isNotEmpty == true
+              ? active.parameters['cue'].toString()
+              : l10n.challengeText('Check your plant or bottle station'),
+        ),
+        subtitle: Text(
+          l10n.challengeText(
             'Complete the cue, then check it in. Any water you drink is logged normally and never fabricated.',
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _BottleBingoDashboardHero extends StatelessWidget {
@@ -1779,6 +2077,7 @@ class _BottleBingoDashboardHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final colors = Theme.of(context).colorScheme;
     final shortViewport = MediaQuery.sizeOf(context).height < 500;
     final compactWidth = MediaQuery.sizeOf(context).width < 380;
@@ -1848,7 +2147,7 @@ class _BottleBingoDashboardHero extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Bottle Bingo',
+                                l10n.challengeCopy('bottle-bingo').title,
                                 style: (largeText
                                         ? Theme.of(context).textTheme.titleLarge
                                         : Theme.of(context)
@@ -1861,30 +2160,35 @@ class _BottleBingoDashboardHero extends StatelessWidget {
                               ),
                               if (!shortViewport && !largeText) ...[
                                 const SizedBox(height: 6),
-                                const Text(
-                                  'Complete hydration habits. Build a line. Keep the board moving.',
+                                Text(
+                                  l10n.challengeText(
+                                    'Complete hydration habits. Build a line. Keep the board moving.',
+                                  ),
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                               const SizedBox(height: 10),
                               Text(
-                                largeText
-                                    ? '$completedTiles/25 tiles · $completedLines/12 lines'
-                                    : '$completedTiles of 25 tiles · $completedLines of 12 lines',
+                                l10n.challengeBingoHeroProgress(
+                                  completedTiles,
+                                  completedLines,
+                                  compact: largeText,
+                                ),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w900),
                               ),
                               if (!largeText && !compactWidth) ...[
                                 const SizedBox(height: 6),
-                                const Row(
+                                Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.touch_app_outlined,
+                                    const Icon(Icons.touch_app_outlined,
                                         color: Colors.white, size: 18),
-                                    SizedBox(width: 6),
+                                    const SizedBox(width: 6),
                                     Flexible(
-                                        child: Text('Choose a tile below')),
+                                        child: Text(l10n.challengeText(
+                                            'Choose a tile below'))),
                                   ],
                                 ),
                               ],
@@ -1918,42 +2222,48 @@ class _BottleBingoMetrics extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Semantics(
-          liveRegion: true,
-          label:
-              '$completedTiles of 25 tiles, $completedLines of 12 lines, ${HydrationVolumeFormatter.format(todayMl, unit)} today',
-          child: HydrionSurface(
-            key: const Key('bottle-bingo-metrics'),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                _BingoMetric(
-                  key: const Key('bottle-bingo-tiles-metric'),
-                  icon: Icons.grid_view_rounded,
-                  label: 'Tiles',
-                  value: '$completedTiles / 25',
-                ),
-                _BingoMetric(
-                  key: const Key('bottle-bingo-lines-metric'),
-                  icon: Icons.linear_scale,
-                  label: 'Lines',
-                  value: '$completedLines / 12',
-                ),
-                _BingoMetric(
-                  key: const Key('bottle-bingo-today-metric'),
-                  icon: Icons.water_drop_outlined,
-                  label: 'Today',
-                  value: HydrationVolumeFormatter.format(todayMl, unit),
-                ),
-              ],
-            ),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Semantics(
+        liveRegion: true,
+        label: l10n.challengeBingoMetricsSemantics(
+          completedTiles,
+          completedLines,
+          HydrationVolumeFormatter.format(todayMl, unit),
+        ),
+        child: HydrionSurface(
+          key: const Key('bottle-bingo-metrics'),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _BingoMetric(
+                key: const Key('bottle-bingo-tiles-metric'),
+                icon: Icons.grid_view_rounded,
+                label: l10n.challengeText('Tiles'),
+                value: '$completedTiles / 25',
+              ),
+              _BingoMetric(
+                key: const Key('bottle-bingo-lines-metric'),
+                icon: Icons.linear_scale,
+                label: l10n.challengeText('Lines'),
+                value: '$completedLines / 12',
+              ),
+              _BingoMetric(
+                key: const Key('bottle-bingo-today-metric'),
+                icon: Icons.water_drop_outlined,
+                label: l10n.challengeText('Today'),
+                value: HydrationVolumeFormatter.format(todayMl, unit),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _BingoMetric extends StatelessWidget {
@@ -1996,54 +2306,63 @@ class _BottleBingoInformation extends StatelessWidget {
   const _BottleBingoInformation();
 
   @override
-  Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.only(bottom: 12),
-        child: HydrionSurface(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              ExpansionTile(
-                key: Key('bottle-bingo-how-it-works'),
-                leading: Icon(Icons.info_outline),
-                title: Text('How it works'),
-                childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: HydrionSurface(
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            ExpansionTile(
+              key: const Key('bottle-bingo-how-it-works'),
+              leading: const Icon(Icons.info_outline),
+              title: Text(l10n.challengeText('How it works')),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.challengeText(
                     'Automatic tiles respond to normal hydration logs. Measured-drink tiles add one canonical hydration record. Habit check-ins never add water.',
                   ),
-                ],
-              ),
-              Divider(height: 1),
-              ExpansionTile(
-                key: Key('bottle-bingo-rules'),
-                leading: Icon(Icons.rule_outlined),
-                title: Text('Rules'),
-                childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+                ),
+              ],
+            ),
+            const Divider(height: 1),
+            ExpansionTile(
+              key: const Key('bottle-bingo-rules'),
+              leading: const Icon(Icons.rule_outlined),
+              title: Text(l10n.challengeText('Rules')),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.challengeText(
                     'The board has 25 tiles with one completed Free Drop in the center. Complete five across a row, column, or diagonal to build a line.',
                   ),
-                ],
-              ),
-              Divider(height: 1),
-              ExpansionTile(
-                key: Key('bottle-bingo-safety'),
-                leading: Icon(Icons.health_and_safety_outlined),
-                title: Text('Hydration safety'),
-                childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+                ),
+              ],
+            ),
+            const Divider(height: 1),
+            ExpansionTile(
+              key: const Key('bottle-bingo-safety'),
+              leading: const Icon(Icons.health_and_safety_outlined),
+              title: Text(l10n.challengeText('Hydration safety')),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.challengeText(
                     'Keep intake comfortable. Do not force fluids to finish a tile or line, and stop if you feel unwell.',
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _LiveBingoBoard extends StatefulWidget {
@@ -2081,6 +2400,7 @@ class _LiveBingoBoardState extends State<_LiveBingoBoard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final board = _board;
     final completed = _completed;
     final completedLines = board.completedLines(completed);
@@ -2096,7 +2416,7 @@ class _LiveBingoBoardState extends State<_LiveBingoBoard> {
       todayLogs,
     );
     return _Section(
-      title: 'Live board',
+      title: l10n.challengeText('Live board'),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final expanded = constraints.maxWidth >= 640;
@@ -2413,6 +2733,7 @@ class _BottleBingoCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final colors = Theme.of(context).colorScheme;
     final stateColor = switch (progress.state) {
       _BingoTileState.free => colors.tertiary,
@@ -2439,12 +2760,19 @@ class _BottleBingoCell extends StatelessWidget {
       _BingoTileState.available => _iconForTile(tile),
     };
     final largeText = MediaQuery.textScalerOf(context).scale(14) / 14 > 1.2;
-    final status = _stateLabel(progress.state);
+    final status = _stateLabel(l10n, progress.state);
+    final title = l10n.challengeText(tile.title);
+    final detail = l10n.challengeText(progress.detailLabel);
     return Semantics(
       button: onTap != null,
       selected: selected,
-      label:
-          '${tile.title}. $status. ${progress.detailLabel}.${inCompletedLine ? ' Part of a completed Bingo line.' : ''}${onTap == null ? '' : ' Double tap for details.'}',
+      label: l10n.challengeBingoTileSemantics(
+        title,
+        status,
+        detail,
+        inCompletedLine,
+        onTap != null,
+      ),
       excludeSemantics: true,
       child: Material(
         color: Colors.transparent,
@@ -2475,7 +2803,7 @@ class _BottleBingoCell extends StatelessWidget {
                       if (!dense) Icon(icon, size: 16, color: colors.onSurface),
                       if (!dense) const SizedBox(height: 2),
                       Text(
-                        _shortTitle(tile),
+                        _shortTitle(l10n, tile),
                         textAlign: TextAlign.center,
                         maxLines: dense ? 1 : 2,
                         overflow: TextOverflow.ellipsis,
@@ -2487,7 +2815,7 @@ class _BottleBingoCell extends StatelessWidget {
                       if (progress.state != _BingoTileState.available) ...[
                         const SizedBox(height: 1),
                         Text(
-                          progress.compactLabel,
+                          l10n.challengeText(progress.compactLabel),
                           textAlign: TextAlign.center,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -2528,11 +2856,13 @@ class _BingoTileDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final title = l10n.challengeText(tile.title);
     final completed = progress.state == _BingoTileState.completed ||
         progress.state == _BingoTileState.free;
     return Semantics(
       container: true,
-      label: '${tile.title} details',
+      label: l10n.challengeBingoDetailsSemantics(title),
       child: HydrionSurface(
         key: const Key('bottle-bingo-tile-detail-surface'),
         padding: const EdgeInsets.all(14),
@@ -2551,7 +2881,7 @@ class _BingoTileDetails extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        tile.title,
+                        title,
                         key: const Key('bottle-bingo-selected-tile-title'),
                         style: Theme.of(context)
                             .textTheme
@@ -2561,7 +2891,7 @@ class _BingoTileDetails extends StatelessWidget {
                       const SizedBox(height: 4),
                       Chip(
                         avatar: Icon(_stateIcon(progress.state), size: 18),
-                        label: Text(_stateLabel(progress.state)),
+                        label: Text(_stateLabel(l10n, progress.state)),
                       ),
                     ],
                   ),
@@ -2569,33 +2899,36 @@ class _BingoTileDetails extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            _BingoDetailLine(label: 'What to do', value: tile.instruction),
             _BingoDetailLine(
-              label: 'Why it counts',
-              value: _whyItCounts(tile),
+              label: l10n.challengeText('What to do'),
+              value: l10n.challengeText(tile.instruction),
             ),
             _BingoDetailLine(
-              label: 'Home hydration',
+              label: l10n.challengeText('Why it counts'),
+              value: _whyItCounts(l10n, tile),
+            ),
+            _BingoDetailLine(
+              label: l10n.challengeText('Home hydration'),
               value: tile.kind == BingoTileKind.automatic
                   ? 'Can satisfy this tile automatically.'
                   : 'Does not directly complete this tile.',
             ),
             _BingoDetailLine(
-              label: 'Adds hydration',
+              label: l10n.challengeText('Adds hydration'),
               value: tile.kind == BingoTileKind.hydrationAction
                   ? amountMl > 0
                       ? 'Yes · ${HydrationVolumeFormatter.format(amountMl, unit)} is recorded once.'
                       : 'Set a measured challenge amount before logging.'
                   : 'No new hydration record is added.',
             ),
-            if (_timeWindow(tile) != null)
+            if (_timeWindow(l10n, tile) != null)
               _BingoDetailLine(
-                label: 'Time window',
-                value: _timeWindow(tile)!,
+                label: l10n.challengeText('Time window'),
+                value: _timeWindow(l10n, tile)!,
               ),
             _BingoDetailLine(
-              label: 'Current progress',
-              value: progress.detailLabel,
+              label: l10n.challengeText('Current progress'),
+              value: l10n.challengeText(progress.detailLabel),
             ),
             if (!completed && onAction != null) ...[
               const SizedBox(height: 8),
@@ -2609,10 +2942,12 @@ class _BingoTileDetails extends StatelessWidget {
                     : Icons.check_circle_outline),
                 label: Text(
                   progress.state == _BingoTileState.needsSetup
-                      ? 'Set up challenge amount'
+                      ? l10n.challengeText('Set up challenge amount')
                       : tile.kind == BingoTileKind.hydrationAction
-                          ? 'Log ${HydrationVolumeFormatter.format(amountMl, unit)}'
-                          : 'Complete check-in',
+                          ? l10n.challengeLogAmount(
+                              HydrationVolumeFormatter.format(amountMl, unit),
+                            )
+                          : l10n.challengeText('Complete check-in'),
                 ),
               ),
             ],
@@ -2647,7 +2982,8 @@ class _BingoDetailLine extends StatelessWidget {
       );
 }
 
-String _shortTitle(BingoTileDefinition tile) => switch (tile.id) {
+String _shortTitle(AppLocalizations l10n, BingoTileDefinition tile) =>
+    l10n.challengeText(switch (tile.id) {
       'goal-25' => 'First quarter',
       'goal-50' => 'Halfway',
       'goal-75' => 'Three quarters',
@@ -2660,7 +2996,7 @@ String _shortTitle(BingoTileDefinition tile) => switch (tile.id) {
       'meal-drink' => 'Meal drink',
       'water-rich-food' => 'Water-rich food',
       _ => tile.title,
-    };
+    });
 
 IconData _iconForTile(BingoTileDefinition tile) => switch (tile.id) {
       'free-drop' => Icons.water_drop,
@@ -2693,16 +3029,18 @@ IconData _stateIcon(_BingoTileState state) => switch (state) {
       _BingoTileState.missed => Icons.schedule,
     };
 
-String _stateLabel(_BingoTileState state) => switch (state) {
+String _stateLabel(AppLocalizations l10n, _BingoTileState state) =>
+    l10n.challengeText(switch (state) {
       _BingoTileState.free => 'Free · completed',
       _BingoTileState.available => 'Available',
       _BingoTileState.inProgress => 'In progress',
       _BingoTileState.completed => 'Completed',
       _BingoTileState.needsSetup => 'Needs setup',
       _BingoTileState.missed => 'Missed today',
-    };
+    });
 
-String _whyItCounts(BingoTileDefinition tile) => switch (tile.kind) {
+String _whyItCounts(AppLocalizations l10n, BingoTileDefinition tile) =>
+    l10n.challengeText(switch (tile.kind) {
       BingoTileKind.automatic =>
         'It recognizes qualifying hydration you already logged without duplicating it.',
       BingoTileKind.hydrationAction =>
@@ -2711,15 +3049,468 @@ String _whyItCounts(BingoTileDefinition tile) => switch (tile.kind) {
         'It confirms a real-world hydration habit without inventing water.',
       BingoTileKind.free =>
         'The center Free Drop starts complete for every board.',
-    };
+    });
 
-String? _timeWindow(BingoTileDefinition tile) => switch (tile.id) {
-      'before-lunch' => 'Before your configured lunch cutoff.',
-      'morning-water' => 'Before noon.',
-      'afternoon-water' => 'Between noon and 5 PM.',
-      'evening-sip' => 'During your comfortable evening routine.',
-      _ => null,
+String? _timeWindow(AppLocalizations l10n, BingoTileDefinition tile) {
+  final value = switch (tile.id) {
+    'before-lunch' => 'Before your configured lunch cutoff.',
+    'morning-water' => 'Before noon.',
+    'afternoon-water' => 'Between noon and 5 PM.',
+    'evening-sip' => 'During your comfortable evening routine.',
+    _ => null,
+  };
+  return value == null ? null : l10n.challengeText(value);
+}
+
+class _ChallengeActivityPanel extends StatefulWidget {
+  final ChallengeActivityDefinition definition;
+  final JoinedChallenge active;
+  final Future<void> Function() onProgress;
+  final VoidCallback onOpenLog;
+
+  const _ChallengeActivityPanel({
+    required this.definition,
+    required this.active,
+    required this.onProgress,
+    required this.onOpenLog,
+  });
+
+  @override
+  State<_ChallengeActivityPanel> createState() =>
+      _ChallengeActivityPanelState();
+}
+
+class _ChallengeActivityPanelState extends State<_ChallengeActivityPanel> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncTicker();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChallengeActivityPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncTicker();
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final repository = context.watch<ChallengeRepository>();
+    final active =
+        repository.activeChallengeFor(widget.active.id) ?? widget.active;
+    final sessionStatus =
+        active.parameters['activitySessionStatus']?.toString() ?? 'stopped';
+    final elapsed = repository.activitySessionElapsed(active.id);
+    final elapsedLabel = '${elapsed.inMinutes.toString().padLeft(2, '0')}:'
+        '${(elapsed.inSeconds % 60).toString().padLeft(2, '0')}';
+    final completed = widget.definition.checkpoints
+        .where(
+          (checkpoint) => repository.activityCheckpointComplete(
+            active.id,
+            checkpoint.id,
+          ),
+        )
+        .length;
+
+    return _Section(
+      title: l10n.challengeText('Current activity'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.challengeText(widget.definition.setupSummary)),
+          if (widget.definition.safetyMessage.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Semantics(
+              label: l10n.challengeText(widget.definition.safetyMessage),
+              child: Text(
+                l10n.challengeText(widget.definition.safetyMessage),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+          if (widget.definition.sessionMode !=
+              ChallengeActivitySessionMode.none) ...[
+            const SizedBox(height: 12),
+            Semantics(
+              liveRegion: true,
+              label: l10n.challengeActivitySemantics(
+                sessionStatus,
+                elapsedLabel,
+                _sessionStatusLabel(sessionStatus),
+              ),
+              child: Text(
+                '$elapsedLabel · ${_sessionStatusLabel(sessionStatus)}',
+                key: Key('activity-session-status-${active.id}'),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (sessionStatus == 'stopped')
+                  FilledButton.icon(
+                    key: Key('activity-start-${active.id}'),
+                    onPressed: () async {
+                      await repository.startActivitySession(active.id);
+                      await _syncHomeworkNotification(repository, active.id);
+                      _syncTicker();
+                    },
+                    icon: const Icon(Icons.play_arrow),
+                    label: Text(l10n.challengeText('Start activity')),
+                  ),
+                if (sessionStatus == 'running')
+                  OutlinedButton.icon(
+                    key: Key('activity-pause-${active.id}'),
+                    onPressed: () async {
+                      await repository.pauseActivitySession(active.id);
+                      await _syncHomeworkNotification(repository, active.id);
+                      _syncTicker();
+                    },
+                    icon: const Icon(Icons.pause),
+                    label: Text(l10n.challengeText('Pause')),
+                  ),
+                if (sessionStatus == 'paused')
+                  FilledButton.icon(
+                    key: Key('activity-resume-${active.id}'),
+                    onPressed: () async {
+                      await repository.startActivitySession(active.id);
+                      await _syncHomeworkNotification(repository, active.id);
+                      _syncTicker();
+                    },
+                    icon: const Icon(Icons.play_arrow),
+                    label: Text(l10n.challengeText('Resume')),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          Text(
+            l10n.challengeActivityProgress(
+              completed,
+              widget.definition.checkpoints.length,
+            ),
+            key: Key('activity-progress-${active.id}'),
+          ),
+          const SizedBox(height: 8),
+          for (var index = 0;
+              index < widget.definition.checkpoints.length;
+              index++) ...[
+            _checkpointTile(
+              repository,
+              active,
+              widget.definition.checkpoints[index],
+              index,
+            ),
+            if (index != widget.definition.checkpoints.length - 1)
+              const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            key: Key('activity-open-log-${active.id}'),
+            onPressed: widget.onOpenLog,
+            icon: const Icon(Icons.water_drop_outlined),
+            label: Text(l10n.challengeText('Open normal drink logging')),
+          ),
+          Text(
+            l10n.challengeText(
+              'Opening drink logging does not complete this activity or add water.',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _checkpointTile(
+    ChallengeRepository repository,
+    JoinedChallenge active,
+    ChallengeActivityCheckpoint checkpoint,
+    int index,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final title = l10n.challengeText(checkpoint.title);
+    final description = l10n.challengeText(checkpoint.description);
+    final done =
+        repository.activityCheckpointComplete(active.id, checkpoint.id);
+    final previousDone = index == 0 ||
+        repository.activityCheckpointComplete(
+          active.id,
+          widget.definition.checkpoints[index - 1].id,
+        );
+    final sessionStatus =
+        active.parameters['activitySessionStatus']?.toString() ?? 'stopped';
+    final needsSession =
+        widget.definition.sessionMode != ChallengeActivitySessionMode.none;
+    final enabled = !done &&
+        previousDone &&
+        (!needsSession ||
+            sessionStatus == 'running' ||
+            sessionStatus == 'paused');
+    return Semantics(
+      label: l10n.challengeCheckpointSemantics(
+        title,
+        done
+            ? 'Completed'
+            : enabled
+                ? 'Available'
+                : 'Waiting',
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(HydrionRadii.md),
+          border: Border.all(
+            color: done
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                      done ? Icons.check_circle : Icons.radio_button_unchecked),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  Text(l10n.challengeText(done
+                      ? 'Completed'
+                      : enabled
+                          ? 'Available'
+                          : 'Waiting')),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(description),
+              if (!done) ...[
+                const SizedBox(height: 8),
+                if (active.id == 'backpack-bottle-check')
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final outcome in const [
+                        ('ready', 'Ready'),
+                        ('packed', 'Packed'),
+                        ('needsAttention', 'Needs attention'),
+                      ])
+                        OutlinedButton(
+                          onPressed: enabled
+                              ? () => _complete(
+                                    repository,
+                                    active,
+                                    checkpoint,
+                                    outcome: outcome.$1,
+                                  )
+                              : null,
+                          child: Text(l10n.challengeText(outcome.$2)),
+                        ),
+                    ],
+                  )
+                else if (active.id == 'lunch-break-refill')
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton(
+                        onPressed: enabled
+                            ? () => _complete(
+                                  repository,
+                                  active,
+                                  checkpoint,
+                                  outcome: 'bottleChecked',
+                                )
+                            : null,
+                        child: Text(l10n.challengeText('Bottle checked')),
+                      ),
+                      OutlinedButton(
+                        onPressed: enabled
+                            ? () => _complete(
+                                  repository,
+                                  active,
+                                  checkpoint,
+                                  outcome: 'refilled',
+                                )
+                            : null,
+                        child: Text(l10n.challengeText('Refilled')),
+                      ),
+                    ],
+                  )
+                else
+                  FilledButton(
+                    key: Key(
+                      'activity-checkpoint-${active.id}-${checkpoint.id}',
+                    ),
+                    onPressed: enabled
+                        ? () => _complete(repository, active, checkpoint)
+                        : null,
+                    child: Text(l10n.challengeCompleteCheckpoint(title)),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _complete(
+    ChallengeRepository repository,
+    JoinedChallenge active,
+    ChallengeActivityCheckpoint checkpoint, {
+    String? outcome,
+  }) async {
+    final completed = await repository.completeActivityCheckpoint(
+      challengeId: active.id,
+      checkpointId: checkpoint.id,
+      outcome: outcome,
+    );
+    if (!mounted) return;
+    if (completed) {
+      final dailyComplete =
+          checkpoint.id == widget.definition.checkpoints.last.id;
+      if (dailyComplete) {
+        final notifications = context.read<NotificationService>();
+        await repository.resetActivitySession(active.id);
+        if (active.id == 'homework-hydration' && mounted) {
+          await context
+              .read<TimedSessionNotificationService>()
+              .cancel(HydrionTimedSessionKind.homework);
+        }
+        if (!mounted) return;
+        final latest = repository.activeChallengeFor(active.id);
+        if (latest != null) {
+          final keys = switch (active.id) {
+            'lunch-break-refill' => const ['lunchReminderId'],
+            'evening-goal-review' => const ['reviewReminderId'],
+            'shift-hydration-check' => const [
+                'shiftStartReminderId',
+                'shiftMidpointReminderId',
+                'shiftEndReminderId',
+              ],
+            _ => const <String>[],
+          };
+          final nextParameters = <String, Object?>{...latest.parameters};
+          for (final key in keys) {
+            final reminderId = nextParameters[key]?.toString() ?? '';
+            if (reminderId.isNotEmpty) {
+              await notifications.deleteReminder(reminderId);
+              nextParameters[key] = '';
+            }
+          }
+          await repository.updateParameters(
+            nextParameters,
+            challengeId: active.id,
+          );
+        }
+      }
+      await widget.onProgress();
+      if (!mounted) return;
+      if (dailyComplete) {
+        final now = DateTime.now();
+        final day = '${now.year.toString().padLeft(4, '0')}-'
+            '${now.month.toString().padLeft(2, '0')}-'
+            '${now.day.toString().padLeft(2, '0')}';
+        await RecognitionMoment.showOnce(
+          context,
+          repository: context.read<UserSettingsRepository>(),
+          eventId: 'challenge-day:${active.instanceId}:$day',
+          message: AppLocalizations.of(context).challengeText(
+            'Today’s challenge activity is complete.',
+          ),
+        );
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            dailyComplete
+                ? AppLocalizations.of(context)
+                    .challengeText('Today’s challenge activity is complete.')
+                : AppLocalizations.of(context).challengeCheckpointCompleted(
+                    AppLocalizations.of(context)
+                        .challengeText(checkpoint.title),
+                  ),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _syncTicker() {
+    _ticker?.cancel();
+    final repository = context.read<ChallengeRepository>();
+    final active = repository.activeChallengeFor(widget.active.id);
+    if (active?.parameters['activitySessionStatus'] != 'running') return;
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Future<void> _syncHomeworkNotification(
+    ChallengeRepository repository,
+    String challengeId,
+  ) async {
+    if (challengeId != 'homework-hydration' || !mounted) return;
+    final challenge = repository.activeChallengeFor(challengeId);
+    if (challenge == null) return;
+    final status = challenge.parameters['activitySessionStatus']?.toString();
+    final totalMinutes =
+        ((challenge.parameters['sessionMinutes'] as num?) ?? 25)
+            .round()
+            .clamp(1, 1440);
+    final remaining = Duration(minutes: totalMinutes) -
+        repository.activitySessionElapsed(challengeId);
+    final lifecycle = switch (status) {
+      'running' => HydrionTimedSessionLifecycle.running,
+      'paused' => HydrionTimedSessionLifecycle.paused,
+      _ => HydrionTimedSessionLifecycle.stopped,
     };
+    await context.read<TimedSessionNotificationService>().sync(
+          HydrionTimedSessionNotification(
+            kind: HydrionTimedSessionKind.homework,
+            lifecycle: lifecycle,
+            remaining: remaining.isNegative ? Duration.zero : remaining,
+            completionAt: lifecycle == HydrionTimedSessionLifecycle.running
+                ? DateTime.now().add(
+                    remaining.isNegative ? Duration.zero : remaining,
+                  )
+                : null,
+          ),
+        );
+  }
+
+  String _sessionStatusLabel(String status) => switch (status) {
+        'running' => AppLocalizations.of(context).challengeText('Active'),
+        'paused' => AppLocalizations.of(context).challengeText('Paused'),
+        _ => AppLocalizations.of(context).challengeText('Ready'),
+      };
+}
 
 class _PomodoroTimerCard extends StatefulWidget {
   final JoinedChallenge active;
@@ -2771,6 +3562,7 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final sessionState =
         context.read<PomodoroSessionService>().stateFor(widget.active);
     final snapshot = sessionState.snapshot(DateTime.now());
@@ -2784,16 +3576,16 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard>
     final planned =
         ((widget.active.parameters['sessionsPerDay'] as num?) ?? 1).round();
     return _Section(
-      title: 'Focus timer · Session $session of $planned',
+      title: l10n.challengeFocusTimerTitle(session, planned),
       child: Column(
         children: [
           Semantics(
             liveRegion: true,
             label: complete
-                ? 'Focus session complete'
-                : '$minutes minutes $seconds seconds remaining',
+                ? l10n.challengeText('Focus session complete')
+                : l10n.challengeFocusRemaining(minutes, seconds),
             child: Text(
-              complete ? 'Sip ready' : '$minutes:$seconds',
+              complete ? l10n.challengeText('Sip ready') : '$minutes:$seconds',
               key: const Key('pomodoro-countdown'),
               style: Theme.of(context).textTheme.displayMedium?.copyWith(
                 fontWeight: FontWeight.w900,
@@ -2803,8 +3595,9 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard>
           ),
           const SizedBox(height: 12),
           Semantics(
-            label:
-                '${(snapshot.progress * 100).round()} percent of the focus session complete',
+            label: l10n.challengeFocusProgress(
+              (snapshot.progress * 100).round(),
+            ),
             child: LinearProgressIndicator(
               key: const Key('pomodoro-meter'),
               value: snapshot.progress,
@@ -2824,14 +3617,14 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard>
                   style: _challengeOutlinedStyle(context),
                   onPressed: _pause,
                   icon: const Icon(Icons.pause),
-                  label: const Text('Pause'),
+                  label: Text(l10n.challengeText('Pause')),
                 ),
               if (snapshot.isPaused)
                 FilledButton.icon(
                   key: const Key('pomodoro-resume'),
                   onPressed: _resume,
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('Resume'),
+                  label: Text(l10n.challengeText('Resume')),
                 ),
               if (snapshot.lifecycle == PomodoroSessionLifecycle.stopped ||
                   snapshot.lifecycle == PomodoroSessionLifecycle.notStarted)
@@ -2839,7 +3632,7 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard>
                   key: const Key('pomodoro-start'),
                   onPressed: _start,
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('Start next focus session'),
+                  label: Text(l10n.challengeText('Start next focus session')),
                 ),
               if (snapshot.lifecycle != PomodoroSessionLifecycle.stopped &&
                   snapshot.lifecycle != PomodoroSessionLifecycle.notStarted)
@@ -2847,25 +3640,27 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard>
                   key: const Key('pomodoro-restart'),
                   style: _challengeOutlinedStyle(context),
                   onPressed: _restart,
-                  child: const Text('Restart session'),
+                  child: Text(l10n.challengeText('Restart session')),
                 ),
               if (!complete && snapshot.isRunning)
                 TextButton(
                   key: const Key('pomodoro-end-early'),
                   onPressed: _endEarly,
-                  child: const Text('End early'),
+                  child: Text(l10n.challengeText('End early')),
                 ),
               TextButton(
                 key: const Key('pomodoro-stop'),
                 onPressed: _stop,
-                child: const Text('Stop today’s plan'),
+                child: Text(l10n.challengeText('Stop today’s plan')),
               ),
             ],
           ),
           if (complete) ...[
             const SizedBox(height: 8),
-            const Text(
-              'Focus session complete. No water has been added. Confirm Took a sip or log a measured drink when you actually drink.',
+            Text(
+              l10n.challengeText(
+                'Focus session complete. No water has been added. Confirm Took a sip or log a measured drink when you actually drink.',
+              ),
             ),
           ],
         ],
@@ -2949,23 +3744,28 @@ class _Section extends StatelessWidget {
   const _Section({required this.title, this.body, this.child});
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: HydrionSurface(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              child ?? Text(body ?? ''),
-            ],
-          ),
+  Widget build(BuildContext context) {
+    if (child == null && (body == null || body!.trim().isEmpty)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: HydrionSurface(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            child ?? Text(body ?? ''),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _ChallengeParameterField extends StatefulWidget {
@@ -2989,10 +3789,11 @@ class _ChallengeParameterField extends StatefulWidget {
 class _ChallengeParameterFieldState extends State<_ChallengeParameterField> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final choices = _parameterChoices(widget.parameterKey);
     final decoration = InputDecoration(
-      labelText: _parameterLabel(widget.parameterKey, widget.unit),
-      helperText: _parameterHelp(widget.parameterKey),
+      labelText: _parameterLabel(l10n, widget.parameterKey, widget.unit),
+      helperText: _parameterHelp(l10n, widget.parameterKey),
       helperMaxLines: 3,
     );
     if (choices.isNotEmpty) {
@@ -3010,7 +3811,7 @@ class _ChallengeParameterFieldState extends State<_ChallengeParameterField> {
             DropdownMenuItem(
               value: choice,
               child: Text(
-                _choiceLabel(choice),
+                _choiceLabel(l10n, choice),
                 softWrap: true,
               ),
             ),
@@ -3031,8 +3832,9 @@ class _ChallengeParameterFieldState extends State<_ChallengeParameterField> {
               : TextInputType.text,
           decoration: decoration,
           validator: (value) => value == null || value.trim().isEmpty
-              ? 'Required before joining'
+              ? l10n.challengeText('Required before joining')
               : _validateParameter(
+                  l10n,
                   widget.parameterKey,
                   value,
                   widget.unit,
@@ -3054,7 +3856,7 @@ class _ChallengeParameterFieldState extends State<_ChallengeParameterField> {
               },
               icon: const Icon(Icons.local_drink_outlined),
               label: Text(
-                'Use saved container (${HydrationVolumeFormatter.format(widget.savedContainerMl!, widget.unit)})',
+                '${l10n.challengeText('Use saved container')} (${HydrationVolumeFormatter.format(widget.savedContainerMl!, widget.unit)})',
               ),
             ),
           ),
@@ -3122,7 +3924,15 @@ bool _isNumeric(String key) => const {
       'sessionMinutes',
       'sessionsPerDay',
       'shortBreakMinutes',
-      'challengeDurationDays'
+      'challengeDurationDays',
+      'windowStartHour',
+      'preparationHour',
+      'travelStartHour',
+      'reviewHour',
+      'blockMinutes',
+      'resetFrequencyMinutes',
+      'shiftStartMinutes',
+      'shiftDurationMinutes',
     }.contains(key);
 
 List<String> _parameterChoices(String key) => switch (key) {
@@ -3130,7 +3940,8 @@ List<String> _parameterChoices(String key) => switch (key) {
       'weatherOrdering' ||
       'notifications' ||
       'autoStartNext' ||
-      'reminderPreference' =>
+      'reminderPreference' ||
+      'reminderEnabled' =>
         const ['enabled', 'disabled'],
       'meal' => const ['breakfast', 'lunch', 'dinner', 'snack'],
       'difficulty' => const ['gentle', 'balanced', 'active'],
@@ -3139,10 +3950,20 @@ List<String> _parameterChoices(String key) => switch (key) {
       'shortBreakMinutes' => const ['3', '5', '10', '15'],
       'challengeDurationDays' => const ['1', '3', '5', '7', '14'],
       'cutoffHour' => const ['11', '12', '13', '14'],
+      'windowStartHour' => const ['11', '12', '13', '14', '15', '16', '17'],
+      'preparationHour' => const ['6', '7', '8', '17', '18', '19', '20'],
+      'travelStartHour' => const ['7', '8', '9', '16', '17', '18', '19'],
+      'reviewHour' => const ['18', '19', '20', '21'],
+      'blockMinutes' => const ['30', '45', '60', '90'],
+      'resetFrequencyMinutes' => const ['30', '45', '60', '90'],
+      'shiftStartMinutes' => const ['420', '480', '540', '960', '1200', '1380'],
+      'shiftDurationMinutes' => const ['360', '480', '600', '720'],
+      'checkpointPattern' => const ['midpoint', 'two-checkpoints'],
       _ => const [],
     };
 
-String _defaultParameterValue(String key, HydrionVolumeUnit unit) =>
+String _defaultParameterValue(
+        AppLocalizations l10n, String key, HydrionVolumeUnit unit) =>
     switch (key) {
       'amountMl' => unit == HydrionVolumeUnit.ounces ? '8.5' : '250',
       'noAddedSugar' => 'confirmed',
@@ -3158,18 +3979,36 @@ String _defaultParameterValue(String key, HydrionVolumeUnit unit) =>
       'cutoffHour' => '12',
       'difficulty' => 'balanced',
       'reminderPreference' => 'enabled',
-      'cue' => 'Water your plant or check your bottle station',
+      'cue' =>
+        l10n.challengeText('Water your plant or check your bottle station'),
+      'windowStartHour' => '12',
+      'preparationHour' => '19',
+      'travelStartHour' => '8',
+      'reviewHour' => '20',
+      'blockMinutes' => '60',
+      'resetFrequencyMinutes' => '45',
+      'shiftStartMinutes' => '480',
+      'shiftDurationMinutes' => '480',
+      'checkpointPattern' => 'midpoint',
+      'reminderEnabled' => 'disabled',
       _ => '',
     };
 
-String _choiceLabel(String value) => switch (value) {
-      'enabled' => 'Enabled',
-      'disabled' => 'Disabled',
-      'confirmed' => 'Confirmed — no added sugar',
-      _ => '${value[0].toUpperCase()}${value.substring(1)}',
-    };
+String _choiceLabel(AppLocalizations l10n, String value) => l10n.challengeText(
+      switch (value) {
+        'enabled' => 'Enabled',
+        'disabled' => 'Disabled',
+        'confirmed' => 'Confirmed — no added sugar',
+        _ => '${value[0].toUpperCase()}${value.substring(1)}',
+      },
+    );
 
-String _parameterLabel(String key, [HydrionVolumeUnit? unit]) => switch (key) {
+String _parameterLabel(
+  AppLocalizations l10n,
+  String key, [
+  HydrionVolumeUnit? unit,
+]) =>
+    l10n.challengeText(switch (key) {
       'amountMl' => unit == HydrionVolumeUnit.ounces
           ? 'Drink amount in oz'
           : 'Drink amount',
@@ -3188,106 +4027,204 @@ String _parameterLabel(String key, [HydrionVolumeUnit? unit]) => switch (key) {
       'difficulty' => 'Difficulty',
       'reminderPreference' => 'Bingo reminder',
       'cue' => 'Plant-care cue',
+      'windowStartHour' => 'Routine window',
+      'preparationHour' => 'Preparation time',
+      'travelStartHour' => 'Travel begins',
+      'reviewHour' => 'Evening review time',
+      'blockMinutes' => 'Seated-work block',
+      'resetFrequencyMinutes' => 'Reset frequency',
+      'shiftStartMinutes' => 'Shift start',
+      'shiftDurationMinutes' => 'Expected shift duration',
+      'checkpointPattern' => 'Checkpoint pattern',
+      'reminderEnabled' => 'Optional reminder',
       _ => key,
-    };
+    });
 
-String? _parameterHelp(String key) => switch (key) {
-      'noAddedSugar' => 'Enter confirmed to accept this challenge rule.',
-      'weatherOrdering' =>
-        'Enter enabled or disabled. The standard plan remains available.',
-      'meal' => 'Breakfast, lunch, dinner, or snack.',
-      'notifications' => 'A reminder appears when a focus session ends.',
-      'autoStartNext' =>
-        'Choose whether the next session starts after the sip.',
-      'difficulty' => 'Choose gentle, balanced, or active.',
-      _ => null,
-    };
+String? _parameterHelp(AppLocalizations l10n, String key) {
+  final value = switch (key) {
+    'noAddedSugar' => 'Enter confirmed to accept this challenge rule.',
+    'weatherOrdering' =>
+      'Enter enabled or disabled. The standard plan remains available.',
+    'meal' => 'Breakfast, lunch, dinner, or snack.',
+    'notifications' => 'A reminder appears when a focus session ends.',
+    'autoStartNext' => 'Choose whether the next session starts after the sip.',
+    'difficulty' => 'Choose gentle, balanced, or active.',
+    'shiftStartMinutes' =>
+      'Minutes after midnight. Overnight shifts are supported.',
+    'shiftDurationMinutes' => 'The shift may cross local midnight.',
+    'travelStartHour' =>
+      'The preparation action is disabled once this travel hour begins.',
+    'reminderEnabled' => 'Enable only after this setup is saved.',
+    _ => null,
+  };
+  return value == null ? null : l10n.challengeText(value);
+}
 
 String? _validateParameter(
+  AppLocalizations l10n,
   String key,
   String raw,
   HydrionVolumeUnit unit,
 ) {
   if (key == 'noAddedSugar' && raw.toLowerCase() != 'confirmed') {
-    return 'Enter confirmed to accept this rule';
+    return l10n.challengeText('Enter confirmed to accept this rule');
   }
   if (key == 'weatherOrdering' &&
       !const {'enabled', 'disabled'}.contains(raw.toLowerCase())) {
-    return 'Enter enabled or disabled';
+    return l10n.challengeText('Enter enabled or disabled');
   }
-  if (const {'notifications', 'autoStartNext', 'reminderPreference'}
-          .contains(key) &&
+  if (const {
+        'notifications',
+        'autoStartNext',
+        'reminderPreference',
+        'reminderEnabled',
+      }.contains(key) &&
       !const {'enabled', 'disabled'}.contains(raw.toLowerCase())) {
-    return 'Enter enabled or disabled';
+    return l10n.challengeText('Enter enabled or disabled');
   }
   if (key == 'difficulty' &&
       !const {'gentle', 'balanced', 'active'}.contains(raw.toLowerCase())) {
-    return 'Enter gentle, balanced, or active';
+    return l10n.challengeText('Enter gentle, balanced, or active');
   }
   if (!_isNumeric(key)) {
     return null;
   }
   final value = key == 'amountMl' ? double.tryParse(raw) : int.tryParse(raw);
   if (value == null) {
-    return 'Enter a whole number';
+    return l10n.challengeText('Enter a whole number');
   }
   if (key == 'amountMl') {
     final ml = HydrationVolumeFormatter.toMilliliters(value, unit);
     if (ml < 50 || ml > 2000) {
       return unit == HydrionVolumeUnit.ounces
-          ? 'Enter about 1.7–67.6 oz'
-          : 'Enter 50–2000 ml';
+          ? l10n.challengeText('Enter about 1.7–67.6 oz')
+          : l10n.challengeText('Enter 50–2000 ml');
     }
   }
   if (key == 'cutoffHour' && (value < 0 || value > 23)) {
-    return 'Enter an hour from 0–23';
+    return l10n.challengeText('Enter an hour from 0–23');
   }
   if (key == 'targetPercent' && (value < 10 || value > 60)) {
-    return 'Enter 10–60 percent';
+    return l10n.challengeText('Enter 10–60 percent');
   }
   if (key == 'sessionMinutes' && (value < 10 || value > 90)) {
-    return 'Enter 10–90 minutes';
+    return l10n.challengeText('Enter 10–90 minutes');
   }
   if (key == 'sessionsPerDay' && (value < 1 || value > 8)) {
-    return 'Enter 1–8 sessions';
+    return l10n.challengeText('Enter 1–8 sessions');
   }
   if (key == 'shortBreakMinutes' && (value < 1 || value > 30)) {
-    return 'Enter 1–30 minutes';
+    return l10n.challengeText('Enter 1–30 minutes');
   }
   if (key == 'challengeDurationDays' && (value < 1 || value > 14)) {
-    return 'Enter 1–14 days';
+    return l10n.challengeText('Enter 1–14 days');
   }
   return null;
 }
 
 String _parameterSummary(
+  BuildContext context,
   String key,
   Object? value,
   HydrionVolumeUnit unit,
 ) {
+  final l10n = AppLocalizations.of(context);
   if (key == 'amountMl' && value is num) {
-    return 'Drink amount  ${HydrationVolumeFormatter.format(value, unit)}';
+    return '${l10n.challengeText('Drink amount')}  ${HydrationVolumeFormatter.format(value, unit)}';
   }
   if (key == 'temperatureSchedule' && value is List) {
-    return 'Temperature schedule: ${value.join(', ')}';
+    return '${l10n.challengeText('Temperature schedule')}: ${value.map((item) => l10n.challengeText(item.toString())).join(', ')}';
   }
-  if (key == 'sessionMinutes') return 'Focus session  $value min';
-  if (key == 'sessionsPerDay') return 'Daily sessions  $value';
-  if (key == 'shortBreakMinutes') return 'Short break  $value min';
-  if (key == 'challengeDurationDays') return 'Challenge length  $value days';
-  if (key == 'cutoffHour') return 'Before-lunch cutoff  $value:00';
+  if (key == 'sessionMinutes') {
+    return '${l10n.challengeText('Focus session')}  $value min';
+  }
+  if (key == 'sessionsPerDay') {
+    return '${l10n.challengeText('Daily sessions')}  $value';
+  }
+  if (key == 'shortBreakMinutes') {
+    return '${l10n.challengeText('Short break')}  $value min';
+  }
+  if (key == 'challengeDurationDays') {
+    return '${l10n.challengeText('Challenge length')}  $value ${l10n.challengeText('days')}';
+  }
+  if (key == 'cutoffHour') {
+    return '${l10n.challengeText('Before-lunch cutoff')}  ${_formatHour(context, value)}';
+  }
+  if (const {
+    'windowStartHour',
+    'preparationHour',
+    'travelStartHour',
+    'reviewHour',
+  }.contains(key)) {
+    return '${_parameterLabel(l10n, key, unit)}  ${_formatHour(context, value)}';
+  }
+  if (key == 'shiftStartMinutes' && value is num) {
+    final minutes = value.round();
+    final hour = (minutes ~/ 60) % 24;
+    final minute = minutes % 60;
+    return '${l10n.challengeText('Shift start')}  ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay(hour: hour, minute: minute))}';
+  }
+  if (key == 'shiftDurationMinutes') {
+    return '${l10n.challengeText('Expected shift duration')}  ${((value as num).round() / 60).toStringAsFixed(1)} ${l10n.challengeText('hours')}';
+  }
+  if (key == 'blockMinutes' || key == 'resetFrequencyMinutes') {
+    return '${_parameterLabel(l10n, key, unit)}  $value min';
+  }
   if (const {
     'weatherOrdering',
     'notifications',
     'autoStartNext',
     'reminderPreference',
+    'reminderEnabled',
   }.contains(key)) {
     final on = value.toString().toLowerCase() == 'enabled';
-    return '${_parameterLabel(key, unit)}  ${on ? 'On' : 'Off'}';
+    return '${_parameterLabel(l10n, key, unit)}  ${l10n.challengeText(on ? 'On' : 'Off')}';
   }
-  if (key == 'noAddedSugar') return 'No added sugar  Confirmed';
+  if (key == 'noAddedSugar') {
+    return '${l10n.challengeText('No added sugar')}  ${l10n.challengeText('Confirmed')}';
+  }
   final text = value.toString();
   final friendly =
-      text.isEmpty ? 'Not set' : '${text[0].toUpperCase()}${text.substring(1)}';
-  return '${_parameterLabel(key, unit)}  $friendly';
+      text.isEmpty ? l10n.challengeText('Not set') : _choiceLabel(l10n, text);
+  return '${_parameterLabel(l10n, key, unit)}  $friendly';
+}
+
+bool _isVisibleParameter(MapEntry<String, Object?> entry) =>
+    const {
+      'amountMl',
+      'noAddedSugar',
+      'weatherOrdering',
+      'meal',
+      'food',
+      'cutoffHour',
+      'targetPercent',
+      'sessionMinutes',
+      'sessionsPerDay',
+      'shortBreakMinutes',
+      'notifications',
+      'autoStartNext',
+      'challengeDurationDays',
+      'difficulty',
+      'reminderPreference',
+      'cue',
+      'windowStartHour',
+      'preparationHour',
+      'travelStartHour',
+      'reviewHour',
+      'blockMinutes',
+      'resetFrequencyMinutes',
+      'shiftStartMinutes',
+      'shiftDurationMinutes',
+    }.contains(entry.key) &&
+    entry.value != null &&
+    entry.value.toString().trim().isNotEmpty;
+
+String _formatHour(BuildContext context, Object? value) {
+  final hour = int.tryParse(value?.toString() ?? '');
+  if (hour == null || hour < 0 || hour > 23) {
+    return AppLocalizations.of(context).challengeText('Not set');
+  }
+  return MaterialLocalizations.of(context).formatTimeOfDay(
+    TimeOfDay(hour: hour, minute: 0),
+  );
 }

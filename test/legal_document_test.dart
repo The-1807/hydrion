@@ -7,6 +7,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:hydrion/domain/legal_document_registry.dart';
 import 'package:hydrion/domain/release_metadata.dart';
 import 'package:hydrion/main.dart';
+import 'package:hydrion/l10n/app_localizations.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/location_service.dart';
 import 'package:hydrion/services/notifications.dart';
@@ -214,12 +215,37 @@ void main() {
 
   testWidgets('missing legal document fails safely', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: LegalDocumentScreen(documentId: 'missing')),
+      const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: LegalDocumentScreen(documentId: 'missing'),
+      ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Document unavailable'), findsOneWidget);
   });
+
+  for (final locale in const [Locale('fr'), Locale('es')]) {
+    testWidgets('${locale.languageCode} discloses English-only legal text',
+        (tester) async {
+      await _pumpLegalApp(
+        tester,
+        locale: locale,
+        home: const LegalDocumentScreen(documentId: 'terms'),
+      );
+      expect(find.byKey(const Key('legal-language-continue')), findsOneWidget);
+      expect(find.byKey(const Key('legal-document-terms')), findsNothing);
+      await tester.tap(find.byKey(const Key('legal-language-continue')));
+      await tester.pump();
+      expect(find.byKey(const Key('legal-language-continue')), findsNothing);
+      expect(
+        find.byKey(const Key('legal-document-loading')).evaluate().isNotEmpty ||
+            find.byKey(const Key('legal-document-terms')).evaluate().isNotEmpty,
+        isTrue,
+      );
+    });
+  }
 
   testWidgets('legal checkboxes can be accepted without opening documents',
       (tester) async {
@@ -383,12 +409,16 @@ Future<void> _pumpLegalApp(
   ThemeMode themeMode = ThemeMode.light,
   TextScaler textScaler = TextScaler.noScaling,
   Widget home = const LegalAboutScreen(),
+  Locale locale = const Locale('en'),
 }) async {
   final repository = UserSettingsRepository.memory();
   await tester.pumpWidget(
     ChangeNotifierProvider<UserSettingsRepository>.value(
       value: repository,
       child: MaterialApp(
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: ThemeData.light(),
         darkTheme: ThemeData.dark(),
         themeMode: themeMode,
@@ -414,6 +444,8 @@ Future<void> _pumpLegalPanel(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       routes: {
         for (final document in HydrionLegalDocumentRegistry.userFacingDocuments)
           document.routeName: (_) =>

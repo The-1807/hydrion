@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/hydration_contracts.dart';
@@ -243,8 +245,8 @@ void main() {
     final firstRepository = await ChallengeRepository.load(firstStore);
 
     await firstRepository.join(
-      id: 'steady-sip-test',
-      name: 'Steady Sip',
+      id: 'bottle-bingo',
+      name: 'Bottle Bingo',
       description: 'Complete the local challenge.',
       targetMl: 2000,
       durationDays: 7,
@@ -254,9 +256,60 @@ void main() {
     final secondStore = await SharedPreferencesHydrionStore.create();
     final secondRepository = await ChallengeRepository.load(secondStore);
 
-    expect(secondRepository.activeChallenge?.id, 'steady-sip-test');
+    expect(secondRepository.activeChallenge?.id, 'bottle-bingo');
     expect(secondRepository.activeChallenge?.targetMl, 2000);
   });
+
+  for (final legacyTitle in const [
+    'Lunch Break Refill',
+    'Remplissage du midi',
+    'Recarga del almuerzo',
+  ]) {
+    test(
+        'migrates persisted display copy while preserving challenge evidence: '
+        '$legacyTitle', () async {
+      final store = MemoryHydrionStore();
+      await store.writeString(
+        ChallengeRepository.storageKey,
+        jsonEncode({
+          'schemaVersion': 6,
+          'activeChallenges': [
+            {
+              'schemaVersion': 6,
+              'id': 'lunch-break-refill',
+              'name': legacyTitle,
+              'description': 'Texte localisé obsolète',
+              'targetMl': 2100,
+              'durationDays': 7,
+              'joinedAt': '2026-07-30T08:00:00.000',
+              'bottleBingoCompletedTiles': <int>[],
+              'parameters': {
+                'windowStartHour': 12,
+                'reminderEnabled': true,
+              },
+              'completedActionIds': ['evidence-1'],
+              'instanceId': 'lunch-instance',
+              'lifecycleStatus': 'active',
+            },
+          ],
+          'challengeHistory': <Object>[],
+        }),
+      );
+
+      final repository = await ChallengeRepository.load(store);
+      final challenge = repository.activeChallenge!;
+      expect(challenge.id, 'lunch-break-refill');
+      expect(challenge.targetMl, 2100);
+      expect(challenge.completedActionIds, {'evidence-1'});
+      expect(challenge.parameters['windowStartHour'], 12);
+      expect(challenge.instanceId, 'lunch-instance');
+
+      final migrated = await store.readString(ChallengeRepository.storageKey);
+      expect(migrated, isNot(contains('"name"')));
+      expect(migrated, isNot(contains('"description"')));
+      expect(migrated, isNot(contains(legacyTitle)));
+    });
+  }
 
   test('services share one hydration source of truth', () async {
     final services = await HydrionServices.fromStore(MemoryHydrionStore());

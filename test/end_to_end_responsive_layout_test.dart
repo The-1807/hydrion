@@ -547,6 +547,35 @@ Map<String, Object?> activeParametersFor(String challengeId) {
         'reminderPreference': 'enabled',
         'amountMl': 250,
       },
+    'lunch-break-refill' => <String, Object?>{
+        'windowStartHour': 12,
+        'reminderEnabled': 'disabled',
+      },
+    'homework-hydration' => <String, Object?>{
+        'sessionMinutes': 30,
+        'checkpointPattern': 'midpoint',
+      },
+    'after-school-recharge' => <String, Object?>{
+        'windowStartHour': 16,
+      },
+    'backpack-bottle-check' => <String, Object?>{
+        'preparationHour': 20,
+      },
+    'desk-day-reset' => <String, Object?>{
+        'blockMinutes': 120,
+        'resetFrequencyMinutes': 45,
+      },
+    'shift-hydration-check' => <String, Object?>{
+        'shiftStartMinutes': 480,
+        'shiftDurationMinutes': 480,
+      },
+    'commute-cup' => <String, Object?>{
+        'preparationHour': 7,
+        'travelStartHour': 8,
+      },
+    'evening-goal-review' => <String, Object?>{
+        'reviewHour': 20,
+      },
     _ => <String, Object?>{
         'cue': 'Water the plant and review the reusable bottle station',
       },

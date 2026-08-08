@@ -4,53 +4,60 @@ import 'notifications.dart';
 class ReminderFeedback {
   const ReminderFeedback._();
 
-  static String status(
+  static ReminderFeedbackCode status(
     ScheduledReminder reminder, {
     DateTime? now,
   }) {
     final currentTime = (now ?? DateTime.now()).toLocal();
     final timeHasPassed = !reminder.triggerTime.toLocal().isAfter(currentTime);
     if (timeHasPassed && reminder.enabled) {
-      return 'Choose a new time. The time has passed.';
+      return ReminderFeedbackCode.timePassed;
     }
 
     return switch (reminder.scheduleState) {
-      ReminderScheduleState.scheduledExactly =>
-        'Reminder active. Scheduled for the selected time.',
+      ReminderScheduleState.scheduledExactly => ReminderFeedbackCode.scheduled,
       ReminderScheduleState.scheduledApproximately =>
-        'Reminder active. Android may deliver it slightly later.',
-      ReminderScheduleState.pending => 'Waiting to be scheduled.',
-      ReminderScheduleState.disabled => 'Paused.',
+        ReminderFeedbackCode.approximate,
+      ReminderScheduleState.pending => ReminderFeedbackCode.pending,
+      ReminderScheduleState.disabled => ReminderFeedbackCode.paused,
       ReminderScheduleState.permissionRequired =>
-        'Notifications are disabled. Allow them in Android settings.',
-      ReminderScheduleState.unsupported =>
-        'Reminders are unavailable on this device.',
+        ReminderFeedbackCode.permissionRequired,
+      ReminderScheduleState.unsupported => ReminderFeedbackCode.unsupported,
       ReminderScheduleState.needsRescheduling =>
-        'Choose a new time. The time has passed.',
+        ReminderFeedbackCode.timePassed,
       ReminderScheduleState.schedulingFailed =>
-        'Reminder could not be scheduled. Edit the time or try again.',
+        ReminderFeedbackCode.schedulingFailed,
     };
   }
 
-  static String result(NotificationScheduleResult result) {
+  static ReminderFeedbackCode result(NotificationScheduleResult result) {
     if (result.scheduled) {
-      return 'Reminder scheduled.';
+      return ReminderFeedbackCode.scheduled;
     }
     if (result.duplicatePrevented) {
-      return 'This reminder is already saved.';
-    }
-    if (result.message != null && result.message!.trim().isNotEmpty) {
-      return result.message!;
+      return ReminderFeedbackCode.duplicate;
     }
     return switch (result.state) {
       ReminderScheduleState.permissionRequired =>
-        'Notifications are disabled. Allow notifications in Android settings.',
-      ReminderScheduleState.disabled => 'Reminder saved but paused.',
-      ReminderScheduleState.unsupported =>
-        'Reminders are unavailable on this device.',
+        ReminderFeedbackCode.permissionRequired,
+      ReminderScheduleState.disabled => ReminderFeedbackCode.savedPaused,
+      ReminderScheduleState.unsupported => ReminderFeedbackCode.unsupported,
       ReminderScheduleState.needsRescheduling =>
-        'Choose a new time. The time has passed.',
-      _ => 'This reminder could not be scheduled. Please try again.',
+        ReminderFeedbackCode.timePassed,
+      _ => ReminderFeedbackCode.schedulingFailed,
     };
   }
+}
+
+enum ReminderFeedbackCode {
+  scheduled,
+  approximate,
+  pending,
+  paused,
+  permissionRequired,
+  unsupported,
+  timePassed,
+  schedulingFailed,
+  duplicate,
+  savedPaused,
 }

@@ -356,7 +356,7 @@ void main() {
   test('valid existing repository load behavior remains unchanged', () async {
     final hydration = _hydrationJson(id: 'valid-log', volumeMl: 600);
     final reminder = _reminderJson(id: 'valid-reminder');
-    final challenge = _challengeJson(id: 'valid-challenge');
+    final challenge = _challengeJson(id: 'bottle-bingo');
     final store = MemoryHydrionStore({
       HydrationRepository.storageKey: jsonEncode([hydration]),
       ReminderRepository.storageKey: jsonEncode([reminder]),
@@ -375,7 +375,7 @@ void main() {
 
     expect(hydrationRepository.logs.single.id, 'valid-log');
     expect(reminderRepository.reminders.single.id, 'valid-reminder');
-    expect(challengeRepository.activeChallenge?.id, 'valid-challenge');
+    expect(challengeRepository.activeChallenge?.id, 'bottle-bingo');
     expect(settingsRepository.settings.locale, const Locale('fr', 'CA'));
     expect(settingsRepository.settings.nonLocalProviderConsentGranted, isTrue);
     expect(hydrationRepository.recoveryEvents, isEmpty);
