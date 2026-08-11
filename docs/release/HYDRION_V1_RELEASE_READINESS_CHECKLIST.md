@@ -744,6 +744,56 @@
 
 ---
 
+# 35. WidgetKit Extension (iOS Home Screen Widget)
+
+> Added following the CI iOS build/WidgetKit-configuration checks and the
+> `test/ios_release_configuration_test.dart` automated checks added during the
+> Hydrion v1 completion pass. Those checks validate bundle metadata and
+> configuration; only a physical iPhone can validate the items below.
+
+- [ ] Hydrion's Daily Progress widget appears in the iOS widget gallery.
+- [ ] The small widget size can be added to the Home Screen.
+- [ ] The medium widget size can be added to the Home Screen.
+- [ ] Widget hydration values match the values shown in the app.
+- [ ] The widget refreshes after logging hydration in the app.
+- [ ] The widget renders a correct empty state before any hydration is logged.
+- [ ] The widget renders a correct stale state if data has not refreshed recently.
+- [ ] The widget respects the user's selected Hydrion language (EN/FR/ES).
+- [ ] The widget respects the user's selected volume unit.
+- [ ] Tapping the widget deep-links into Hydrion correctly.
+- [ ] The widget continues to work after an app update (App Group state persists).
+- [ ] No body metrics, clinician target, or reproductive-health data is visible on the widget.
+
+# 36. Hydration Pacing (Wake / Sleep Schedule)
+
+> New in this pass. `wakeMinuteOfDay` / `sleepMinuteOfDay` were previously
+> collected and persisted but not consumed anywhere; this section covers the
+> new Body Metrics schedule pickers, the Home Screen pacing card, and the
+> sleep-window guard on Hydrion-suggested reminders. Automated coverage:
+> `test/hydration_pacing_engine_test.dart`, the wake/sleep tests in
+> `test/personalized_hydration_ui_test.dart`, and the sleep-window guard tests
+> in `test/notification_service_test.dart`.
+
+- [ ] Wake time and sleep time can be set from Body Metrics.
+- [ ] Wake/sleep tiles show "Not added" until a time is chosen, then show the
+      saved time in the device's locale/time format.
+- [ ] The Home Screen pacing card appears once a schedule is configured and
+      the current time falls within the waking window.
+- [ ] The pacing card does not appear when no schedule is configured.
+- [ ] The pacing card does not appear during the configured sleeping period.
+- [ ] Setting wake/sleep times does not change the displayed daily hydration
+      goal.
+- [ ] A schedule that crosses midnight (e.g. wake 14:00 / sleep 06:00) reports
+      pacing correctly across the midnight boundary.
+- [ ] Reaching the daily goal shows the goal-reached pacing state rather than
+      a behind/ahead state.
+- [ ] Pacing text is correctly localized in EN, FR, and ES.
+- [ ] The schedule persists correctly across app restart.
+- [ ] With a wake/sleep schedule configured, standard Reminders-screen
+      reminders created explicitly by the user are unaffected by pacing.
+
+---
+
 # Final Release Gate
 
 ## Permission and profile clean-install gate

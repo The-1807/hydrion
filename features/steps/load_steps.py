@@ -3,18 +3,19 @@ Hydrion BDD setup and context steps.
 
 Contains the Given/setup definitions extracted from the generated Behave output for hydrion_metrics.feature. Duplicate Background registrations and the malformed health-data decorator have been removed.
 
-These definitions are intentionally marked pending until each step is wired
-to the real Hydrion Flutter integration/test harness. They must not silently
-pass, because that would create false BDD coverage.
+Metrics steps are admitted only for scenarios classified as implemented by the
+reality-sync hook, which requires a current, fingerprinted Flutter test result.
+Unsupported and partial scenarios are skipped before their steps execute.
 """
 
 from behave import given
 from behave.api.pending_step import StepNotImplementedError
+from reality_sync import verify_current_scenario
 
 
 def _pending(step_text: str) -> None:
-    """Mark an unwired Hydrion BDD step as pending."""
-    raise StepNotImplementedError(step_text)
+    """Require repository-backed evidence for an automated v1 scenario."""
+    verify_current_scenario(step_text)
 
 
 def _ios_state(context):
@@ -27,9 +28,19 @@ def _ios_state(context):
     return context.ios_state
 
 
+@given('the live Hydrion v1 acceptance harness is available')
+def given_live_v1_harness(context):
+    verify_current_scenario('Given the live Hydrion v1 acceptance harness is available')
+
+
 @given('Hydrion is running on iOS with reminder scheduling available')
 def given_ios_reminders_available(context):
     _ios_state(context)
+
+
+@given('a signed Hydrion Android release artifact and a supported physical device')
+def given_android_release_device(context):
+    raise StepNotImplementedError('Requires a signed APK and physical Android device')
 
 
 @given('iOS notification permission has not been requested')
@@ -443,6 +454,21 @@ def given_my_daily_hydration_requirement_has_been_calculated_5311df44(context):
 @given('my expected sleeping period is known')
 def given_my_expected_sleeping_period_is_known_2608296f(context):
     _pending('Given my expected sleeping period is known')
+
+
+@given('my wake time and bedtime are both known')
+def given_my_wake_time_and_bedtime_are_both_known(context):
+    _pending('Given my wake time and bedtime are both known')
+
+
+@given('my wake time is later in the day than my bedtime')
+def given_my_wake_time_is_later_than_my_bedtime(context):
+    _pending('Given my wake time is later in the day than my bedtime')
+
+
+@given('no wake time or bedtime has been configured')
+def given_no_wake_time_or_bedtime_has_been_configured(context):
+    _pending('Given no wake time or bedtime has been configured')
 
 
 @given('food-water estimation is enabled')

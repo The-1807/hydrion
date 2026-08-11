@@ -959,3 +959,137 @@ jobs:
           path: build/web
           if-no-files-found: error
           retention-days: 14
+
+  build-ios:
+    name: Build iOS (simulator + unsigned release)
+    runs-on: macos-14
+    timeout-minutes: 45
+    needs: quality-gate
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: .
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods dependencies
+        working-directory: ios
+        run: pod install --repo-update
+
+      - name: Build iOS simulator app
+        run: flutter build ios --simulator
+
+      - name: Build unsigned iOS release app
+        run: flutter build ios --release --no-codesign
+
+      - name: Verify HydrionWidgets extension is embedded and correctly configured
+        run: |
+          set -euo pipefail
+
+          simulator_app="build/ios/iphonesimulator/Runner.app"
+          release_app="build/ios/iphoneos/Runner.app"
+
+          for app_path in "${simulator_app}" "${release_app}"; do
+            echo "Checking ${app_path}"
+
+            test -d "${app_path}" || {
+              echo "::error::Expected app bundle not found at ${app_path}."
+              exit 1
+            }
+
+            appex_path="${app_path}/PlugIns/HydrionWidgets.appex"
+            test -d "${appex_path}" || {
+              echo "::error::HydrionWidgets.appex is missing from ${app_path}/PlugIns. The widget extension is not being embedded — this is the exact class of defect that previously broke widget installs."
+              exit 1
+            }
+
+            widget_plist="${appex_path}/Info.plist"
+            app_plist="${app_path}/Info.plist"
+
+            widget_bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${widget_plist}")"
+            widget_executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "${widget_plist}")"
+            widget_package_type="$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "${widget_plist}")"
+            widget_extension_point="$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "${widget_plist}")"
+            widget_short_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${widget_plist}")"
+            widget_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${widget_plist}")"
+
+            app_bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${app_plist}")"
+            app_short_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${app_plist}")"
+            app_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${app_plist}")"
+
+            echo "  Host:      ${app_bundle_id} ${app_short_version} (${app_version})"
+            echo "  Extension: ${widget_bundle_id} ${widget_short_version} (${widget_version})"
+
+            [[ "${widget_bundle_id}" == "${app_bundle_id}.widgets" ]] || {
+              echo "::error::Widget bundle identifier '${widget_bundle_id}' does not follow '${app_bundle_id}.widgets'."
+              exit 1
+            }
+            [[ "${widget_executable}" == "HydrionWidgets" ]] || {
+              echo "::error::Unexpected CFBundleExecutable '${widget_executable}'."
+              exit 1
+            }
+            [[ "${widget_package_type}" == "XPC!" ]] || {
+              echo "::error::Unexpected CFBundlePackageType '${widget_package_type}' for an app extension."
+              exit 1
+            }
+            [[ "${widget_extension_point}" == "com.apple.widgetkit-extension" ]] || {
+              echo "::error::Unexpected NSExtensionPointIdentifier '${widget_extension_point}'."
+              exit 1
+            }
+            [[ "${widget_short_version}" == "${app_short_version}" ]] || {
+              echo "::error::Widget marketing version (${widget_short_version}) does not match the host app (${app_short_version})."
+              exit 1
+            }
+            [[ "${widget_version}" == "${app_version}" ]] || {
+              echo "::error::Widget build number (${widget_version}) does not match the host app (${app_version})."
+              exit 1
+            }
+
+            echo "  OK"
+          done
+
+      - name: Verify Runner and HydrionWidgets share the expected App Group
+        run: |
+          set -euo pipefail
+
+          runner_groups="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups' ios/Runner/Runner.entitlements)"
+          widget_groups="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups' ios/HydrionWidgets/HydrionWidgets.entitlements)"
+
+          echo "Runner entitlements:"
+          echo "${runner_groups}"
+          echo "HydrionWidgets entitlements:"
+          echo "${widget_groups}"
+
+          echo "${runner_groups}" | grep -q "group.com.the1807.hydrion" || {
+            echo "::error::Runner.entitlements does not declare group.com.the1807.hydrion."
+            exit 1
+          }
+          echo "${widget_groups}" | grep -q "group.com.the1807.hydrion" || {
+            echo "::error::HydrionWidgets.entitlements does not declare group.com.the1807.hydrion."
+            exit 1
+          }
+          [[ "${runner_groups}" == "${widget_groups}" ]] || {
+            echo "::error::Runner and HydrionWidgets entitlements declare different App Group sets."
+            exit 1
+          }
+
+      - name: Upload unsigned iOS release build
+        uses: actions/upload-artifact@v4
+        with:
+          name: hydrion-ios-unsigned-release-${{ github.run_number }}-${{ github.run_attempt }}
+          path: build/ios/iphoneos/Runner.app
+          if-no-files-found: error
+          retention-days: 14

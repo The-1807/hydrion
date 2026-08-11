@@ -1079,6 +1079,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateHeight => 'Update height';
 
   @override
+  String get hydrationPacingScheduleTitle => 'Hydration pacing schedule';
+
+  @override
+  String get hydrationPacingScheduleHelp =>
+      'Optional. Tell Hydrion when you\'re usually awake so it can gently compare your pace to your day. This never changes your daily goal.';
+
+  @override
+  String get wakeTimeLabel => 'Wake time';
+
+  @override
+  String get sleepTimeLabel => 'Sleep time';
+
+  @override
+  String get addWakeTime => 'Add wake time';
+
+  @override
+  String get updateWakeTime => 'Update wake time';
+
+  @override
+  String get addSleepTime => 'Add sleep time';
+
+  @override
+  String get updateSleepTime => 'Update sleep time';
+
+  @override
+  String get pacingAheadOfPace =>
+      'You\'re ahead of pace for this point in your day.';
+
+  @override
+  String get pacingOnPace => 'You\'re on track for this point in your day.';
+
+  @override
+  String get pacingSlightlyBehindPace =>
+      'You\'re a little behind your usual pace.';
+
+  @override
+  String get pacingMeaningfullyBehindPace =>
+      'You\'re behind pace, with time left in your day.';
+
+  @override
+  String get pacingGoalReached => 'You\'ve reached today\'s goal.';
+
+  @override
   String get updatedToday => 'Updated today';
 
   @override

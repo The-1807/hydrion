@@ -553,4 +553,99 @@ void main() {
     expect(bodies.toSet(), hasLength(3));
     expect(bodies, everyElement(isNot(contains('Exception'))));
   });
+
+  group('Hydrion-suggested reminders respect a configured sleep window', () {
+    test('declines to suggest a reminder while inside the sleep window',
+        () async {
+      final adapter = FakeHydrionNotificationAdapter();
+      final service = NotificationService(
+        reminderPolicy: ReminderPolicy(),
+        reminderRepository: ReminderRepository.memory(),
+        adapter: adapter,
+        now: () => DateTime(2026, 1, 1, 2, 0),
+      );
+
+      final reminder = await service.scheduleReminder(
+        shortfallMl: 500,
+        lastDrinkHoursAgo: 3,
+        hydrationPercent: 40,
+        isActiveTime: true,
+        wakeMinuteOfDay: 7 * 60,
+        sleepMinuteOfDay: 23 * 60,
+      );
+
+      expect(reminder, isNull);
+      expect(adapter.scheduledIds, isEmpty);
+    });
+
+    test('may suggest a reminder while inside the waking window', () async {
+      final adapter = FakeHydrionNotificationAdapter();
+      final service = NotificationService(
+        reminderPolicy: ReminderPolicy(),
+        reminderRepository: ReminderRepository.memory(),
+        adapter: adapter,
+        now: () => DateTime(2026, 1, 1, 12, 0),
+      );
+
+      final reminder = await service.scheduleReminder(
+        shortfallMl: 500,
+        lastDrinkHoursAgo: 3,
+        hydrationPercent: 40,
+        isActiveTime: true,
+        wakeMinuteOfDay: 7 * 60,
+        sleepMinuteOfDay: 23 * 60,
+      );
+
+      expect(reminder, isNotNull);
+    });
+
+    test('does not block suggestions when no wake/sleep schedule is configured',
+        () async {
+      final adapter = FakeHydrionNotificationAdapter();
+      final service = NotificationService(
+        reminderPolicy: ReminderPolicy(),
+        reminderRepository: ReminderRepository.memory(),
+        adapter: adapter,
+        now: () => DateTime(2026, 1, 1, 2, 0),
+      );
+
+      final reminder = await service.scheduleReminder(
+        shortfallMl: 500,
+        lastDrinkHoursAgo: 3,
+        hydrationPercent: 40,
+        isActiveTime: true,
+      );
+
+      expect(reminder, isNotNull);
+    });
+
+    test('does not delete or touch existing user-created reminders', () async {
+      final adapter = FakeHydrionNotificationAdapter();
+      final repository = ReminderRepository.memory();
+      final service = NotificationService(
+        reminderPolicy: ReminderPolicy(),
+        reminderRepository: repository,
+        adapter: adapter,
+        now: () => DateTime(2026, 1, 1, 2, 0),
+      );
+      final trigger = DateTime(2026, 1, 1, 8, 0);
+      final created = await service.createReminder(
+        triggerTime: trigger,
+        message: 'user reminder',
+        priority: 1,
+      );
+      expect(created.reminder, isNotNull);
+
+      await service.scheduleReminder(
+        shortfallMl: 500,
+        lastDrinkHoursAgo: 3,
+        hydrationPercent: 40,
+        isActiveTime: true,
+        wakeMinuteOfDay: 7 * 60,
+        sleepMinuteOfDay: 23 * 60,
+      );
+
+      expect(repository.byId(created.reminder!.id), isNotNull);
+    });
+  });
 }

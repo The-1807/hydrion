@@ -52,6 +52,8 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   late HydrionTemporaryCondition _condition;
   final _activityMinutes = TextEditingController();
   HydrationRecommendation? _recommendation;
+  int? _wakeMinuteOfDay;
+  int? _sleepMinuteOfDay;
   bool _editingWeight = false;
   bool _editingHeight = false;
   bool _editingPersonalization = false;
@@ -84,6 +86,8 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     _safetyMode = metrics.fluidSafetyMode;
     _allowAboveTarget = metrics.allowAdjustmentsAboveClinicianTarget;
     _clinicianTarget.text = metrics.clinicianTargetMl?.toString() ?? '';
+    _wakeMinuteOfDay = metrics.wakeMinuteOfDay;
+    _sleepMinuteOfDay = metrics.sleepMinuteOfDay;
     _syncManualFields();
     _intensity = daily?.activityIntensity ?? HydrionActivityIntensity.rest;
     _environment =
@@ -283,6 +287,76 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
       await _refreshRecommendation();
     }
     if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          saved
+              ? AppLocalizations.of(context).bodyMetricsSaved
+              : AppLocalizations.of(context).bodyMetricsInvalid,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickWakeTime() async {
+    final l10n = AppLocalizations.of(context);
+    final initial = _wakeMinuteOfDay == null
+        ? const TimeOfDay(hour: 7, minute: 0)
+        : TimeOfDay(
+            hour: _wakeMinuteOfDay! ~/ 60,
+            minute: _wakeMinuteOfDay! % 60,
+          );
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      helpText: l10n.wakeTimeLabel,
+    );
+    if (picked == null || !mounted) return;
+    final minuteOfDay = picked.hour * 60 + picked.minute;
+    final settings = context.read<UserSettingsRepository>().settings;
+    final saved = await context.read<BodyMetricsRepository>().update(
+          wakeMinuteOfDay: minuteOfDay,
+          femaleProfile: settings.sex == HydrionSex.female,
+        );
+    if (!mounted) return;
+    if (saved) {
+      setState(() => _wakeMinuteOfDay = minuteOfDay);
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          saved
+              ? AppLocalizations.of(context).bodyMetricsSaved
+              : AppLocalizations.of(context).bodyMetricsInvalid,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickSleepTime() async {
+    final l10n = AppLocalizations.of(context);
+    final initial = _sleepMinuteOfDay == null
+        ? const TimeOfDay(hour: 23, minute: 0)
+        : TimeOfDay(
+            hour: _sleepMinuteOfDay! ~/ 60,
+            minute: _sleepMinuteOfDay! % 60,
+          );
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      helpText: l10n.sleepTimeLabel,
+    );
+    if (picked == null || !mounted) return;
+    final minuteOfDay = picked.hour * 60 + picked.minute;
+    final settings = context.read<UserSettingsRepository>().settings;
+    final saved = await context.read<BodyMetricsRepository>().update(
+          sleepMinuteOfDay: minuteOfDay,
+          femaleProfile: settings.sex == HydrionSex.female,
+        );
+    if (!mounted) return;
+    if (saved) {
+      setState(() => _sleepMinuteOfDay = minuteOfDay);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -611,6 +685,40 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
               weightKg: metrics.weightKg,
               heightCm: metrics.heightCm,
               recalculatedAt: _latestMeasurementDate(metrics),
+            ),
+            const Divider(height: 32),
+            Text(
+              l10n.hydrationPacingScheduleTitle,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            Text(l10n.hydrationPacingScheduleHelp),
+            _MeasurementSummaryTile(
+              label: l10n.wakeTimeLabel,
+              value: metrics.wakeMinuteOfDay == null
+                  ? l10n.notAdded
+                  : TimeOfDay(
+                      hour: metrics.wakeMinuteOfDay! ~/ 60,
+                      minute: metrics.wakeMinuteOfDay! % 60,
+                    ).format(context),
+              updatedAt: null,
+              actionLabel: metrics.wakeMinuteOfDay == null
+                  ? l10n.addWakeTime
+                  : l10n.updateWakeTime,
+              onPressed: _pickWakeTime,
+            ),
+            _MeasurementSummaryTile(
+              label: l10n.sleepTimeLabel,
+              value: metrics.sleepMinuteOfDay == null
+                  ? l10n.notAdded
+                  : TimeOfDay(
+                      hour: metrics.sleepMinuteOfDay! ~/ 60,
+                      minute: metrics.sleepMinuteOfDay! % 60,
+                    ).format(context),
+              updatedAt: null,
+              actionLabel: metrics.sleepMinuteOfDay == null
+                  ? l10n.addSleepTime
+                  : l10n.updateSleepTime,
+              onPressed: _pickSleepTime,
             ),
             const Divider(height: 32),
             Text(

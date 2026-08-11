@@ -1090,6 +1090,50 @@ class AppLocalizationsFr extends AppLocalizations {
   String get updateHeight => 'Mettre à jour la taille';
 
   @override
+  String get hydrationPacingScheduleTitle => 'Horaire de rythme d\'hydratation';
+
+  @override
+  String get hydrationPacingScheduleHelp =>
+      'Facultatif. Indiquez à Hydrion vos heures de réveil habituelles afin qu\'il puisse comparer doucement votre rythme à votre journée. Cela ne change jamais votre objectif quotidien.';
+
+  @override
+  String get wakeTimeLabel => 'Heure de réveil';
+
+  @override
+  String get sleepTimeLabel => 'Heure de coucher';
+
+  @override
+  String get addWakeTime => 'Ajouter l\'heure de réveil';
+
+  @override
+  String get updateWakeTime => 'Mettre à jour l\'heure de réveil';
+
+  @override
+  String get addSleepTime => 'Ajouter l\'heure de coucher';
+
+  @override
+  String get updateSleepTime => 'Mettre à jour l\'heure de coucher';
+
+  @override
+  String get pacingAheadOfPace =>
+      'Vous êtes en avance sur le rythme pour ce moment de votre journée.';
+
+  @override
+  String get pacingOnPace =>
+      'Vous êtes dans le rythme pour ce moment de votre journée.';
+
+  @override
+  String get pacingSlightlyBehindPace =>
+      'Vous êtes un peu en retard sur votre rythme habituel.';
+
+  @override
+  String get pacingMeaningfullyBehindPace =>
+      'Vous êtes en retard, mais il vous reste du temps dans la journée.';
+
+  @override
+  String get pacingGoalReached => 'Vous avez atteint l\'objectif du jour.';
+
+  @override
   String get updatedToday => 'Mis à jour aujourd’hui';
 
   @override

@@ -1,3 +1,4 @@
+@v1 @release @domain @personalization
 Feature: Hydrion health metrics and adaptive hydration personalization
 
 As a Hydrion user
@@ -581,6 +582,35 @@ When Hydrion schedules hydration
 Then Hydrion should distribute appropriate intake across my waking period
 And Hydrion should avoid unnecessary reminders during configured sleep periods
 
+@safety
+Scenario: Hydration pacing follows a normal waking window
+Given my daily hydration requirement has been calculated
+And my wake time and bedtime are both known
+When Hydrion evaluates my pacing at a point within my waking window
+Then Hydrion should report how my logged intake compares to my expected pace at that point
+
+Scenario: Hydration pacing supports a waking window that crosses midnight
+Given my wake time is later in the day than my bedtime
+When Hydrion evaluates my pacing after midnight but before my bedtime
+Then Hydrion should still treat that moment as within my waking window
+
+@safety
+Scenario: Sleeping hours do not change the hydration baseline
+Given my daily hydration requirement has been calculated
+When my configured waking period changes length
+Then my calculated hydration baseline should remain unchanged
+
+Scenario: Missing sleep schedule does not prevent hydration tracking
+Given no wake time or bedtime has been configured
+When Hydrion evaluates my pacing
+Then Hydrion should continue to accept and record hydration logging
+
+@safety
+Scenario: Pacing respects clinician-directed hydration limits
+Given my clinician has prescribed a specific fluid target
+When Hydrion evaluates my pacing against that target
+Then pacing should compare my progress to the clinician-directed target rather than any other calculated value
+
 # ============================================================
 
 # DIETARY WATER
@@ -664,12 +694,14 @@ Then Hydrion should not prescribe an unsupported precise electrolyte replacement
 
 # ============================================================
 
+@safety
 Scenario: User records clinician-prescribed daily fluid target
 Given my clinician has prescribed a specific fluid target
 When I enter the clinician-prescribed target
 Then Hydrion should store the target as a clinical override
 And the clinician target should take precedence over ordinary Hydrion target calculations
 
+@safety
 Scenario: User records clinician-prescribed fluid restriction
 Given my clinician has instructed me to limit fluid intake
 When I configure the prescribed fluid limit
@@ -688,11 +720,13 @@ When Hydrion evaluates my health context
 Then medication context should be treated as a safety modifier
 And Hydrion should not infer a precise fluid adjustment without an approved rule
 
+@safety
 Scenario: Safety constraint conflicts with normal personalization
 Given ordinary personalization calculates a target above an active safety constraint
 When Hydrion finalizes the hydration plan
 Then the safety constraint should take precedence
 
+@safety
 Scenario: Multiple safety constraints exist
 Given more than one applicable hydration safety constraint is active
 When Hydrion creates my plan
@@ -1122,6 +1156,7 @@ Then Hydrion should reevaluate affected calculations
 And Hydrion should update future recommendations
 And Hydrion should preserve completed historical events
 
+@safety
 Scenario: Safety always overrides personalization
 Given a personalized calculation conflicts with an active safety rule
 When Hydrion finalizes a recommendation
