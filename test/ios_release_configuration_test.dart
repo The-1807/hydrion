@@ -12,10 +12,10 @@ import 'package:yaml/yaml.dart';
 
 void main() {
   final repoRoot = Directory.current.path;
-  final pbxprojFile =
-      File('$repoRoot/ios/Runner.xcodeproj/project.pbxproj');
-  final runnerEntitlementsFile =
-      File('$repoRoot/ios/Runner/Runner.entitlements');
+  final pbxprojFile = File('$repoRoot/ios/Runner.xcodeproj/project.pbxproj');
+  final runnerEntitlementsFile = File(
+    '$repoRoot/ios/Runner/Runner.entitlements',
+  );
   final widgetsEntitlementsFile = File(
     '$repoRoot/ios/HydrionWidgets/HydrionWidgets.entitlements',
   );
@@ -34,22 +34,26 @@ void main() {
   });
 
   group('iOS Xcode project configuration', () {
-    test('Runner and HydrionWidgets bundle identifiers use the expected '
+    test(
+        'Runner and HydrionWidgets bundle identifiers use the expected '
         'namespace', () {
-      expect(pbxproj, contains('PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion;'));
+      expect(
+        pbxproj,
+        contains('PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion;'),
+      );
       expect(
         pbxproj,
         contains('PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion.widgets;'),
       );
     });
 
-    test('HydrionWidgets extension declares an sdk-pinned build number '
+    test(
+        'HydrionWidgets extension declares an sdk-pinned build number '
         'matching pubspec.yaml, so it does not rely on FLUTTER_BUILD_NUMBER '
         'resolving inside the extension target', () {
-      final pinned = RegExp(r'"CURRENT_PROJECT_VERSION\[sdk=\*\]"\s*=\s*(\S+);')
-          .allMatches(pbxproj)
-          .map((m) => m.group(1))
-          .toSet();
+      final pinned = RegExp(
+        r'"CURRENT_PROJECT_VERSION\[sdk=\*\]"\s*=\s*(\S+);',
+      ).allMatches(pbxproj).map((m) => m.group(1)).toSet();
       expect(
         pinned,
         isNotEmpty,
@@ -68,12 +72,12 @@ void main() {
       }
     });
 
-    test('HydrionWidgets extension declares an sdk-pinned marketing '
+    test(
+        'HydrionWidgets extension declares an sdk-pinned marketing '
         'version matching pubspec.yaml', () {
-      final pinned = RegExp(r'"MARKETING_VERSION\[sdk=\*\]"\s*=\s*(\S+);')
-          .allMatches(pbxproj)
-          .map((m) => m.group(1))
-          .toSet();
+      final pinned = RegExp(
+        r'"MARKETING_VERSION\[sdk=\*\]"\s*=\s*(\S+);',
+      ).allMatches(pbxproj).map((m) => m.group(1)).toSet();
       expect(pinned, isNotEmpty);
       for (final value in pinned) {
         expect(value, expectedVersionName);
@@ -99,7 +103,8 @@ void main() {
       expect(pbxproj, contains('productName = HydrionWidgets;'));
     });
 
-    test('every app and widget build configuration explicitly supports the '
+    test(
+        'every app and widget build configuration explicitly supports the '
         'home_widget Swift package minimum iOS version', () {
       final deploymentTargets = RegExp(
         r'IPHONEOS_DEPLOYMENT_TARGET\s*=\s*14\.0;',
