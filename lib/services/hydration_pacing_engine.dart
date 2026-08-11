@@ -51,9 +51,10 @@ class HydrationPacingEngine {
     // minute ring so schedules that cross midnight (e.g. wake 14:00, sleep
     // 06:00 for a shift worker) need no special-case branching versus a
     // conventional same-day schedule (e.g. wake 07:00, sleep 23:00).
-    final windowMinutes =
-        (sleepMinuteOfDay - wakeMinuteOfDay + HydrationPacingPolicy.minutesPerDay) %
-            HydrationPacingPolicy.minutesPerDay;
+    final windowMinutes = (sleepMinuteOfDay -
+            wakeMinuteOfDay +
+            HydrationPacingPolicy.minutesPerDay) %
+        HydrationPacingPolicy.minutesPerDay;
     final elapsedSinceWake =
         (nowMinute - wakeMinuteOfDay + HydrationPacingPolicy.minutesPerDay) %
             HydrationPacingPolicy.minutesPerDay;
@@ -67,8 +68,10 @@ class HydrationPacingEngine {
       );
     }
 
-    final windowElapsedFraction =
-        (elapsedSinceWake / windowMinutes).clamp(0.0, 1.0);
+    final windowElapsedFraction = (elapsedSinceWake / windowMinutes).clamp(
+      0.0,
+      1.0,
+    );
     final minutesRemaining = windowMinutes - elapsedSinceWake;
 
     if (dailyGoalMl > 0 && todayLoggedMl >= dailyGoalMl) {
@@ -86,7 +89,8 @@ class HydrationPacingEngine {
         HydrationPacingState.aheadOfPace,
       final d when d >= -HydrationPacingPolicy.onPaceToleranceFraction =>
         HydrationPacingState.onPace,
-      final d when d >= -HydrationPacingPolicy.slightlyBehindToleranceFraction =>
+      final d
+          when d >= -HydrationPacingPolicy.slightlyBehindToleranceFraction =>
         HydrationPacingState.slightlyBehindPace,
       _ => HydrationPacingState.meaningfullyBehindPace,
     };

@@ -53,9 +53,9 @@ void main() {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              textScaler: TextScaler.linear(textScale),
-            ),
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
             child: child!,
           ),
           home: const BodyMetricsScreen(),
@@ -65,8 +65,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('optional controls support narrow Android and large text',
-      (tester) async {
+  testWidgets('optional controls support narrow Android and large text', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(320, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await pumpScreen(
@@ -99,8 +100,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('reproductive controls stay hidden for non-female profiles',
-      (tester) async {
+  testWidgets('reproductive controls stay hidden for non-female profiles', (
+    tester,
+  ) async {
     await pumpScreen(
       tester,
       locale: const Locale('en'),
@@ -110,73 +112,80 @@ void main() {
   });
 
   testWidgets(
-      'pregnancy duration is required, saves, and switches without drift',
-      (tester) async {
-    final repository = BodyMetricsRepository.memory();
-    await pumpScreen(
-      tester,
-      locale: const Locale('en'),
-      sex: HydrionSex.female,
-      bodyMetricsRepository: repository,
-    );
-    expect(find.byKey(const Key('pregnancy-duration-editor')), findsNothing);
+    'pregnancy duration is required, saves, and switches without drift',
+    (tester) async {
+      final repository = BodyMetricsRepository.memory();
+      await pumpScreen(
+        tester,
+        locale: const Locale('en'),
+        sex: HydrionSex.female,
+        bodyMetricsRepository: repository,
+      );
+      expect(find.byKey(const Key('pregnancy-duration-editor')), findsNothing);
 
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('edit-personalization')),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.byKey(const Key('edit-personalization')));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('reproductive-state')),
-      400,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.byKey(const Key('reproductive-state')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Pregnant').last);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('pregnancy-duration-editor')), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('edit-personalization')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byKey(const Key('edit-personalization')));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('reproductive-state')),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byKey(const Key('reproductive-state')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pregnant').last);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('pregnancy-duration-editor')),
+        findsOneWidget,
+      );
 
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('save-body-metrics')),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.byKey(const Key('save-body-metrics')));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('pregnancy-duration-input')),
-      -300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    final durationField = tester.widget<TextField>(
-      find.byKey(const Key('pregnancy-duration-input')),
-    );
-    expect(
-      durationField.decoration?.errorText,
-      contains('valid pregnancy duration'),
-    );
-    expect(repository.metrics.reproductiveState,
-        HydrionReproductiveHydrationState.none);
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('save-body-metrics')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byKey(const Key('save-body-metrics')));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('pregnancy-duration-input')),
+        -300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      final durationField = tester.widget<TextField>(
+        find.byKey(const Key('pregnancy-duration-input')),
+      );
+      expect(
+        durationField.decoration?.errorText,
+        contains('valid pregnancy duration'),
+      );
+      expect(
+        repository.metrics.reproductiveState,
+        HydrionReproductiveHydrationState.none,
+      );
 
-    await tester.enterText(
-      find.byKey(const Key('pregnancy-duration-input')),
-      '24',
-    );
-    await tester.pump();
-    expect(find.text('Approximately 24 weeks, 0 days.'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('save-body-metrics')));
-    await tester.pumpAndSettle();
-    expect(repository.metrics.pregnancyGestationalDays, 168);
+      await tester.enterText(
+        find.byKey(const Key('pregnancy-duration-input')),
+        '24',
+      );
+      await tester.pump();
+      expect(find.text('Approximately 24 weeks, 0 days.'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('save-body-metrics')));
+      await tester.pumpAndSettle();
+      expect(repository.metrics.pregnancyGestationalDays, 168);
 
-    expect(repository.metrics.pregnancyGestationalDays, 168);
-    expect(tester.takeException(), isNull);
-  });
+      expect(repository.metrics.pregnancyGestationalDays, 168);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-  testWidgets('saved measurements render as summaries until edited',
-      (tester) async {
+  testWidgets('saved measurements render as summaries until edited', (
+    tester,
+  ) async {
     final repository = BodyMetricsRepository.memory(
       HydrionBodyMetrics(
         personalizationEnabled: true,
@@ -216,8 +225,9 @@ void main() {
     expect(find.byKey(const Key('height-wheel')), findsNothing);
   });
 
-  testWidgets('French and Spanish body-metric consent copy is localized',
-      (tester) async {
+  testWidgets('French and Spanish body-metric consent copy is localized', (
+    tester,
+  ) async {
     await pumpScreen(
       tester,
       locale: const Locale('fr'),
@@ -233,8 +243,9 @@ void main() {
     expect(find.text('Medidas corporales'), findsWidgets);
   });
 
-  testWidgets('height editor saves exact metric and imperial values',
-      (tester) async {
+  testWidgets('height editor saves exact metric and imperial values', (
+    tester,
+  ) async {
     final repository = BodyMetricsRepository.memory();
     await pumpScreen(
       tester,
@@ -251,7 +262,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.metrics.heightCm, 180);
     expect(
-        repository.metrics.preferredHeightUnit, HydrionHeightUnit.centimetres);
+      repository.metrics.preferredHeightUnit,
+      HydrionHeightUnit.centimetres,
+    );
 
     await tester.ensureVisible(find.text('Update height'));
     await tester.tap(find.text('Update height'));
@@ -264,8 +277,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.metrics.heightCm, closeTo(175.26, 0.001));
-    expect(repository.metrics.preferredHeightUnit,
-        HydrionHeightUnit.feetAndInches);
+    expect(
+      repository.metrics.preferredHeightUnit,
+      HydrionHeightUnit.feetAndInches,
+    );
     expect(find.textContaining('5 ft 9 in'), findsOneWidget);
   });
 
@@ -289,7 +304,8 @@ void main() {
     expect(find.byKey(const Key('apply-suggested-goal')), findsOneWidget);
   });
 
-  testWidgets('wake/sleep schedule shows not-added until configured, then '
+  testWidgets(
+      'wake/sleep schedule shows not-added until configured, then '
       'reflects the saved time', (tester) async {
     // A tall surface keeps the whole scroll body within the sliver cache
     // extent, so every summary tile is actually built and findable without
@@ -357,40 +373,42 @@ void main() {
   });
 
   testWidgets(
-      'wake/sleep schedule never appears on the weight/height measurement '
-      'flow and does not affect the personalized baseline', (tester) async {
-    final repository = BodyMetricsRepository.memory(
-      const HydrionBodyMetrics(
-        personalizationEnabled: true,
-        weightKg: 70,
-        heightCm: 170,
-      ),
-    );
-    await pumpScreen(
-      tester,
-      locale: const Locale('en'),
-      sex: HydrionSex.female,
-      bodyMetricsRepository: repository,
-    );
+    'wake/sleep schedule never appears on the weight/height measurement '
+    'flow and does not affect the personalized baseline',
+    (tester) async {
+      final repository = BodyMetricsRepository.memory(
+        const HydrionBodyMetrics(
+          personalizationEnabled: true,
+          weightKg: 70,
+          heightCm: 170,
+        ),
+      );
+      await pumpScreen(
+        tester,
+        locale: const Locale('en'),
+        sex: HydrionSex.female,
+        bodyMetricsRepository: repository,
+      );
 
-    final beforeBmiText = tester
-        .widgetList<Text>(find.textContaining('BMI'))
-        .map((t) => t.data)
-        .toList();
+      final beforeBmiText = tester
+          .widgetList<Text>(find.textContaining('BMI'))
+          .map((t) => t.data)
+          .toList();
 
-    await repository.update(
-      wakeMinuteOfDay: 22 * 60,
-      sleepMinuteOfDay: 6 * 60,
-      femaleProfile: true,
-    );
-    await tester.pumpAndSettle();
+      await repository.update(
+        wakeMinuteOfDay: 22 * 60,
+        sleepMinuteOfDay: 6 * 60,
+        femaleProfile: true,
+      );
+      await tester.pumpAndSettle();
 
-    final afterBmiText = tester
-        .widgetList<Text>(find.textContaining('BMI'))
-        .map((t) => t.data)
-        .toList();
-    expect(afterBmiText, beforeBmiText);
-    expect(repository.metrics.weightKg, 70);
-    expect(repository.metrics.heightCm, 170);
-  });
+      final afterBmiText = tester
+          .widgetList<Text>(find.textContaining('BMI'))
+          .map((t) => t.data)
+          .toList();
+      expect(afterBmiText, beforeBmiText);
+      expect(repository.metrics.weightKg, 70);
+      expect(repository.metrics.heightCm, 170);
+    },
+  );
 }

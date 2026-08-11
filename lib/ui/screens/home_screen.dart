@@ -111,10 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
           volumeUnit == HydrionVolumeUnit.milliliters
               ? l10n.loggedVolume(volumeMl: volumeMl)
               : l10n.loggedFormattedVolume(
-                  amount: HydrationVolumeFormatter.format(
-                    volumeMl,
-                    volumeUnit,
-                  ),
+                  amount: HydrationVolumeFormatter.format(volumeMl, volumeUnit),
                 ),
         ),
       ),
@@ -170,9 +167,9 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               'Hydrion',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             Text(
               _greeting(l10n, settings, now),
@@ -209,10 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             itemBuilder: (context) => [
               PopupMenuItem(value: 'profile', child: Text(l10n.viewProfile)),
-              PopupMenuItem(
-                value: 'settings',
-                child: Text(l10n.settingsTitle),
-              ),
+              PopupMenuItem(value: 'settings', child: Text(l10n.settingsTitle)),
               PopupMenuItem(value: 'support', child: Text(l10n.support)),
             ],
           ),
@@ -256,22 +250,23 @@ class _HomeScreenState extends State<HomeScreen> {
               historyTargetKey: widget.historyTargetKey,
               onHistory: () => Navigator.of(context).pushNamed('/log'),
             ),
-            if (challengeRepository.activeChallenges.any((challenge) =>
-                challenge.id == 'temperature-roulette' ||
-                challenge.id == 'around-the-world-infusion-week')) ...[
+            if (challengeRepository.activeChallenges.any(
+              (challenge) =>
+                  challenge.id == 'temperature-roulette' ||
+                  challenge.id == 'around-the-world-infusion-week',
+            )) ...[
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 key: const Key('home-challenge-context'),
                 onPressed: () => _editChallengeContext(challengeRepository),
                 icon: const Icon(Icons.tune),
-                label: Text(_pendingMetadata.isEmpty
-                    ? l10n.addChallengeDetails
-                    : l10n.challengeDetailsAdded),
+                label: Text(
+                  _pendingMetadata.isEmpty
+                      ? l10n.addChallengeDetails
+                      : l10n.challengeDetailsAdded,
+                ),
               ),
-              Text(
-                l10n.challengeDetailsHelp,
-                textAlign: TextAlign.center,
-              ),
+              Text(l10n.challengeDetailsHelp, textAlign: TextAlign.center),
             ],
             const SizedBox(height: 16),
             _TodayMomentumGrid(
@@ -309,10 +304,12 @@ class _HomeScreenState extends State<HomeScreen> {
     ChallengeRepository challengeRepository,
   ) async {
     final l10n = AppLocalizations.of(context);
-    final temperature =
-        challengeRepository.activeChallengeFor('temperature-roulette');
-    final infusion = challengeRepository
-        .activeChallengeFor('around-the-world-infusion-week');
+    final temperature = challengeRepository.activeChallengeFor(
+      'temperature-roulette',
+    );
+    final infusion = challengeRepository.activeChallengeFor(
+      'around-the-world-infusion-week',
+    );
     final today = DateTime.now();
     var selectedTemperature = _pendingMetadata.temperatureStyle ??
         (temperature == null
@@ -336,8 +333,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   DropdownButtonFormField<String>(
                     key: const Key('home-temperature-context'),
                     initialValue: selectedTemperature,
-                    decoration:
-                        InputDecoration(labelText: l10n.temperatureStyle),
+                    decoration: InputDecoration(
+                      labelText: l10n.temperatureStyle,
+                    ),
                     items: [
                       DropdownMenuItem(
                         value: 'Cool',
@@ -368,9 +366,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     contentPadding: EdgeInsets.zero,
                     value: noAddedSugar,
                     title: Text(l10n.noAddedSugar),
-                    onChanged: (value) => setDialogState(
-                      () => noAddedSugar = value ?? false,
-                    ),
+                    onChanged: (value) =>
+                        setDialogState(() => noAddedSugar = value ?? false),
                   ),
                 ],
               ],
@@ -427,8 +424,9 @@ class _HomeLifestyleMoment extends StatelessWidget {
               key: const Key('home-profile-art'),
               fit: BoxFit.contain,
               cacheWidth: 256,
-              semanticLabel:
-                  AppLocalizations.of(context).sceneDescription(scene),
+              semanticLabel: AppLocalizations.of(
+                context,
+              ).sceneDescription(scene),
             ),
           );
           final copy = Column(
@@ -436,9 +434,9 @@ class _HomeLifestyleMoment extends StatelessWidget {
             children: [
               Text(
                 l10n.routineFitsDay,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 6),
               Text(l10n.routineFitsDayBody),
@@ -633,9 +631,9 @@ class _QuickLogPanel extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
               KeyedSubtree(
@@ -817,9 +815,9 @@ class _MiniModule extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(body),
@@ -851,7 +849,8 @@ class _PacingStatusCard extends StatelessWidget {
         HydrationPacingState.goalReached => l10n.pacingGoalReached,
         HydrationPacingState.aheadOfPace => l10n.pacingAheadOfPace,
         HydrationPacingState.onPace => l10n.pacingOnPace,
-        HydrationPacingState.slightlyBehindPace => l10n.pacingSlightlyBehindPace,
+        HydrationPacingState.slightlyBehindPace =>
+          l10n.pacingSlightlyBehindPace,
         HydrationPacingState.meaningfullyBehindPace =>
           l10n.pacingMeaningfullyBehindPace,
         HydrationPacingState.unavailable ||
@@ -913,13 +912,20 @@ class _LegacyRouteShortcuts extends StatelessWidget {
       runSpacing: 8,
       children: [
         _RouteButton(
-            label: l10n.progress, icon: Icons.insights, route: '/analytics'),
+          label: l10n.progress,
+          icon: Icons.insights,
+          route: '/analytics',
+        ),
         _RouteButton(
-            label: l10n.logHistory, icon: Icons.list_alt, route: '/log'),
+          label: l10n.logHistory,
+          icon: Icons.list_alt,
+          route: '/log',
+        ),
         _RouteButton(
-            label: l10n.challengesTitle,
-            icon: Icons.emoji_events,
-            route: '/challenges'),
+          label: l10n.challengesTitle,
+          icon: Icons.emoji_events,
+          route: '/challenges',
+        ),
         if (capabilities.osNotifications)
           _RouteButton(
             label: l10n.remindersTitle,
@@ -963,11 +969,7 @@ int _goalStreakDays(HydrationRepository repository, int goalMl, DateTime now) {
   return streak;
 }
 
-String _greeting(
-  AppLocalizations l10n,
-  UserSettings settings,
-  DateTime now,
-) {
+String _greeting(AppLocalizations l10n, UserSettings settings, DateTime now) {
   final name = settings.nickname?.trim();
   final displayName =
       name == null || name.isEmpty ? l10n.greetingFallbackName : name;
