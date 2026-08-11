@@ -288,4 +288,109 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('apply-suggested-goal')), findsOneWidget);
   });
+
+  testWidgets('wake/sleep schedule shows not-added until configured, then '
+      'reflects the saved time', (tester) async {
+    // A tall surface keeps the whole scroll body within the sliver cache
+    // extent, so every summary tile is actually built and findable without
+    // needing to drive ListView scrolling for each assertion.
+    await tester.binding.setSurfaceSize(const Size(400, 3200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repository = BodyMetricsRepository.memory();
+    await pumpScreen(
+      tester,
+      locale: const Locale('en'),
+      sex: HydrionSex.female,
+      bodyMetricsRepository: repository,
+    );
+
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('measurement-summary-wake time')),
+        matching: find.text('Add wake time'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('measurement-summary-sleep time')),
+        matching: find.text('Add sleep time'),
+      ),
+      findsOneWidget,
+    );
+
+    await repository.update(
+      wakeMinuteOfDay: 7 * 60,
+      sleepMinuteOfDay: 23 * 60,
+      femaleProfile: true,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('measurement-summary-wake time')),
+        matching: find.text('Update wake time'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('measurement-summary-wake time')),
+        matching: find.textContaining('7:00'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('measurement-summary-sleep time')),
+        matching: find.text('Update sleep time'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('measurement-summary-sleep time')),
+        matching: find.textContaining('11:00'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'wake/sleep schedule never appears on the weight/height measurement '
+      'flow and does not affect the personalized baseline', (tester) async {
+    final repository = BodyMetricsRepository.memory(
+      const HydrionBodyMetrics(
+        personalizationEnabled: true,
+        weightKg: 70,
+        heightCm: 170,
+      ),
+    );
+    await pumpScreen(
+      tester,
+      locale: const Locale('en'),
+      sex: HydrionSex.female,
+      bodyMetricsRepository: repository,
+    );
+
+    final beforeBmiText = tester
+        .widgetList<Text>(find.textContaining('BMI'))
+        .map((t) => t.data)
+        .toList();
+
+    await repository.update(
+      wakeMinuteOfDay: 22 * 60,
+      sleepMinuteOfDay: 6 * 60,
+      femaleProfile: true,
+    );
+    await tester.pumpAndSettle();
+
+    final afterBmiText = tester
+        .widgetList<Text>(find.textContaining('BMI'))
+        .map((t) => t.data)
+        .toList();
+    expect(afterBmiText, beforeBmiText);
+    expect(repository.metrics.weightKg, 70);
+    expect(repository.metrics.heightCm, 170);
+  });
 }

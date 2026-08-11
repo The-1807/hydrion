@@ -1,4 +1,4 @@
-@ios @widget
+@v1 @release @ios @widget @physical_device
 Feature: iOS daily progress widget
   The widget must display canonical hydration progress without private profile data.
 

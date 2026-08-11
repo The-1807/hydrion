@@ -6,12 +6,15 @@ import 'package:provider/provider.dart';
 import '../../domain/avatar_manifest.dart';
 import '../../domain/challenge_catalog.dart';
 import '../../domain/hydration_contracts.dart';
+import '../../domain/hydration_pacing.dart';
 import '../../domain/ui_asset_manifest.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/asset_localizations.dart';
+import '../../repositories/body_metrics_repository.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
+import '../../services/hydration_pacing_engine.dart';
 import '../presentation/app_refresh_presenter.dart';
 import '../components/intake_ring.dart';
 import '../components/recognition_moment.dart';
@@ -146,6 +149,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     final profileAvatar = HydrionAvatarManifest.byId(settings.avatarId);
     final progress = (percent / 100).clamp(0.0, 1.0);
+    final bodyMetrics = context.watch<BodyMetricsRepository>().metrics;
+    final pacingStatus = const HydrationPacingEngine().calculate(
+      wakeMinuteOfDay: bodyMetrics.wakeMinuteOfDay,
+      sleepMinuteOfDay: bodyMetrics.sleepMinuteOfDay,
+      todayLoggedMl: todayMl,
+      dailyGoalMl: targetMl,
+      now: now,
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -268,6 +279,10 @@ class _HomeScreenState extends State<HomeScreen> {
               challengeRepository: challengeRepository,
               targetMl: targetMl,
             ),
+            if (pacingStatus.isActionable) ...[
+              const SizedBox(height: 16),
+              _PacingStatusCard(status: pacingStatus),
+            ],
             const SizedBox(height: 16),
             _HomeLifestyleMoment(settings: settings),
             if (widget.showRouteShortcuts) ...[
@@ -808,6 +823,57 @@ class _MiniModule extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(body),
+        ],
+      ),
+    );
+  }
+}
+
+class _PacingStatusCard extends StatelessWidget {
+  final HydrationPacingStatus status;
+
+  const _PacingStatusCard({required this.status});
+
+  static IconData _iconFor(HydrationPacingState state) => switch (state) {
+        HydrationPacingState.goalReached => Icons.emoji_events_outlined,
+        HydrationPacingState.aheadOfPace => Icons.trending_up,
+        HydrationPacingState.onPace => Icons.check_circle_outline,
+        HydrationPacingState.slightlyBehindPace => Icons.schedule,
+        HydrationPacingState.meaningfullyBehindPace =>
+          Icons.water_drop_outlined,
+        HydrationPacingState.unavailable ||
+        HydrationPacingState.outsideWakingWindow =>
+          Icons.info_outline,
+      };
+
+  static String _textFor(AppLocalizations l10n, HydrationPacingState state) =>
+      switch (state) {
+        HydrationPacingState.goalReached => l10n.pacingGoalReached,
+        HydrationPacingState.aheadOfPace => l10n.pacingAheadOfPace,
+        HydrationPacingState.onPace => l10n.pacingOnPace,
+        HydrationPacingState.slightlyBehindPace => l10n.pacingSlightlyBehindPace,
+        HydrationPacingState.meaningfullyBehindPace =>
+          l10n.pacingMeaningfullyBehindPace,
+        HydrationPacingState.unavailable ||
+        HydrationPacingState.outsideWakingWindow =>
+          '',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return HydrionSurface(
+      key: const Key('home-pacing-status'),
+      child: Row(
+        children: [
+          Icon(_iconFor(status.state)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _textFor(l10n, status.state),
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
         ],
       ),
     );

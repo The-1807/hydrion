@@ -3,18 +3,19 @@ Hydrion BDD action and outcome steps.
 
 Contains the When/Then definitions extracted from the generated Behave output for hydrion_metrics.feature. The appended Behave run report has been removed and duplicate step registrations have been eliminated.
 
-These definitions are intentionally marked pending until each step is wired
-to the real Hydrion Flutter integration/test harness. They must not silently
-pass, because that would create false BDD coverage.
+Metrics steps are admitted only for scenarios classified as implemented by the
+reality-sync hook, which requires a current, fingerprinted Flutter test result.
+Unsupported and partial scenarios are skipped before their steps execute.
 """
 
 from behave import then, when
 from behave.api.pending_step import StepNotImplementedError
+from reality_sync import verify_current_scenario
 
 
 def _pending(step_text: str) -> None:
-    """Mark an unwired Hydrion BDD step as pending."""
-    raise StepNotImplementedError(step_text)
+    """Require repository-backed evidence for an automated v1 scenario."""
+    verify_current_scenario(step_text)
 
 
 def _reminder_action(context):
@@ -29,10 +30,48 @@ def _reminder_action(context):
     state["scheduled"] = state["permission"] == "granted" and not state["failure"]
 
 
+def _verify_product_step(step_text):
+    verify_current_scenario(step_text)
+
+
+@when('hydration state is restored across a restart and local date change')
+@then('saved logs should remain and the new local day total should reset')
+@when('a saved hydration record is edited and then deleted')
+@then('repository totals and history should reflect each mutation')
+@when('a user exercises the implemented challenge lifecycle')
+@then('challenge state and evidence should remain correct across restart')
+@when('Hydrion evaluates a challenge recommendation')
+@then("recommendation evaluation should not activate a challenge")
+@when('Pomodoro or Homework notification state starts pauses resumes and stops')
+@then('each active session should retain one stable notification identity')
+@when('Android reminder definitions are created edited disabled or restored')
+@then('reminder persistence and operating-system reconciliation should remain consistent')
+@when('an Android widget reads or changes canonical hydration state')
+@then('widget progress and quick logging should use the hydration repository')
+@when('the user switches among supported production languages')
+@then('visible and restored language should match the selected locale')
+@when('Hydrion starts with fresh partial or completed onboarding state')
+@then('startup should route to the corresponding persisted destination')
+@when('the user confirms local profile deletion')
+@then('profile-owned hydration reminder challenge and personalization state should clear')
+def verify_v1_product_behavior(context):
+    _verify_product_step('Hydrion v1 product behavior')
+
+
 @when('I enable an iOS hydration reminder')
 @when('I try to enable an iOS hydration reminder')
 def when_enable_ios_reminder(context):
     _reminder_action(context)
+
+
+@when('I install or upgrade the release artifact on that device')
+def when_install_android_release(context):
+    raise StepNotImplementedError('Requires a signed APK and physical Android device')
+
+
+@then('Hydrion should launch with the expected persisted user data')
+def then_android_release_preserves_data(context):
+    raise StepNotImplementedError('Requires a signed APK and physical Android device')
 
 
 @then('iOS notification permission should be requested once')
@@ -1402,6 +1441,62 @@ def then_hydrion_should_distribute_appropriate_intake_across_my_waking_period_86
 @then('Hydrion should avoid unnecessary reminders during configured sleep periods')
 def then_hydrion_should_avoid_unnecessary_reminders_during_configured_sleep_per_3468273a(context):
     _pending('Then Hydrion should avoid unnecessary reminders during configured sleep periods')
+
+
+@when('Hydrion evaluates my pacing at a point within my waking window')
+def when_hydrion_evaluates_pacing_within_waking_window(context):
+    _pending('When Hydrion evaluates my pacing at a point within my waking window')
+
+
+@then('Hydrion should report how my logged intake compares to my expected pace at that point')
+def then_hydrion_reports_pacing_comparison(context):
+    _pending(
+        'Then Hydrion should report how my logged intake compares to my '
+        'expected pace at that point'
+    )
+
+
+@when('Hydrion evaluates my pacing after midnight but before my bedtime')
+def when_hydrion_evaluates_pacing_after_midnight(context):
+    _pending('When Hydrion evaluates my pacing after midnight but before my bedtime')
+
+
+@then('Hydrion should still treat that moment as within my waking window')
+def then_hydrion_treats_moment_as_within_waking_window(context):
+    _pending('Then Hydrion should still treat that moment as within my waking window')
+
+
+@when('my configured waking period changes length')
+def when_configured_waking_period_changes_length(context):
+    _pending('When my configured waking period changes length')
+
+
+@then('my calculated hydration baseline should remain unchanged')
+def then_calculated_hydration_baseline_remains_unchanged(context):
+    _pending('Then my calculated hydration baseline should remain unchanged')
+
+
+@when('Hydrion evaluates my pacing')
+def when_hydrion_evaluates_my_pacing(context):
+    _pending('When Hydrion evaluates my pacing')
+
+
+@then('Hydrion should continue to accept and record hydration logging')
+def then_hydrion_continues_to_accept_hydration_logging(context):
+    _pending('Then Hydrion should continue to accept and record hydration logging')
+
+
+@when('Hydrion evaluates my pacing against that target')
+def when_hydrion_evaluates_pacing_against_clinician_target(context):
+    _pending('When Hydrion evaluates my pacing against that target')
+
+
+@then('pacing should compare my progress to the clinician-directed target rather than any other calculated value')
+def then_pacing_compares_against_clinician_target(context):
+    _pending(
+        'Then pacing should compare my progress to the clinician-directed '
+        'target rather than any other calculated value'
+    )
 
 
 @when('I log plain water')

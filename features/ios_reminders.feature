@@ -1,4 +1,4 @@
-@ios @reminders
+@v1 @release @ios @reminders @notification @physical_device
 Feature: iOS hydration reminders
   Hydrion must describe reminder delivery truthfully and preserve reminder definitions.
 

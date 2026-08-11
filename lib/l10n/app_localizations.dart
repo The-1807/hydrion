@@ -1848,6 +1848,84 @@ abstract class AppLocalizations {
   /// **'Update height'**
   String get updateHeight;
 
+  /// No description provided for @hydrationPacingScheduleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration pacing schedule'**
+  String get hydrationPacingScheduleTitle;
+
+  /// No description provided for @hydrationPacingScheduleHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Tell Hydrion when you\'re usually awake so it can gently compare your pace to your day. This never changes your daily goal.'**
+  String get hydrationPacingScheduleHelp;
+
+  /// No description provided for @wakeTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake time'**
+  String get wakeTimeLabel;
+
+  /// No description provided for @sleepTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep time'**
+  String get sleepTimeLabel;
+
+  /// No description provided for @addWakeTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Add wake time'**
+  String get addWakeTime;
+
+  /// No description provided for @updateWakeTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Update wake time'**
+  String get updateWakeTime;
+
+  /// No description provided for @addSleepTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Add sleep time'**
+  String get addSleepTime;
+
+  /// No description provided for @updateSleepTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Update sleep time'**
+  String get updateSleepTime;
+
+  /// No description provided for @pacingAheadOfPace.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re ahead of pace for this point in your day.'**
+  String get pacingAheadOfPace;
+
+  /// No description provided for @pacingOnPace.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on track for this point in your day.'**
+  String get pacingOnPace;
+
+  /// No description provided for @pacingSlightlyBehindPace.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re a little behind your usual pace.'**
+  String get pacingSlightlyBehindPace;
+
+  /// No description provided for @pacingMeaningfullyBehindPace.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re behind pace, with time left in your day.'**
+  String get pacingMeaningfullyBehindPace;
+
+  /// No description provided for @pacingGoalReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached today\'s goal.'**
+  String get pacingGoalReached;
+
   /// No description provided for @updatedToday.
   ///
   /// In en, this message translates to:

@@ -6,12 +6,14 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../domain/challenge_visual_registry.dart';
+import '../domain/hydration_pacing.dart';
 import '../domain/locale_registry.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/challenge_localizations.dart';
 import '../l10n/notification_localizations.dart';
 import '../repositories/app_locale_repository.dart';
 import '../repositories/reminder_repository.dart';
+import 'hydration_pacing_engine.dart';
 import 'policy_service.dart';
 
 enum HydrionNotificationPermissionState {
@@ -495,8 +497,28 @@ class NotificationService {
     required double hydrationPercent,
     required bool isActiveTime,
     int remindersSentToday = 0,
+    int? wakeMinuteOfDay,
+    int? sleepMinuteOfDay,
+    DateTime? now,
   }) async {
     if (!_policy.shouldSendReminder(remindersSentToday)) {
+      return null;
+    }
+
+    // Hydrion-suggested reminders (this policy-driven path, as opposed to
+    // reminders a user creates explicitly via the Reminders screen) should
+    // not be offered while the user is expected to be asleep, when a wake/
+    // sleep schedule is configured. Absent a schedule this is a no-op, so
+    // existing callers/tests that never pass wake/sleep values are
+    // unaffected.
+    final pacing = const HydrationPacingEngine().calculate(
+      wakeMinuteOfDay: wakeMinuteOfDay,
+      sleepMinuteOfDay: sleepMinuteOfDay,
+      todayLoggedMl: 0,
+      dailyGoalMl: 1,
+      now: now ?? _now(),
+    );
+    if (pacing.state == HydrationPacingState.outsideWakingWindow) {
       return null;
     }
 
