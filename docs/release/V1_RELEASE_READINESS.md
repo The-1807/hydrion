@@ -174,12 +174,13 @@ signed release APK only when protected repository secrets provide:
 - `HYDRION_ANDROID_KEYSTORE_PASSWORD`
 - `HYDRION_ANDROID_KEY_ALIAS`
 - `HYDRION_ANDROID_KEY_PASSWORD`
+- `HYDRION_ANDROID_SIGNING_CERT_SHA256`
 
-Without those credentials, CI generates an ephemeral CI-signed release APK so a
-clean install can be tested on a phone. That artifact is intentionally named
-`hydrion-android-ci-ephemeral-signed-release-apk-*`. It is not suitable for
-store upload or reliable update testing because each run can use a different
-signing key. Configure the protected secrets above for production signing.
+Normal CI never reads production signing secrets. It generates an ephemeral
+CI-signed release APK so a clean install can be tested on a phone. That artifact
+is named with `ci-ephemeral` and is not suitable for store upload or reliable
+upgrade testing because each run uses a different signing key. The manually
+dispatched release workflow is the only Android production-signing path.
 
 CI must not upload an unsigned release APK as an installable phone artifact.
 
@@ -196,9 +197,9 @@ configuration. Workflows:
 Important artifact names:
 
 - `hydrion-android-debug-smoke.apk`
-- `hydrion-android-ci-ephemeral-signed-release.apk`
-- `hydrion-android-production-signed-release.apk`
-- `hydrion-android-production-signed-release.aab`
+- `hydrion-<version>-<build>-android-ci-ephemeral-release.apk`
+- `hydrion-<version>-<build>-android-production-release.apk`
+- `hydrion-<version>-<build>-android-production-release.aab`
 - `hydrion-ios-simulator-compatibility.app.zip`
 - `hydrion-ios-production-signed-release.ipa`
 

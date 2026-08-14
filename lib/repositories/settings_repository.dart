@@ -770,6 +770,7 @@ class UserSettingsRepository extends ChangeNotifier {
         value > UserSettings.maxDailyGoalMl) {
       return false;
     }
+    final previous = _settings;
     _settings = _settings.copyWith(
       dailyGoalMl: value,
       baselineDailyGoalMl:
@@ -779,7 +780,13 @@ class UserSettingsRepository extends ChangeNotifier {
       lastManualGoalEditAt: markManualEdit ? now ?? DateTime.now() : null,
       clearLastManualGoalEditAt: !markManualEdit,
     );
-    await _persist();
+    try {
+      await _persist();
+    } catch (_) {
+      _settings = previous;
+      notifyListeners();
+      return false;
+    }
     notifyListeners();
     return true;
   }

@@ -655,7 +655,7 @@ void main() {
   test('release metadata keeps v1 identity and pending release date explicit',
       () {
     expect(HydrionReleaseMetadata.productName, 'Hydrion');
-    expect(HydrionReleaseMetadata.flutterVersionName, '1.1.0+3');
+    expect(HydrionReleaseMetadata.flutterVersionName, '1.2.0+4');
     expect(HydrionReleaseMetadata.releaseDateLabel, 'Release date pending');
     expect(HydrionReleaseMetadata.communityName, 'HydrionSharks');
     expect(HydrionReleaseMetadata.contactEmail, 'hydrionsharks@gmail.com');

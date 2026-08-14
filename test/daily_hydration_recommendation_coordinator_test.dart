@@ -97,6 +97,58 @@ void main() {
     expect(value.settings.settings.dailyGoalMl, 2200);
   });
 
+  test('manual override preserves the personalized calculated baseline',
+      () async {
+    final value = await fixture();
+
+    final saved = await value.settings.setDailyGoalMl(
+      2450,
+      updateBaseline: false,
+      now: DateTime(2026, 7, 28, 11),
+    );
+
+    expect(saved, isTrue);
+    expect(value.settings.settings.dailyGoalMl, 2450);
+    expect(value.settings.settings.baselineDailyGoalMl, 2200);
+    expect(value.settings.settings.baselineSource,
+        HydrionBaselineSource.personalized);
+    expect(value.settings.settings.lastManualGoalEditAt,
+        DateTime(2026, 7, 28, 11));
+  });
+
+  test('failed selected-goal persistence restores the prior state', () async {
+    final store = _FailingWriteStore();
+    final value = await fixture(store);
+    store.failWrites = true;
+
+    final saved = await value.settings.setDailyGoalMl(
+      2450,
+      updateBaseline: false,
+    );
+
+    expect(saved, isFalse);
+    expect(value.settings.settings.dailyGoalMl, 2200);
+    expect(value.settings.settings.baselineDailyGoalMl, 2200);
+  });
+
+  test('resetting tailored association preserves goal profile and metrics',
+      () async {
+    final value = await fixture();
+    await value.settings.setDailyGoalMl(2450, updateBaseline: false);
+
+    await value.settings.setPersonalizedGoalOptions(
+      baselineSource: HydrionBaselineSource.manual,
+      weatherModifierEnabled: false,
+    );
+
+    expect(
+        value.settings.settings.baselineSource, HydrionBaselineSource.manual);
+    expect(value.settings.settings.dailyGoalMl, 2450);
+    expect(value.settings.settings.nickname, 'River');
+    expect(value.metrics.metrics.weightKg, 70);
+    expect(value.metrics.metrics.heightCm, 170);
+  });
+
   test('context, weather, permission, and local date change fingerprints',
       () async {
     final value = await fixture();
@@ -222,5 +274,15 @@ class _CountingStore implements HydrionLocalStore {
   Future<void> writeString(String key, String value) async {
     values[key] = value;
     writeCounts[key] = (writeCounts[key] ?? 0) + 1;
+  }
+}
+
+class _FailingWriteStore extends MemoryHydrionStore {
+  bool failWrites = false;
+
+  @override
+  Future<void> writeString(String key, String value) async {
+    if (failWrites) throw StateError('simulated persistence failure');
+    await super.writeString(key, value);
   }
 }

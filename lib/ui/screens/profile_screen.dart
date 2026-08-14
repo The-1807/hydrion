@@ -16,6 +16,7 @@ import '../../repositories/settings_repository.dart';
 import '../../services/profile_photo_service.dart';
 import '../theme/hydrion_design.dart';
 import '../components/hydrion_viewport.dart';
+import '../components/personalized_goal_override_confirmation.dart';
 
 class ProfileScreen extends StatelessWidget {
   final bool embedded;
@@ -424,12 +425,26 @@ class _ProfileEditorState extends State<_ProfileEditor> {
     final goal = int.tryParse(_goalController.text.trim());
     final container = int.tryParse(_containerController.text.trim());
 
+    if (goal == null || container == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.editProfileInvalid)),
+      );
+      return;
+    }
+    if (!await confirmPersonalizedGoalOverride(
+      context,
+      settings: repository.settings,
+      proposedGoalMl: goal,
+    )) {
+      return;
+    }
+    if (!mounted) return;
     final profileSaved = await repository.setProfile(
       nickname: _nicknameController.text,
       age: repository.settings.age,
       sex: repository.settings.sex,
     );
-    if (!profileSaved || goal == null || container == null) {
+    if (!profileSaved) {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.editProfileInvalid)),
       );
@@ -441,7 +456,10 @@ class _ProfileEditorState extends State<_ProfileEditor> {
       baselineSource: _baselineSource,
       weatherModifierEnabled: repository.settings.weatherModifierEnabled,
     );
-    await repository.setDailyGoalMl(goal);
+    await repository.setDailyGoalMl(
+      goal,
+      updateBaseline: _baselineSource != HydrionBaselineSource.personalized,
+    );
     await repository.setContainerSizeMl(container);
     if (!mounted) {
       return;

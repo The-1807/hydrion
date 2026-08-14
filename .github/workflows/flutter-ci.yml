@@ -787,82 +787,35 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Prepare Android signing config
+      - name: Prepare ephemeral Android CI signing config
         id: android-signing
-        env:
-          HYDRION_ANDROID_KEYSTORE_BASE64: ${{ secrets.HYDRION_ANDROID_KEYSTORE_BASE64 }}
-          HYDRION_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.HYDRION_ANDROID_KEYSTORE_PASSWORD }}
-          HYDRION_ANDROID_KEY_ALIAS: ${{ secrets.HYDRION_ANDROID_KEY_ALIAS }}
-          HYDRION_ANDROID_KEY_PASSWORD: ${{ secrets.HYDRION_ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-
-          signing_values=0
-          for value in \
-            "${HYDRION_ANDROID_KEYSTORE_BASE64}" \
-            "${HYDRION_ANDROID_KEYSTORE_PASSWORD}" \
-            "${HYDRION_ANDROID_KEY_ALIAS}" \
-            "${HYDRION_ANDROID_KEY_PASSWORD}"; do
-            if [[ -n "${value}" ]]; then
-              signing_values=$((signing_values + 1))
-            fi
-          done
-
-          if [[ "${signing_values}" -eq 0 ]]; then
-            echo "::notice::Android release signing secrets are not configured. CI will create an ephemeral CI-signed release APK for clean device installs. Configure HYDRION_ANDROID_* secrets for stable production signing and store upload."
-
-            ci_store_password="$(openssl rand -base64 24)"
-            ci_key_password="$(openssl rand -base64 24)"
-            ci_key_alias="hydrion-ci-release"
-
-            echo "::add-mask::${ci_store_password}"
-            echo "::add-mask::${ci_key_password}"
-            echo "::add-mask::${ci_key_alias}"
-
-            keytool -genkeypair \
-              -v \
-              -keystore android/hydrion-ci-release.jks \
-              -storepass "${ci_store_password}" \
-              -keypass "${ci_key_password}" \
-              -alias "${ci_key_alias}" \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 30 \
-              -dname "CN=Hydrion CI,O=The 1807,C=US"
-
-            cat > android/key.properties <<EOF
+          echo "::notice::Normal CI creates an ephemeral release-signed APK for clean-install smoke testing only. Production signing exists only in hydrion-release.yml."
+          ci_store_password="$(openssl rand -base64 24)"
+          ci_key_password="$(openssl rand -base64 24)"
+          ci_key_alias="hydrion-ci-release"
+          echo "::add-mask::${ci_store_password}"
+          echo "::add-mask::${ci_key_password}"
+          echo "::add-mask::${ci_key_alias}"
+          keytool -genkeypair \
+            -v \
+            -keystore android/hydrion-ci-release.jks \
+            -storepass "${ci_store_password}" \
+            -keypass "${ci_key_password}" \
+            -alias "${ci_key_alias}" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 30 \
+            -dname "CN=Hydrion CI,O=The 1807,C=US"
+          cat > android/key.properties <<EOF
           storeFile=../hydrion-ci-release.jks
           storePassword=${ci_store_password}
           keyAlias=${ci_key_alias}
           keyPassword=${ci_key_password}
           EOF
-
-            echo "release_signing_available=true" >> "${GITHUB_OUTPUT}"
-            echo "release_signing_kind=ci-ephemeral" >> "${GITHUB_OUTPUT}"
-            exit 0
-          fi
-
-          if [[ "${signing_values}" -ne 4 ]]; then
-            echo "Android release signing secrets are partially configured. Set all four HYDRION_ANDROID_* secrets or remove them all."
-            exit 1
-          fi
-
-          echo "::add-mask::${HYDRION_ANDROID_KEYSTORE_PASSWORD}"
-          echo "::add-mask::${HYDRION_ANDROID_KEY_ALIAS}"
-          echo "::add-mask::${HYDRION_ANDROID_KEY_PASSWORD}"
-
-          printf '%s' "${HYDRION_ANDROID_KEYSTORE_BASE64}" |
-            base64 --decode > android/hydrion-release.jks
-
-          cat > android/key.properties <<EOF
-          storeFile=../hydrion-release.jks
-          storePassword=${HYDRION_ANDROID_KEYSTORE_PASSWORD}
-          keyAlias=${HYDRION_ANDROID_KEY_ALIAS}
-          keyPassword=${HYDRION_ANDROID_KEY_PASSWORD}
-          EOF
-
           echo "release_signing_available=true" >> "${GITHUB_OUTPUT}"
-          echo "release_signing_kind=production" >> "${GITHUB_OUTPUT}"
+          echo "release_signing_kind=ci-ephemeral" >> "${GITHUB_OUTPUT}"
 
       - name: Build debug APK for device smoke installs
         run: flutter build apk --debug
@@ -879,24 +832,22 @@ jobs:
         if: steps.android-signing.outputs.release_signing_available == 'true'
         run: flutter build apk --release
 
-      - name: Verify signed release APK
+      - name: Validate and stage signed release APK
         if: steps.android-signing.outputs.release_signing_available == 'true'
+        env:
+          SIGNING_KIND: ${{ steps.android-signing.outputs.release_signing_kind }}
         run: |
           set -euo pipefail
-
           apk_path="build/app/outputs/flutter-apk/app-release.apk"
-          test -f "${apk_path}" || {
-            echo "Signed release APK was not produced at ${apk_path}."
-            exit 1
-          }
-
-          apksigner="$(find "${ANDROID_HOME}/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
-          if [[ -z "${apksigner}" ]]; then
-            echo "apksigner was not found in ${ANDROID_HOME}/build-tools."
-            exit 1
-          fi
-
-          "${apksigner}" verify --verbose --print-certs "${apk_path}"
+          output_dir="${CI_ARTIFACTS_DIRECTORY}/android"
+          mkdir -p "${output_dir}"
+          args=(
+            --apk "${apk_path}"
+            --output-dir "${output_dir}"
+            --signing-kind "${SIGNING_KIND}"
+            --git-sha "${GITHUB_SHA}"
+          )
+          dart run tool/validate_android_release.dart "${args[@]}"
 
       - name: Generate Android size audit
         if: steps.android-signing.outputs.release_signing_available == 'true'
@@ -904,14 +855,14 @@ jobs:
           mkdir -p "${CI_ARTIFACTS_DIRECTORY}"
           dart run tool/android_size_audit.dart \
             --output "${CI_ARTIFACTS_DIRECTORY}/hydrion-android-size-audit.txt" \
-            build/app/outputs/flutter-apk
+            "${CI_ARTIFACTS_DIRECTORY}/android"
 
       - name: Upload signed release Android APK
         if: steps.android-signing.outputs.release_signing_available == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: hydrion-android-${{ steps.android-signing.outputs.release_signing_kind }}-signed-release-apk-${{ github.run_number }}-${{ github.run_attempt }}
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: ${{ env.CI_ARTIFACTS_DIRECTORY }}/android/
           if-no-files-found: error
           retention-days: 14
 
@@ -1086,10 +1037,44 @@ jobs:
             exit 1
           }
 
+      - name: Package traceable unsigned iOS release build
+        run: |
+          set -euo pipefail
+          app="build/ios/iphoneos/Runner.app"
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Info.plist")"
+          build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist")"
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")"
+          output_dir="${CI_ARTIFACTS_DIRECTORY}/ios"
+          artifact="hydrion-${version}-${build}-ios-unsigned-release.app.zip"
+          mkdir -p "$output_dir"
+          ditto -c -k --keepParent "$app" "$output_dir/$artifact"
+          digest="$(shasum -a 256 "$output_dir/$artifact" | awk '{print $1}')"
+          printf '%s  %s\n' "$digest" "$artifact" > "$output_dir/$artifact.sha256"
+          python3 - "$output_dir/$artifact.manifest.json" "$version" "$build" "$artifact" "$digest" "$bundle_id" "$GITHUB_SHA" <<'PY'
+          import json, sys
+          _, output, version, build, artifact, digest, bundle_id, git_sha = sys.argv
+          manifest = {
+              "product": "Hydrion",
+              "version": version,
+              "build": int(build),
+              "git_sha": git_sha,
+              "platform": "ios",
+              "artifact": artifact,
+              "sha256": digest,
+              "bundle_id": bundle_id,
+              "widget_bundle_id": f"{bundle_id}.widgets",
+              "signing_kind": "unsigned",
+              "build_type": "release",
+          }
+          with open(output, "w", encoding="utf-8") as stream:
+              json.dump(manifest, stream, indent=2)
+              stream.write("\n")
+          PY
+
       - name: Upload unsigned iOS release build
         uses: actions/upload-artifact@v4
         with:
           name: hydrion-ios-unsigned-release-${{ github.run_number }}-${{ github.run_attempt }}
-          path: build/ios/iphoneos/Runner.app
+          path: ${{ env.CI_ARTIFACTS_DIRECTORY }}/ios/
           if-no-files-found: error
           retention-days: 14

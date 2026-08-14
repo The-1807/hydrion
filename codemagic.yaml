@@ -23,7 +23,12 @@ workflows:
           source: true
     scripts:
       - name: Prepare artifact directory
-        script: mkdir -p "$CI_ARTIFACTS_DIRECTORY"
+        script: |
+          mkdir -p "$CI_ARTIFACTS_DIRECTORY"
+          version="$(sed -n 's/^version: \([^+]*\)+\(.*\)$/\1/p' pubspec.yaml)"
+          build="$(sed -n 's/^version: \([^+]*\)+\(.*\)$/\2/p' pubspec.yaml)"
+          echo "HYDRION_VERSION=$version" >> "$CM_ENV"
+          echo "HYDRION_BUILD=$build" >> "$CM_ENV"
       - name: Record environment
         script: |
           {
@@ -71,7 +76,13 @@ workflows:
           source: true
     scripts:
       - name: Prepare artifact directory
-        script: mkdir -p "$CI_ARTIFACTS_DIRECTORY"
+        script: |
+          mkdir -p "$CI_ARTIFACTS_DIRECTORY"
+          version="$(sed -n 's/^version: \([^+]*\)+\(.*\)$/\1/p' pubspec.yaml)"
+          build="$(sed -n 's/^version: \([^+]*\)+\(.*\)$/\2/p' pubspec.yaml)"
+          test -n "$version" && test -n "$build"
+          echo "HYDRION_VERSION=$version" >> "$CM_ENV"
+          echo "HYDRION_BUILD=$build" >> "$CM_ENV"
       - name: Get dependencies
         script: flutter pub get 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-pub-get.log"
       - name: Build debug smoke APK
@@ -79,103 +90,35 @@ workflows:
           flutter build apk --debug 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-debug-apk.log"
           cp build/app/outputs/flutter-apk/app-debug.apk \
             "$CI_ARTIFACTS_DIRECTORY/hydrion-android-debug-smoke.apk"
-      - name: Prepare Android signing
+      - name: Prepare ephemeral Android CI signing
         script: |
           set -euo pipefail
-
-          signing_values=0
-          for value in \
-            "${HYDRION_ANDROID_KEYSTORE_BASE64:-}" \
-            "${HYDRION_ANDROID_KEYSTORE_PASSWORD:-}" \
-            "${HYDRION_ANDROID_KEY_ALIAS:-}" \
-            "${HYDRION_ANDROID_KEY_PASSWORD:-}"; do
-            if [ -n "$value" ]; then
-              signing_values=$((signing_values + 1))
-            fi
-          done
-
-          if [ "$signing_values" -eq 0 ]; then
-            echo "HYDRION_ANDROID_SIGNING_KIND=ci-ephemeral" >> "$CM_ENV"
-            echo "No production Android signing secrets were provided."
-            echo "Creating an ephemeral CI keystore for clean install testing only."
-
-            ci_store_password="$(openssl rand -base64 24)"
-            ci_key_password="$(openssl rand -base64 24)"
-            ci_key_alias="hydrion-ci-release"
-
-            keytool -genkeypair \
-              -v \
-              -keystore android/hydrion-ci-release.jks \
-              -storepass "$ci_store_password" \
-              -keypass "$ci_key_password" \
-              -alias "$ci_key_alias" \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 30 \
-              -dname "CN=Hydrion CI,O=The 1807,C=US"
-
-            cat > android/key.properties <<EOF
+          echo "HYDRION_ANDROID_SIGNING_KIND=ci-ephemeral" >> "$CM_ENV"
+          echo "Creating an ephemeral CI keystore for clean-install smoke testing only."
+          ci_store_password="$(openssl rand -base64 24)"
+          ci_key_password="$(openssl rand -base64 24)"
+          ci_key_alias="hydrion-ci-release"
+          keytool -genkeypair \
+            -v \
+            -keystore android/hydrion-ci-release.jks \
+            -storepass "$ci_store_password" \
+            -keypass "$ci_key_password" \
+            -alias "$ci_key_alias" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 30 \
+            -dname "CN=Hydrion CI,O=The 1807,C=US"
+          cat > android/key.properties <<EOF
           storeFile=../hydrion-ci-release.jks
           storePassword=$ci_store_password
           keyAlias=$ci_key_alias
           keyPassword=$ci_key_password
           EOF
-            exit 0
-          fi
-
-          if [ "$signing_values" -ne 4 ]; then
-            echo "Android signing secrets are partially configured."
-            echo "Set all four HYDRION_ANDROID_* variables or remove all of them."
-            exit 1
-          fi
-
-          echo "HYDRION_ANDROID_SIGNING_KIND=production" >> "$CM_ENV"
-          printf '%s' "$HYDRION_ANDROID_KEYSTORE_BASE64" | base64 --decode > android/hydrion-release.jks
-          cat > android/key.properties <<EOF
-          storeFile=../hydrion-release.jks
-          storePassword=$HYDRION_ANDROID_KEYSTORE_PASSWORD
-          keyAlias=$HYDRION_ANDROID_KEY_ALIAS
-          keyPassword=$HYDRION_ANDROID_KEY_PASSWORD
-          EOF
       - name: Build signed release APK
         script: |
           flutter build apk --release 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-release-apk.log"
-          if [ "$HYDRION_ANDROID_SIGNING_KIND" = "production" ]; then
-            cp build/app/outputs/flutter-apk/app-release.apk \
-              "$CI_ARTIFACTS_DIRECTORY/hydrion-android-production-signed-release.apk"
-          else
-            cp build/app/outputs/flutter-apk/app-release.apk \
-              "$CI_ARTIFACTS_DIRECTORY/hydrion-android-ci-ephemeral-signed-release.apk"
-          fi
-      - name: Build per-ABI release APKs
-        script: |
-          flutter build apk --release --split-per-abi \
-            2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-release-split-per-abi.log"
-          for apk in build/app/outputs/flutter-apk/app-*-release.apk; do
-            [ -f "$apk" ] || continue
-            abi="$(basename "$apk" | sed 's/app-\(.*\)-release.apk/\1/')"
-            cp "$apk" \
-              "$CI_ARTIFACTS_DIRECTORY/hydrion-android-${HYDRION_ANDROID_SIGNING_KIND}-signed-release-${abi}.apk"
-          done
-      - name: Build production signed App Bundle
-        script: |
-          if [ "$HYDRION_ANDROID_SIGNING_KIND" != "production" ]; then
-            echo "Skipping App Bundle because production signing secrets are absent."
-            exit 0
-          fi
-          flutter build appbundle --release 2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/flutter-build-release-aab.log"
-          cp build/app/outputs/bundle/release/app-release.aab \
-            "$CI_ARTIFACTS_DIRECTORY/hydrion-android-production-signed-release.aab"
-      - name: Verify APK signatures
-        script: |
-          set -euo pipefail
-          apk_path="$CI_ARTIFACTS_DIRECTORY/hydrion-android-${HYDRION_ANDROID_SIGNING_KIND}-signed-release.apk"
-          if [ "$HYDRION_ANDROID_SIGNING_KIND" = "ci-ephemeral" ]; then
-            apk_path="$CI_ARTIFACTS_DIRECTORY/hydrion-android-ci-ephemeral-signed-release.apk"
-          fi
-          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
-          "$apksigner" verify --verbose --print-certs "$apk_path" \
-            2>&1 | tee "$CI_ARTIFACTS_DIRECTORY/apksigner-release.log"
+          args="--apk build/app/outputs/flutter-apk/app-release.apk --output-dir $CI_ARTIFACTS_DIRECTORY --signing-kind $HYDRION_ANDROID_SIGNING_KIND --git-sha $CM_COMMIT"
+          dart run tool/validate_android_release.dart $args
       - name: Generate Android size audit
         script: |
           dart run tool/android_size_audit.dart \
@@ -237,6 +180,7 @@ workflows:
         bundle_identifier: com.the1807.hydrion
       vars:
         BUNDLE_ID: com.the1807.hydrion
+        WIDGET_BUNDLE_ID: com.the1807.hydrion.widgets
         CI_ARTIFACTS_DIRECTORY: codemagic-artifacts/ios-signed
     scripts:
       - name: Confirm signed iOS gate
@@ -257,6 +201,7 @@ workflows:
         script: |
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "$WIDGET_BUNDLE_ID" --type IOS_APP_STORE --create
           keychain add-certificates
           xcode-project use-profiles
       - name: Build signed IPA
@@ -268,6 +213,27 @@ workflows:
             exit 1
           fi
           cp "$ipa_path" "$CI_ARTIFACTS_DIRECTORY/hydrion-ios-production-signed-release.ipa"
+      - name: Verify signed Runner and WidgetKit extension
+        script: |
+          set -euo pipefail
+          verify_dir="$CI_ARTIFACTS_DIRECTORY/ipa-verification"
+          mkdir -p "$verify_dir"
+          unzip -q "$CI_ARTIFACTS_DIRECTORY/hydrion-ios-production-signed-release.ipa" -d "$verify_dir"
+          app_path="$(find "$verify_dir/Payload" -maxdepth 1 -name '*.app' -type d | head -n 1)"
+          widget_path="$app_path/PlugIns/HydrionWidgets.appex"
+          test -d "$app_path" && test -d "$widget_path"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          codesign --verify --strict --verbose=2 "$widget_path"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_path/Info.plist")" = "$BUNDLE_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$widget_path/Info.plist")" = "$WIDGET_BUNDLE_ID"
+          runner_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app_path/Info.plist")"
+          widget_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$widget_path/Info.plist")"
+          runner_build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Info.plist")"
+          widget_build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$widget_path/Info.plist")"
+          test "$runner_version" = "$widget_version"
+          test "$runner_build" = "$widget_build"
+          shasum -a 256 "$CI_ARTIFACTS_DIRECTORY/hydrion-ios-production-signed-release.ipa" > \
+            "$CI_ARTIFACTS_DIRECTORY/hydrion-ios-production-signed-release.ipa.sha256"
       - name: Prepare TestFlight note
         script: |
           cat > "$CI_ARTIFACTS_DIRECTORY/TESTFLIGHT_PREP.txt" <<'EOF'

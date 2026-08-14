@@ -46,6 +46,22 @@ Feature: Hydrion v1 implemented product journeys
     When the user switches among supported production languages
     Then visible and restored language should match the selected locale
 
+  @personalization @goal @regression
+  Scenario: A tailored recommendation changes the selected daily goal only after acceptance
+    When the user explicitly accepts a reviewed tailored recommendation
+    Then the canonical selected daily goal should update and Body Metrics should close
+
+  @personalization @goal @regression
+  Scenario: A manual edit does not erase the calculated personalized baseline
+    Given the user has accepted a tailored hydration goal
+    When the user confirms a manual daily-goal override
+    Then the manual goal should become selected and the calculated baseline should remain unchanged
+
+  @permissions @regression
+  Scenario: Granted optional access is reflected from operating-system state
+    When an optional permission becomes granted and the app resumes
+    Then its permission action should display Enabled
+
   @startup @persistence
   Scenario: Startup restores the correct first-run or returning-user route
     When Hydrion starts with fresh partial or completed onboarding state

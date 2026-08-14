@@ -105,4 +105,46 @@ void main() {
     expect(RegExp('android.appwidget.provider').allMatches(manifest),
         hasLength(3));
   });
+
+  test('widget deep links allow only Hydrion routes and bounded parameters',
+      () {
+    expect(
+      AndroidWidgetService.isAllowedWidgetUri(Uri.parse('hydrion://home')),
+      isTrue,
+    );
+    expect(
+      AndroidWidgetService.isAllowedWidgetUri(
+        Uri.parse('hydrion://quick-log?amount=300&tap=123-widget-300'),
+      ),
+      isTrue,
+    );
+    expect(
+      AndroidWidgetService.isAllowedWidgetUri(
+        Uri.parse('hydrion://session?id=pomodoro-sip&action=pause'),
+      ),
+      isTrue,
+    );
+    expect(
+      AndroidWidgetService.isAllowedWidgetUri(Uri.parse('https://home')),
+      isFalse,
+    );
+    expect(
+      AndroidWidgetService.isAllowedWidgetUri(
+        Uri.parse('hydrion://quick-log?amount=50000'),
+      ),
+      isFalse,
+    );
+    expect(
+      AndroidWidgetService.isAllowedWidgetUri(
+        Uri.parse('hydrion://session?id=pomodoro-sip&action=delete'),
+      ),
+      isFalse,
+    );
+    expect(
+      AndroidWidgetService.isAllowedWidgetUri(
+        Uri.parse('hydrion://challenge?id=../../private'),
+      ),
+      isFalse,
+    );
+  });
 }

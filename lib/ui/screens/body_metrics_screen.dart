@@ -446,19 +446,24 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await context.read<DailyHydrationRecommendationCoordinator>().apply(
-          recommendation,
-          now: DateTime.now(),
-        );
+    final applied =
+        await context.read<DailyHydrationRecommendationCoordinator>().apply(
+              recommendation,
+              now: DateTime.now(),
+            );
     if (!mounted) return;
+    if (!applied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.dailyGoalInvalid)),
+      );
+      return;
+    }
     setState(() => _recommendation = null);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
           content: Text(AppLocalizations.of(context).suggestedGoalApplied)),
     );
-    if (widget.returnToOnboardingAfterApply) {
-      Navigator.of(context).pop(true);
-    }
+    Navigator.of(context).pop(true);
   }
 
   Future<void> _keepCurrentGoal() async {

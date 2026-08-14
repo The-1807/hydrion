@@ -282,6 +282,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get dailyGoalUpdated => 'Objetivo diario actualizado';
 
   @override
+  String get manualGoalOverrideQuestion =>
+      '¿Seguro que quieres cambiar tu objetivo personalizado?';
+
+  @override
+  String get manualGoalOverrideConfirmation =>
+      'Esto guarda un objetivo diario manual. Tu referencia personalizada calculada seguirá disponible y no cambiará.';
+
+  @override
   String get dailyGoalInvalid => 'Ingresa un objetivo entre 500 y 5000 ml';
 
   @override

@@ -6,6 +6,25 @@ import 'package:hydrion/services/secret_redaction.dart';
 import '../tool/secret_scan.dart' as secret_scan;
 
 void main() {
+  test('classifies committed mobile signing material by filename', () {
+    expect(
+      secret_scan.sensitiveSigningMaterialCategory('android/release.jks'),
+      'Android keystore material',
+    );
+    expect(
+      secret_scan.sensitiveSigningMaterialCategory('android/key.properties'),
+      'Android signing properties',
+    );
+    expect(
+      secret_scan.sensitiveSigningMaterialCategory('ios/AuthKey_TEST.p8'),
+      'Apple signing key material',
+    );
+    expect(
+      secret_scan.sensitiveSigningMaterialCategory('ios/App.mobileprovision'),
+      'Apple provisioning profile',
+    );
+  });
+
   test('.gitignore excludes local secret files without hiding templates', () {
     final gitignore = File('.gitignore').readAsStringSync();
 

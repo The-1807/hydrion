@@ -168,7 +168,7 @@ class AndroidWidgetService {
   void _scheduleSync() => unawaited(sync());
 
   Future<void> _handleClick(Uri? uri) async {
-    if (uri == null) return;
+    if (uri == null || !isAllowedWidgetUri(uri)) return;
     if (uri.host == 'home') {
       final opener = _challengeOpener;
       if (opener == null) {
@@ -229,6 +229,52 @@ class AndroidWidgetService {
       opener(id.isEmpty ? null : id);
     }
   }
+
+  @visibleForTesting
+  static bool isAllowedWidgetUri(Uri uri) {
+    if (uri.scheme != 'hydrion' ||
+        uri.hasFragment ||
+        uri.hasPort ||
+        uri.userInfo.isNotEmpty) {
+      return false;
+    }
+    final keys = uri.queryParameters.keys.toSet();
+    switch (uri.host) {
+      case 'home':
+      case 'log':
+      case 'challenges':
+        return keys.isEmpty && uri.path.isEmpty;
+      case quickLogHost:
+        final amount = int.tryParse(uri.queryParameters['amount'] ?? '');
+        final tap = uri.queryParameters['tap'];
+        return uri.path.isEmpty &&
+            keys.difference(const {'amount', 'tap'}).isEmpty &&
+            amount != null &&
+            amount >= 50 &&
+            amount <= 2000 &&
+            (tap == null ||
+                (tap.length <= 128 &&
+                    RegExp(r'^[A-Za-z0-9-]+$').hasMatch(tap)));
+      case 'challenge':
+        return uri.path.isEmpty &&
+            keys.difference(const {'id'}).isEmpty &&
+            _isSafeChallengeId(uri.queryParameters['id']);
+      case 'session':
+        final action = uri.queryParameters['action'] ?? 'open';
+        return uri.path.isEmpty &&
+            keys.difference(const {'id', 'action'}).isEmpty &&
+            _isSafeChallengeId(uri.queryParameters['id']) &&
+            const {'open', 'pause', 'stop'}.contains(action);
+      default:
+        return false;
+    }
+  }
+
+  static bool _isSafeChallengeId(String? value) =>
+      value != null &&
+      value.isNotEmpty &&
+      value.length <= 96 &&
+      RegExp(r'^[a-z0-9-]+$').hasMatch(value);
 
   Future<void> sync() async {
     if ((!Platform.isAndroid && !Platform.isIOS) || _syncing) return;

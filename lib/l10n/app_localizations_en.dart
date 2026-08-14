@@ -277,6 +277,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailyGoalUpdated => 'Daily goal updated';
 
   @override
+  String get manualGoalOverrideQuestion =>
+      'Are you sure you want to change your tailored goal?';
+
+  @override
+  String get manualGoalOverrideConfirmation =>
+      'This saves a manual daily goal. Your calculated personalized baseline stays available and will not be changed.';
+
+  @override
   String get dailyGoalInvalid => 'Enter a goal between 500 and 5000 ml';
 
   @override

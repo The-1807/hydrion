@@ -14,6 +14,14 @@ final List<SecretPattern> secretPatterns = <SecretPattern>[
     expression: RegExp(r'sk-ant-[A-Za-z0-9_-]{32,}'),
   ),
   SecretPattern(
+    category: 'GitHub token',
+    expression: RegExp(r'gh[pousr]_[A-Za-z0-9]{30,}'),
+  ),
+  SecretPattern(
+    category: 'AWS access key ID',
+    expression: RegExp(r'\b(?:AKIA|ASIA)[A-Z0-9]{16}\b'),
+  ),
+  SecretPattern(
     category: 'Private key block',
     expression: RegExp(
       r'-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----',
@@ -119,6 +127,18 @@ List<SecretFinding> scanRepository({Directory? root}) {
       continue;
     }
 
+    final signingMaterial = sensitiveSigningMaterialCategory(normalizedPath);
+    if (signingMaterial != null) {
+      findings.add(
+        SecretFinding(
+          path: normalizedPath,
+          line: 1,
+          category: signingMaterial,
+        ),
+      );
+      continue;
+    }
+
     final content = _readText(file);
     if (content == null) {
       continue;
@@ -129,6 +149,21 @@ List<SecretFinding> scanRepository({Directory? root}) {
 
   findings.sort(_compareFindings);
   return findings;
+}
+
+String? sensitiveSigningMaterialCategory(String path) {
+  final fileName = _normalizePath(path).split('/').last.toLowerCase();
+  if (fileName == 'key.properties') return 'Android signing properties';
+  if (fileName.endsWith('.jks') || fileName.endsWith('.keystore')) {
+    return 'Android keystore material';
+  }
+  if (fileName.endsWith('.p12') || fileName.endsWith('.p8')) {
+    return 'Apple signing key material';
+  }
+  if (fileName.endsWith('.mobileprovision')) {
+    return 'Apple provisioning profile';
+  }
+  return null;
 }
 
 List<SecretFinding> scanText(String content, {String path = '<memory>'}) {

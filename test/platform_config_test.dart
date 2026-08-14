@@ -3,8 +3,24 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/domain/challenge_visual_registry.dart';
+import 'package:yaml/yaml.dart';
 
 void main() {
+  test('CI and dependency automation YAML files parse successfully', () {
+    for (final path in <String>[
+      '.github/workflows/flutter-ci.yml',
+      '.github/workflows/hydrion-release.yml',
+      '.github/dependabot.yml',
+      'codemagic.yaml',
+    ]) {
+      expect(
+        loadYaml(File(path).readAsStringSync()),
+        isA<YamlMap>(),
+        reason: path,
+      );
+    }
+  });
+
   test('Android identity and signing workflow are install-ready', () {
     final gradle = File('android/app/build.gradle.kts').readAsStringSync();
     final activity = File(
@@ -20,7 +36,8 @@ void main() {
     expect(workflow, contains('FLUTTER_VERSION: "3.44.8"'));
     expect(workflow, contains('dart format --set-exit-if-changed .'));
     expect(workflow, contains('release_signing_kind=ci-ephemeral'));
-    expect(workflow, contains('apksigner'));
+    expect(workflow, contains('tool/validate_android_release.dart'));
+    expect(workflow, isNot(contains('secrets.HYDRION_ANDROID_')));
   });
 
   test('iOS bundle id, permissions, Podfile, and privacy manifest are present',
@@ -156,13 +173,14 @@ void main() {
     );
     expect(
       codemagic,
-      contains('hydrion-android-ci-ephemeral-signed-release.apk'),
+      contains(r'--signing-kind $HYDRION_ANDROID_SIGNING_KIND'),
     );
     expect(
       codemagic,
-      contains('hydrion-android-production-signed-release.aab'),
+      isNot(contains('hydrion-android-production-signed-release.aab')),
     );
-    expect(codemagic, contains('--split-per-abi'));
+    expect(codemagic, isNot(contains('--split-per-abi')));
+    expect(codemagic, contains('tool/validate_android_release.dart'));
     expect(codemagic, contains('hydrion-android-size-audit.txt'));
     expect(
       codemagic,

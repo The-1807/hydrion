@@ -463,6 +463,18 @@ ProductionStringFinding _classify(
         allowlistReason:
             'Parser normalization pattern is not display text and cannot reach presentation.');
   }
+  if (path.endsWith('android_widget_service.dart') &&
+      (value == r'^[a-z0-9-]+$' || value == r'^[A-Za-z0-9-]+$')) {
+    return _finding(
+        path,
+        source,
+        token,
+        ProductionStringClassification.formattingValue,
+        true,
+        'Regular-expression pattern.',
+        allowlistReason:
+            'Deep-link validation pattern is not display text and cannot reach presentation.');
+  }
   if (path.endsWith('secret_redaction.dart') &&
       source.indexOf('static String? fingerprint') <= token.start &&
       token.start < source.indexOf('static int _fnv1a32')) {

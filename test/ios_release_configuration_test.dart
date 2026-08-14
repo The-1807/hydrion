@@ -19,6 +19,7 @@ void main() {
   final widgetsEntitlementsFile = File(
     '$repoRoot/ios/HydrionWidgets/HydrionWidgets.entitlements',
   );
+  final widgetInfoFile = File('$repoRoot/ios/HydrionWidgets/Info.plist');
   final pubspecFile = File('$repoRoot/pubspec.yaml');
 
   late String pbxproj;
@@ -101,6 +102,23 @@ void main() {
 
     test('HydrionWidgets target is declared as a widget extension', () {
       expect(pbxproj, contains('productName = HydrionWidgets;'));
+    });
+
+    test('HydrionWidgets source plist declares installable extension metadata',
+        () {
+      final plist = widgetInfoFile.readAsStringSync();
+      for (final key in <String>[
+        'CFBundleIdentifier',
+        'CFBundleExecutable',
+        'CFBundlePackageType',
+        'CFBundleShortVersionString',
+        'CFBundleVersion',
+        'NSExtensionPointIdentifier',
+      ]) {
+        expect(plist, contains('<key>$key</key>'));
+      }
+      expect(plist, contains('<string>XPC!</string>'));
+      expect(plist, contains('<string>com.apple.widgetkit-extension</string>'));
     });
 
     test(

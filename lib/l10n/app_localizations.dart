@@ -542,6 +542,18 @@ abstract class AppLocalizations {
   /// **'Daily goal updated'**
   String get dailyGoalUpdated;
 
+  /// No description provided for @manualGoalOverrideQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to change your tailored goal?'**
+  String get manualGoalOverrideQuestion;
+
+  /// No description provided for @manualGoalOverrideConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'This saves a manual daily goal. Your calculated personalized baseline stays available and will not be changed.'**
+  String get manualGoalOverrideConfirmation;
+
   /// No description provided for @dailyGoalInvalid.
   ///
   /// In en, this message translates to:

@@ -786,7 +786,7 @@
 				CODE_SIGN_ENTITLEMENTS = HydrionWidgets/HydrionWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				"CURRENT_PROJECT_VERSION[sdk=*]" = 3;
+				"CURRENT_PROJECT_VERSION[sdk=*]" = 4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = HydrionWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
@@ -796,7 +796,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				"MARKETING_VERSION[sdk=*]" = 1.1.0;
+				"MARKETING_VERSION[sdk=*]" = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -815,7 +815,7 @@
 				CODE_SIGN_ENTITLEMENTS = HydrionWidgets/HydrionWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				"CURRENT_PROJECT_VERSION[sdk=*]" = 3;
+				"CURRENT_PROJECT_VERSION[sdk=*]" = 4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = HydrionWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
@@ -825,7 +825,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				"MARKETING_VERSION[sdk=*]" = 1.1.0;
+				"MARKETING_VERSION[sdk=*]" = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -844,12 +844,12 @@
 				CODE_SIGN_ENTITLEMENTS = HydrionWidgets/HydrionWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				"CURRENT_PROJECT_VERSION[sdk=*]" = 3;
+				"CURRENT_PROJECT_VERSION[sdk=*]" = 4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = HydrionWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				"MARKETING_VERSION[sdk=*]" = 1.1.0;
+				"MARKETING_VERSION[sdk=*]" = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

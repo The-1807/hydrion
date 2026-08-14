@@ -280,6 +280,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get dailyGoalUpdated => 'Objectif quotidien mis à jour';
 
   @override
+  String get manualGoalOverrideQuestion =>
+      'Voulez-vous vraiment modifier votre objectif personnalisé ?';
+
+  @override
+  String get manualGoalOverrideConfirmation =>
+      'Cela enregistre un objectif quotidien manuel. Votre référence personnalisée calculée reste disponible et ne sera pas modifiée.';
+
+  @override
   String get dailyGoalInvalid => 'Saisissez un objectif entre 500 et 5000 ml';
 
   @override

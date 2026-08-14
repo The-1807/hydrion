@@ -58,7 +58,11 @@ void main() {
             ).copyWith(textScaler: TextScaler.linear(textScale)),
             child: child!,
           ),
-          home: const BodyMetricsScreen(),
+          initialRoute: '/metrics',
+          routes: {
+            '/': (_) => const Scaffold(body: Text('Previous screen')),
+            '/metrics': (_) => const BodyMetricsScreen(),
+          },
         ),
       ),
     );
@@ -302,6 +306,29 @@ void main() {
     await tester.tap(find.byKey(const Key('review-suggestion')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('apply-suggested-goal')), findsOneWidget);
+  });
+
+  testWidgets('applying a suggestion updates the goal and exits Body Metrics',
+      (tester) async {
+    await pumpScreen(
+      tester,
+      locale: const Locale('en'),
+      sex: HydrionSex.female,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('review-suggestion')),
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const Key('review-suggestion')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('apply-suggested-goal')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('suggested-goal-yes')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Previous screen'), findsOneWidget);
+    expect(find.byType(BodyMetricsScreen), findsNothing);
   });
 
   testWidgets(

@@ -148,6 +148,12 @@ void main() {
         find.byKey(const Key('permission-exact-alarm-card')), findsOneWidget);
     expect(find.text('Check'), findsNothing);
     expect(find.textContaining('standalone'), findsNothing);
+    expect(find.text('Hydration reminders: Enabled'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('refresh-permission-status')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.byKey(const Key('refresh-permission-status')), findsOneWidget);
   });
 

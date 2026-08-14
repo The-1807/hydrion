@@ -193,6 +193,11 @@ class _PermissionCardState extends State<_PermissionCard> {
               spacing: 8,
               runSpacing: 8,
               children: [
+                if (capability.isGranted)
+                  FilledButton(
+                    onPressed: null,
+                    child: Text(l10n.capabilityEnabled(title: widget.title)),
+                  ),
                 if (capability.canRequestDirectly ||
                     (widget.title == l10n.preciseReminderTiming &&
                         capability.state == HydrionPermissionState.denied))

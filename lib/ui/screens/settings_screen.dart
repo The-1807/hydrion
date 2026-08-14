@@ -10,6 +10,7 @@ import '../../repositories/settings_repository.dart';
 import '../../services/local_profile_reset_service.dart';
 import '../components/hydrion_logo.dart';
 import '../components/hydrion_viewport.dart';
+import '../components/personalized_goal_override_confirmation.dart';
 import '../components/intake_ring.dart';
 import 'mission_screen.dart';
 import 'language_selection_screen.dart';
@@ -427,10 +428,21 @@ class _DailyGoalCardState extends State<_DailyGoalCard> {
                 key: const Key('settings-daily-goal-save'),
                 onPressed: () async {
                   final value = int.tryParse(controller.text.trim());
+                  final repository = context.read<UserSettingsRepository>();
+                  if (value != null &&
+                      !await confirmPersonalizedGoalOverride(
+                        context,
+                        settings: repository.settings,
+                        proposedGoalMl: value,
+                      )) {
+                    return;
+                  }
                   final saved = value != null &&
-                      await context
-                          .read<UserSettingsRepository>()
-                          .setDailyGoalMl(value);
+                      await repository.setDailyGoalMl(
+                        value,
+                        updateBaseline: repository.settings.baselineSource !=
+                            HydrionBaselineSource.personalized,
+                      );
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(

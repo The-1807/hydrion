@@ -134,6 +134,8 @@
     }
   },
   "dailyGoalUpdated": "Daily goal updated",
+  "manualGoalOverrideQuestion": "Are you sure you want to change your tailored goal?",
+  "manualGoalOverrideConfirmation": "This saves a manual daily goal. Your calculated personalized baseline stays available and will not be changed.",
   "dailyGoalInvalid": "Enter a goal between 500 and 5000 ml",
   "reusableContainerTitle": "Reusable container",
   "reusableContainerDescription": "Estimate avoided disposable plastic only when logged drinks usually come from a reusable bottle or cup.",

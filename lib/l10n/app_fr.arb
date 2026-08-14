@@ -73,6 +73,8 @@
   "dailyGoalFieldLabel": "Objectif en ml",
   "dailyGoalRange": "{minMl}-{maxMl} ml",
   "dailyGoalUpdated": "Objectif quotidien mis à jour",
+  "manualGoalOverrideQuestion": "Voulez-vous vraiment modifier votre objectif personnalisé ?",
+  "manualGoalOverrideConfirmation": "Cela enregistre un objectif quotidien manuel. Votre référence personnalisée calculée reste disponible et ne sera pas modifiée.",
   "dailyGoalInvalid": "Saisissez un objectif entre 500 et 5000 ml",
   "reusableContainerTitle": "Contenant réutilisable",
   "reusableContainerDescription": "Estimez le plastique jetable évité seulement quand les boissons enregistrées viennent habituellement d'une bouteille ou tasse réutilisable.",
