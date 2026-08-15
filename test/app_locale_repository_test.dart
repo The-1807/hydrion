@@ -37,6 +37,37 @@ void main() {
     expect(reloaded.locale, const Locale('fr'));
   });
 
+  test('every production locale transition persists authoritatively', () async {
+    const transitions = <(Locale, Locale)>[
+      (Locale('en'), Locale('fr')),
+      (Locale('fr'), Locale('es')),
+      (Locale('es'), Locale('en')),
+      (Locale('en'), Locale('es')),
+      (Locale('es'), Locale('fr')),
+      (Locale('fr'), Locale('en')),
+    ];
+
+    for (final (from, to) in transitions) {
+      final store = MemoryHydrionStore();
+      final repository = await AppLocaleRepository.load(
+        store,
+        legacyLocale: from,
+        establishedUser: true,
+      );
+      expect(repository.locale, from);
+
+      await repository.selectLocale(to);
+      final reloaded = await AppLocaleRepository.load(
+        store,
+        deviceLocale: const Locale('de'),
+      );
+
+      expect(reloaded.mode, HydrionLocaleMode.explicit);
+      expect(reloaded.locale, to);
+      expect(reloaded.selectionCompleted, isTrue);
+    }
+  });
+
   test('existing user migrates once from legacy profile locale', () async {
     final repository = await AppLocaleRepository.load(
       MemoryHydrionStore(),

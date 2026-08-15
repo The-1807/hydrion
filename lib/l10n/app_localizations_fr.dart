@@ -2963,6 +2963,18 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get personalizedBaselineActive => 'Référence personnalisée';
+
+  @override
+  String get manualBaselineActive => 'Référence standard ou manuelle';
+
+  @override
+  String get weatherAssistanceSelected => 'Assistance météo sélectionnée';
+
+  @override
+  String get weatherAssistanceOff => 'Assistance météo désactivée';
+
+  @override
   String get amountInOz => 'Quantité en oz';
 
   @override

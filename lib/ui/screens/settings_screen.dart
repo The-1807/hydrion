@@ -399,6 +399,20 @@ class _DailyGoalCard extends StatefulWidget {
 class _DailyGoalCardState extends State<_DailyGoalCard> {
   late final TextEditingController controller =
       TextEditingController(text: widget.settings.dailyGoalMl.toString());
+
+  @override
+  void didUpdateWidget(covariant _DailyGoalCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previousGoal = oldWidget.settings.dailyGoalMl.toString();
+    final nextGoal = widget.settings.dailyGoalMl.toString();
+    if (previousGoal != nextGoal && controller.text == previousGoal) {
+      controller.value = TextEditingValue(
+        text: nextGoal,
+        selection: TextSelection.collapsed(offset: nextGoal.length),
+      );
+    }
+  }
+
   @override
   void dispose() {
     controller.dispose();

@@ -44,6 +44,30 @@ void main() {
     expect(find.textContaining('adapter'), findsNothing);
   });
 
+  testWidgets('Settings goal field follows canonical external goal changes',
+      (tester) async {
+    final services = await pumpApp(tester);
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    final field = find.byKey(const Key('settings-daily-goal-field'));
+    expect(tester.widget<TextField>(field).controller!.text, '2200');
+
+    await services.settingsRepository.setDailyGoalMl(2600);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<TextField>(field).controller!.text, '2600');
+
+    await tester.enterText(field, '2700');
+    await services.settingsRepository.setDailyGoalMl(2800);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextField>(field).controller!.text,
+      '2700',
+      reason: 'An in-progress manual edit must not be overwritten.',
+    );
+  });
+
   testWidgets('product QA: Home hydration logging remains accessible',
       (tester) async {
     final services = await pumpApp(tester);

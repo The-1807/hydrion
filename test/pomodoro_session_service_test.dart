@@ -226,7 +226,6 @@ void main() {
       expect(first, isNotNull);
       expect(first!.volumeMl, 150);
       expect(first.timestamp, eventTime);
-      expect(first.timestamp.hour, isNot(0));
       expect(duplicate, isNull);
       expect(fixture.hydration.logs, hasLength(1));
       expect(

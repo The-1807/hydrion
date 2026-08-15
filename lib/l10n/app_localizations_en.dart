@@ -2921,6 +2921,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get personalizedBaselineActive => 'Personalized baseline';
+
+  @override
+  String get manualBaselineActive => 'Standard or manual baseline';
+
+  @override
+  String get weatherAssistanceSelected => 'Weather assistance selected';
+
+  @override
+  String get weatherAssistanceOff => 'Weather assistance off';
+
+  @override
   String get amountInOz => 'Amount in oz';
 
   @override

@@ -109,15 +109,24 @@ void main() {
       scrollView: find.byKey(const Key('challenge-scroll-pomodoro-sip')),
     );
 
+    final beforeConfirmation = DateTime.now();
     await tester.tap(sip);
     await tester.tap(sip);
     await tester.pumpAndSettle();
+    final afterPersistence = DateTime.now();
 
     expect(services.hydrationRepository.logs, hasLength(1));
-    expect(services.hydrationRepository.logs.single.volumeMl, 150);
+    final persisted = services.hydrationRepository.logs.single;
+    expect(persisted.volumeMl, 150);
     expect(
-      services.hydrationRepository.logs.single.timestamp.hour,
-      isNot(0),
+      persisted.timestamp.isBefore(beforeConfirmation),
+      isFalse,
+      reason: 'The persisted event must not predate explicit confirmation.',
+    );
+    expect(
+      persisted.timestamp.isAfter(afterPersistence),
+      isFalse,
+      reason: 'The persisted event must come from this confirmation window.',
     );
   });
 

@@ -2954,6 +2954,19 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get personalizedBaselineActive => 'Referencia personalizada';
+
+  @override
+  String get manualBaselineActive => 'Referencia estándar o manual';
+
+  @override
+  String get weatherAssistanceSelected =>
+      'Asistencia meteorológica seleccionada';
+
+  @override
+  String get weatherAssistanceOff => 'Asistencia meteorológica desactivada';
+
+  @override
   String get amountInOz => 'Cantidad en oz';
 
   @override

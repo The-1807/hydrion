@@ -5048,6 +5048,30 @@ abstract class AppLocalizations {
   /// **'{amount} mL/day'**
   String dailyGoalPerDay({required int amount});
 
+  /// No description provided for @personalizedBaselineActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Personalized baseline'**
+  String get personalizedBaselineActive;
+
+  /// No description provided for @manualBaselineActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard or manual baseline'**
+  String get manualBaselineActive;
+
+  /// No description provided for @weatherAssistanceSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather assistance selected'**
+  String get weatherAssistanceSelected;
+
+  /// No description provided for @weatherAssistanceOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather assistance off'**
+  String get weatherAssistanceOff;
+
   /// No description provided for @amountInOz.
   ///
   /// In en, this message translates to:

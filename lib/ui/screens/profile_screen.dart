@@ -211,17 +211,19 @@ class _ProfileHero extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _MiniPill('${settings.dailyGoalMl} ml/day'),
+                    _MiniPill(
+                      l10n.dailyGoalPerDay(amount: settings.dailyGoalMl),
+                    ),
                     _MiniPill(
                       settings.baselineSource ==
                               HydrionBaselineSource.personalized
-                          ? 'Personalized baseline'
-                          : 'Standard or manual baseline',
+                          ? l10n.personalizedBaselineActive
+                          : l10n.manualBaselineActive,
                     ),
                     _MiniPill(
                       settings.weatherModifierEnabled
-                          ? 'Weather assistance selected'
-                          : 'Weather assistance off',
+                          ? l10n.weatherAssistanceSelected
+                          : l10n.weatherAssistanceOff,
                     ),
                   ],
                 ),

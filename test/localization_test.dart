@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/l10n/app_localizations.dart';
 import 'package:hydrion/main.dart';
+import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/utils/i18n_resolver.dart';
 
@@ -38,6 +39,36 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(strings.settingsTitle), findsOneWidget);
       expect(find.byKey(const Key('settings-locale-picker')), findsOneWidget);
+    });
+  }
+
+  for (final locale in const [Locale('es'), Locale('fr')]) {
+    testWidgets('${locale.languageCode} localizes Profile goal status pills',
+        (tester) async {
+      final services = HydrionServices.memory();
+      await services.i18n.setLocale(locale);
+      await services.settingsRepository.setDailyGoalMl(2450);
+      await services.settingsRepository.setPersonalizedGoalOptions(
+        baselineSource: HydrionBaselineSource.personalized,
+        weatherModifierEnabled: true,
+      );
+      final strings = lookupAppLocalizations(locale);
+
+      await tester.pumpWidget(HydrionApp(services: services));
+      await tester.pumpAndSettle();
+      tester
+          .widget<NavigationBar>(
+            find.byKey(const Key('hydrion-bottom-nav')),
+          )
+          .onDestinationSelected
+          ?.call(3);
+      await tester.pumpAndSettle();
+
+      expect(find.text(strings.dailyGoalPerDay(amount: 2450)), findsOneWidget);
+      expect(find.text(strings.personalizedBaselineActive), findsOneWidget);
+      expect(find.text(strings.weatherAssistanceSelected), findsOneWidget);
+      expect(find.text('Personalized baseline'), findsNothing);
+      expect(find.text('Weather assistance selected'), findsNothing);
     });
   }
 

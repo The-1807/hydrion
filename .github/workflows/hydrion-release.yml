@@ -62,6 +62,25 @@ jobs:
           keyPassword=$KEY_PASSWORD
           EOF
 
+
+
+          # Exercise private-key decryption now instead of discovering a bad
+          # key password after the full test suite and Android compilation.
+          probe_dir="$(mktemp -d)"
+          trap 'rm -rf "$probe_dir"' EXIT
+          printf 'Hydrion signing probe\n' > "$probe_dir/probe.txt"
+          jar --create --file "$probe_dir/probe.jar" \
+            -C "$probe_dir" probe.txt
+          if ! jarsigner \
+            -keystore android/hydrion-release.jks \
+            -storepass "$STORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            "$probe_dir/probe.jar" "$KEY_ALIAS" >/dev/null; then
+            echo "::error::Android signing credentials could not decrypt the configured private key. Verify HYDRION_ANDROID_KEY_ALIAS and HYDRION_ANDROID_KEY_PASSWORD. For PKCS12 keystores, the key password normally matches HYDRION_ANDROID_KEYSTORE_PASSWORD."
+            exit 1
+          fi
+          jarsigner -verify -strict "$probe_dir/probe.jar" >/dev/null
+
       - name: Validate source
         run: |
           flutter pub get
