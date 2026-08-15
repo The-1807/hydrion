@@ -793,10 +793,15 @@ jobs:
           set -euo pipefail
           echo "::notice::Normal CI creates an ephemeral release-signed APK for clean-install smoke testing only. Production signing exists only in hydrion-release.yml."
           ci_store_password="$(openssl rand -base64 24)"
-          ci_key_password="$(openssl rand -base64 24)"
+          # keytool defaults to PKCS12 on JDK 9+, and PKCS12 keystores use a
+          # single password for both the store and every key entry. A
+          # different -keypass is silently ignored at creation time, but
+          # Gradle later fails to decrypt the private key with it
+          # ("Given final block not properly padded"), so reuse the store
+          # password here instead of generating a second one.
+          ci_key_password="${ci_store_password}"
           ci_key_alias="hydrion-ci-release"
           echo "::add-mask::${ci_store_password}"
-          echo "::add-mask::${ci_key_password}"
           echo "::add-mask::${ci_key_alias}"
           keytool -genkeypair \
             -v \
