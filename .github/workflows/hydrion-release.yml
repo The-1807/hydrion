@@ -79,7 +79,7 @@ jobs:
             echo "::error::Android signing credentials could not decrypt the configured private key. Verify HYDRION_ANDROID_KEY_ALIAS and HYDRION_ANDROID_KEY_PASSWORD. For PKCS12 keystores, the key password normally matches HYDRION_ANDROID_KEYSTORE_PASSWORD."
             exit 1
           fi
-          jarsigner -verify -strict "$probe_dir/probe.jar" >/dev/null
+          bash tool/verify_jar_signature.sh "$probe_dir/probe.jar"
 
       - name: Validate source
         run: |
@@ -116,7 +116,7 @@ jobs:
 
           aab="release-artifacts/hydrion-${version}-${build}-android-production-release.aab"
           cp build/app/outputs/bundle/release/app-release.aab "$aab"
-          jarsigner -verify -strict "$aab"
+          bash tool/verify_jar_signature.sh "$aab"
 
           web="release-artifacts/hydrion-${version}-${build}-web-release.tar.gz"
           tar -C build/web -czf "$web" .
