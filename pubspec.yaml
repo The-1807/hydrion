@@ -25,6 +25,8 @@ dependencies:
   flutter_markdown_plus: ^1.0.9
   lottie: ^3.3.3
   home_widget: ^0.9.3
+  pdf: ^3.11.3
+  share_plus: ^10.1.4
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -41,6 +43,7 @@ flutter:
     - assets/buffer/Shark.json
     - assets/pfp_mascot/hydrion_mascot.jpg
     - assets/pfp_mascot/pfp/
+    - assets/fonts/
     - config/
     - docs/Hydrion_Legal_Pack_Markdown/
   generate: true

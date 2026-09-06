@@ -3025,4 +3025,102 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get widgetOpenChallenge => 'Ouvrir le défi';
+
+  @override
+  String get reportsTitle => 'Rapports d\'hydratation';
+
+  @override
+  String get reportsDescription =>
+      'Creez un resume prive a partir des donnees stockees sur cet appareil.';
+
+  @override
+  String get reportsOpen => 'Creer un rapport';
+
+  @override
+  String get reportsFrequency => 'Frequence du rapport';
+
+  @override
+  String get reportsWeekly => 'Hebdomadaire';
+
+  @override
+  String get reportsMonthly => 'Mensuel';
+
+  @override
+  String get reportsQuarterly => 'Trimestriel';
+
+  @override
+  String get reportsYearly => 'Annuel';
+
+  @override
+  String get reportsChoosePeriod => 'Choisir la periode';
+
+  @override
+  String get reportsPeriod => 'Periode';
+
+  @override
+  String get reportsGenerated => 'Genere';
+
+  @override
+  String get reportsPreview => 'Apercu du rapport';
+
+  @override
+  String get reportsTotal => 'Volume total enregistre';
+
+  @override
+  String get reportsAverage => 'Moyenne des jours suivis';
+
+  @override
+  String get reportsTrackedDays => 'Jours suivis';
+
+  @override
+  String get reportsTargetsMet => 'Objectifs connus atteints';
+
+  @override
+  String get reportsTarget => 'Objectif applicable';
+
+  @override
+  String get reportsDate => 'Date';
+
+  @override
+  String get reportsIntake => 'Volume enregistre';
+
+  @override
+  String get reportsMissing => 'Aucune donnee';
+
+  @override
+  String get reportsUnavailable => 'Indisponible';
+
+  @override
+  String get reportsPartial => 'Cette periode est encore en cours.';
+
+  @override
+  String get reportsEmpty =>
+      'Aucune consommation d\'eau n\'a ete enregistree pour cette periode.';
+
+  @override
+  String get reportsLegacyTarget =>
+      'Les anciens objectifs non stockes sont indiques comme indisponibles.';
+
+  @override
+  String get reportsDisclaimer =>
+      'Ce rapport resume les donnees d\'hydratation saisies par l\'utilisateur. Il ne constitue ni un diagnostic medical ni un substitut a un avis medical professionnel.';
+
+  @override
+  String get reportsExport => 'Exporter le PDF';
+
+  @override
+  String get reportsExported => 'Rapport partage.';
+
+  @override
+  String get reportsDismissed => 'Le partage a ete annule.';
+
+  @override
+  String get reportsExportFailed =>
+      'Le rapport n\'a pas pu etre exporte. Reessayez.';
+
+  @override
+  String get reportsPage => 'Page';
+
+  @override
+  String get reportsVisualization => 'Hydratation enregistree';
 }
