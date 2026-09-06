@@ -2981,4 +2981,102 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get widgetOpenChallenge => 'Open challenge';
+
+  @override
+  String get reportsTitle => 'Hydration reports';
+
+  @override
+  String get reportsDescription =>
+      'Create a private summary from hydration records stored on this device.';
+
+  @override
+  String get reportsOpen => 'Create report';
+
+  @override
+  String get reportsFrequency => 'Reporting frequency';
+
+  @override
+  String get reportsWeekly => 'Weekly';
+
+  @override
+  String get reportsMonthly => 'Monthly';
+
+  @override
+  String get reportsQuarterly => 'Quarterly';
+
+  @override
+  String get reportsYearly => 'Yearly';
+
+  @override
+  String get reportsChoosePeriod => 'Choose period';
+
+  @override
+  String get reportsPeriod => 'Period';
+
+  @override
+  String get reportsGenerated => 'Generated';
+
+  @override
+  String get reportsPreview => 'Report preview';
+
+  @override
+  String get reportsTotal => 'Total recorded intake';
+
+  @override
+  String get reportsAverage => 'Average on tracked days';
+
+  @override
+  String get reportsTrackedDays => 'Tracked days';
+
+  @override
+  String get reportsTargetsMet => 'Known targets met';
+
+  @override
+  String get reportsTarget => 'Applicable target';
+
+  @override
+  String get reportsDate => 'Date';
+
+  @override
+  String get reportsIntake => 'Recorded intake';
+
+  @override
+  String get reportsMissing => 'No record';
+
+  @override
+  String get reportsUnavailable => 'Unavailable';
+
+  @override
+  String get reportsPartial => 'This reporting period is still in progress.';
+
+  @override
+  String get reportsEmpty =>
+      'No hydration intake was recorded for this period.';
+
+  @override
+  String get reportsLegacyTarget =>
+      'Historical targets that were not stored are shown as unavailable.';
+
+  @override
+  String get reportsDisclaimer =>
+      'This report summarizes user-tracked hydration information. It is not a medical diagnosis or a substitute for professional medical advice.';
+
+  @override
+  String get reportsExport => 'Export PDF';
+
+  @override
+  String get reportsExported => 'Report shared successfully.';
+
+  @override
+  String get reportsDismissed => 'Sharing was cancelled.';
+
+  @override
+  String get reportsExportFailed =>
+      'The report could not be exported. Please try again.';
+
+  @override
+  String get reportsPage => 'Page';
+
+  @override
+  String get reportsVisualization => 'Recorded hydration';
 }

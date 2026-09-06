@@ -149,10 +149,7 @@ class HydrationLog {
     final timestamp = DateTime.tryParse((value['timestamp'] ?? '').toString());
     final source = (value['source'] ?? 'local').toString();
 
-    if (volume is! num ||
-        !volume.isFinite ||
-        timestamp == null ||
-        volume <= 0) {
+    if (volume is! num || !volume.isFinite || timestamp == null || volume < 0) {
       return null;
     }
 
@@ -218,7 +215,7 @@ class HydrationRepository extends ChangeNotifier {
     String? actionId,
     HydrationMetadata metadata = const HydrationMetadata(),
   }) async {
-    if (volumeMl <= 0) {
+    if (volumeMl < 0) {
       return null;
     }
 
@@ -272,7 +269,7 @@ class HydrationRepository extends ChangeNotifier {
     }
 
     final nextVolume = volumeMl ?? _logs[index].volumeMl;
-    if (nextVolume <= 0) {
+    if (nextVolume < 0) {
       return false;
     }
 
@@ -318,7 +315,7 @@ class HydrationRepository extends ChangeNotifier {
   }
 
   Future<bool> restoreLog(HydrationLog log) async {
-    if (_logs.any((existing) => existing.id == log.id) || log.volumeMl <= 0) {
+    if (_logs.any((existing) => existing.id == log.id) || log.volumeMl < 0) {
       return false;
     }
     _logs.add(log);

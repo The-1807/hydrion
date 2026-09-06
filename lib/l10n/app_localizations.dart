@@ -5161,6 +5161,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open challenge'**
   String get widgetOpenChallenge;
+
+  /// No description provided for @reportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration reports'**
+  String get reportsTitle;
+
+  /// No description provided for @reportsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a private summary from hydration records stored on this device.'**
+  String get reportsDescription;
+
+  /// No description provided for @reportsOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Create report'**
+  String get reportsOpen;
+
+  /// No description provided for @reportsFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Reporting frequency'**
+  String get reportsFrequency;
+
+  /// No description provided for @reportsWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get reportsWeekly;
+
+  /// No description provided for @reportsMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get reportsMonthly;
+
+  /// No description provided for @reportsQuarterly.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarterly'**
+  String get reportsQuarterly;
+
+  /// No description provided for @reportsYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly'**
+  String get reportsYearly;
+
+  /// No description provided for @reportsChoosePeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose period'**
+  String get reportsChoosePeriod;
+
+  /// No description provided for @reportsPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get reportsPeriod;
+
+  /// No description provided for @reportsGenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated'**
+  String get reportsGenerated;
+
+  /// No description provided for @reportsPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Report preview'**
+  String get reportsPreview;
+
+  /// No description provided for @reportsTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total recorded intake'**
+  String get reportsTotal;
+
+  /// No description provided for @reportsAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average on tracked days'**
+  String get reportsAverage;
+
+  /// No description provided for @reportsTrackedDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracked days'**
+  String get reportsTrackedDays;
+
+  /// No description provided for @reportsTargetsMet.
+  ///
+  /// In en, this message translates to:
+  /// **'Known targets met'**
+  String get reportsTargetsMet;
+
+  /// No description provided for @reportsTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Applicable target'**
+  String get reportsTarget;
+
+  /// No description provided for @reportsDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get reportsDate;
+
+  /// No description provided for @reportsIntake.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded intake'**
+  String get reportsIntake;
+
+  /// No description provided for @reportsMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'No record'**
+  String get reportsMissing;
+
+  /// No description provided for @reportsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get reportsUnavailable;
+
+  /// No description provided for @reportsPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'This reporting period is still in progress.'**
+  String get reportsPartial;
+
+  /// No description provided for @reportsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No hydration intake was recorded for this period.'**
+  String get reportsEmpty;
+
+  /// No description provided for @reportsLegacyTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Historical targets that were not stored are shown as unavailable.'**
+  String get reportsLegacyTarget;
+
+  /// No description provided for @reportsDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'This report summarizes user-tracked hydration information. It is not a medical diagnosis or a substitute for professional medical advice.'**
+  String get reportsDisclaimer;
+
+  /// No description provided for @reportsExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export PDF'**
+  String get reportsExport;
+
+  /// No description provided for @reportsExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Report shared successfully.'**
+  String get reportsExported;
+
+  /// No description provided for @reportsDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing was cancelled.'**
+  String get reportsDismissed;
+
+  /// No description provided for @reportsExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The report could not be exported. Please try again.'**
+  String get reportsExportFailed;
+
+  /// No description provided for @reportsPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Page'**
+  String get reportsPage;
+
+  /// No description provided for @reportsVisualization.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded hydration'**
+  String get reportsVisualization;
 }
 
 class _AppLocalizationsDelegate
