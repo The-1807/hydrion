@@ -21,7 +21,7 @@ dependencies:
   geolocator: ^14.0.2
   flutter_local_notifications: ^20.1.0
   timezone: ^0.10.1
-  image_picker: ^1.2.2
+  image_picker: ^1.2.3
   flutter_markdown_plus: ^1.0.9
   lottie: ^3.3.3
   home_widget: ^0.9.3
