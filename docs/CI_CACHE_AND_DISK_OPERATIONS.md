@@ -62,10 +62,11 @@ Flutter SDK, 2 GB per macOS Flutter SDK, and 58-59 MB per pub cache. The SDK
 caches are no longer written. Pub cache size should be checked after toolchain
 or dependency changes.
 
-The protected Android job temporarily requires 10 GiB free immediately before
-compilation. This is a conservative provisional gate, not a measured peak.
-Recalibrate it only after a successful hosted release records pre-build,
-post-build, and failure-path measurements in `ci_disk_diagnostics.sh` output.
+The protected Android job temporarily requires 10 GiB and 500,000 inodes free
+immediately before compilation. These are conservative provisional gates, not
+a measured peak. Recalibrate them only after a successful hosted release
+records pre-build, post-build, and final-state measurements in
+`ci_disk_diagnostics.sh` output.
 The diagnostic includes both `df -h` and `df -i`, so exhausted disk blocks can
 be distinguished from exhausted inodes.
 
@@ -83,12 +84,11 @@ uploaded as artifacts.
 
 ## Safe Cleanup
 
-At release-job start, the workflow removes hosted-runner .NET, GHC, Boost, and
-unused Docker data because Hydrion's Android/Web release uses Flutter, Android,
-and Java. It does not delete the Android SDK, active Java installation, Flutter
-installation, Gradle wrapper, or dependency metadata.
-
-Immediately before Android compilation, cleanup is restricted to these
+The workflow does not remove preinstalled runner toolchains without measured
+evidence that they are necessary to reclaim. It never deletes the Android SDK,
+active Java installation, Flutter installation, required NDK, Gradle wrapper,
+or dependency metadata. Immediately before Android compilation, cleanup is
+restricted to these
 regenerable workspace paths:
 
 - `build/test_cache`

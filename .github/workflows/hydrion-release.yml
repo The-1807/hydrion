@@ -60,11 +60,11 @@ jobs:
         run: bash tool/ci_disk_diagnostics.sh "after tests"
 
       - name: Record validation failure capacity
-        if: failure()
-        run: bash tool/ci_disk_diagnostics.sh "validation failure"
+        if: always()
+        run: bash tool/ci_disk_diagnostics.sh "validation job final state"
 
   release-candidate:
-    name: Validate and build protected artifacts
+    name: Build protected artifacts
     runs-on: ubuntu-latest
     needs: validate-source
     timeout-minutes: 60
@@ -75,22 +75,6 @@ jobs:
 
       - name: Record job-start capacity
         run: bash tool/ci_disk_diagnostics.sh "release job start"
-
-      - name: Reclaim runner space not used by Hydrion
-        run: |
-          set -euo pipefail
-          echo "Disk usage before cleanup:"
-          df -h /
-          # The release job uses Flutter, Android and Java only. These large
-          # hosted-runner toolchains are unrelated and can exhaust the small
-          # writable runner disk during native-library merging.
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
-          if command -v docker >/dev/null 2>&1; then
-            docker system prune --all --force
-          fi
-          sudo apt-get clean
-          echo "Disk usage after cleanup:"
-          df -h /
 
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
@@ -176,18 +160,29 @@ jobs:
             rm -rf -- "$target"
           done
           available_kb="$(df --output=avail / | tail -n 1 | tr -d ' ')"
+          available_inodes="$(df --output=iavail / | tail -n 1 | tr -d ' ')"
           # Temporary conservative gate until a successful hosted release run
           # records Hydrion's actual peak free-space requirement.
           minimum_kb=$((10 * 1024 * 1024))
+          minimum_inodes=500000
           bash tool/ci_disk_diagnostics.sh "immediately before Android release build"
           if (( available_kb < minimum_kb )); then
             echo "::error::Android release build requires at least 10 GiB free; only $((available_kb / 1024)) MiB is available."
             exit 1
           fi
+          if (( available_inodes < minimum_inodes )); then
+            echo "::error::Android release build temporarily requires at least 500000 free inodes; only ${available_inodes} are available."
+            exit 1
+          fi
 
-      - name: Build candidate artifacts
+      - name: Build Android release APK
+        run: flutter build apk --release
+
+      - name: Record post-Android-build capacity
+        run: bash tool/ci_disk_diagnostics.sh "after Android release APK build"
+
+      - name: Build remaining candidate artifacts
         run: |
-          flutter build apk --release
           flutter build appbundle --release
           flutter build web --release
 
@@ -265,5 +260,5 @@ jobs:
           retention-days: 30
 
       - name: Record release failure capacity
-        if: failure()
-        run: bash tool/ci_disk_diagnostics.sh "release failure"
+        if: always()
+        run: bash tool/ci_disk_diagnostics.sh "release job final state"
