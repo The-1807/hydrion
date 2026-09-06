@@ -15,14 +15,66 @@ env:
   JAVA_VERSION: "17"
 
 jobs:
+  validate-source:
+    name: Validate release source
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Record job-start capacity
+        run: bash tool/ci_disk_diagnostics.sh "validation job start"
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: false
+          pub-cache: true
+
+      - name: Record post-toolchain and cache capacity
+        run: bash tool/ci_disk_diagnostics.sh "after Flutter setup and pub-cache restore"
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Record post-dependency capacity
+        run: bash tool/ci_disk_diagnostics.sh "after dependency resolution"
+
+      - name: Validate source
+        run: |
+          dart run tool/validate_ci_workflows.dart
+          dart format --output=none --set-exit-if-changed .
+          flutter analyze
+          flutter test
+          dart run tool/secret_scan.dart
+
+      - name: Record post-test capacity
+        run: bash tool/ci_disk_diagnostics.sh "after tests"
+
+      - name: Record validation failure capacity
+        if: failure()
+        run: bash tool/ci_disk_diagnostics.sh "validation failure"
+
   release-candidate:
     name: Validate and build protected artifacts
     runs-on: ubuntu-latest
+    needs: validate-source
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+
+      - name: Record job-start capacity
+        run: bash tool/ci_disk_diagnostics.sh "release job start"
 
       - name: Reclaim runner space not used by Hydrion
         run: |
@@ -49,7 +101,11 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
-          cache: true
+          cache: false
+          pub-cache: true
+
+      - name: Record post-toolchain and cache capacity
+        run: bash tool/ci_disk_diagnostics.sh "after Flutter setup and pub-cache restore"
 
       - name: Require complete production signing configuration
         env:
@@ -97,21 +153,33 @@ jobs:
           fi
           bash tool/verify_jar_signature.sh "$probe_dir/probe.jar"
 
-      - name: Validate source
-        run: |
-          flutter pub get
-          dart format --output=none --set-exit-if-changed .
-          flutter analyze
-          flutter test
-          dart run tool/secret_scan.dart
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Record post-dependency capacity
+        run: bash tool/ci_disk_diagnostics.sh "after dependency resolution"
 
       - name: Reclaim validation output and require Android build capacity
         run: |
           set -euo pipefail
-          rm -rf build/test_cache build/unit_test_assets
+          workspace="$(realpath "$GITHUB_WORKSPACE")"
+          [[ "$workspace" == /home/runner/work/* ]] || {
+            echo "::error::Refusing cleanup outside the hosted-runner workspace."
+            exit 1
+          }
+          for relative in build/test_cache build/unit_test_assets coverage android/.gradle; do
+            target="$(realpath -m "$workspace/$relative")"
+            [[ "$target" == "$workspace/"* ]] || {
+              echo "::error::Unsafe cleanup path: $target"
+              exit 1
+            }
+            rm -rf -- "$target"
+          done
           available_kb="$(df --output=avail / | tail -n 1 | tr -d ' ')"
+          # Temporary conservative gate until a successful hosted release run
+          # records Hydrion's actual peak free-space requirement.
           minimum_kb=$((10 * 1024 * 1024))
-          df -h /
+          bash tool/ci_disk_diagnostics.sh "immediately before Android release build"
           if (( available_kb < minimum_kb )); then
             echo "::error::Android release build requires at least 10 GiB free; only $((available_kb / 1024)) MiB is available."
             exit 1
@@ -122,6 +190,9 @@ jobs:
           flutter build apk --release
           flutter build appbundle --release
           flutter build web --release
+
+      - name: Record post-build capacity
+        run: bash tool/ci_disk_diagnostics.sh "after candidate builds"
 
       - name: Validate and stage the exact distributable artifacts
         env:
@@ -192,3 +263,7 @@ jobs:
           path: release-artifacts/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Record release failure capacity
+        if: failure()
+        run: bash tool/ci_disk_diagnostics.sh "release failure"
