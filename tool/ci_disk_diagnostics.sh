@@ -33,6 +33,7 @@ else
 fi
 report_size "Workspace" "$GITHUB_WORKSPACE"
 report_size "Flutter build output" "$GITHUB_WORKSPACE/build"
+report_size "Android build output" "$GITHUB_WORKSPACE/build/app/outputs"
 report_size "Project Gradle state" "$GITHUB_WORKSPACE/android/.gradle"
 
 echo "Largest relevant workspace entries:"
