@@ -1,0 +1,108 @@
+mode=appbundle
+preparation_start_utc=2026-09-07T00:11:05Z
+build_start_utc=2026-09-07T00:11:46Z
+end_utc=2026-09-07T00:12:14Z
+duration_seconds=28
+exit_code=0
+
+Last Android/Gradle phase lines:
+[        ] > Task :package_info_plus:extractDeepLinksForAarRelease UP-TO-DATE
+[        ] > Task :package_info_plus:extractReleaseAnnotations UP-TO-DATE
+[        ] > Task :package_info_plus:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+[        ] > Task :package_info_plus:mergeReleaseConsumerProguardFiles UP-TO-DATE
+[        ] > Task :package_info_plus:mergeReleaseJavaResource UP-TO-DATE
+[  +88 ms] > Task :package_info_plus:syncReleaseLibJars UP-TO-DATE
+[        ] > Task :package_info_plus:bundleReleaseLocalLintAar UP-TO-DATE
+[        ] > Task :share_plus:stripReleaseDebugSymbols NO-SOURCE
+[        ] > Task :share_plus:copyReleaseJniLibsProjectAndLocalJars UP-TO-DATE
+[        ] > Task :share_plus:extractDeepLinksForAarRelease UP-TO-DATE
+[   +1 ms] > Task :share_plus:extractReleaseAnnotations UP-TO-DATE
+[        ] > Task :share_plus:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+[        ] > Task :share_plus:mergeReleaseConsumerProguardFiles UP-TO-DATE
+[        ] > Task :share_plus:mergeReleaseJavaResource UP-TO-DATE
+[        ] > Task :share_plus:syncReleaseLibJars UP-TO-DATE
+[        ] > Task :share_plus:bundleReleaseLocalLintAar UP-TO-DATE
+[        ] > Task :shared_preferences_android:stripReleaseDebugSymbols NO-SOURCE
+[        ] > Task :shared_preferences_android:copyReleaseJniLibsProjectAndLocalJars UP-TO-DATE
+[        ] > Task :shared_preferences_android:extractDeepLinksForAarRelease UP-TO-DATE
+[        ] > Task :shared_preferences_android:extractReleaseAnnotations UP-TO-DATE
+[        ] > Task :shared_preferences_android:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+[        ] > Task :shared_preferences_android:mergeReleaseConsumerProguardFiles UP-TO-DATE
+[        ] > Task :shared_preferences_android:mergeReleaseJavaResource UP-TO-DATE
+[        ] > Task :shared_preferences_android:syncReleaseLibJars UP-TO-DATE
+[        ] > Task :shared_preferences_android:bundleReleaseLocalLintAar UP-TO-DATE
+[        ] > Task :flutter_local_notifications:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] > Task :flutter_local_notifications:writeReleaseLintModelMetadata UP-TO-DATE
+[        ] > Task :flutter_plugin_android_lifecycle:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] > Task :flutter_plugin_android_lifecycle:writeReleaseLintModelMetadata UP-TO-DATE
+[        ] > Task :geolocator_android:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] > Task :geolocator_android:writeReleaseLintModelMetadata UP-TO-DATE
+[        ] > Task :home_widget:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] > Task :home_widget:writeReleaseLintModelMetadata UP-TO-DATE
+[  +79 ms] > Task :image_picker_android:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] > Task :image_picker_android:writeReleaseLintModelMetadata UP-TO-DATE
+[        ] > Task :jni:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] > Task :jni:writeReleaseLintModelMetadata UP-TO-DATE
+[ +104 ms] > Task :jni_flutter:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] > Task :jni_flutter:writeReleaseLintModelMetadata UP-TO-DATE
+[        ] > Task :package_info_plus:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] > Task :package_info_plus:writeReleaseLintModelMetadata UP-TO-DATE
+[        ] > Task :share_plus:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] > Task :share_plus:writeReleaseLintModelMetadata UP-TO-DATE
+[        ] > Task :shared_preferences_android:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] > Task :shared_preferences_android:writeReleaseLintModelMetadata UP-TO-DATE
+[        ] Resolve mutations for :app:lintVitalAnalyzeRelease (Thread[#196,included builds,5,main]) started.
+[        ] :app:lintVitalAnalyzeRelease (Thread[#196,included builds,5,main]) started.
+[        ] > Task :app:lintVitalAnalyzeRelease UP-TO-DATE
+[        ] Caching disabled for task ':app:lintVitalAnalyzeRelease' because:
+[        ] Skipping task ':app:lintVitalAnalyzeRelease' as it is up-to-date.
+[        ] > Task :flutter_local_notifications:generateReleaseLintVitalModel UP-TO-DATE
+[  +82 ms] > Task :flutter_plugin_android_lifecycle:generateReleaseLintVitalModel UP-TO-DATE
+[        ] > Task :geolocator_android:generateReleaseLintVitalModel UP-TO-DATE
+[        ] > Task :home_widget:generateReleaseLintVitalModel UP-TO-DATE
+[        ] > Task :image_picker_android:generateReleaseLintVitalModel UP-TO-DATE
+[        ] > Task :jni:generateReleaseLintVitalModel UP-TO-DATE
+[        ] > Task :jni_flutter:generateReleaseLintVitalModel UP-TO-DATE
+[        ] > Task :package_info_plus:generateReleaseLintVitalModel UP-TO-DATE
+[        ] > Task :share_plus:generateReleaseLintVitalModel UP-TO-DATE
+[        ] > Task :shared_preferences_android:generateReleaseLintVitalModel UP-TO-DATE
+[        ] Resolve mutations for :app:lintVitalReportRelease (Thread[#196,included builds,5,main]) started.
+[        ] :app:lintVitalReportRelease (Thread[#196,included builds,5,main]) started.
+[        ] > Task :app:lintVitalReportRelease UP-TO-DATE
+[        ] Caching disabled for task ':app:lintVitalReportRelease' because:
+[        ] Skipping task ':app:lintVitalReportRelease' as it is up-to-date.
+[        ] Resolve mutations for :app:lintVitalRelease (Thread[#197,Execution worker,5,main]) started.
+[        ] :app:lintVitalRelease (Thread[#197,Execution worker,5,main]) started.
+[        ] > Task :app:lintVitalRelease
+[        ] Caching disabled for task ':app:lintVitalRelease' because:
+[        ] Task ':app:lintVitalRelease' is not up-to-date because:
+[        ] Resolve mutations for :app:parseReleaseIntegrityConfig (Thread[#197,Execution worker,5,main]) started.
+[        ] :app:parseReleaseIntegrityConfig (Thread[#197,Execution worker,5,main]) started.
+[        ] > Task :app:parseReleaseIntegrityConfig UP-TO-DATE
+[        ] Caching disabled for task ':app:parseReleaseIntegrityConfig' because:
+[        ] Skipping task ':app:parseReleaseIntegrityConfig' as it is up-to-date.
+[        ] Resolve mutations for :app:packageReleaseBundle (Thread[#197,Execution worker,5,main]) started.
+[        ] :app:packageReleaseBundle (Thread[#197,Execution worker,5,main]) started.
+[        ] > Task :app:packageReleaseBundle UP-TO-DATE
+[        ] Caching disabled for task ':app:packageReleaseBundle' because:
+[        ] Skipping task ':app:packageReleaseBundle' as it is up-to-date.
+[        ] Resolve mutations for :app:signReleaseBundle (Thread[#197,Execution worker,5,main]) started.
+[        ] :app:signReleaseBundle (Thread[#197,Execution worker,5,main]) started.
+[        ] > Task :app:signReleaseBundle UP-TO-DATE
+[        ] Caching disabled for task ':app:signReleaseBundle' because:
+[        ] Skipping task ':app:signReleaseBundle' as it is up-to-date.
+[        ] Resolve mutations for :app:produceReleaseBundleIdeListingFile (Thread[#197,Execution worker,5,main]) started.
+[        ] :app:produceReleaseBundleIdeListingFile (Thread[#197,Execution worker,5,main]) started.
+[        ] > Task :app:produceReleaseBundleIdeListingFile UP-TO-DATE
+[        ] Caching disabled for task ':app:produceReleaseBundleIdeListingFile' because:
+[        ] Skipping task ':app:produceReleaseBundleIdeListingFile' as it is up-to-date.
+[        ] Resolve mutations for :app:createReleaseBundleListingFileRedirect (Thread[#197,Execution worker,5,main]) started.
+[        ] :app:createReleaseBundleListingFileRedirect (Thread[#197,Execution worker,5,main]) started.
+[        ] > Task :app:createReleaseBundleListingFileRedirect UP-TO-DATE
+[        ] Caching disabled for task ':app:createReleaseBundleListingFileRedirect' because:
+[        ] Skipping task ':app:createReleaseBundleListingFileRedirect' as it is up-to-date.
+[        ] Resolve mutations for :app:bundleRelease (Thread[#197,Execution worker,5,main]) started.
+[        ] :app:bundleRelease (Thread[#197,Execution worker,5,main]) started.
+[        ] > Task :app:bundleRelease UP-TO-DATE
+[        ] Skipping task ':app:bundleRelease' as it has no actions.
+[  +22 ms] Running Gradle task 'bundleRelease'... (completed in 16.9s)
