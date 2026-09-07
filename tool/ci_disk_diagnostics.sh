@@ -11,7 +11,7 @@ report_size() {
   local path="$2"
   if [[ -e "$path" ]]; then
     printf '%s: ' "$label"
-    timeout 20s du -sh "$path" 2>/dev/null || echo "size unavailable or timed out"
+    timeout 5s du -sh "$path" 2>/dev/null || echo "size unavailable or timed out"
   else
     echo "$label: not present"
   fi
@@ -37,11 +37,11 @@ report_size "Android build output" "$GITHUB_WORKSPACE/build/app/outputs"
 report_size "Project Gradle state" "$GITHUB_WORKSPACE/android/.gradle"
 
 echo "Largest relevant workspace entries:"
-timeout 20s du -x -d 2 -h "$GITHUB_WORKSPACE" 2>/dev/null |
+timeout 5s du -x -d 2 -h "$GITHUB_WORKSPACE" 2>/dev/null |
   sort -h | tail -n 15 || true
 echo "Largest Gradle cache entries:"
 if [[ -d "${HOME}/.gradle" ]]; then
-  timeout 20s du -x -d 2 -h "${HOME}/.gradle" 2>/dev/null |
+  timeout 5s du -x -d 2 -h "${HOME}/.gradle" 2>/dev/null |
     sort -h | tail -n 15 || true
 fi
 echo "::endgroup::"
