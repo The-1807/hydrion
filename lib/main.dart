@@ -105,30 +105,51 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
   }
 
   Future<void> _loadServicesAndWarmUp() async {
-    HydrionStartupTrace.log('HydrionBootstrapApp.warmup started');
+    HydrionStartupTrace.log(
+      'HydrionBootstrapApp.warmup gate=services_future status=start',
+    );
     final services = await _servicesFuture;
+    HydrionStartupTrace.log(
+      'HydrionBootstrapApp.warmup gate=services_future status=done',
+    );
     _loadedServices = services;
     if (mounted) {
       setState(() {});
     }
+    HydrionStartupTrace.log(
+      'HydrionBootstrapApp.warmup gate=network_dependent_init status=start',
+    );
     await Future.wait([
       services.hydrationSummaryService.getHydrationSummary(),
       services.hydrationContextProvider.getHydrationContext(),
     ]);
+    HydrionStartupTrace.log(
+      'HydrionBootstrapApp.warmup gate=network_dependent_init status=done',
+    );
     HydrionStartupTrace.log('HydrionBootstrapApp.warmup complete');
   }
 
   String _routeFor(HydrionServices services) {
     if (!services.appLocaleRepository.selectionCompleted) {
+      HydrionStartupTrace.log(
+        'HydrionBootstrapApp.routing gate=locale_selection result=blocked',
+      );
       return '/language';
     }
     final settings = services.settingsRepository.settings;
     if (!settings.onboardingCompleted) {
+      HydrionStartupTrace.log(
+        'HydrionBootstrapApp.routing gate=onboarding result=blocked',
+      );
       return '/onboarding';
     }
     final accessStage = HydrionLifeStagePolicy.productAccessStage(settings.age);
     if (accessStage == HydrionProductAccessStage.unsupportedIndependentChild ||
         accessStage == HydrionProductAccessStage.invalid) {
+      HydrionStartupTrace.log(
+        'HydrionBootstrapApp.routing gate=life_stage result=blocked',
+        data: {'accessStage': accessStage.name},
+      );
       return '/profile-age-review';
     }
     if (HydrionLegalAcceptancePolicy.needsReview(
@@ -137,8 +158,14 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
       acknowledgedHealthDisclaimerVersion:
           settings.acknowledgedHealthDisclaimerVersion,
     )) {
+      HydrionStartupTrace.log(
+        'HydrionBootstrapApp.routing gate=legal_acceptance result=blocked',
+      );
       return '/legal-review';
     }
+    HydrionStartupTrace.log(
+      'HydrionBootstrapApp.routing gate=all result=passed route=/home',
+    );
     return '/home';
   }
 
@@ -576,17 +603,70 @@ class HydrionServices {
             );
 
   static Future<HydrionServices> local() async {
+    HydrionStartupTrace.log('HydrionServices.local gate=storage status=start');
     final store = await SharedPreferencesHydrionStore.create();
+    HydrionStartupTrace.log('HydrionServices.local gate=storage status=done');
+
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=dependency_init status=start',
+    );
     final services = await fromStore(
       store,
       aiRuntimeConfig: HydrionAiRuntimeConfig.fromEnvironment(),
     );
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=dependency_init status=done',
+    );
+
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=notification_init status=start',
+    );
     await services.notificationService.initialize();
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=notification_init status=done',
+    );
+
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=permissions_refresh status=start',
+    );
     await services.permissions.refresh();
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=permissions_refresh status=done',
+    );
+
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=pomodoro_reconcile status=start',
+    );
     await services.pomodoroSessionService.reconcile();
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=pomodoro_reconcile status=done',
+    );
+
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=homework_timed_notification status=start',
+    );
     await _syncHomeworkTimedNotification(services);
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=homework_timed_notification status=done',
+    );
+
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=notification_reconcile_schedules '
+      'status=start',
+    );
     await services.notificationService.reconcileSchedules();
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=notification_reconcile_schedules '
+      'status=done',
+    );
+
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=android_widget_init status=start',
+    );
     await services.androidWidgetService.initialize();
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=android_widget_init status=done',
+    );
     return services;
   }
 
@@ -655,6 +735,7 @@ class HydrionServices {
     DailyWeatherProvider? weatherProvider,
     HydrionProfilePhotoPicker? profilePhotoPicker,
     GuidedTourRepository? guidedTourRepository,
+    ChallengeRepository? challengeRepository,
   }) {
     final store = MemoryHydrionStore();
     return _build(
@@ -663,7 +744,7 @@ class HydrionServices {
       settingsRepository: UserSettingsRepository.memory(),
       appLocaleRepository: AppLocaleRepository.memory(),
       reminderRepository: ReminderRepository.memory(),
-      challengeRepository: ChallengeRepository.memory(),
+      challengeRepository: challengeRepository ?? ChallengeRepository.memory(),
       bodyMetricsRepository: BodyMetricsRepository.memory(),
       dailyHydrationContextRepository: DailyHydrationContextRepository.memory(),
       personalizationStateRepository: PersonalizationStateRepository.memory(),

@@ -3463,6 +3463,7 @@ class _ChallengeActivityPanelState extends State<_ChallengeActivityPanel> {
   }
 
   void _syncTicker() {
+    if (!mounted) return;
     _ticker?.cancel();
     final repository = context.read<ChallengeRepository>();
     final active = repository.activeChallengeFor(widget.active.id);

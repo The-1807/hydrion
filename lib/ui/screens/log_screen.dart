@@ -470,7 +470,7 @@ class _EditLogDialogState extends State<_EditLogDialog> {
       context: context,
       initialTime: TimeOfDay.fromDateTime(_timestamp),
     );
-    if (time == null) return;
+    if (time == null || !mounted) return;
     setState(() {
       _timestamp = DateTime(
         date.year,
