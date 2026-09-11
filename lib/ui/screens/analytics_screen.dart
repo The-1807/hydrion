@@ -111,6 +111,17 @@ class AnalyticsScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Card(
               child: ListTile(
+                key: const Key('open-hydration-reports'),
+                leading: const Icon(Icons.picture_as_pdf),
+                title: Text(l10n.reportsTitle),
+                subtitle: Text(l10n.reportsDescription),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).pushNamed('/reports'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
                 leading: const Icon(Icons.water_drop),
                 title: Text(
                   l10n.sharedTodaysHydrationProgress(

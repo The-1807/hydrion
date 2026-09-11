@@ -48,6 +48,7 @@ import 'services/daily_hydration_recommendation_coordinator.dart';
 import 'services/challenge_recommendation_service.dart';
 import 'services/current_weather_context.dart';
 import 'ui/screens/analytics_screen.dart';
+import 'ui/screens/hydration_reports_screen.dart';
 import 'ui/screens/hydrion_shell.dart';
 import 'ui/screens/legal_about_screen.dart';
 import 'ui/screens/log_screen.dart';
@@ -350,6 +351,7 @@ class HydrionApp extends StatelessWidget {
       '/onboarding': (_) => const OnboardingScreen(),
       '/mission': (_) => const MissionScreen(fromOnboarding: true),
       '/analytics': (_) => const AnalyticsScreen(),
+      '/reports': (_) => const HydrationReportsScreen(),
       '/log': (_) => const LogScreen(),
       if (services.capabilityReporter.capabilities.osNotifications)
         '/reminders': (_) => const RemindersScreen(),

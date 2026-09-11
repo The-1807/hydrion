@@ -3016,4 +3016,101 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get widgetOpenChallenge => 'Abrir reto';
+
+  @override
+  String get reportsTitle => 'Informes de hidratacion';
+
+  @override
+  String get reportsDescription =>
+      'Crea un resumen privado con los registros guardados en este dispositivo.';
+
+  @override
+  String get reportsOpen => 'Crear informe';
+
+  @override
+  String get reportsFrequency => 'Frecuencia del informe';
+
+  @override
+  String get reportsWeekly => 'Semanal';
+
+  @override
+  String get reportsMonthly => 'Mensual';
+
+  @override
+  String get reportsQuarterly => 'Trimestral';
+
+  @override
+  String get reportsYearly => 'Anual';
+
+  @override
+  String get reportsChoosePeriod => 'Elegir periodo';
+
+  @override
+  String get reportsPeriod => 'Periodo';
+
+  @override
+  String get reportsGenerated => 'Generado';
+
+  @override
+  String get reportsPreview => 'Vista previa del informe';
+
+  @override
+  String get reportsTotal => 'Consumo total registrado';
+
+  @override
+  String get reportsAverage => 'Promedio en dias registrados';
+
+  @override
+  String get reportsTrackedDays => 'Dias registrados';
+
+  @override
+  String get reportsTargetsMet => 'Objetivos conocidos cumplidos';
+
+  @override
+  String get reportsTarget => 'Objetivo aplicable';
+
+  @override
+  String get reportsDate => 'Fecha';
+
+  @override
+  String get reportsIntake => 'Consumo registrado';
+
+  @override
+  String get reportsMissing => 'Sin registro';
+
+  @override
+  String get reportsUnavailable => 'No disponible';
+
+  @override
+  String get reportsPartial => 'Este periodo aun esta en curso.';
+
+  @override
+  String get reportsEmpty => 'No se registro consumo de agua en este periodo.';
+
+  @override
+  String get reportsLegacyTarget =>
+      'Los objetivos historicos no guardados se muestran como no disponibles.';
+
+  @override
+  String get reportsDisclaimer =>
+      'Este informe resume datos de hidratacion registrados por el usuario. No es un diagnostico medico ni sustituye el consejo medico profesional.';
+
+  @override
+  String get reportsExport => 'Exportar PDF';
+
+  @override
+  String get reportsExported => 'Informe compartido correctamente.';
+
+  @override
+  String get reportsDismissed => 'Se cancelo el uso compartido.';
+
+  @override
+  String get reportsExportFailed =>
+      'No se pudo exportar el informe. Intentalo de nuevo.';
+
+  @override
+  String get reportsPage => 'Pagina';
+
+  @override
+  String get reportsVisualization => 'Hidratacion registrada';
 }

@@ -1,0 +1,108 @@
+mode=release
+preparation_start_utc=2026-09-07T00:08:44Z
+build_start_utc=2026-09-07T00:09:24Z
+end_utc=2026-09-07T00:10:12Z
+duration_seconds=48
+exit_code=0
+
+Last Android/Gradle phase lines:
+[ +138 ms] > Task :app:packageRelease UP-TO-DATE
+[        ] Custom actions are attached to task ':app:packageRelease'.
+[        ] Caching disabled for task ':app:packageRelease' because:
+[        ] Skipping task ':app:packageRelease' as it is up-to-date.
+[        ] Resolve mutations for :app:createReleaseApkListingFileRedirect (Thread[#145,included builds,5,main]) started.
+[        ] :app:createReleaseApkListingFileRedirect (Thread[#145,included builds,5,main]) started.
+[        ] > Task :app:createReleaseApkListingFileRedirect UP-TO-DATE
+[        ] Caching disabled for task ':app:createReleaseApkListingFileRedirect' because:
+[   +1 ms] Skipping task ':app:createReleaseApkListingFileRedirect' as it is up-to-date.
+[        ] Resolve mutations for :app:assembleRelease (Thread[#145,included builds,5,main]) started.
+[        ] :app:assembleRelease (Thread[#145,included builds,5,main]) started.
+[ +387 ms] > Task :app:assembleRelease
+[        ] Caching disabled for task ':app:assembleRelease' because:
+[        ] Task ':app:assembleRelease' is not up-to-date because:
+[        ] > Task :flutter_local_notifications:bundleReleaseAar UP-TO-DATE
+[        ] > Task :flutter_local_notifications:mapReleaseSourceSetPaths UP-TO-DATE
+[        ] > Task :flutter_local_notifications:mergeReleaseResources UP-TO-DATE
+[ +102 ms] > Task :flutter_local_notifications:verifyReleaseResources UP-TO-DATE
+[        ] > Task :flutter_local_notifications:assembleRelease UP-TO-DATE
+[        ] > Task :flutter_plugin_android_lifecycle:bundleReleaseAar UP-TO-DATE
+[        ] > Task :flutter_plugin_android_lifecycle:mapReleaseSourceSetPaths UP-TO-DATE
+[        ] > Task :flutter_plugin_android_lifecycle:mergeReleaseResources UP-TO-DATE
+[        ] > Task :flutter_plugin_android_lifecycle:verifyReleaseResources UP-TO-DATE
+[        ] > Task :flutter_plugin_android_lifecycle:assembleRelease UP-TO-DATE
+[        ] > Task :geolocator_android:bundleReleaseAar UP-TO-DATE
+[        ] > Task :geolocator_android:mapReleaseSourceSetPaths UP-TO-DATE
+[        ] > Task :geolocator_android:mergeReleaseResources UP-TO-DATE
+[  +87 ms] > Task :geolocator_android:verifyReleaseResources UP-TO-DATE
+[        ] > Task :geolocator_android:assembleRelease UP-TO-DATE
+[        ] > Task :home_widget:bundleReleaseAar UP-TO-DATE
+[        ] > Task :home_widget:mapReleaseSourceSetPaths UP-TO-DATE
+[        ] > Task :home_widget:mergeReleaseResources UP-TO-DATE
+[  +89 ms] > Task :home_widget:verifyReleaseResources UP-TO-DATE
+[        ] > Task :home_widget:assembleRelease UP-TO-DATE
+[        ] > Task :image_picker_android:bundleReleaseAar UP-TO-DATE
+[        ] > Task :image_picker_android:mapReleaseSourceSetPaths UP-TO-DATE
+[        ] > Task :image_picker_android:mergeReleaseResources UP-TO-DATE
+[        ] > Task :image_picker_android:verifyReleaseResources UP-TO-DATE
+[        ] > Task :image_picker_android:assembleRelease UP-TO-DATE
+[        ] > Task :integration_test:preBuild UP-TO-DATE
+[        ] > Task :integration_test:preReleaseBuild UP-TO-DATE
+[        ] > Task :integration_test:mergeReleaseJniLibFolders UP-TO-DATE
+[        ] > Task :integration_test:mergeReleaseNativeLibs NO-SOURCE
+[        ] > Task :integration_test:stripReleaseDebugSymbols NO-SOURCE
+[  +97 ms] > Task :integration_test:copyReleaseJniLibsProjectAndLocalJars UP-TO-DATE
+[        ] > Task :integration_test:generateReleaseResValues UP-TO-DATE
+[        ] > Task :integration_test:extractDeepLinksForAarRelease UP-TO-DATE
+[        ] > Task :integration_test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+[        ] > Task :integration_test:generateReleaseResources UP-TO-DATE
+[        ] > Task :integration_test:packageReleaseResources UP-TO-DATE
+[        ] > Task :integration_test:parseReleaseLocalResources UP-TO-DATE
+[   +1 ms] > Task :integration_test:generateReleaseRFile UP-TO-DATE
+[        ] > Task :integration_test:compileReleaseKotlin NO-SOURCE
+[ +990 ms] > Task :integration_test:extractReleaseAnnotations UP-TO-DATE
+[        ] > Task :integration_test:mergeReleaseShaders UP-TO-DATE
+[        ] > Task :integration_test:compileReleaseShaders NO-SOURCE
+[        ] > Task :integration_test:generateReleaseAssets UP-TO-DATE
+[        ] > Task :integration_test:mergeReleaseAssets UP-TO-DATE
+[        ] > Task :integration_test:javaPreCompileRelease UP-TO-DATE
+[  +81 ms] > Task :integration_test:compileReleaseJavaWithJavac UP-TO-DATE
+[        ] > Task :integration_test:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+[        ] > Task :integration_test:mergeReleaseConsumerProguardFiles UP-TO-DATE
+[        ] > Task :integration_test:prepareLintJarForPublish UP-TO-DATE
+[        ] > Task :integration_test:prepareReleaseArtProfile UP-TO-DATE
+[        ] > Task :integration_test:processReleaseManifest UP-TO-DATE
+[        ] > Task :integration_test:processReleaseJavaRes NO-SOURCE
+[        ] > Task :integration_test:mergeReleaseJavaResource UP-TO-DATE
+[        ] > Task :integration_test:syncReleaseLibJars UP-TO-DATE
+[        ] > Task :integration_test:writeReleaseAarMetadata UP-TO-DATE
+[        ] > Task :integration_test:bundleReleaseAar UP-TO-DATE
+[        ] > Task :integration_test:mapReleaseSourceSetPaths UP-TO-DATE
+[  +97 ms] > Task :integration_test:mergeReleaseResources UP-TO-DATE
+[        ] > Task :integration_test:verifyReleaseResources UP-TO-DATE
+[        ] > Task :integration_test:assembleRelease UP-TO-DATE
+[        ] > Task :jni:bundleReleaseAar UP-TO-DATE
+[        ] > Task :jni:mapReleaseSourceSetPaths UP-TO-DATE
+[        ] > Task :jni:mergeReleaseResources UP-TO-DATE
+[  +90 ms] > Task :jni:verifyReleaseResources UP-TO-DATE
+[        ] > Task :jni:assembleRelease UP-TO-DATE
+[        ] > Task :jni_flutter:bundleReleaseAar UP-TO-DATE
+[        ] > Task :jni_flutter:mapReleaseSourceSetPaths UP-TO-DATE
+[        ] > Task :jni_flutter:mergeReleaseResources UP-TO-DATE
+[        ] > Task :jni_flutter:verifyReleaseResources UP-TO-DATE
+[        ] > Task :jni_flutter:assembleRelease UP-TO-DATE
+[        ] > Task :package_info_plus:bundleReleaseAar UP-TO-DATE
+[        ] > Task :package_info_plus:mapReleaseSourceSetPaths UP-TO-DATE
+[ +194 ms] > Task :package_info_plus:mergeReleaseResources UP-TO-DATE
+[        ] > Task :package_info_plus:verifyReleaseResources UP-TO-DATE
+[        ] > Task :package_info_plus:assembleRelease UP-TO-DATE
+[        ] > Task :share_plus:bundleReleaseAar UP-TO-DATE
+[        ] > Task :share_plus:mapReleaseSourceSetPaths UP-TO-DATE
+[        ] > Task :share_plus:mergeReleaseResources UP-TO-DATE
+[        ] > Task :share_plus:verifyReleaseResources UP-TO-DATE
+[        ] > Task :share_plus:assembleRelease UP-TO-DATE
+[        ] > Task :shared_preferences_android:bundleReleaseAar UP-TO-DATE
+[        ] > Task :shared_preferences_android:mapReleaseSourceSetPaths UP-TO-DATE
+[  +87 ms] > Task :shared_preferences_android:mergeReleaseResources UP-TO-DATE
+[  +92 ms] > Task :shared_preferences_android:verifyReleaseResources UP-TO-DATE
+[        ] > Task :shared_preferences_android:assembleRelease UP-TO-DATE
+[  +29 ms] Running Gradle task 'assembleRelease'... (completed in 39.7s)

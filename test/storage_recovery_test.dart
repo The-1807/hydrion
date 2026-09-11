@@ -54,7 +54,7 @@ void main() {
         newer,
         'not an object',
         {'id': 'bad-date', 'volumeMl': 300, 'timestamp': 'not-a-date'},
-        {'id': 'bad-volume', 'volumeMl': 0, 'timestamp': newer['timestamp']},
+        {'id': 'bad-volume', 'volumeMl': -1, 'timestamp': newer['timestamp']},
         older,
       ]),
     });

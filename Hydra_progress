@@ -1,0 +1,94 @@
+**Story ID:** HYD-US-###
+**Title:** Generate Hydration Progress Reports
+**Epic:** Hydration History and Insights
+**Story Type:** User Story
+**Priority:** P1
+**Release Scope:** MVP
+**T-shirt Size:** M
+**Project Column:** Product Backlog
+**Business Rank:** 999
+**Labels:** `user-story`, `type:user-story`, `epic:hydration-history-insights`, `priority:p1`, `scope:mvp`, `size:m`, `status:product-backlog`
+
+## User Story
+
+**As a** Hydrion user who tracks daily hydration
+**I need** to generate a PDF report for a selected weekly, monthly, quarterly or yearly reporting period
+**So that** I can review, retain and share a clear statement of my hydration history and progress.
+
+## Business Value
+
+Hydration reports transform daily tracking records into understandable long-term insights. They help users identify consistency, missed targets and hydration patterns while increasing the value of continued tracking. A portable PDF also allows users to retain their history or voluntarily share it with a healthcare or wellness professional.
+
+The report must communicate tracked data accurately without presenting Hydrion’s observations as a medical diagnosis or clinical recommendation.
+
+## Acceptance Criteria
+
+* [x] The user can access hydration reports from an appropriate Hydrion history, insights or profile interface.
+
+* [x] The user can select one of four reporting frequencies: weekly, monthly, quarterly or yearly.
+
+* [x] The selected frequency automatically shows the exact rolling start and end dates before generating the report.
+
+* [x] Weekly reports include today and the previous six local calendar dates.
+
+* [x] Monthly reports use a rolling one-calendar-month window ending today, with end-of-month clamping.
+
+* [x] Quarterly reports use a rolling three-calendar-month window ending today, with end-of-month clamping.
+
+* [x] Yearly reports use a rolling twelve-calendar-month window ending today, with end-of-month clamping.
+
+* [x] The report is generated only from hydration records actually stored for the selected user and period.
+
+* [x] The report distinguishes days with no recorded intake from days where the user explicitly recorded zero intake.
+
+* [x] The report clearly identifies partial reporting periods and incomplete tracking data.
+
+* [x] The report includes the user’s selected display name or an appropriate non-identifying label, the reporting frequency, period dates, generation date and Hydrion branding.
+
+* [x] The report includes total recorded intake, daily average intake, number and percentage of tracked days, number and percentage of days the recorded target was met, and the hydration target applicable to the period.
+
+* [x] The report provides an understandable daily, weekly or monthly breakdown appropriate to the selected reporting frequency.
+
+* [x] The report includes a readable visualization of hydration progress when sufficient data exists.
+
+* [x] All intake values use the user’s configured unit system consistently, including conversions between millilitres and fluid ounces where supported.
+
+* [x] Calculations use canonical stored values to prevent cumulative rounding errors.
+
+* [ ] If the user’s hydration target changed during the reporting period, the report represents the applicable target for each affected date and does not incorrectly apply the latest target to the entire period.
+
+* [x] The report does not infer successful hydration for missing records or fabricate values to complete charts.
+
+* [x] The PDF displays a clear empty-state explanation when the selected period contains no hydration records.
+
+* [ ] The generated PDF is readable on supported phone screen sizes and standard PDF viewers without clipped, overlapping or illegible content.
+
+* [ ] Multi-page reports include consistent headers, footers and page numbering and do not split critical labels from their corresponding values.
+
+* [x] The user can preview or confirm the report before exporting it.
+
+* [ ] The user can save, download or share the PDF through platform-supported Android and iOS mechanisms.
+
+* [x] Cancelling PDF generation or dismissing the share interface does not create a false success message or corrupt report data.
+
+* [x] Generation failures produce a clear, recoverable error without losing the user’s hydration records.
+
+* [x] Repeated generation for identical source data and reporting parameters produces equivalent report values.
+
+* [x] Report generation remains responsive for the maximum supported yearly dataset and does not cause excessive memory usage, freezing or application termination.
+
+* [x] Sensitive profile and hydration data are not written to application logs, temporary filenames, analytics events or crash reports.
+
+* [ ] Temporary report files are stored in an application-appropriate protected location and are removed according to the documented retention policy.
+
+* [x] Hydrion does not upload the report or its underlying hydration data unless remote processing is explicitly required, disclosed and authorized by the user.
+
+* [x] The report contains a concise statement that it summarizes user-tracked hydration information and is not a medical diagnosis or substitute for professional medical advice.
+
+* [x] Report content and generation behavior are covered by unit tests for period boundaries, aggregation, missing data, target changes, unit conversion, time zones and leap years.
+
+* [ ] PDF rendering is covered by deterministic document tests or approved golden-file comparisons.
+
+* [ ] Android and iOS integration tests verify report generation, opening, saving and sharing through supported platform interfaces.
+
+* [x] The feature is added to `tester_bible.md`, including weekly, monthly, quarterly and yearly report scenarios, incomplete data, no data, target changes, large histories and export failures.

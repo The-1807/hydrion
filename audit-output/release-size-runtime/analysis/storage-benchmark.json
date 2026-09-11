@@ -1,0 +1,273 @@
+{
+  "generatedAtUtc": "2026-09-06T20:45:57.993869Z",
+  "dataClass": "synthetic-only",
+  "hydration": [
+    {
+      "horizon": "30-days",
+      "workload": "typical",
+      "days": 30,
+      "recordsPerDay": 8,
+      "recordCount": 240,
+      "serializedBytes": 23441,
+      "bytesPerRecord": 97.67083333333333,
+      "datasetGenerationUs": 24658,
+      "loadUs": 54777,
+      "rssBefore": 198156288,
+      "rssAfterLoad": 198983680,
+      "rssLoadDelta": 827392,
+      "appendAndPersistUs": 12218,
+      "updateAndPersistUs": 7348,
+      "deleteAndPersistUs": 6489,
+      "lastPersistedBytes": 23441,
+      "reportAggregationUs": {
+        "weekly": 12788,
+        "monthly": 4333,
+        "quarterly": 9744,
+        "yearly": 27345
+      }
+    },
+    {
+      "horizon": "30-days",
+      "workload": "heavy",
+      "days": 30,
+      "recordsPerDay": 48,
+      "recordCount": 1440,
+      "serializedBytes": 598921,
+      "bytesPerRecord": 415.9173611111111,
+      "datasetGenerationUs": 51658,
+      "loadUs": 155242,
+      "rssBefore": 206262272,
+      "rssAfterLoad": 210493440,
+      "rssLoadDelta": 4231168,
+      "appendAndPersistUs": 33887,
+      "updateAndPersistUs": 28511,
+      "deleteAndPersistUs": 20895,
+      "lastPersistedBytes": 598921,
+      "reportAggregationUs": {
+        "weekly": 2031,
+        "monthly": 5160,
+        "quarterly": 8715,
+        "yearly": 25436
+      }
+    },
+    {
+      "horizon": "1-year",
+      "workload": "typical",
+      "days": 365,
+      "recordsPerDay": 8,
+      "recordCount": 2920,
+      "serializedBytes": 288201,
+      "bytesPerRecord": 98.69897260273973,
+      "datasetGenerationUs": 81810,
+      "loadUs": 192216,
+      "rssBefore": 217169920,
+      "rssAfterLoad": 218902528,
+      "rssLoadDelta": 1732608,
+      "appendAndPersistUs": 11993,
+      "updateAndPersistUs": 9366,
+      "deleteAndPersistUs": 11821,
+      "lastPersistedBytes": 288201,
+      "reportAggregationUs": {
+        "weekly": 1002,
+        "monthly": 2643,
+        "quarterly": 6473,
+        "yearly": 26746
+      }
+    },
+    {
+      "horizon": "1-year",
+      "workload": "heavy",
+      "days": 365,
+      "recordsPerDay": 48,
+      "recordCount": 17520,
+      "serializedBytes": 7323021,
+      "bytesPerRecord": 417.9806506849315,
+      "datasetGenerationUs": 316821,
+      "loadUs": 859330,
+      "rssBefore": 237178880,
+      "rssAfterLoad": 239058944,
+      "rssLoadDelta": 1880064,
+      "appendAndPersistUs": 157682,
+      "updateAndPersistUs": 241545,
+      "deleteAndPersistUs": 221030,
+      "lastPersistedBytes": 7323021,
+      "reportAggregationUs": {
+        "weekly": 2758,
+        "monthly": 7672,
+        "quarterly": 7240,
+        "yearly": 32698
+      }
+    },
+    {
+      "horizon": "5-years",
+      "workload": "typical",
+      "days": 1826,
+      "recordsPerDay": 8,
+      "recordCount": 14608,
+      "serializedBytes": 1451921,
+      "bytesPerRecord": 99.39218236582694,
+      "datasetGenerationUs": 190905,
+      "loadUs": 639177,
+      "rssBefore": 263151616,
+      "rssAfterLoad": 268304384,
+      "rssLoadDelta": 5152768,
+      "appendAndPersistUs": 46001,
+      "updateAndPersistUs": 63612,
+      "deleteAndPersistUs": 39922,
+      "lastPersistedBytes": 1451921,
+      "reportAggregationUs": {
+        "weekly": 1440,
+        "monthly": 2207,
+        "quarterly": 6570,
+        "yearly": 16423
+      }
+    },
+    {
+      "horizon": "5-years",
+      "workload": "heavy",
+      "days": 1826,
+      "recordsPerDay": 48,
+      "recordCount": 87648,
+      "serializedBytes": 36756729,
+      "bytesPerRecord": 419.3675725629792,
+      "datasetGenerationUs": 1598197,
+      "loadUs": 4448546,
+      "rssBefore": 326389760,
+      "rssAfterLoad": 400244736,
+      "rssLoadDelta": 73854976,
+      "appendAndPersistUs": 900941,
+      "updateAndPersistUs": 940989,
+      "deleteAndPersistUs": 998631,
+      "lastPersistedBytes": 36756729,
+      "reportAggregationUs": {
+        "weekly": 11612,
+        "monthly": 13579,
+        "quarterly": 20298,
+        "yearly": 37296
+      }
+    },
+    {
+      "horizon": "10-years",
+      "workload": "typical",
+      "days": 3653,
+      "recordsPerDay": 8,
+      "recordCount": 29224,
+      "serializedBytes": 2913521,
+      "bytesPerRecord": 99.6961743772242,
+      "datasetGenerationUs": 424751,
+      "loadUs": 1299476,
+      "rssBefore": 482508800,
+      "rssAfterLoad": 481943552,
+      "rssLoadDelta": -565248,
+      "appendAndPersistUs": 107240,
+      "updateAndPersistUs": 102348,
+      "deleteAndPersistUs": 160448,
+      "lastPersistedBytes": 2913521,
+      "reportAggregationUs": {
+        "weekly": 3784,
+        "monthly": 3442,
+        "quarterly": 10600,
+        "yearly": 17625
+      }
+    },
+    {
+      "horizon": "10-years",
+      "workload": "heavy",
+      "days": 3653,
+      "recordsPerDay": 48,
+      "recordCount": 175344,
+      "serializedBytes": 73640205,
+      "bytesPerRecord": 419.97561935395566,
+      "datasetGenerationUs": 3061852,
+      "loadUs": 9097073,
+      "rssBefore": 455892992,
+      "rssAfterLoad": 606253056,
+      "rssLoadDelta": 150360064,
+      "appendAndPersistUs": 1902364,
+      "updateAndPersistUs": 1934704,
+      "deleteAndPersistUs": 1915799,
+      "lastPersistedBytes": 73640205,
+      "reportAggregationUs": {
+        "weekly": 10149,
+        "monthly": 14391,
+        "quarterly": 16046,
+        "yearly": 42389
+      }
+    }
+  ],
+  "challengeHistory": [
+    {
+      "years": 1,
+      "workload": "typical",
+      "attempts": 12,
+      "serializedBytes": 6804,
+      "bytesPerAttempt": 567.0,
+      "loadUs": 15127,
+      "rssBefore": 796516352,
+      "rssAfterLoad": 796880896,
+      "loadedHistoryCount": 12
+    },
+    {
+      "years": 1,
+      "workload": "heavy",
+      "attempts": 48,
+      "serializedBytes": 27360,
+      "bytesPerAttempt": 570.0,
+      "loadUs": 11293,
+      "rssBefore": 796880896,
+      "rssAfterLoad": 796880896,
+      "loadedHistoryCount": 48
+    },
+    {
+      "years": 5,
+      "workload": "typical",
+      "attempts": 60,
+      "serializedBytes": 34212,
+      "bytesPerAttempt": 570.2,
+      "loadUs": 14357,
+      "rssBefore": 796880896,
+      "rssAfterLoad": 796954624,
+      "loadedHistoryCount": 60
+    },
+    {
+      "years": 5,
+      "workload": "heavy",
+      "attempts": 240,
+      "serializedBytes": 138532,
+      "bytesPerAttempt": 577.2166666666667,
+      "loadUs": 55516,
+      "rssBefore": 796954624,
+      "rssAfterLoad": 797347840,
+      "loadedHistoryCount": 240
+    },
+    {
+      "years": 10,
+      "workload": "typical",
+      "attempts": 120,
+      "serializedBytes": 68692,
+      "bytesPerAttempt": 572.4333333333333,
+      "loadUs": 29884,
+      "rssBefore": 797347840,
+      "rssAfterLoad": 797347840,
+      "loadedHistoryCount": 120
+    },
+    {
+      "years": 10,
+      "workload": "heavy",
+      "attempts": 480,
+      "serializedBytes": 278212,
+      "bytesPerAttempt": 579.6083333333333,
+      "loadUs": 113226,
+      "rssBefore": 797638656,
+      "rssAfterLoad": 801193984,
+      "loadedHistoryCount": 480
+    }
+  ],
+  "syntheticThresholdFailure": {
+    "thresholdBytes": 116891,
+    "attemptFailed": true,
+    "rollbackPreserved": true,
+    "errorType": "FileSystemException",
+    "note": "Synthetic threshold; not an Android SharedPreferences limit."
+  }
+}
