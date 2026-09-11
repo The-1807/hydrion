@@ -700,7 +700,7 @@ jobs:
 
       - name: Upload CI audit artifacts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: hydrion-ci-audit-${{ github.run_number }}-${{ github.run_attempt }}
           path: |
@@ -787,7 +787,7 @@ jobs:
         run: bash tool/ci_run_android_build.sh debug
 
       - name: Upload debug Android APK
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: hydrion-android-debug-apk-${{ github.run_number }}-${{ github.run_attempt }}
           path: build/app/outputs/flutter-apk/app-debug.apk
@@ -796,7 +796,7 @@ jobs:
 
       - name: Upload debug-build diagnostics
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: hydrion-android-debug-diagnostics-${{ github.run_number }}-${{ github.run_attempt }}
           path: ${{ env.CI_ARTIFACTS_DIRECTORY }}/android-debug/
@@ -899,7 +899,7 @@ jobs:
 
       - name: Upload signed release Android APK
         if: steps.android-signing.outputs.release_signing_available == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: hydrion-android-${{ steps.android-signing.outputs.release_signing_kind }}-signed-release-apk-${{ github.run_number }}-${{ github.run_attempt }}
           path: ${{ env.CI_ARTIFACTS_DIRECTORY }}/android/
@@ -908,7 +908,7 @@ jobs:
 
       - name: Upload release-build diagnostics
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: hydrion-android-release-diagnostics-${{ github.run_number }}-${{ github.run_attempt }}
           path: ${{ env.CI_ARTIFACTS_DIRECTORY }}/android-release/
@@ -921,7 +921,7 @@ jobs:
 
       - name: Upload Android size audit
         if: steps.android-signing.outputs.release_signing_available == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: hydrion-android-size-audit-${{ github.run_number }}-${{ github.run_attempt }}
           path: ${{ env.CI_ARTIFACTS_DIRECTORY }}/hydrion-android-size-audit.txt
@@ -958,7 +958,7 @@ jobs:
         run: flutter build web --release
 
       - name: Upload web build
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: hydrion-web-build-${{ github.run_number }}-${{ github.run_attempt }}
           path: build/web
@@ -1127,7 +1127,7 @@ jobs:
           PY
 
       - name: Upload unsigned iOS release build
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: hydrion-ios-unsigned-release-${{ github.run_number }}-${{ github.run_attempt }}
           path: ${{ env.CI_ARTIFACTS_DIRECTORY }}/ios/
