@@ -1335,6 +1335,67 @@
 - **Tester / Device / OS / Build**:
 
 ---
+## Wearable Health Integration
+
+These are separate acceptance gates. A provider fake or domain test does not
+certify a native provider, vendor export, background behavior or physical
+device. Record exact device, OS, provider app and metric details with results.
+
+### Android Health Connect
+
+- [ ] Unsupported Android version/device leaves manual hydration functional.
+- [ ] Health Connect missing or needing an update is distinguished from denied permission.
+- [ ] Permission is requested only after the user selects Connect.
+- [ ] Partial grant imports only granted workout/activity categories.
+- [ ] Denial and later revocation preserve prior records and manual tracking.
+- [ ] Empty provider and missing metrics display honest non-connected/empty states.
+- [ ] Workout import preserves data origin, physical-device metadata and timestamps.
+- [ ] A repeated import does not duplicate a workout, steps, distance or active energy.
+- [ ] Provider corrections replace the stable provider record without duplication.
+- [ ] Provider deletions stop the record contributing while retaining the local tombstone.
+- [ ] Interrupted synchronization retries from the committed checkpoint.
+- [ ] Expired changes tokens recover through a bounded reread without duplication.
+- [ ] Offline/provider-unavailable behavior preserves imported and manual data.
+- [ ] Disconnect stops synchronization and offers separate retain/delete choices.
+- [ ] Imported-data deletion does not remove Hydrion hydration logs or settings.
+- [ ] Foreground, background, terminated, reboot and battery-optimized freshness is measured.
+- [ ] Storage growth, sync duration, memory and battery are measured with representative history.
+
+### Apple HealthKit
+
+- [ ] Unsupported/unavailable HealthKit leaves manual hydration functional.
+- [ ] Permission is requested only after the user selects Connect.
+- [ ] Partial authorization imports only readable workout/activity categories.
+- [ ] Denial/no-readable-data wording respects HealthKit's intentionally opaque read status.
+- [ ] Revocation preserves prior records and manual tracking.
+- [ ] Workout import preserves source revision, device, UUID and timestamps.
+- [ ] Anchored repeated imports, corrections and deletions reconcile without duplication.
+- [ ] Interrupted synchronization retries from the committed anchor.
+- [ ] Disconnect and imported-data deletion do not remove manual Hydrion data.
+- [ ] Foreground, background, suspended and terminated delivery is measured on an authorized iPhone.
+- [ ] Storage growth, sync duration, memory and battery are measured with representative history.
+
+### Cross-Provider And Hydration Safety
+
+- [ ] The same physical workout relayed through two sources is not double-counted.
+- [ ] Source priority changes are visible, deterministic and reversible.
+- [ ] Overlapping workout intervals contribute only their union of minutes.
+- [ ] Steps and distance are fallback context and do not stack with a workout adjustment.
+- [ ] Heart rate, HRV, sleep, SpO2, temperature, stress, recovery, readiness and body composition do not modify hydration targets.
+- [ ] Imported weight cannot silently replace the user's hydration baseline.
+- [ ] Every derived activity feature identifies algorithm version and contributing records.
+- [ ] Manual hydration logging works before connection, after denial, offline and after disconnect.
+- [ ] English, Spanish and French provider states, purposes and errors are complete and readable.
+
+### FitPro Capability Verification
+
+- [ ] Record the exact watch identifier, phone, OS and FitPro app version for iPhone.
+- [ ] Record the exact watch identifier, phone, OS and FitPro app version for each Android phone.
+- [ ] Confirm whether FitPro appears as a HealthKit or Health Connect data contributor.
+- [ ] For each readable metric, record earliest history, timestamps, units and source attribution.
+- [ ] Verify correction, deletion and background-export behavior per device and metric.
+- [ ] Classify each tested combination as verified, partial, unavailable or blocked.
+- [ ] Do not generalize one device or metric result into universal FitPro support.
 
 ## Hydration PDF Reports
 

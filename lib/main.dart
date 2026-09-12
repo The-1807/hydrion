@@ -18,6 +18,7 @@ import 'repositories/app_locale_repository.dart';
 import 'repositories/body_metrics_repository.dart';
 import 'repositories/daily_hydration_context_repository.dart';
 import 'repositories/guided_tour_repository.dart';
+import 'repositories/health_data_repository.dart';
 import 'repositories/hydration_repository.dart';
 import 'repositories/personalization_state_repository.dart';
 import 'repositories/reminder_repository.dart';
@@ -29,6 +30,7 @@ import 'services/coach_suggestion_service.dart';
 import 'services/hydration_ai_action_executor.dart';
 import 'services/hydration_ai_orchestrator.dart';
 import 'services/hydration_context_builder.dart';
+import 'services/health_data_persistence.dart';
 import 'services/location_service.dart';
 import 'services/local_profile_reset_service.dart';
 import 'services/notifications.dart';
@@ -103,6 +105,12 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
     super.initState();
     HydrionStartupTrace.log('HydrionBootstrapApp.initState');
     _servicesFuture = (widget.servicesLoader ?? HydrionServices.local)();
+  }
+
+  @override
+  void dispose() {
+    _loadedServices?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadServicesAndWarmUp() async {
@@ -517,6 +525,8 @@ class HydrionServices {
   final ReminderRepository reminderRepository;
   final ChallengeRepository challengeRepository;
   final BodyMetricsRepository bodyMetricsRepository;
+  final HealthPersistenceResult healthPersistence;
+  final HealthDataRepository? healthDataRepository;
   final DailyHydrationContextRepository dailyHydrationContextRepository;
   final PersonalizationStateRepository personalizationStateRepository;
   final GuidedTourRepository guidedTourRepository;
@@ -561,6 +571,9 @@ class HydrionServices {
     required this.reminderRepository,
     required this.challengeRepository,
     required this.bodyMetricsRepository,
+    this.healthPersistence = const HealthPersistenceResult(
+      HealthPersistenceStatus.unsupportedPlatform,
+    ),
     required this.dailyHydrationContextRepository,
     required this.personalizationStateRepository,
     required this.guidedTourRepository,
@@ -594,7 +607,8 @@ class HydrionServices {
     required this.ecoTracker,
     required this.localProfileResetService,
     AndroidWidgetService? androidWidgetService,
-  })  : currentWeatherContext =
+  })  : healthDataRepository = healthPersistence.repository,
+        currentWeatherContext =
             currentWeatherContext ?? CurrentWeatherContext(),
         androidWidgetService = androidWidgetService ??
             AndroidWidgetService(
@@ -609,12 +623,15 @@ class HydrionServices {
     final store = await SharedPreferencesHydrionStore.create();
     HydrionStartupTrace.log('HydrionServices.local gate=storage status=done');
 
+    final healthPersistence = await initializeHealthDataPersistence();
+
     HydrionStartupTrace.log(
       'HydrionServices.local gate=dependency_init status=start',
     );
     final services = await fromStore(
       store,
       aiRuntimeConfig: HydrionAiRuntimeConfig.fromEnvironment(),
+      healthPersistence: healthPersistence,
     );
     HydrionStartupTrace.log(
       'HydrionServices.local gate=dependency_init status=done',
@@ -680,6 +697,9 @@ class HydrionServices {
     HydrionTimedSessionNotificationAdapter? timedSessionNotificationAdapter,
     DailyWeatherProvider? weatherProvider,
     HydrionProfilePhotoPicker? profilePhotoPicker,
+    HealthPersistenceResult healthPersistence = const HealthPersistenceResult(
+      HealthPersistenceStatus.unsupportedPlatform,
+    ),
   }) async {
     final hydrationRepository = await HydrationRepository.load(store);
     final settingsRepository = await UserSettingsRepository.load(store);
@@ -717,6 +737,7 @@ class HydrionServices {
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
       bodyMetricsRepository: bodyMetricsRepository,
+      healthPersistence: healthPersistence,
       dailyHydrationContextRepository: dailyHydrationContextRepository,
       personalizationStateRepository: personalizationStateRepository,
       guidedTourRepository: guidedTourRepository,
@@ -762,6 +783,10 @@ class HydrionServices {
           FakeTimedSessionNotificationAdapter(),
       weatherProvider: weatherProvider ?? _FakeDailyWeatherProvider(),
       profilePhotoPicker: profilePhotoPicker ?? FakeHydrionProfilePhotoPicker(),
+      healthPersistence: HealthPersistenceResult(
+        HealthPersistenceStatus.ready,
+        repository: MemoryHealthDataRepository(),
+      ),
     );
   }
 
@@ -782,6 +807,9 @@ class HydrionServices {
     HydrionTimedSessionNotificationAdapter? timedSessionNotificationAdapter,
     DailyWeatherProvider? weatherProvider,
     HydrionProfilePhotoPicker? profilePhotoPicker,
+    HealthPersistenceResult healthPersistence = const HealthPersistenceResult(
+      HealthPersistenceStatus.unsupportedPlatform,
+    ),
   }) {
     challengeRepository.bindHydrationRepository(hydrationRepository);
     final coreBridge = CoreBridge(hydrationRepository: hydrationRepository);
@@ -946,6 +974,7 @@ class HydrionServices {
       reminderRepository: reminderRepository,
       challengeRepository: challengeRepository,
       bodyMetricsRepository: bodyMetricsRepository,
+      healthPersistence: healthPersistence,
       dailyHydrationContextRepository: dailyHydrationContextRepository,
       personalizationStateRepository: personalizationStateRepository,
       guidedTourRepository: guidedTourRepository,
@@ -981,6 +1010,10 @@ class HydrionServices {
       localProfileResetService: localProfileResetService,
       androidWidgetService: androidWidgetService,
     );
+  }
+
+  Future<void> dispose() async {
+    await healthDataRepository?.close();
   }
 
   static ExternalIntegrationActivation _geminiActivation({
