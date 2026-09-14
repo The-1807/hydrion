@@ -74,6 +74,7 @@ void main() {
     expect(page.records.single.provenance.deviceModel, isNull);
     expect(page.hasMore, isFalse);
     expect(page.nextCheckpoint.cursor, contains('changes-1'));
+    expect(page.nextCheckpoint.cursor, contains('"version":1'));
     expect(
       bridge.calls.single.arguments['historyStart'],
       '2025-12-03T00:00:00.000Z',
@@ -179,12 +180,13 @@ void main() {
     expect(page.records, isEmpty);
   });
 
-  test('legacy non-JSON checkpoint recovers with a bounded initial read',
+  test('legacy raw-token checkpoint migrates after a successful change read',
       () async {
-    bridge.responses['readInitial'] = {
+    bridge.responses['readChanges'] = {
       'records': <Object?>[],
-      'pageToken': null,
       'changesToken': 'replacement-token',
+      'hasMore': false,
+      'tokenExpired': false,
     };
 
     final page = await provider.readChanges(HealthSyncCheckpoint(
@@ -194,8 +196,76 @@ void main() {
       historyStart: DateTime.utc(2025, 12, 3),
     ));
 
-    expect(bridge.calls.single.method, 'readInitial');
+    expect(bridge.calls.single.method, 'readChanges');
+    expect(
+      bridge.calls.single.arguments['changesToken'],
+      'legacy-distance-token',
+    );
+    expect(page.nextCheckpoint.cursor, contains('"version":1'));
     expect(page.nextCheckpoint.cursor, contains('replacement-token'));
+  });
+
+  test('malformed structured checkpoint fails explicitly', () async {
+    expect(
+      () => provider.readChanges(HealthSyncCheckpoint(
+        providerId: provider.providerId,
+        metric: HealthMetric.distance,
+        cursor: '{"phase":',
+        historyStart: DateTime.utc(2025, 12, 3),
+      )),
+      throwsFormatException,
+    );
+    expect(bridge.calls, isEmpty);
+  });
+
+  test('future checkpoint version fails explicitly', () async {
+    expect(
+      () => provider.readChanges(HealthSyncCheckpoint(
+        providerId: provider.providerId,
+        metric: HealthMetric.distance,
+        cursor: '{"version":2,"phase":"changes","token":"future"}',
+        historyStart: DateTime.utc(2025, 12, 3),
+      )),
+      throwsFormatException,
+    );
+    expect(bridge.calls, isEmpty);
+  });
+
+  test('preserves complete, partial and absent optional device metadata',
+      () async {
+    for (final metadata in <({Object? manufacturer, Object? model})>[
+      (manufacturer: 'Example', model: 'Watch 1'),
+      (manufacturer: 'Example', model: null),
+      (manufacturer: '', model: ''),
+    ]) {
+      bridge.responses['readInitial'] = {
+        'records': [
+          _record(
+            metric: 'steps',
+            value: 1,
+            deviceManufacturer: metadata.manufacturer,
+            deviceModel: metadata.model,
+          ),
+        ],
+        'pageToken': null,
+        'changesToken': 'changes-1',
+      };
+
+      final page = await provider.readChanges(HealthSyncCheckpoint(
+        providerId: provider.providerId,
+        metric: HealthMetric.steps,
+        historyStart: DateTime.utc(2025, 12, 3),
+      ));
+
+      expect(
+        page.records.single.provenance.manufacturer,
+        metadata.manufacturer == '' ? isNull : metadata.manufacturer,
+      );
+      expect(
+        page.records.single.provenance.deviceModel,
+        metadata.model == '' ? isNull : metadata.model,
+      );
+    }
   });
 
   test('native read failures retain a safe provider category', () async {
@@ -236,7 +306,13 @@ void main() {
   });
 }
 
-Map<String, Object?> _record({required String metric, required num value}) => {
+Map<String, Object?> _record({
+  required String metric,
+  required num value,
+  Object? deviceManufacturer,
+  Object? deviceModel,
+}) =>
+    {
       'recordId': 'record-7',
       'metric': metric,
       'value': value,
@@ -255,8 +331,8 @@ Map<String, Object?> _record({required String metric, required num value}) => {
       'lastModifiedTime': '2026-01-02T10:31:00Z',
       'clientRecordVersion': '2',
       'sourceApplicationId': 'test.writer',
-      'deviceManufacturer': null,
-      'deviceModel': null,
+      'deviceManufacturer': deviceManufacturer,
+      'deviceModel': deviceModel,
       'recordingMethod': 'sensor',
       'deleted': false,
     };

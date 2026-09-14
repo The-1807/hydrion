@@ -2,6 +2,7 @@ package com.the1807.hydrion
 
 import android.content.Intent
 import android.os.Build
+import android.os.DeadObjectException
 import android.os.RemoteException
 import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
@@ -27,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.reflect.KClass
 
@@ -34,9 +36,7 @@ import kotlin.reflect.KClass
 internal class AndroidHealthConnectHost(private val activity: MainActivity) {
     private var cachedClient: HealthConnectClient? = null
     private val client: HealthConnectClient
-        get() = cachedClient ?: HealthConnectClient.getOrCreate(activity).also {
-            cachedClient = it
-        }
+        get() = cachedClient ?: createClient().also { cachedClient = it }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var pendingPermissionResult: MethodChannel.Result? = null
     private val permissionContract =
@@ -307,9 +307,16 @@ internal class AndroidHealthConnectHost(private val activity: MainActivity) {
         try {
             val value = try {
                 operation()
-            } catch (_: RemoteException) {
-                Log.w(TAG, "$operationName retrying after RemoteException")
-                cachedClient = null
+            } catch (error: RemoteException) {
+                Log.w(
+                    TAG,
+                    "$operationName rebind after RemoteException " +
+                        "deadObject=${error is DeadObjectException} " +
+                        "foreground=${activity.hasWindowFocus()} " +
+                        "finishing=${activity.isFinishing} destroyed=${activity.isDestroyed}",
+                )
+                cachedClient = createClient()
+                delay(REBIND_SETTLE_MILLIS)
                 operation()
             }
             withContext(Dispatchers.Main) { result.success(value) }
@@ -382,11 +389,15 @@ internal class AndroidHealthConnectHost(private val activity: MainActivity) {
     private fun optionalBounded(value: String?, maximum: Int): String? =
         value?.takeIf { it.isNotBlank() }?.let { bounded(it, maximum) }
 
+    private fun createClient(): HealthConnectClient =
+        HealthConnectClient.getOrCreate(activity.applicationContext)
+
     private companion object {
         const val MAX_PAGE_SIZE = 250
         const val MAX_IDENTIFIER_LENGTH = 512
         const val MAX_TEXT_LENGTH = 200
         const val PERMISSION_REQUEST_CODE = 7180
+        const val REBIND_SETTLE_MILLIS = 1000L
         const val TAG = "HydrionHealthConnect"
         val ALL_METRICS = setOf("workout", "activeEnergy", "steps", "distance")
     }

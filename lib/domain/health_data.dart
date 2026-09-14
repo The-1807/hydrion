@@ -388,11 +388,35 @@ class HealthSynchronizationResult {
   final int duplicateCount;
   final int rejectedCount;
   final String? reasonCode;
+  final Map<HealthMetric, HealthMetricSynchronizationResult> metricResults;
 
   const HealthSynchronizationResult({
     required this.status,
     this.recordsRead = 0,
     this.importedCount = 0,
+    this.insertedCount = 0,
+    this.updatedCount = 0,
+    this.deletedCount = 0,
+    this.duplicateCount = 0,
+    this.rejectedCount = 0,
+    this.reasonCode,
+    this.metricResults = const {},
+  });
+}
+
+class HealthMetricSynchronizationResult {
+  final HealthSyncStatus status;
+  final int recordsRead;
+  final int insertedCount;
+  final int updatedCount;
+  final int deletedCount;
+  final int duplicateCount;
+  final int rejectedCount;
+  final String? reasonCode;
+
+  const HealthMetricSynchronizationResult({
+    required this.status,
+    this.recordsRead = 0,
     this.insertedCount = 0,
     this.updatedCount = 0,
     this.deletedCount = 0,
