@@ -64,6 +64,9 @@ void main() {
       );
 
       expect(result.status, HealthSyncStatus.success);
+      expect(result.recordsRead, 1);
+      expect(result.insertedCount, 1);
+      expect(result.updatedCount, 0);
       expect(provider.permissionRequestCount, 1);
       expect(await repository.records(), hasLength(1));
       expect(
@@ -88,15 +91,19 @@ void main() {
         repository: repository,
       );
 
-      await coordinator.synchronize(
+      final first = await coordinator.synchronize(
         providerId: provider.providerId,
         metrics: {HealthMetric.workout},
       );
-      await coordinator.synchronize(
+      final second = await coordinator.synchronize(
         providerId: provider.providerId,
         metrics: {HealthMetric.workout},
       );
 
+      expect(first.insertedCount, 1);
+      expect(first.updatedCount, 0);
+      expect(second.insertedCount, 0);
+      expect(second.updatedCount, 1);
       expect(await repository.records(), hasLength(1));
     });
 
@@ -175,6 +182,8 @@ void main() {
       );
 
       expect(result.status, HealthSyncStatus.failed);
+      expect(result.recordsRead, 1);
+      expect(result.rejectedCount, 0);
       expect(result.reasonCode, 'provider_or_repository_failure');
     });
 
@@ -233,6 +242,8 @@ void main() {
       );
 
       expect(result.status, HealthSyncStatus.failed);
+      expect(result.recordsRead, 1);
+      expect(result.rejectedCount, 1);
       expect(
         await repository.checkpointFor(
           provider.providerId,
@@ -337,6 +348,44 @@ void main() {
       expect(result.deletedCount, 1);
       expect(await repository.records(), isEmpty);
       expect(await repository.records(includeDeleted: true), hasLength(1));
+    });
+
+    test('identifier-only tombstone retains stored provenance and deletes row',
+        () async {
+      final repository = MemoryHealthDataRepository();
+      final original = _record(id: 'one', externalId: 'external-one');
+      final unknownSourceTombstone = _record(
+        id: 'placeholder',
+        externalId: 'external-one',
+        sourceApp: 'unknown',
+        synchronizationVersion: 'deleted',
+        isDeleted: true,
+      );
+      final provider = _FakeHealthProvider(pages: [
+        _page([original]),
+        _page([unknownSourceTombstone]),
+      ]);
+      final coordinator = HealthDataSyncCoordinator(
+        providers: [provider],
+        repository: repository,
+        clock: () => DateTime.utc(2026, 9, 12),
+      );
+
+      await coordinator.synchronize(
+        providerId: provider.providerId,
+        metrics: {HealthMetric.workout},
+      );
+      final result = await coordinator.synchronize(
+        providerId: provider.providerId,
+        metrics: {HealthMetric.workout},
+      );
+
+      expect(result.deletedCount, 1);
+      expect(await repository.records(), isEmpty);
+      final deleted = (await repository.records(includeDeleted: true)).single;
+      expect(deleted.id, 'one');
+      expect(deleted.provenance.sourceApplicationId, 'vendor-health-app');
+      expect(deleted.isDeleted, isTrue);
     });
 
     test('a failed transaction can be retried without duplicate state',

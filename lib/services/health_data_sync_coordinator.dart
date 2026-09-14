@@ -83,17 +83,24 @@ class HealthDataSyncCoordinator {
       );
     }
 
-    var imported = 0;
+    var recordsRead = 0;
+    var inserted = 0;
+    var updated = 0;
     var deleted = 0;
     var duplicates = 0;
+    var rejected = 0;
     try {
       for (final metric in permitted) {
         if (isCancelled?.call() ?? false) {
           return HealthSynchronizationResult(
             status: HealthSyncStatus.cancelled,
-            importedCount: imported,
+            recordsRead: recordsRead,
+            importedCount: inserted + updated,
+            insertedCount: inserted,
+            updatedCount: updated,
             deletedCount: deleted,
             duplicateCount: duplicates,
+            rejectedCount: rejected,
             reasonCode: 'synchronization_cancelled',
           );
         }
@@ -108,9 +115,13 @@ class HealthDataSyncCoordinator {
           if (isCancelled?.call() ?? false) {
             return HealthSynchronizationResult(
               status: HealthSyncStatus.cancelled,
-              importedCount: imported,
+              recordsRead: recordsRead,
+              importedCount: inserted + updated,
+              insertedCount: inserted,
+              updatedCount: updated,
               deletedCount: deleted,
               duplicateCount: duplicates,
+              rejectedCount: rejected,
               reasonCode: 'synchronization_cancelled',
             );
           }
@@ -127,27 +138,63 @@ class HealthDataSyncCoordinator {
             }
           }
           final existing = await _allRecords(metric);
-          final classified = _classifyDuplicates(existing, page.records);
+          final reconciled = _reconcileDeletions(existing, page.records);
+          recordsRead += page.records.length;
+          late final List<CanonicalHealthRecord> classified;
+          try {
+            classified = _classifyDuplicates(existing, reconciled);
+          } on FormatException {
+            rejected += 1;
+            rethrow;
+          }
+          final existingKeys = {
+            for (final record in existing) record.providerRecordKey,
+          };
           await _repository.commitImport(
             records: classified,
             checkpoint: page.nextCheckpoint,
           );
           duplicates +=
               classified.where((r) => r.duplicateOfRecordId != null).length;
-          imported += classified.where((r) => !r.isDeleted).length;
+          inserted += classified
+              .where((r) =>
+                  !r.isDeleted && !existingKeys.contains(r.providerRecordKey))
+              .length;
+          updated += classified
+              .where((r) =>
+                  !r.isDeleted && existingKeys.contains(r.providerRecordKey))
+              .length;
           deleted += classified.where((r) => r.isDeleted).length;
           checkpoint = page.nextCheckpoint;
           hasMore = page.hasMore;
         }
       }
-    } catch (_) {
+    } on HealthDataProviderException catch (error) {
       return HealthSynchronizationResult(
-        status: imported + deleted > 0
+        status: inserted + updated + deleted > 0
             ? HealthSyncStatus.partial
             : HealthSyncStatus.failed,
-        importedCount: imported,
+        recordsRead: recordsRead,
+        importedCount: inserted + updated,
+        insertedCount: inserted,
+        updatedCount: updated,
         deletedCount: deleted,
         duplicateCount: duplicates,
+        rejectedCount: rejected,
+        reasonCode: error.reasonCode,
+      );
+    } catch (_) {
+      return HealthSynchronizationResult(
+        status: inserted + updated + deleted > 0
+            ? HealthSyncStatus.partial
+            : HealthSyncStatus.failed,
+        recordsRead: recordsRead,
+        importedCount: inserted + updated,
+        insertedCount: inserted,
+        updatedCount: updated,
+        deletedCount: deleted,
+        duplicateCount: duplicates,
+        rejectedCount: rejected,
         reasonCode: 'provider_or_repository_failure',
       );
     }
@@ -156,9 +203,13 @@ class HealthDataSyncCoordinator {
       status: permitted.length == requested.length
           ? HealthSyncStatus.success
           : HealthSyncStatus.partial,
-      importedCount: imported,
+      recordsRead: recordsRead,
+      importedCount: inserted + updated,
+      insertedCount: inserted,
+      updatedCount: updated,
       deletedCount: deleted,
       duplicateCount: duplicates,
+      rejectedCount: rejected,
     );
   }
 
@@ -211,6 +262,25 @@ class HealthDataSyncCoordinator {
       exact[record.providerRecordKey] = record;
     }
     return result;
+  }
+
+  List<CanonicalHealthRecord> _reconcileDeletions(
+    List<CanonicalHealthRecord> existing,
+    List<CanonicalHealthRecord> incoming,
+  ) {
+    final existingByExternalId = <String, CanonicalHealthRecord>{
+      for (final record in existing)
+        if (record.providerId.isNotEmpty) record.externalRecordId: record,
+    };
+    return incoming.map((record) {
+      if (!record.isDeleted) return record;
+      final original = existingByExternalId[record.externalRecordId];
+      return original?.asDeleted(
+            ingestedAt: _clock().toUtc(),
+            synchronizationVersion: record.synchronizationVersion,
+          ) ??
+          record;
+    }).toList(growable: false);
   }
 
   String _fingerprint(CanonicalHealthRecord record) {

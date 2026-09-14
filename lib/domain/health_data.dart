@@ -305,6 +305,47 @@ class CanonicalHealthRecord {
       providerMetadata: providerMetadata,
     );
   }
+
+  CanonicalHealthRecord asDeleted({
+    required DateTime ingestedAt,
+    String synchronizationVersion = 'deleted',
+  }) {
+    return CanonicalHealthRecord(
+      schemaVersion: schemaVersion,
+      id: id,
+      providerId: providerId,
+      externalRecordId: externalRecordId,
+      synchronizationVersion: synchronizationVersion,
+      metric: metric,
+      semanticId: semanticId,
+      semanticVersion: semanticVersion,
+      value: value,
+      originalUnit: originalUnit,
+      unit: unit,
+      category: category,
+      startTime: startTime,
+      endTime: endTime,
+      sourceTimeZone: sourceTimeZone,
+      sourceUtcOffset: sourceUtcOffset,
+      recordedAt: recordedAt,
+      createdAt: createdAt,
+      modifiedAt: modifiedAt,
+      ingestedAt: ingestedAt,
+      temporalPrecision: temporalPrecision,
+      shape: shape,
+      aggregationMethod: aggregationMethod,
+      valueOrigin: valueOrigin,
+      provenance: provenance,
+      quality: quality,
+      isDeleted: true,
+      supersedesExternalRecordId: supersedesExternalRecordId,
+      duplicateOfRecordId: duplicateOfRecordId,
+      algorithmVersion: algorithmVersion,
+      contributingRecordIds: contributingRecordIds,
+      providerMetadataVersion: providerMetadataVersion,
+      providerMetadata: providerMetadata,
+    );
+  }
 }
 
 class HealthSyncCheckpoint {
@@ -339,18 +380,32 @@ class HealthImportPage {
 
 class HealthSynchronizationResult {
   final HealthSyncStatus status;
+  final int recordsRead;
   final int importedCount;
+  final int insertedCount;
+  final int updatedCount;
   final int deletedCount;
   final int duplicateCount;
+  final int rejectedCount;
   final String? reasonCode;
 
   const HealthSynchronizationResult({
     required this.status,
+    this.recordsRead = 0,
     this.importedCount = 0,
+    this.insertedCount = 0,
+    this.updatedCount = 0,
     this.deletedCount = 0,
     this.duplicateCount = 0,
+    this.rejectedCount = 0,
     this.reasonCode,
   });
+}
+
+class HealthDataProviderException implements Exception {
+  final String reasonCode;
+
+  const HealthDataProviderException(this.reasonCode);
 }
 
 abstract interface class HealthDataProvider {
@@ -369,4 +424,13 @@ abstract interface class HealthDataProvider {
   );
 
   Future<HealthImportPage> readChanges(HealthSyncCheckpoint checkpoint);
+}
+
+abstract interface class UserManagedHealthDataProvider
+    implements HealthDataProvider {
+  Set<HealthMetric> get connectionMetrics;
+
+  bool get readAuthorizationIsOpaque;
+
+  Future<void> openSettings();
 }
