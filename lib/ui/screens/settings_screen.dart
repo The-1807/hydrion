@@ -51,6 +51,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           const _PermissionsCard(),
           const SizedBox(height: 12),
+          const _HealthDataCard(),
+          const SizedBox(height: 12),
           const _HelpCard(),
           const SizedBox(height: 12),
           const _LegalAboutCard(),
@@ -599,6 +601,25 @@ class _PermissionsCard extends StatelessWidget {
         subtitle: Text(l10n.permissionsSummary),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => Navigator.of(context).pushNamed('/permissions'),
+      ),
+    );
+  }
+}
+
+class _HealthDataCard extends StatelessWidget {
+  const _HealthDataCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Card(
+      child: ListTile(
+        key: const Key('settings-health-data'),
+        leading: const Icon(Icons.health_and_safety_outlined),
+        title: Text(l10n.healthDataTitle),
+        subtitle: Text(l10n.healthDataSettingsSummary),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).pushNamed('/health-data'),
       ),
     );
   }

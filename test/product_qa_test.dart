@@ -28,7 +28,7 @@ void main() {
     expect(find.byKey(const Key('coach-coming-soon')), findsNothing);
   });
 
-  testWidgets('product QA: Settings expose working V1 controls only',
+  testWidgets('product QA: Settings expose working controls only',
       (tester) async {
     await pumpApp(tester);
     await tester.tap(find.byIcon(Icons.settings));
@@ -38,8 +38,8 @@ void main() {
     expect(find.byKey(const Key('settings-daily-goal-field')), findsOneWidget);
     expect(find.text('Reusable container'), findsOneWidget);
     expect(find.text('Legal, privacy, and support'), findsOneWidget);
+    expect(find.byKey(const Key('settings-health-data')), findsOneWidget);
     expect(find.textContaining('Gemini'), findsNothing);
-    expect(find.textContaining('provider'), findsNothing);
     expect(find.textContaining('diagnostic'), findsNothing);
     expect(find.textContaining('adapter'), findsNothing);
   });

@@ -61,7 +61,7 @@ class _StringToken {
 }
 
 const _technicalValues = {'mL', 'oz'};
-const _properNames = {'Hydrion'};
+const _properNames = {'Hydrion', 'HYDRION'};
 const _languagePickerAutonyms = {
   'Choisissez votre langue',
   'Elige tu idioma',
@@ -305,6 +305,52 @@ ProductionStringFinding _classify(
   final diagnosticContextStart = token.start > 180 ? token.start - 180 : 0;
   final diagnosticContext =
       source.substring(diagnosticContextStart, token.start);
+  final healthBoundaryFile =
+      path.endsWith('encrypted_health_data_repository.dart') ||
+          path.endsWith('health_data_repository.dart') ||
+          path.endsWith('android_health_provider_discovery.dart') ||
+          path.endsWith('health_connect_provider.dart');
+  final healthMachineIdentifier = value == 'serviceName' ||
+      value.startsWith('SELECT * FROM health_') ||
+      value.startsWith('DELETE FROM health_');
+  if (healthBoundaryFile && healthMachineIdentifier) {
+    return _finding(
+        path,
+        source,
+        token,
+        ProductionStringClassification.stableIdentifier,
+        true,
+        'Health storage or platform-channel identifier.',
+        allowlistReason:
+            'This value is used only for SQL or structured platform-channel lookup and is never rendered.');
+  }
+  if (healthBoundaryFile &&
+      (value.startsWith('HealthRepositoryOpenException(') ||
+          diagnosticContext.contains('throw ') ||
+          diagnosticContext.contains('ArgumentError(') ||
+          diagnosticContext.contains('StateError('))) {
+    return _finding(
+        path,
+        source,
+        token,
+        ProductionStringClassification.diagnostic,
+        true,
+        'Typed health-boundary diagnostic.',
+        allowlistReason:
+            'The connection controller catches provider and persistence failures and exposes only stable codes mapped to localized safe copy; exception text is never rendered.');
+  }
+  if (path.endsWith('hydration_report_pdf.dart') &&
+      (value == 'x' || value.startsWith(r'x ${labels.'))) {
+    return _finding(
+        path,
+        source,
+        token,
+        ProductionStringClassification.formattingValue,
+        true,
+        'Locale-neutral missing-data chart marker.',
+        allowlistReason:
+            'The x is a chart symbol; its adjacent missing-data label is localized.');
+  }
   if ((path.endsWith('gemini_adapter.dart') &&
           (diagnosticContext.contains('GeminiProviderException(') ||
               diagnosticContext.contains('GeminiProviderUnavailable('))) ||

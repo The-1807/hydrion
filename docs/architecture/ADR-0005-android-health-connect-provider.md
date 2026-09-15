@@ -1,6 +1,6 @@
 # ADR-0005: Android Health Connect Provider
 
-- Status: accepted for implementation, physical record verification pending
+- Status: implemented; synthetic physical record flow verified, production source certification pending
 - Date: 2026-09-12
 
 ## Context
@@ -62,7 +62,17 @@ temporary fallback repository.
 ## Consequences
 
 The Android build gains the AndroidX Health Connect client and its native/code
-footprint. Health Connect support is implemented but remains uncertified until
-the isolated physical test package completes explicit permission, synthetic
-record import, correction, deletion and cleanup tests. HealthKit and vendor
-routes remain unimplemented.
+footprint. On the authorized Android 13 Infinix test device, the isolated package
+imported three synthetic Toolbox records, deduplicated a duplicate workout,
+accepted missing optional device metadata and produced zero new records on
+repeat sync. Imported records and connection state persisted through
+force-stop/relaunch. This verifies the Android adapter with synthetic provider
+data, not a production wearable export route. HealthKit and vendor routes remain
+unimplemented.
+
+The same device's XOS AutoStart policy can prevent the standalone Health Connect
+service from launching after its process is killed. Android reports `AutoStart
+Limit`, and the official Health Connect Toolbox fails with the same binding
+`RemoteException`. The native host makes one bounded fresh-client rebind and then
+fails explicitly. Source mutation, permission revocation/restoration and reliable
+cold provider launch remain physical acceptance blockers.

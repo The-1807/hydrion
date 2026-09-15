@@ -370,16 +370,48 @@ class AndroidHealthConnectProvider implements UserManagedHealthDataProvider {
     }
   }
 
-  static String _encodeCursor(Map<String, Object?> value) => jsonEncode(value);
+  static const _checkpointVersion = 1;
+  static const _maximumLegacyTokenLength = 4096;
+
+  static String _encodeCursor(Map<String, Object?> value) => jsonEncode({
+        'version': _checkpointVersion,
+        ...value,
+      });
 
   static Map<String, Object?>? _decodeCursor(String? cursor) {
-    if (cursor == null) return null;
-    try {
-      final decoded = jsonDecode(cursor);
-      return decoded is Map ? Map<String, Object?>.from(decoded) : null;
-    } on FormatException {
-      return null;
+    if (cursor == null || cursor.trim().isEmpty) return null;
+    final trimmed = cursor.trim();
+    if (!trimmed.startsWith('{')) {
+      if (trimmed.length > _maximumLegacyTokenLength) {
+        throw const FormatException(
+            'Legacy Health Connect checkpoint is too long.');
+      }
+      return <String, Object?>{
+        'version': 0,
+        'phase': 'changes',
+        'token': trimmed,
+      };
     }
+    late final Object? decoded;
+    try {
+      decoded = jsonDecode(trimmed);
+    } on FormatException {
+      throw const FormatException('Malformed Health Connect checkpoint.');
+    }
+    if (decoded is! Map) {
+      throw const FormatException('Invalid Health Connect checkpoint.');
+    }
+    final value = Map<String, Object?>.from(decoded);
+    final version = value['version'];
+    if (version != null && version != _checkpointVersion) {
+      throw const FormatException(
+          'Unsupported Health Connect checkpoint version.');
+    }
+    final phase = value['phase'];
+    if (phase != 'initial' && phase != 'changes') {
+      throw const FormatException('Unknown Health Connect checkpoint phase.');
+    }
+    return value;
   }
 
   static String _semanticId(HealthMetric metric) => switch (metric) {
