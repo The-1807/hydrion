@@ -1,5 +1,11 @@
 # Hydrion Wearable and Health Data Integration Architecture
 
+> Implementation status, 2026-09-15: Android Health Connect is implemented with
+> synthetic physical-provider evidence. The iOS Apple Health reader is implemented
+> on `feature/healthkit-provider` but remains unverified until macOS compilation and
+> physical-iPhone acceptance. Earlier current-state statements below describe the
+> pre-implementation audit baseline and are retained as architectural history.
+
 ## 1. Document Status
 
 - **Status:** Architecture decision and feasibility audit; no wearable integration is implemented by this document.

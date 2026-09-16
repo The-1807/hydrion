@@ -5347,6 +5347,455 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recorded hydration'**
   String get reportsVisualization;
+
+  /// No description provided for @healthDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect health data'**
+  String get healthDataTitle;
+
+  /// No description provided for @healthDataSettingsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Import approved activity records from a provider available on this device.'**
+  String get healthDataSettingsSummary;
+
+  /// No description provided for @healthDataProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider'**
+  String get healthDataProvider;
+
+  /// No description provided for @healthDataHealthConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Health Connect'**
+  String get healthDataHealthConnect;
+
+  /// No description provided for @healthDataAppleHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Health'**
+  String get healthDataAppleHealth;
+
+  /// No description provided for @healthDataAppleAccessRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Health access was requested. Apple protects your choices, so Hydrion cannot display which read categories you allowed.'**
+  String get healthDataAppleAccessRequested;
+
+  /// No description provided for @healthDataContributingSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Contributing sources:'**
+  String get healthDataContributingSources;
+
+  /// No description provided for @healthDataAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This health-data provider is available on this device.'**
+  String get healthDataAvailable;
+
+  /// No description provided for @healthDataLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking available health-data providers...'**
+  String get healthDataLoading;
+
+  /// No description provided for @healthDataInstallationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Install Health Connect to use Android health data.'**
+  String get healthDataInstallationRequired;
+
+  /// No description provided for @healthDataUpdateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Health Connect before connecting.'**
+  String get healthDataUpdateRequired;
+
+  /// No description provided for @healthDataUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Health Connect is not supported in this device profile.'**
+  String get healthDataUnsupported;
+
+  /// No description provided for @healthDataPermissionNotRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Health access has not been requested.'**
+  String get healthDataPermissionNotRequested;
+
+  /// No description provided for @healthDataPermissionPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Some requested categories are not allowed.'**
+  String get healthDataPermissionPartial;
+
+  /// No description provided for @healthDataPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Health access is not allowed. Manual hydration remains available.'**
+  String get healthDataPermissionDenied;
+
+  /// No description provided for @healthDataConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected for read-only health data.'**
+  String get healthDataConnected;
+
+  /// No description provided for @healthDataConnectedNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected, but no readable records were found.'**
+  String get healthDataConnectedNoData;
+
+  /// No description provided for @healthDataSynchronizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronizing health data...'**
+  String get healthDataSynchronizing;
+
+  /// No description provided for @healthDataSyncPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization completed with some categories unavailable.'**
+  String get healthDataSyncPartial;
+
+  /// No description provided for @healthDataSuccessfulCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronized categories: {categories}'**
+  String healthDataSuccessfulCategories({required String categories});
+
+  /// No description provided for @healthDataFailedCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories needing attention: {categories}'**
+  String healthDataFailedCategories({required String categories});
+
+  /// No description provided for @healthDataRetryFailedCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry failed categories'**
+  String get healthDataRetryFailedCategories;
+
+  /// No description provided for @healthDataSyncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Health data could not be synchronized.'**
+  String get healthDataSyncFailed;
+
+  /// No description provided for @healthDataStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected health-data storage is unavailable. No records were imported.'**
+  String get healthDataStorageUnavailable;
+
+  /// No description provided for @healthDataProviderFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'The health-data provider could not be refreshed. Try again or manage provider access.'**
+  String get healthDataProviderFailure;
+
+  /// No description provided for @healthDataDisconnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnected inside Hydrion. Source permissions remain controlled by the health-data provider.'**
+  String get healthDataDisconnected;
+
+  /// No description provided for @healthDataConsentIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion requests read-only access from the provider shown above only after you choose Connect.'**
+  String get healthDataConsentIntro;
+
+  /// No description provided for @healthDataCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested categories'**
+  String get healthDataCategories;
+
+  /// No description provided for @healthDataWorkouts.
+  ///
+  /// In en, this message translates to:
+  /// **'Workouts'**
+  String get healthDataWorkouts;
+
+  /// No description provided for @healthDataActiveEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Active energy'**
+  String get healthDataActiveEnergy;
+
+  /// No description provided for @healthDataSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps'**
+  String get healthDataSteps;
+
+  /// No description provided for @healthDataDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get healthDataDistance;
+
+  /// No description provided for @healthDataCategoryExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Workouts provide activity duration. Active energy provides exertion context. Steps and distance provide fallback activity context without being added twice.'**
+  String get healthDataCategoryExplanation;
+
+  /// No description provided for @healthDataPrivacyExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported records remain encrypted on this device. No Hydrion account or cloud upload is required. You can decline, manage provider access, disconnect, or delete Hydrion\'s imported copy without deleting source records.'**
+  String get healthDataPrivacyExplanation;
+
+  /// No description provided for @healthDataWellnessDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'This is wellness information, not a medical diagnosis. Imported data does not change your hydration target in this version.'**
+  String get healthDataWellnessDisclaimer;
+
+  /// No description provided for @healthDataConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get healthDataConnect;
+
+  /// No description provided for @healthDataRequestMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Request missing access'**
+  String get healthDataRequestMissing;
+
+  /// No description provided for @healthDataSynchronize.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronize'**
+  String get healthDataSynchronize;
+
+  /// No description provided for @healthDataOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Android settings'**
+  String get healthDataOpenSettings;
+
+  /// No description provided for @healthDataDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get healthDataDisconnect;
+
+  /// No description provided for @healthDataDeleteImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete imported data'**
+  String get healthDataDeleteImported;
+
+  /// No description provided for @healthDataDeleteQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Hydrion\'s imported health data?'**
+  String get healthDataDeleteQuestion;
+
+  /// No description provided for @healthDataDeleteExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes Hydrion\'s encrypted imported copy and checkpoints. It does not delete records from the source provider or manual hydration history.'**
+  String get healthDataDeleteExplanation;
+
+  /// No description provided for @healthDataImportedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported records: {count}'**
+  String healthDataImportedCount({required int count});
+
+  /// No description provided for @healthDataGrantedCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Granted: {categories}'**
+  String healthDataGrantedCategories({required String categories});
+
+  /// No description provided for @healthDataNoGrantedCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Granted: none'**
+  String get healthDataNoGrantedCategories;
+
+  /// No description provided for @healthDataContributors.
+  ///
+  /// In en, this message translates to:
+  /// **'Contributing applications: {applications}'**
+  String healthDataContributors({required String applications});
+
+  /// No description provided for @healthDataNoContributors.
+  ///
+  /// In en, this message translates to:
+  /// **'Contributing applications: none found'**
+  String get healthDataNoContributors;
+
+  /// No description provided for @healthDataLastSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Last successful synchronization: {time}'**
+  String healthDataLastSuccessful({required String time});
+
+  /// No description provided for @healthDataNeverSynchronized.
+  ///
+  /// In en, this message translates to:
+  /// **'Last successful synchronization: never'**
+  String get healthDataNeverSynchronized;
+
+  /// No description provided for @healthDataDashboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Health data'**
+  String get healthDataDashboardTitle;
+
+  /// No description provided for @healthDataPermissionRequesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening provider permissions...'**
+  String get healthDataPermissionRequesting;
+
+  /// No description provided for @healthDataConnectedNotSynchronized.
+  ///
+  /// In en, this message translates to:
+  /// **'Health-data provider connected'**
+  String get healthDataConnectedNotSynchronized;
+
+  /// No description provided for @healthDataNoSyncYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No synchronization completed yet.'**
+  String get healthDataNoSyncYet;
+
+  /// No description provided for @healthDataSynchronizedWithRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected and synchronized'**
+  String get healthDataSynchronizedWithRecords;
+
+  /// No description provided for @healthDataSynchronizedNoRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected, but no health data was found'**
+  String get healthDataSynchronizedNoRecords;
+
+  /// No description provided for @healthDataNoDataExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'The provider returned no readable workout, energy, step, or distance records. This can mean no matching data is available or read access was not allowed. Check the source application, then try again.'**
+  String get healthDataNoDataExplanation;
+
+  /// No description provided for @healthDataPermissionRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'Health access needs attention'**
+  String get healthDataPermissionRevoked;
+
+  /// No description provided for @healthDataMissingCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing access: {categories}'**
+  String healthDataMissingCategories({required String categories});
+
+  /// No description provided for @healthDataLastAttempt.
+  ///
+  /// In en, this message translates to:
+  /// **'Last attempt: {time}'**
+  String healthDataLastAttempt({required String time});
+
+  /// No description provided for @healthDataLatestAttemptFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The latest synchronization failed. Previously imported records were not affected.'**
+  String get healthDataLatestAttemptFailed;
+
+  /// No description provided for @healthDataSyncCounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest sync: {read} read, {inserted} new, {updated} updated, {deleted} deleted, {rejected} rejected'**
+  String healthDataSyncCounts(
+      {required int read,
+      required int inserted,
+      required int updated,
+      required int deleted,
+      required int rejected});
+
+  /// No description provided for @healthDataRecordPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Available period: {start} - {end}'**
+  String healthDataRecordPeriod({required String start, required String end});
+
+  /// No description provided for @healthDataSourceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{source}: {count} records'**
+  String healthDataSourceCount({required String source, required int count});
+
+  /// No description provided for @healthDataDataAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Data available'**
+  String get healthDataDataAvailable;
+
+  /// No description provided for @healthDataWhatReads.
+  ///
+  /// In en, this message translates to:
+  /// **'What Hydrion reads'**
+  String get healthDataWhatReads;
+
+  /// No description provided for @healthDataSyncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get healthDataSyncNow;
+
+  /// No description provided for @healthDataTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get healthDataTryAgain;
+
+  /// No description provided for @healthDataManageAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage access'**
+  String get healthDataManageAccess;
+
+  /// No description provided for @healthDataCheckHealthConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Health Connect'**
+  String get healthDataCheckHealthConnect;
+
+  /// No description provided for @healthDataReadingSecurely.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading authorized records securely. Do not close Hydrion.'**
+  String get healthDataReadingSecurely;
+
+  /// No description provided for @healthDataReasonUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The health-data provider was unavailable.'**
+  String get healthDataReasonUnavailable;
+
+  /// No description provided for @healthDataReasonPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Health access was denied or revoked.'**
+  String get healthDataReasonPermission;
+
+  /// No description provided for @healthDataReasonOperation.
+  ///
+  /// In en, this message translates to:
+  /// **'The secure synchronization operation could not complete.'**
+  String get healthDataReasonOperation;
 }
 
 class _AppLocalizationsDelegate

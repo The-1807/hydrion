@@ -3079,4 +3079,284 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsVisualization => 'Recorded hydration';
+
+  @override
+  String get healthDataTitle => 'Connect health data';
+
+  @override
+  String get healthDataSettingsSummary =>
+      'Import approved activity records from a provider available on this device.';
+
+  @override
+  String get healthDataProvider => 'Provider';
+
+  @override
+  String get healthDataHealthConnect => 'Health Connect';
+
+  @override
+  String get healthDataAppleHealth => 'Apple Health';
+
+  @override
+  String get healthDataAppleAccessRequested =>
+      'Apple Health access was requested. Apple protects your choices, so Hydrion cannot display which read categories you allowed.';
+
+  @override
+  String get healthDataContributingSources => 'Contributing sources:';
+
+  @override
+  String get healthDataAvailable =>
+      'This health-data provider is available on this device.';
+
+  @override
+  String get healthDataLoading => 'Checking available health-data providers...';
+
+  @override
+  String get healthDataInstallationRequired =>
+      'Install Health Connect to use Android health data.';
+
+  @override
+  String get healthDataUpdateRequired =>
+      'Update Health Connect before connecting.';
+
+  @override
+  String get healthDataUnsupported =>
+      'Health Connect is not supported in this device profile.';
+
+  @override
+  String get healthDataPermissionNotRequested =>
+      'Health access has not been requested.';
+
+  @override
+  String get healthDataPermissionPartial =>
+      'Some requested categories are not allowed.';
+
+  @override
+  String get healthDataPermissionDenied =>
+      'Health access is not allowed. Manual hydration remains available.';
+
+  @override
+  String get healthDataConnected => 'Connected for read-only health data.';
+
+  @override
+  String get healthDataConnectedNoData =>
+      'Connected, but no readable records were found.';
+
+  @override
+  String get healthDataSynchronizing => 'Synchronizing health data...';
+
+  @override
+  String get healthDataSyncPartial =>
+      'Synchronization completed with some categories unavailable.';
+
+  @override
+  String healthDataSuccessfulCategories({required String categories}) {
+    return 'Synchronized categories: $categories';
+  }
+
+  @override
+  String healthDataFailedCategories({required String categories}) {
+    return 'Categories needing attention: $categories';
+  }
+
+  @override
+  String get healthDataRetryFailedCategories => 'Retry failed categories';
+
+  @override
+  String get healthDataSyncFailed => 'Health data could not be synchronized.';
+
+  @override
+  String get healthDataStorageUnavailable =>
+      'Protected health-data storage is unavailable. No records were imported.';
+
+  @override
+  String get healthDataProviderFailure =>
+      'The health-data provider could not be refreshed. Try again or manage provider access.';
+
+  @override
+  String get healthDataDisconnected =>
+      'Disconnected inside Hydrion. Source permissions remain controlled by the health-data provider.';
+
+  @override
+  String get healthDataConsentIntro =>
+      'Hydrion requests read-only access from the provider shown above only after you choose Connect.';
+
+  @override
+  String get healthDataCategories => 'Requested categories';
+
+  @override
+  String get healthDataWorkouts => 'Workouts';
+
+  @override
+  String get healthDataActiveEnergy => 'Active energy';
+
+  @override
+  String get healthDataSteps => 'Steps';
+
+  @override
+  String get healthDataDistance => 'Distance';
+
+  @override
+  String get healthDataCategoryExplanation =>
+      'Workouts provide activity duration. Active energy provides exertion context. Steps and distance provide fallback activity context without being added twice.';
+
+  @override
+  String get healthDataPrivacyExplanation =>
+      'Imported records remain encrypted on this device. No Hydrion account or cloud upload is required. You can decline, manage provider access, disconnect, or delete Hydrion\'s imported copy without deleting source records.';
+
+  @override
+  String get healthDataWellnessDisclaimer =>
+      'This is wellness information, not a medical diagnosis. Imported data does not change your hydration target in this version.';
+
+  @override
+  String get healthDataConnect => 'Connect';
+
+  @override
+  String get healthDataRequestMissing => 'Request missing access';
+
+  @override
+  String get healthDataSynchronize => 'Synchronize';
+
+  @override
+  String get healthDataOpenSettings => 'Open Android settings';
+
+  @override
+  String get healthDataDisconnect => 'Disconnect';
+
+  @override
+  String get healthDataDeleteImported => 'Delete imported data';
+
+  @override
+  String get healthDataDeleteQuestion =>
+      'Delete Hydrion\'s imported health data?';
+
+  @override
+  String get healthDataDeleteExplanation =>
+      'This removes Hydrion\'s encrypted imported copy and checkpoints. It does not delete records from the source provider or manual hydration history.';
+
+  @override
+  String healthDataImportedCount({required int count}) {
+    return 'Imported records: $count';
+  }
+
+  @override
+  String healthDataGrantedCategories({required String categories}) {
+    return 'Granted: $categories';
+  }
+
+  @override
+  String get healthDataNoGrantedCategories => 'Granted: none';
+
+  @override
+  String healthDataContributors({required String applications}) {
+    return 'Contributing applications: $applications';
+  }
+
+  @override
+  String get healthDataNoContributors =>
+      'Contributing applications: none found';
+
+  @override
+  String healthDataLastSuccessful({required String time}) {
+    return 'Last successful synchronization: $time';
+  }
+
+  @override
+  String get healthDataNeverSynchronized =>
+      'Last successful synchronization: never';
+
+  @override
+  String get healthDataDashboardTitle => 'Health data';
+
+  @override
+  String get healthDataPermissionRequesting =>
+      'Opening provider permissions...';
+
+  @override
+  String get healthDataConnectedNotSynchronized =>
+      'Health-data provider connected';
+
+  @override
+  String get healthDataNoSyncYet => 'No synchronization completed yet.';
+
+  @override
+  String get healthDataSynchronizedWithRecords => 'Connected and synchronized';
+
+  @override
+  String get healthDataSynchronizedNoRecords =>
+      'Connected, but no health data was found';
+
+  @override
+  String get healthDataNoDataExplanation =>
+      'The provider returned no readable workout, energy, step, or distance records. This can mean no matching data is available or read access was not allowed. Check the source application, then try again.';
+
+  @override
+  String get healthDataPermissionRevoked => 'Health access needs attention';
+
+  @override
+  String healthDataMissingCategories({required String categories}) {
+    return 'Missing access: $categories';
+  }
+
+  @override
+  String healthDataLastAttempt({required String time}) {
+    return 'Last attempt: $time';
+  }
+
+  @override
+  String get healthDataLatestAttemptFailed =>
+      'The latest synchronization failed. Previously imported records were not affected.';
+
+  @override
+  String healthDataSyncCounts(
+      {required int read,
+      required int inserted,
+      required int updated,
+      required int deleted,
+      required int rejected}) {
+    return 'Latest sync: $read read, $inserted new, $updated updated, $deleted deleted, $rejected rejected';
+  }
+
+  @override
+  String healthDataRecordPeriod({required String start, required String end}) {
+    return 'Available period: $start - $end';
+  }
+
+  @override
+  String healthDataSourceCount({required String source, required int count}) {
+    return '$source: $count records';
+  }
+
+  @override
+  String get healthDataDataAvailable => 'Data available';
+
+  @override
+  String get healthDataWhatReads => 'What Hydrion reads';
+
+  @override
+  String get healthDataSyncNow => 'Sync now';
+
+  @override
+  String get healthDataTryAgain => 'Try again';
+
+  @override
+  String get healthDataManageAccess => 'Manage access';
+
+  @override
+  String get healthDataCheckHealthConnect => 'Open Health Connect';
+
+  @override
+  String get healthDataReadingSecurely =>
+      'Reading authorized records securely. Do not close Hydrion.';
+
+  @override
+  String get healthDataReasonUnavailable =>
+      'The health-data provider was unavailable.';
+
+  @override
+  String get healthDataReasonPermission =>
+      'Health access was denied or revoked.';
+
+  @override
+  String get healthDataReasonOperation =>
+      'The secure synchronization operation could not complete.';
 }

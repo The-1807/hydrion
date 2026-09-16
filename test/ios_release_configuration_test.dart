@@ -20,6 +20,9 @@ void main() {
     '$repoRoot/ios/HydrionWidgets/HydrionWidgets.entitlements',
   );
   final widgetInfoFile = File('$repoRoot/ios/HydrionWidgets/Info.plist');
+  final runnerInfoFile = File('$repoRoot/ios/Runner/Info.plist');
+  final appDelegateFile = File('$repoRoot/ios/Runner/AppDelegate.swift');
+  final healthKitHostFile = File('$repoRoot/ios/Runner/HealthKitHost.swift');
   final pubspecFile = File('$repoRoot/pubspec.yaml');
 
   late String pbxproj;
@@ -134,6 +137,47 @@ void main() {
         reason: 'Runner, the Xcode project, and HydrionWidgets must each pin '
             'Debug, Release, and Profile to iOS 14.0. A missing Runner target '
             'override lets Xcode resolve the home-widget consumer as iOS 13.',
+      );
+    });
+
+    test('Runner declares a read-only HealthKit integration', () {
+      final entitlements = runnerEntitlementsFile.readAsStringSync();
+      final info = runnerInfoFile.readAsStringSync();
+      final appDelegate = appDelegateFile.readAsStringSync();
+      final healthKitHost = healthKitHostFile.readAsStringSync();
+
+      expect(entitlements, contains('com.apple.developer.healthkit'));
+      expect(info, contains('<key>NSHealthShareUsageDescription</key>'));
+      expect(info, isNot(contains('NSHealthUpdateUsageDescription')));
+      expect(healthKitHost, contains('requestAuthorization(toShare: [],'));
+      expect(healthKitHost, isNot(contains('store.save(')));
+      expect(appDelegate, contains('HealthKitHost(messenger:'));
+      expect(pbxproj, contains('HealthKitHost.swift in Sources'));
+      expect(pbxproj, contains('InfoPlist.strings in Resources'));
+      for (final locale in ['en', 'fr', 'es']) {
+        final localized = File(
+          '$repoRoot/ios/Runner/$locale.lproj/InfoPlist.strings',
+        ).readAsStringSync();
+        expect(localized, contains('NSHealthShareUsageDescription'));
+        expect(
+          localized,
+          anyOf(
+            contains('workout'),
+            contains('entrainements'),
+            contains('entrenamientos'),
+          ),
+        );
+      }
+    });
+
+    test('HealthKit capability remains isolated from the widget extension', () {
+      expect(
+        widgetsEntitlementsFile.readAsStringSync(),
+        isNot(contains('com.apple.developer.healthkit')),
+      );
+      expect(
+        widgetInfoFile.readAsStringSync(),
+        isNot(contains('NSHealthShareUsageDescription')),
       );
     });
   });

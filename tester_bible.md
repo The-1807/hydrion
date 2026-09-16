@@ -1343,6 +1343,26 @@ device. Record exact device, OS, provider app and metric details with results.
 
 ### Android Health Connect
 
+Automated Sprint 3 evidence is tracked separately from the physical checkboxes
+below. Provider mapping, explicit permission gating, bounded paging, changes
+tokens, expired-token recovery, corrections, identifier-only tombstones,
+deduplication, protected-storage failure, disconnect and local-only deletion have
+focused passing tests. None of those fakes certifies a physical Health Connect
+record flow.
+
+On the authorized Infinix X6835B, an isolated ARM64 Hydrion package imported
+three synthetic Toolbox records, accepted missing optional device metadata,
+deduplicated a duplicate workout and returned zero new records on repeat sync.
+Imported records, connection state and a 150 ml manual hydration entry persisted
+through force-stop/relaunch. This evidence does not certify a wearable source.
+
+Cold provider launch is currently blocked by the Infinix/XOS AutoStart policy
+after the standalone Health Connect process is killed. Both Hydrion and the
+official Google Health Connect Toolbox receive a binding `RemoteException` in
+that state. Opening Health Connect manually permits synchronization temporarily.
+Record this as blocked, not passed; Hydrion's single bounded rebind attempt must
+not be described as an OEM-policy bypass.
+
 - [ ] Unsupported Android version/device leaves manual hydration functional.
 - [ ] Health Connect missing or needing an update is distinguished from denied permission.
 - [ ] Permission is requested only after the user selects Connect.
@@ -1350,7 +1370,7 @@ device. Record exact device, OS, provider app and metric details with results.
 - [ ] Denial and later revocation preserve prior records and manual tracking.
 - [ ] Empty provider and missing metrics display honest non-connected/empty states.
 - [ ] Workout import preserves data origin, physical-device metadata and timestamps.
-- [ ] A repeated import does not duplicate a workout, steps, distance or active energy.
+- [x] A repeated import does not duplicate a workout, steps, distance or active energy.
 - [ ] Provider corrections replace the stable provider record without duplication.
 - [ ] Provider deletions stop the record contributing while retaining the local tombstone.
 - [ ] Interrupted synchronization retries from the committed checkpoint.
@@ -1362,6 +1382,13 @@ device. Record exact device, OS, provider app and metric details with results.
 - [ ] Storage growth, sync duration, memory and battery are measured with representative history.
 
 ### Apple HealthKit
+
+Windows automation now covers provider capability mapping, user-initiated consent,
+opaque read-authorization wording, all four canonical metric mappings, optional
+provenance, anchored updates/deletions, independent checkpoints, partial failure,
+scoped retry, schema rejection and encrypted-repository reuse. These results do
+not check any physical-iPhone item below. Execute every unchecked scenario on the
+authorized Mac/iPhone before describing the route as supported.
 
 - [ ] Unsupported/unavailable HealthKit leaves manual hydration functional.
 - [ ] Permission is requested only after the user selects Connect.
@@ -1396,6 +1423,50 @@ device. Record exact device, OS, provider app and metric details with results.
 - [ ] Verify correction, deletion and background-export behavior per device and metric.
 - [ ] Classify each tested combination as verified, partial, unavailable or blocked.
 - [ ] Do not generalize one device or metric result into universal FitPro support.
+
+### Android Provider Discovery Matrix
+
+Use the official Health Connect runtime SDK status. Phone brand or Android
+version alone is never sufficient. Do not request permissions during discovery.
+
+| Case | Required observation | Current evidence |
+| --- | --- | --- |
+| Google-compatible Android 14+ | System Health Connect status is reported independently from GMS, Play Store and permission state | Not run |
+| Google-compatible Android 9-13 | Standalone provider is reported as available, installation required, update required or disabled | Android 13 transition from `installationRequired` to `available` passed on Infinix X6835B |
+| Health Connect absent | Absence is not reported as denial or successful connection; manual hydration remains available | Passed before installation on isolated Infinix package |
+| Health Connect update required | Installed outdated provider produces `updateRequired` | Automated mapping only; physical case not run |
+| Google services unavailable | Provider reports unsupported without implying all Android health services are unavailable | Automated mapping only; physical case not run |
+| Huawei/non-Google Android | Health Connect is not assumed; Huawei Health Kit remains a separate unimplemented route | Not run |
+| Work profile | Provider reports `workProfileUnsupported` | Automated test only; physical case not run |
+| Unsupported or malformed provider | Explicit unsupported/configuration state; no empty-data success | Automated test passed |
+| Manual fallback | Manual hydration remains available for every discovery state | Automated test and existing application regression coverage passed |
+
+### Companion Application Matrix
+
+| Case | Required observation | Current evidence |
+| --- | --- | --- |
+| Installed but not exporting | Installed package is shown separately from readable health data | FitPro and Infinix HealthLife detected; export remains unverified |
+| Exporting some or different metrics | Record exact package, destination hub, record types, units and provenance | Not run |
+| Multiple wearables using one companion | Do not infer a physical model from the companion package | Not run |
+| Source app known, device unknown | Preserve uncertainty in canonical provenance | Domain support automated; real provider not run |
+| Duplicate records through multiple routes | Deterministic source priority prevents double counting | Synthetic automated tests passed; real providers not run |
+| Delayed background export or disconnected companion | Existing data and manual hydration remain usable; freshness state is explicit | Not run |
+| Expired vendor account or region restriction | Route fails explicitly and does not fall back to scraping or proprietary BLE | Not run |
+
+### Wearable Storage and Security
+
+| Case | Required observation | Current evidence |
+| --- | --- | --- |
+| Correct key and restart | Encrypted database closes and reopens after force-stop/relaunch | Passed on isolated Infinix package |
+| Wrong or absent key | Access fails closed; ciphertext is retained; no replacement plaintext database | Wrong-key case passed; injected missing-key automation passed |
+| Corrupted or future schema | Distinct fail-closed result without deletion | Automated repository tests passed; physical case not run |
+| Atomic rollback | Record batch and checkpoint fail or commit together | Passed with injected physical-device write failure |
+| No plaintext leakage | Synthetic canary absent from DB sidecars; raw key encodings absent from writable sandbox and Logcat | Passed on isolated Infinix package |
+| Bounded performance | Measure repeatable encrypted open, batch insert and indexed page timings without filling storage | Three bounded physical iterations recorded in `HWI_progress.md` |
+| Application isolation | Test package has distinct ID, sandbox, database and secure-storage namespace | Passed with `com.the1807.hydrion.hwi_test`; production package untouched |
+
+All unchecked wearable cases above remain manual acceptance work. An installed
+companion application is not evidence of an exported metric or supported watch.
 
 ## Hydration PDF Reports
 

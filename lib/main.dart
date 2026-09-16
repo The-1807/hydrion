@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -7,6 +8,7 @@ import 'adapters/elka/elka_adapter.dart';
 import 'adapters/gemini/gemini_adapter.dart';
 import 'adapters/local/local_hydrion_adapters.dart';
 import 'domain/hydration_contracts.dart';
+import 'domain/health_data.dart';
 import 'domain/challenge_catalog.dart';
 import 'domain/body_metrics.dart';
 import 'domain/legal_document_registry.dart';
@@ -31,6 +33,11 @@ import 'services/hydration_ai_action_executor.dart';
 import 'services/hydration_ai_orchestrator.dart';
 import 'services/hydration_context_builder.dart';
 import 'services/health_data_persistence.dart';
+import 'services/android_health_provider_discovery.dart';
+import 'services/health_connect_provider.dart';
+import 'services/health_kit_provider.dart';
+import 'services/health_connection_controller.dart';
+import 'services/health_data_sync_coordinator.dart';
 import 'services/location_service.dart';
 import 'services/local_profile_reset_service.dart';
 import 'services/notifications.dart';
@@ -60,6 +67,7 @@ import 'ui/screens/onboarding_screen.dart';
 import 'ui/screens/permission_center_screen.dart';
 import 'ui/screens/reminders_screen.dart';
 import 'ui/screens/settings_screen.dart';
+import 'ui/screens/health_data_connection_screen.dart';
 import 'ui/screens/social_challenges_screen.dart';
 import 'ui/screens/startup_screen.dart';
 import 'ui/screens/profile_screen.dart';
@@ -364,6 +372,7 @@ class HydrionApp extends StatelessWidget {
       if (services.capabilityReporter.capabilities.osNotifications)
         '/reminders': (_) => const RemindersScreen(),
       '/settings': (_) => const SettingsScreen(),
+      '/health-data': (_) => const HealthDataConnectionScreen(),
       '/permissions': (_) => const PermissionCenterScreen(),
       '/profile': (_) => const ProfileScreen(),
       '/profile-age-review': (_) => const ProfileAgeReviewScreen(),
@@ -443,6 +452,9 @@ class HydrionApp extends StatelessWidget {
         Provider.value(value: services.wearables),
         Provider.value(value: services.ecoTracker),
         Provider.value(value: services.localProfileResetService),
+        ChangeNotifierProvider.value(
+          value: services.healthConnectionController,
+        ),
       ],
       child: Consumer3<I18nResolver, UserSettingsRepository, DynamicThemeClock>(
         builder: (context, i18n, settingsRepository, themeClock, _) {
@@ -527,6 +539,8 @@ class HydrionServices {
   final BodyMetricsRepository bodyMetricsRepository;
   final HealthPersistenceResult healthPersistence;
   final HealthDataRepository? healthDataRepository;
+  final AndroidHealthProviderDiscovery healthProviderDiscovery;
+  final HealthConnectionController healthConnectionController;
   final DailyHydrationContextRepository dailyHydrationContextRepository;
   final PersonalizationStateRepository personalizationStateRepository;
   final GuidedTourRepository guidedTourRepository;
@@ -574,6 +588,8 @@ class HydrionServices {
     this.healthPersistence = const HealthPersistenceResult(
       HealthPersistenceStatus.unsupportedPlatform,
     ),
+    AndroidHealthProviderDiscovery? healthProviderDiscovery,
+    HealthConnectionController? healthConnectionController,
     required this.dailyHydrationContextRepository,
     required this.personalizationStateRepository,
     required this.guidedTourRepository,
@@ -608,6 +624,13 @@ class HydrionServices {
     required this.localProfileResetService,
     AndroidWidgetService? androidWidgetService,
   })  : healthDataRepository = healthPersistence.repository,
+        healthConnectionController = healthConnectionController ??
+            _fallbackHealthConnectionController(
+              localStore,
+              healthPersistence.repository ?? MemoryHealthDataRepository(),
+            ),
+        healthProviderDiscovery =
+            healthProviderDiscovery ?? const AndroidHealthProviderDiscovery(),
         currentWeatherContext =
             currentWeatherContext ?? CurrentWeatherContext(),
         androidWidgetService = androidWidgetService ??
@@ -617,6 +640,22 @@ class HydrionServices {
               challengeRepository: challengeRepository,
               appLocaleRepository: appLocaleRepository,
             );
+
+  static HealthConnectionController _fallbackHealthConnectionController(
+    HydrionLocalStore store,
+    HealthDataRepository repository,
+  ) {
+    final provider = _healthProviderForPlatform();
+    return HealthConnectionController(
+      provider: provider,
+      coordinator: HealthDataSyncCoordinator(
+        providers: [provider],
+        repository: repository,
+      ),
+      repository: repository,
+      store: store,
+    );
+  }
 
   static Future<HydrionServices> local() async {
     HydrionStartupTrace.log('HydrionServices.local gate=storage status=start');
@@ -964,6 +1003,20 @@ class HydrionServices {
       challengeRepository: challengeRepository,
       appLocaleRepository: appLocaleRepository,
     );
+    final healthRepository =
+        healthPersistence.repository ?? MemoryHealthDataRepository();
+    final healthProvider = _healthProviderForPlatform();
+    final healthConnectionController = HealthConnectionController(
+      provider: healthProvider,
+      coordinator: HealthDataSyncCoordinator(
+        providers: [healthProvider],
+        repository: healthRepository,
+      ),
+      repository: healthRepository,
+      store: store,
+      persistenceReady:
+          healthPersistence.status == HealthPersistenceStatus.ready,
+    );
 
     return HydrionServices(
       aiRuntimeConfig: aiRuntimeConfig,
@@ -975,6 +1028,7 @@ class HydrionServices {
       challengeRepository: challengeRepository,
       bodyMetricsRepository: bodyMetricsRepository,
       healthPersistence: healthPersistence,
+      healthConnectionController: healthConnectionController,
       dailyHydrationContextRepository: dailyHydrationContextRepository,
       personalizationStateRepository: personalizationStateRepository,
       guidedTourRepository: guidedTourRepository,
@@ -1030,6 +1084,15 @@ class HydrionServices {
           settingsRepository.settings.nonLocalProviderConsentGranted,
     );
   }
+}
+
+UserManagedHealthDataProvider _healthProviderForPlatform() {
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    return const AppleHealthKitProvider();
+  }
+  return const AndroidHealthConnectProvider(
+    discovery: AndroidHealthProviderDiscovery(),
+  );
 }
 
 String _localizedHomeAdvice({

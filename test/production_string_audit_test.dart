@@ -127,6 +127,14 @@ const storageKey = 'challenge_state_v2';
       expect(findings.single.allowlistReason, isNotEmpty);
     });
 
+    test('classifies uppercase Hydrion branding as an approved proper name',
+        () {
+      final findings = _dart("Text('HYDRION');");
+      expect(findings.single.classification,
+          ProductionStringClassification.properName);
+      expect(findings.single.resolved, isTrue);
+    });
+
     test('detects service-returned sentences', () {
       final findings = scanDartSource(
         "String result() => 'Unable to update your profile.';",
@@ -157,6 +165,52 @@ const storageKey = 'challenge_state_v2';
       final findings = _dart('Text(error.toString());');
       expect(findings, hasLength(1));
       expect(findings.single.resolution, contains('stable typed result'));
+    });
+
+    test('classifies health-boundary exception text as internal diagnostics',
+        () {
+      final findings = scanDartSource(
+        "throw StateError('Invalid Health Connect checkpoint.');",
+        path: 'lib/services/health_connect_provider.dart',
+      );
+      expect(findings, hasLength(1));
+      expect(findings.single.resolved, isTrue);
+      expect(findings.single.classification,
+          ProductionStringClassification.diagnostic);
+    });
+
+    test('classifies HealthKit exception text as internal diagnostics', () {
+      final findings = scanDartSource(
+        "throw const FormatException('Invalid HealthKit checkpoint.');",
+        path: 'lib/services/health_kit_provider.dart',
+      );
+      expect(findings, hasLength(1));
+      expect(findings.single.resolved, isTrue);
+      expect(findings.single.classification,
+          ProductionStringClassification.diagnostic);
+    });
+
+    test('classifies anchored reason-code patterns as formatting values', () {
+      final findings = scanDartSource(
+        '''String valid(String value) {
+          return RegExp(r'^[a-z0-9_]{1,80}\$').hasMatch(value) ? value : '';
+        }
+        Widget build(String code) => Text(valid(code));''',
+        path: 'lib/services/health_connection_controller.dart',
+      );
+      expect(findings, hasLength(1));
+      expect(findings.single.resolved, isTrue);
+      expect(findings.single.classification,
+          ProductionStringClassification.formattingValue);
+    });
+
+    test('still detects ordinary health service presentation sentences', () {
+      final findings = scanDartSource(
+        "String label() => 'Your health connection is ready.';",
+        path: 'lib/services/health_connect_provider.dart',
+      );
+      expect(findings, hasLength(1));
+      expect(findings.single.resolved, isFalse);
     });
   });
 

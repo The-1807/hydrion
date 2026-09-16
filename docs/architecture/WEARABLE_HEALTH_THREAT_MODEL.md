@@ -8,7 +8,7 @@
 | Derived activity features and source references | Sensitive inferred wellness | SQLCipher database only, logically marked derived |
 | Sync checkpoints and provider/source identifiers | Sensitive metadata | SQLCipher database only |
 | Device identifiers and provider extensions | Sensitive metadata | SQLCipher database only; extensions versioned and allowlisted |
-| Consent and permission state | Sensitive preference | Encrypted database when implemented; not implemented in Sprint 2 |
+| Connection UX state and synchronization timestamps | Sensitive preference | Local application preferences; never treated as authoritative permission grants |
 | Database encryption key | Secret | Android Keystore/iOS Keychain wrapper only; never database, preferences, source or logs |
 | Database path, schema version and unsupported status | Non-sensitive configuration | May exist outside the database; no health values or identifiers |
 
@@ -35,9 +35,10 @@ separate work and is not silently folded into this migration.
 - **Logs/crash diagnostics:** code must report categorical states only. It must not
   log keys, values, provider records, source/device identifiers, SQL parameters or
   permission tokens. SQL query profiling is disabled.
-- **Screenshots/app switcher:** Sprint 2 adds no health UI, so no sensitive health
-  content is rendered. Future UI work must review screen capture and task-preview
-  behavior before exposing records.
+- **Screenshots/app switcher:** the connection screen exposes categories, counts,
+  contributing application names and synchronization status, but not record
+  values. Screen-capture hardening remains required before any detailed health
+  record UI is introduced.
 - **Temporary files:** tests use synthetic temporary files and delete them. Mobile
   production stores only in application support. SQLCipher temp storage uses
   encrypted/native in-memory configuration; no plaintext export is implemented.
@@ -52,11 +53,26 @@ separate work and is not silently folded into this migration.
   transaction. `user_version` advances only after schema statements succeed.
 - **Concurrent synchronization:** one writer serializes commits; unique provider
   identity makes replay idempotent. Reads are bounded and use stable ordering.
+- **Provider service availability:** an OEM may prevent a standalone health hub
+  from starting in the background. Hydrion performs one bounded fresh-client
+  rebind after a remote binding failure and then reports failure. It does not
+  auto-launch the provider, retry indefinitely or treat an unavailable service
+  as an empty successful synchronization.
+- **Opaque Apple read authorization:** HealthKit intentionally does not reveal
+  whether read access was denied. Hydrion records that the authorization flow
+  completed and then reports readable records, empty readable history or query
+  failure. It never uses write-authorization status to claim a read grant.
+- **Native HealthKit channel payloads:** the channel accepts only four allowlisted
+  metrics, bounded ISO-8601 windows and bounded/versioned anchors. Responses are
+  capped at 250 objects, schema-versioned and mapped into allowlisted canonical
+  fields. Native errors return categorical codes without record values or
+  identifiers.
 - **Rollback and replay:** a checkpoint advances only in the successful record
   transaction. A retry replays the provider identity as an upsert.
 - **Deletion:** provider deletion removes imported records and its checkpoints but
-  not external provider data or manual hydration. Derived context is independently
-  retained until an explicit derived-data deletion policy is implemented. Purge is
+  not external provider data or manual hydration. No derived wearable context is
+  persisted or used by production hydration targets in this sprint. A future
+  persisted derived-context feature must join this deletion transaction. Purge is
   bounded by a caller-supplied time cutoff.
 - **Reinstall/application-data deletion:** normal uninstall removes sandbox data
   and Keystore/Keychain association according to platform behavior. Restore or
@@ -65,7 +81,15 @@ separate work and is not silently folded into this migration.
 
 ## Residual risks and deferred work
 
-Physical-device verification is required for Android Keystore and iOS Keychain
-behavior. iOS cannot be certified from Windows. Key rotation, consent persistence,
-screen-capture controls, explicit user-facing recovery/deletion UI and encryption
-of unrelated profile/preferences remain separate reviewed work.
+Android Keystore behavior has bounded physical evidence on the isolated Infinix
+package; iOS Keychain behavior still cannot be certified from Windows. Key
+rotation, detailed screen-capture controls, explicit user-facing storage-recovery
+UI and encryption of unrelated profile/preferences remain separate reviewed work.
+The tested Infinix/XOS configuration can block cold binding to standalone Health
+Connect through its AutoStart policy; the official Health Connect Toolbox is
+affected as well. This remains a device-policy acceptance blocker.
+
+The iOS Runner now has a read-only HealthKit implementation and localized purpose
+strings, but Swift compilation, signing, Keychain lifecycle, device logging,
+resource release and Apple Health record behavior remain unverified until the
+authorized macOS and physical-iPhone gates run.

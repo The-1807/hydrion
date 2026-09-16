@@ -83,86 +83,187 @@ class HealthDataSyncCoordinator {
       );
     }
 
-    var imported = 0;
-    var deleted = 0;
-    var duplicates = 0;
-    try {
-      for (final metric in permitted) {
-        if (isCancelled?.call() ?? false) {
-          return HealthSynchronizationResult(
-            status: HealthSyncStatus.cancelled,
-            importedCount: imported,
-            deletedCount: deleted,
-            duplicateCount: duplicates,
-            reasonCode: 'synchronization_cancelled',
-          );
-        }
-        var checkpoint = await _repository.checkpointFor(providerId, metric) ??
-            HealthSyncCheckpoint(
-              providerId: providerId,
-              metric: metric,
-              historyStart: _clock().toUtc().subtract(initialHistory),
-            );
-        var hasMore = true;
-        while (hasMore) {
-          if (isCancelled?.call() ?? false) {
-            return HealthSynchronizationResult(
-              status: HealthSyncStatus.cancelled,
-              importedCount: imported,
-              deletedCount: deleted,
-              duplicateCount: duplicates,
-              reasonCode: 'synchronization_cancelled',
-            );
-          }
-          var page = await provider.readChanges(checkpoint);
-          if (page.checkpointExpired) {
-            checkpoint = HealthSyncCheckpoint(
-              providerId: providerId,
-              metric: metric,
-              historyStart: _clock().toUtc().subtract(initialHistory),
-            );
-            page = await provider.readChanges(checkpoint);
-            if (page.checkpointExpired) {
-              throw StateError('provider_checkpoint_remained_expired');
-            }
-          }
-          final existing = await _allRecords(metric);
-          final classified = _classifyDuplicates(existing, page.records);
-          await _repository.commitImport(
-            records: classified,
-            checkpoint: page.nextCheckpoint,
-          );
-          duplicates +=
-              classified.where((r) => r.duplicateOfRecordId != null).length;
-          imported += classified.where((r) => !r.isDeleted).length;
-          deleted += classified.where((r) => r.isDeleted).length;
-          checkpoint = page.nextCheckpoint;
-          hasMore = page.hasMore;
-        }
+    final metricResults = <HealthMetric, HealthMetricSynchronizationResult>{};
+    for (final metric in permitted) {
+      if (isCancelled?.call() ?? false) {
+        return _combinedResult(
+          metricResults,
+          status: HealthSyncStatus.cancelled,
+          reasonCode: 'synchronization_cancelled',
+        );
       }
-    } catch (_) {
-      return HealthSynchronizationResult(
-        status: imported + deleted > 0
-            ? HealthSyncStatus.partial
-            : HealthSyncStatus.failed,
-        importedCount: imported,
-        deletedCount: deleted,
-        duplicateCount: duplicates,
-        reasonCode: 'provider_or_repository_failure',
+      metricResults[metric] = await _synchronizeMetric(
+        provider: provider,
+        providerId: providerId,
+        metric: metric,
+        isCancelled: isCancelled,
       );
+      if (metricResults[metric]!.status == HealthSyncStatus.cancelled) {
+        return _combinedResult(
+          metricResults,
+          status: HealthSyncStatus.cancelled,
+          reasonCode: 'synchronization_cancelled',
+        );
+      }
     }
 
-    return HealthSynchronizationResult(
-      status: permitted.length == requested.length
-          ? HealthSyncStatus.success
-          : HealthSyncStatus.partial,
-      importedCount: imported,
-      deletedCount: deleted,
-      duplicateCount: duplicates,
+    final failures = metricResults.values
+        .where((result) => result.status == HealthSyncStatus.failed)
+        .toList(growable: false);
+    final successes = metricResults.values
+        .where((result) => result.status == HealthSyncStatus.success)
+        .length;
+    final missingPermissions = permitted.length != requested.length;
+    final status = failures.isEmpty && !missingPermissions
+        ? HealthSyncStatus.success
+        : successes > 0
+            ? HealthSyncStatus.partial
+            : HealthSyncStatus.failed;
+    return _combinedResult(
+      metricResults,
+      status: status,
+      reasonCode: failures.isEmpty ? null : failures.first.reasonCode,
     );
   }
 
-  Future<List<CanonicalHealthRecord>> _allRecords(HealthMetric metric) async {
+  Future<HealthMetricSynchronizationResult> _synchronizeMetric({
+    required HealthDataProvider provider,
+    required String providerId,
+    required HealthMetric metric,
+    required bool Function()? isCancelled,
+  }) async {
+    var recordsRead = 0;
+    var rejected = 0;
+    try {
+      var checkpoint = await _repository.checkpointFor(providerId, metric) ??
+          HealthSyncCheckpoint(
+            providerId: providerId,
+            metric: metric,
+            historyStart: _clock().toUtc().subtract(initialHistory),
+          );
+      final incoming = <CanonicalHealthRecord>[];
+      HealthSyncCheckpoint? finalCheckpoint;
+      var pageCount = 0;
+      var hasMore = true;
+      var restartedAfterExpiry = false;
+      while (hasMore) {
+        if (isCancelled?.call() ?? false) {
+          return HealthMetricSynchronizationResult(
+            status: HealthSyncStatus.cancelled,
+            recordsRead: recordsRead,
+            reasonCode: 'synchronization_cancelled',
+          );
+        }
+        if (++pageCount > 100) {
+          throw StateError('provider_page_limit_exceeded');
+        }
+        var page = await provider.readChanges(checkpoint);
+        if (page.checkpointExpired) {
+          if (restartedAfterExpiry) {
+            throw StateError('provider_checkpoint_remained_expired');
+          }
+          restartedAfterExpiry = true;
+          incoming.clear();
+          recordsRead = 0;
+          checkpoint = HealthSyncCheckpoint(
+            providerId: providerId,
+            metric: metric,
+            historyStart: _clock().toUtc().subtract(initialHistory),
+          );
+          page = await provider.readChanges(checkpoint);
+          if (page.checkpointExpired) {
+            throw StateError('provider_checkpoint_remained_expired');
+          }
+        }
+        recordsRead += page.records.length;
+        incoming.addAll(page.records);
+        finalCheckpoint = page.nextCheckpoint;
+        checkpoint = page.nextCheckpoint;
+        hasMore = page.hasMore;
+      }
+
+      final existing = await _allRecords(providerId, metric);
+      final reconciled = _reconcileDeletions(existing, incoming);
+      late final List<CanonicalHealthRecord> classified;
+      try {
+        classified = _classifyDuplicates(existing, reconciled);
+      } on FormatException {
+        rejected += 1;
+        rethrow;
+      }
+      final existingKeys = {
+        for (final record in existing) record.providerRecordKey,
+      };
+      await _repository.commitImport(
+        records: classified,
+        checkpoint: finalCheckpoint!,
+      );
+      final inserted = classified
+          .where((record) =>
+              !record.isDeleted &&
+              !existingKeys.contains(record.providerRecordKey))
+          .length;
+      final updated = classified
+          .where((record) =>
+              !record.isDeleted &&
+              existingKeys.contains(record.providerRecordKey))
+          .length;
+      return HealthMetricSynchronizationResult(
+        status: HealthSyncStatus.success,
+        recordsRead: recordsRead,
+        insertedCount: inserted,
+        updatedCount: updated,
+        deletedCount: classified.where((record) => record.isDeleted).length,
+        duplicateCount: classified
+            .where((record) => record.duplicateOfRecordId != null)
+            .length,
+        rejectedCount: rejected,
+      );
+    } on HealthDataProviderException catch (error) {
+      return HealthMetricSynchronizationResult(
+        status: HealthSyncStatus.failed,
+        recordsRead: recordsRead,
+        rejectedCount: rejected,
+        reasonCode: error.reasonCode,
+      );
+    } catch (_) {
+      return HealthMetricSynchronizationResult(
+        status: HealthSyncStatus.failed,
+        recordsRead: recordsRead,
+        rejectedCount: rejected,
+        reasonCode: 'provider_or_repository_failure',
+      );
+    }
+  }
+
+  HealthSynchronizationResult _combinedResult(
+    Map<HealthMetric, HealthMetricSynchronizationResult> metricResults, {
+    required HealthSyncStatus status,
+    String? reasonCode,
+  }) {
+    final values = metricResults.values;
+    int sum(int Function(HealthMetricSynchronizationResult) select) =>
+        values.fold(0, (total, result) => total + select(result));
+    final inserted = sum((result) => result.insertedCount);
+    final updated = sum((result) => result.updatedCount);
+    return HealthSynchronizationResult(
+      status: status,
+      recordsRead: sum((result) => result.recordsRead),
+      importedCount: inserted + updated,
+      insertedCount: inserted,
+      updatedCount: updated,
+      deletedCount: sum((result) => result.deletedCount),
+      duplicateCount: sum((result) => result.duplicateCount),
+      rejectedCount: sum((result) => result.rejectedCount),
+      reasonCode: reasonCode,
+      metricResults: Map.unmodifiable(metricResults),
+    );
+  }
+
+  Future<List<CanonicalHealthRecord>> _allRecords(
+    String providerId,
+    HealthMetric metric,
+  ) async {
     final records = <CanonicalHealthRecord>[];
     var offset = 0;
     while (true) {
@@ -173,7 +274,9 @@ class HealthDataSyncCoordinator {
         limit: HealthDataRepository.maximumPageSize,
         offset: offset,
       );
-      records.addAll(page);
+      records.addAll(
+        page.where((record) => record.providerId == providerId),
+      );
       if (page.length < HealthDataRepository.maximumPageSize) return records;
       offset += page.length;
     }
@@ -211,6 +314,25 @@ class HealthDataSyncCoordinator {
       exact[record.providerRecordKey] = record;
     }
     return result;
+  }
+
+  List<CanonicalHealthRecord> _reconcileDeletions(
+    List<CanonicalHealthRecord> existing,
+    List<CanonicalHealthRecord> incoming,
+  ) {
+    final existingByExternalId = <String, CanonicalHealthRecord>{
+      for (final record in existing)
+        if (record.providerId.isNotEmpty) record.externalRecordId: record,
+    };
+    return incoming.map((record) {
+      if (!record.isDeleted) return record;
+      final original = existingByExternalId[record.externalRecordId];
+      return original?.asDeleted(
+            ingestedAt: _clock().toUtc(),
+            synchronizationVersion: record.synchronizationVersion,
+          ) ??
+          record;
+    }).toList(growable: false);
   }
 
   String _fingerprint(CanonicalHealthRecord record) {

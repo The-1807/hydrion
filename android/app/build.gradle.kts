@@ -55,6 +55,12 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            val isWearableCertification =
+                providers.gradleProperty("hydrionWearableCertification").orNull == "true"
+            if (isWearableCertification) {
+                applicationIdSuffix = ".hwi_test"
+                versionNameSuffix = "-hwi-test"
+            }
         }
         release {
             if (hasReleaseSigning) {
@@ -71,5 +77,6 @@ flutter {
 }
 
 dependencies {
+    implementation("androidx.health.connect:connect-client:1.1.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

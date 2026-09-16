@@ -64,6 +64,9 @@ void main() {
       );
 
       expect(result.status, HealthSyncStatus.success);
+      expect(result.recordsRead, 1);
+      expect(result.insertedCount, 1);
+      expect(result.updatedCount, 0);
       expect(provider.permissionRequestCount, 1);
       expect(await repository.records(), hasLength(1));
       expect(
@@ -88,15 +91,19 @@ void main() {
         repository: repository,
       );
 
-      await coordinator.synchronize(
+      final first = await coordinator.synchronize(
         providerId: provider.providerId,
         metrics: {HealthMetric.workout},
       );
-      await coordinator.synchronize(
+      final second = await coordinator.synchronize(
         providerId: provider.providerId,
         metrics: {HealthMetric.workout},
       );
 
+      expect(first.insertedCount, 1);
+      expect(first.updatedCount, 0);
+      expect(second.insertedCount, 0);
+      expect(second.updatedCount, 1);
       expect(await repository.records(), hasLength(1));
     });
 
@@ -175,6 +182,8 @@ void main() {
       );
 
       expect(result.status, HealthSyncStatus.failed);
+      expect(result.recordsRead, 1);
+      expect(result.rejectedCount, 0);
       expect(result.reasonCode, 'provider_or_repository_failure');
     });
 
@@ -233,6 +242,8 @@ void main() {
       );
 
       expect(result.status, HealthSyncStatus.failed);
+      expect(result.recordsRead, 1);
+      expect(result.rejectedCount, 1);
       expect(
         await repository.checkpointFor(
           provider.providerId,
@@ -339,6 +350,90 @@ void main() {
       expect(await repository.records(includeDeleted: true), hasLength(1));
     });
 
+    test('identifier-only tombstone retains stored provenance and deletes row',
+        () async {
+      final repository = MemoryHealthDataRepository();
+      final original = _record(id: 'one', externalId: 'external-one');
+      final unknownSourceTombstone = _record(
+        id: 'placeholder',
+        externalId: 'external-one',
+        sourceApp: 'unknown',
+        synchronizationVersion: 'deleted',
+        isDeleted: true,
+      );
+      final provider = _FakeHealthProvider(pages: [
+        _page([original]),
+        _page([unknownSourceTombstone]),
+      ]);
+      final coordinator = HealthDataSyncCoordinator(
+        providers: [provider],
+        repository: repository,
+        clock: () => DateTime.utc(2026, 9, 12),
+      );
+
+      await coordinator.synchronize(
+        providerId: provider.providerId,
+        metrics: {HealthMetric.workout},
+      );
+      final result = await coordinator.synchronize(
+        providerId: provider.providerId,
+        metrics: {HealthMetric.workout},
+      );
+
+      expect(result.deletedCount, 1);
+      expect(await repository.records(), isEmpty);
+      final deleted = (await repository.records(includeDeleted: true)).single;
+      expect(deleted.id, 'one');
+      expect(deleted.provenance.sourceApplicationId, 'vendor-health-app');
+      expect(deleted.isDeleted, isTrue);
+    });
+
+    test('reconciliation never borrows records from another provider',
+        () async {
+      final repository = MemoryHealthDataRepository();
+      await repository.commitImport(
+        records: [
+          _record(
+            id: 'other-record',
+            externalId: 'shared-external-id',
+            providerId: 'other-provider',
+          ),
+        ],
+        checkpoint: HealthSyncCheckpoint(
+          providerId: 'other-provider',
+          metric: HealthMetric.workout,
+          cursor: 'other-next',
+          historyStart: DateTime.utc(2026, 8, 12),
+        ),
+      );
+      final provider = _FakeHealthProvider(pages: [
+        _page([
+          _record(
+            id: 'placeholder',
+            externalId: 'shared-external-id',
+            sourceApp: 'unknown',
+            synchronizationVersion: 'deleted',
+            isDeleted: true,
+          ),
+        ]),
+      ]);
+
+      final result = await HealthDataSyncCoordinator(
+        providers: [provider],
+        repository: repository,
+      ).synchronize(
+        providerId: provider.providerId,
+        metrics: {HealthMetric.workout},
+      );
+
+      expect(result.status, HealthSyncStatus.success);
+      expect(result.deletedCount, 1);
+      final active = await repository.records();
+      expect(active, hasLength(1));
+      expect(active.single.providerId, 'other-provider');
+      expect(active.single.id, 'other-record');
+    });
+
     test('a failed transaction can be retried without duplicate state',
         () async {
       final provider = _FakeHealthProvider(pages: [
@@ -367,7 +462,130 @@ void main() {
       expect(retried.status, HealthSyncStatus.success);
       expect(await repository.records(), hasLength(1));
     });
+
+    test('one metric failure does not block independent later metrics',
+        () async {
+      final provider = _PerMetricHealthProvider(
+        failures: const {
+          HealthMetric.activeEnergy: HealthDataProviderException(
+            'health_connect_io_failure',
+          ),
+        },
+      );
+      final repository = MemoryHealthDataRepository();
+
+      final result = await HealthDataSyncCoordinator(
+        providers: [provider],
+        repository: repository,
+      ).synchronize(
+        providerId: provider.providerId,
+        metrics: const {
+          HealthMetric.workout,
+          HealthMetric.activeEnergy,
+          HealthMetric.steps,
+          HealthMetric.distance,
+        },
+      );
+
+      expect(result.status, HealthSyncStatus.partial);
+      expect(
+        result.metricResults[HealthMetric.activeEnergy]?.status,
+        HealthSyncStatus.failed,
+      );
+      expect(
+        result.metricResults[HealthMetric.activeEnergy]?.reasonCode,
+        'health_connect_io_failure',
+      );
+      expect(
+        result.metricResults[HealthMetric.distance]?.status,
+        HealthSyncStatus.success,
+      );
+      expect(provider.attemptedMetrics, [
+        HealthMetric.workout,
+        HealthMetric.activeEnergy,
+        HealthMetric.steps,
+        HealthMetric.distance,
+      ]);
+      expect(
+        await repository.checkpointFor(
+          provider.providerId,
+          HealthMetric.activeEnergy,
+        ),
+        isNull,
+      );
+      expect(
+        await repository.checkpointFor(
+          provider.providerId,
+          HealthMetric.distance,
+        ),
+        isNotNull,
+      );
+    });
   });
+}
+
+class _PerMetricHealthProvider implements HealthDataProvider {
+  final Map<HealthMetric, Object> failures;
+  final List<HealthMetric> attemptedMetrics = [];
+
+  _PerMetricHealthProvider({this.failures = const {}});
+
+  @override
+  String get providerId => 'per-metric-provider';
+
+  @override
+  Future<HealthProviderAvailability> availability() async =>
+      const HealthProviderAvailability(
+        HealthProviderAvailabilityStatus.available,
+      );
+
+  @override
+  Future<HealthAuthorizationState> authorizationState(
+    Set<HealthMetric> metrics,
+  ) async =>
+      HealthAuthorizationState(
+        status: HealthPermissionStatus.granted,
+        grantedMetrics: metrics,
+      );
+
+  @override
+  Future<HealthProviderCapabilities> capabilities() async =>
+      const HealthProviderCapabilities(
+        readableMetrics: {
+          HealthMetric.workout,
+          HealthMetric.activeEnergy,
+          HealthMetric.steps,
+          HealthMetric.distance,
+        },
+        supportsIncrementalChanges: true,
+        supportsDeletions: true,
+        supportsBackgroundReads: false,
+      );
+
+  @override
+  Future<HealthAuthorizationState> requestReadAccess(
+    Set<HealthMetric> metrics,
+  ) async =>
+      HealthAuthorizationState(
+        status: HealthPermissionStatus.granted,
+        grantedMetrics: metrics,
+      );
+
+  @override
+  Future<HealthImportPage> readChanges(HealthSyncCheckpoint checkpoint) async {
+    attemptedMetrics.add(checkpoint.metric);
+    final failure = failures[checkpoint.metric];
+    if (failure != null) throw failure;
+    return HealthImportPage(
+      records: const [],
+      nextCheckpoint: HealthSyncCheckpoint(
+        providerId: providerId,
+        metric: checkpoint.metric,
+        cursor: 'next-${checkpoint.metric.name}',
+        historyStart: checkpoint.historyStart,
+      ),
+    );
+  }
 }
 
 class _FakeHealthProvider implements HealthDataProvider {
@@ -475,6 +693,7 @@ HealthImportPage _page(
 CanonicalHealthRecord _record({
   required String id,
   required String externalId,
+  String providerId = 'test-provider',
   String sourceApp = 'vendor-health-app',
   HealthAcquisitionRoute route = HealthAcquisitionRoute.healthConnect,
   double value = 30,
@@ -483,7 +702,7 @@ CanonicalHealthRecord _record({
 }) {
   return CanonicalHealthRecord(
     id: id,
-    providerId: 'test-provider',
+    providerId: providerId,
     externalRecordId: externalId,
     synchronizationVersion: synchronizationVersion,
     metric: HealthMetric.workout,

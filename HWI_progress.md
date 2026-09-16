@@ -30,7 +30,7 @@ This story does not promise universal wearable compatibility. A wearable is supp
 ### Architecture
 
 - [x] A platform-independent `HealthDataProvider` contract exists and is separated from hydration calculations, UI state, persistence and platform-specific code.
-- [ ] HealthKit and Health Connect implementations conform to the same provider contract without forcing platform-specific records into the hydration engine.
+- [x] HealthKit and Health Connect implementations conform to the same provider contract without forcing platform-specific records into the hydration engine.
 - [x] The existing `WearableService`, `BLEService`, `HydrionServices` composition and Provider state-management architecture have been inspected before deciding what to reuse, replace or deprecate.
 - [x] The implementation does not turn `WearableService` or another class into a service responsible for permissions, synchronization, storage, analysis and UI simultaneously.
 - [x] Unsupported platforms and unavailable providers return explicit capability states rather than empty data or false success.
@@ -38,7 +38,7 @@ This story does not promise universal wearable compatibility. A wearable is supp
 ### Platform capability discovery
 
 - [ ] iOS can determine whether HealthKit is available and display an accurate connection state.
-- [ ] Android can determine whether Health Connect is available, unavailable, unsupported or requires user action.
+- [x] Android can determine whether Health Connect is available, unavailable, unsupported or requires user action.
 - [ ] The application distinguishes provider unavailable, permission not granted, permission revoked, no contributing source, unsupported metric, empty history, synchronization failure and successful synchronization.
 - [x] Hydrion continues to support manual hydration tracking when no wearable-data provider is available.
 - [x] Web, Windows and macOS behavior is explicitly defined and does not imply wearable support where no provider has been implemented.
@@ -46,19 +46,19 @@ This story does not promise universal wearable compatibility. A wearable is supp
 ### Permissions and consent
 
 - [x] Health access is read-only for this sprint.
-- [ ] Hydrion requests only the metric permissions required by the implemented features.
+- [x] Hydrion requests only the metric permissions required by the implemented features.
 - [x] Permissions are requested in context after an understandable user action, not automatically during application startup.
-- [ ] The consent screen explains what Hydrion reads, why it reads it, how it affects hydration insights, where it is stored and how it can be deleted.
-- [ ] Permission denial or revocation does not break manual hydration tracking or existing application functionality.
+- [x] The consent screen explains what Hydrion reads, why it reads it, how it affects hydration insights, where it is stored and how it can be deleted.
+- [x] Permission denial or revocation does not break manual hydration tracking or existing application functionality.
 - [x] No account, backend or cloud upload is required for wearable ingestion.
 
 ### Initial health-data scope
 
-- [ ] The initial provider implementation can import supported workout type, start time, end time and duration records.
-- [ ] Active-energy records are imported only when supported and their source is preserved.
-- [ ] Steps and distance may be imported as contextual or fallback data but are not automatically double-counted with workouts or active energy.
+- [x] The initial provider implementation can import supported workout type, start time, end time and duration records.
+- [x] Active-energy records are imported only when supported and their source is preserved.
+- [x] Steps and distance may be imported as contextual or fallback data but are not automatically double-counted with workouts or active energy.
 - [x] Heart rate, HRV, sleep stages, SpO₂, temperature, stress, recovery, readiness and body-composition data do not modify hydration targets during this sprint.
-- [ ] Imported wearable data is described as wellness information and is not represented as medical-grade hydration measurement or diagnosis.
+- [x] Imported wearable data is described as wellness information and is not represented as medical-grade hydration measurement or diagnosis.
 
 ### Canonical data model
 
@@ -85,14 +85,14 @@ This story does not promise universal wearable compatibility. A wearable is supp
 - [x] Synchronization checkpoints are advanced only after imported records are committed successfully.
 - [x] An interrupted or failed synchronization can safely resume without losing or duplicating records.
 - [x] Source-priority and overlap rules prevent the same activity from being counted repeatedly through multiple contributing applications.
-- [ ] Background execution is treated as opportunistic; the application remains correct when synchronization occurs only after launch or resume.
+- [x] Background execution is treated as opportunistic; the application remains correct when synchronization occurs only after launch or resume.
 
 ### User controls
 
-- [ ] Users can view the connected provider, granted data categories, last successful synchronization and meaningful failure state.
-- [ ] Users can disconnect a provider without losing their manually entered hydration history.
+- [x] Users can view the connected provider, granted data categories, last successful synchronization and meaningful failure state.
+- [x] Users can disconnect a provider without losing their manually entered hydration history.
 - [ ] Users can delete imported wearable records and derived wearable context from Hydrion.
-- [ ] Deleting imported wearable data does not delete records from HealthKit, Health Connect or the vendor application unless a separate, explicit operation is designed and authorized.
+- [x] Deleting imported wearable data does not delete records from HealthKit, Health Connect or the vendor application unless a separate, explicit operation is designed and authorized.
 - [ ] Hydration recommendations influenced by wearable information identify the contributing factors in understandable language.
 
 ### FitPro verification
@@ -106,11 +106,11 @@ This story does not promise universal wearable compatibility. A wearable is supp
 
 ### Testing and platform parity
 
-- [ ] Unit tests cover canonical conversion, unit normalization, source priority, deduplication, updates, deletion, retention and synchronization recovery.
+- [x] Unit tests cover canonical conversion, unit normalization, source priority, deduplication, updates, deletion, retention and synchronization recovery.
 - [x] Repository integration tests use realistic synthetic histories and failed-write scenarios.
 - [x] Permission denial, revocation, unsupported provider, empty history and malformed record scenarios are tested.
 - [x] Existing Hydrion unit and integration suites continue to pass.
-- [ ] Static analysis, formatting, dependency, secret and platform-configuration checks pass.
+- [x] Static analysis, formatting, dependency, secret and platform-configuration checks pass.
 - [ ] Android behavior is validated on an authorized physical Android device.
 - [ ] iOS behavior is independently validated on an authorized physical iPhone.
 - [x] Android success does not satisfy iOS acceptance criteria, and iOS success does not satisfy Android acceptance criteria.
@@ -226,3 +226,227 @@ fault injection, mobile battery/startup profiling and a controlled clean build
 size baseline also remain open. Sprint 3 should begin with physical key-lifecycle
 verification and one narrow provider adapter behind explicit consent, without
 enabling hydration-target changes.
+
+## Sprint 3 Android Evidence Ledger
+
+### Repository and device truth
+
+Sprint 3 work is isolated on the local `wearable_integration` branch created
+from `main` at `63fb562`. At preflight, `main` and `origin/main` matched. No
+Sprint 3 commit or push has been made.
+
+One authorized device was selected explicitly for every ADB command. Its serial
+and unique fingerprint portion are intentionally omitted. It reports INFINIX,
+model Infinix X6835B, Android 13/API 33 and arm64-v8a. Google Mobile Services and
+the Play Store are installed, it is not a work profile, and approximately 3.46
+GiB remained on `/data` during the final sample. Health Connect is not built in
+on this Android version. The first discovery run correctly reported the
+standalone package absent and `installationRequired`.
+
+Production `com.the1807.hydrion` and debug `com.the1807.hydrion.debug` were
+already installed and were not replaced, cleared or inspected for user health
+content. Physical testing used only the separately named
+`com.the1807.hydrion.hwi_test` debug package and synthetic data.
+
+### Foundation revalidation
+
+The provider-independent domain, repository, synchronization, feature
+extraction, encrypted repository and key-store focused suites passed 46 tests.
+With the Android discovery tests included, the focused total passed 50 tests.
+The production hydration-target integration remains disabled.
+
+### Physical encrypted-storage evidence
+
+On the isolated package, SQLCipher loaded for arm64-v8a and returned a non-empty
+runtime cipher version. A 256-bit random key was stored through the production
+Android secure-storage path. The encrypted database closed and reopened after
+force-stop/relaunch. Unkeyed SQLite and a wrong key could not read it. The
+wrong-key attempt did not change the ciphertext. A deliberately failed atomic
+record/checkpoint operation rolled back and retained the prior checkpoint.
+
+The synthetic canary was absent from the database and all database sidecar files.
+Searches found no raw base64url or hexadecimal key encoding in the writable test
+sandbox and no canary or key diagnostic in the isolated process Logcat. The
+database directory contained only `synthetic-health.db`; no WAL, SHM, journal or
+temporary plaintext file remained after close. Injected missing-key, inaccessible
+key, corruption and unsupported-future-schema behavior remains covered by
+automated tests. Hardware-backed or StrongBox storage is not claimed.
+
+Three bounded physical iterations produced these median/worst measurements:
+encrypted first open 568/595 ms; idempotent 1,000-record batch 2,694/3,072 ms;
+indexed 250-row page 192/302 ms. The encrypted database was 753,664 bytes. The
+final ARM64 split test APK and installed base APK were 121,889,826 bytes, and
+the isolated writable sandbox was approximately 85,030 KiB, dominated by debug
+Flutter assets. One post-test
+sample reported total PSS 301,081 KiB, RSS 413,195 KiB, 6.2 percent sampled CPU
+and 7 visible file descriptors. These are bounded observations, not a leak or
+battery certification. The full 10,000-record and battery gates remain open.
+Compared with the pre-router isolated ARM64 artifact of 120,870,256 bytes, the
+final artifact was 1,019,570 bytes larger. That is an observed same-target delta,
+not a guaranteed Play download cost. Play distribution can deliver one ABI;
+universal multi-ABI APK sizes are not representative of an arm64 device install.
+
+### Android provider discovery
+
+Production discovery now calls the official Health Connect SDK status API and
+separately reports phone manufacturer/model, Android SDK, GMS, Play Store, work
+profile, built-in versus standalone Health Connect, permission/connection state,
+and installed known companion applications. Structured states fail closed and
+manual hydration remains available. Provider names are not hard-coded into UI.
+
+After the user installed standalone Health Connect version
+`2026.08.06.00.release`, the same isolated package and official SDK probe returned
+`available`. Permission remained `notRequested`, connection remained
+`disconnected`, and no health records were requested or read. This certifies the
+capability-state transition. The read-only Health Connect record adapter is now
+implemented but is not physically record-certified. FitPro and Infinix
+HealthLife were installed and enabled, but neither
+application had a verified export route, readable metric or physical watch
+identity. Their status remains `requiresVerification`; every FitPro acceptance
+criterion remains unchecked.
+
+The Android capability-discovery criterion changed from unchecked to checked.
+Its evidence is `AndroidHealthProviderDiscovery.kt`,
+`android_health_provider_discovery.dart`, the focused discovery tests, and the
+official SDK result on the physical Infinix. This does not check the broader
+provider-ingestion, Android wearable, combined encryption, iOS or FitPro gates.
+
+Final validation passed `flutter analyze` with no issues and the complete
+`flutter test` suite with 684 tests. The isolated package, synthetic encrypted
+database and its package-scoped secure-storage entry were removed together by
+uninstalling only `com.the1807.hydrion.hwi_test`. Production and ordinary debug
+Hydrion remained installed.
+
+### Sprint 3 production-adapter continuation
+
+The official AndroidX Health Connect 1.1.0 client is now used behind the narrow
+Kotlin channel in `AndroidHealthConnectHost.kt`. `AndroidHealthConnectProvider`
+maps only exercise sessions, active calories, steps and distance into the
+canonical domain. The production manifest contains the matching four read
+permissions and no Health Connect write, background-read or extended-history
+permission. API 24 installation is preserved; the native client is lazy and
+runtime-gated at API 28. ADR-0005 records this choice, the 30-day initial window,
+250-record paging and rejected alternatives.
+
+The connection screen is available from Settings and is localized in English,
+French and Spanish. It explains category purpose, read-only access, encrypted
+local storage, no account/cloud requirement, declining and revocation, local
+copy deletion, wellness-only status and the deliberate absence of hydration
+target changes. Permission requests occur only through Connect or Request
+missing access. Current grants are reread from Health Connect on refresh and
+resume. Protected-storage initialization failure blocks provider access instead
+of falling back to an unencrypted or temporary repository.
+
+The adapter captures a per-metric changes token before the bounded initial read,
+then uses incremental pages for upserts and deletions. The coordinator commits
+records and checkpoints atomically, retries an expired token with one bounded
+reread, deduplicates stable identities and semantic overlaps, and reconstructs
+identifier-only deletion events from stored provenance before tombstoning. No
+background synchronization is scheduled; synchronization is user-initiated and
+the app remains correct with foreground-only refresh.
+
+The following acceptance criteria changed from unchecked to checked, based on
+production implementation and automated tests: minimum metric permissions;
+complete consent explanation; denial/revocation regression safety; workout
+import mapping; active-energy mapping with source; steps/distance fallback and
+overlap protection; wellness/non-medical wording; opportunistic foreground-only
+synchronization; provider/category/success/failure visibility; disconnect
+without manual-data loss; local-only deletion that cannot call source deletion;
+and comprehensive domain/sync/repository unit coverage. Physical Android record
+import is not used as evidence for these code-level criteria.
+
+Focused provider, controller, UI, synchronization and Settings regression tests
+passed 36 tests before the final controller deletion case was added. Static
+analysis then passed with no issues. The prior full run had 697 passes and one
+stale Settings inventory failure; that test was corrected to require the new
+working Health Data control and the focused regression passed. Final full-suite,
+format, audit and build results are recorded after the current validation run.
+
+At continuation time the device no longer contained either Hydrion package; this
+was a changed external device state, not a repository or ADB cleanup action in
+this run. Health Connect remained installed. The final isolated ARM64 artifact
+is `com.the1807.hydrion.hwi_test`, version `1.2.0-hwi-test`, version code 2005,
+128,397,886 bytes, SHA-256
+`D71669391D1AC69B52911AABDC3C6BD577828D70BBD245821F20BE01D1DDCB12`.
+Its manifest requests only exercise, active-calorie, steps and distance read
+permissions, and its only native ABI is `arm64-v8a`. Equal-version replacement
+installation succeeded and preserved the isolated package data. Production
+Hydrion was not installed, uninstalled, replaced or cleared by this
+continuation.
+
+With explicit user/device authorization complete, Health Connect Toolbox
+synthetic data produced three visible imported Hydrion records. The import
+preserved the Toolbox source, accepted a workout whose optional device
+manufacturer/model were absent, and deduplicated two identical workout records.
+A repeat synchronization reported 0 read, 0 new, 0 updated, 0 deleted and 0
+rejected while the imported total remained three. A synthetic 150 ml manual
+hydration entry remained present after force-stop and relaunch, as did the three
+imported records and connected state. Raw health values, provider identifiers
+and permission tokens are intentionally omitted from this ledger.
+
+Cold provider startup remains blocked by an Infinix/XOS AutoStart policy. When
+Health Connect has been killed, Android logs `AutoStart Limit` while attempting
+to bind `androidx.health.ACTION_BIND_HEALTH_DATA_SERVICE`; the official Google
+Health Connect Toolbox then fails its own permission query with the same
+`RemoteException: Binding to service failed`. Opening Health Connect manually
+allows Hydrion to synchronize until XOS kills the provider again. Hydrion now
+performs exactly one fresh-client rebind after that remote failure and otherwise
+reports failure truthfully; it does not loop, auto-launch another application or
+claim synchronization. Source correction/deletion, permission revoke/restore,
+and reliable cold provider launch remain unperformed physical gates.
+
+The following criteria remain deliberately unchecked: combined HealthKit and
+Health Connect parity; all iOS/HealthKit gates; complete provider-state
+distinction; combined Android/iOS key protection; imported-plus-derived context
+deletion; wearable-influenced recommendation explanation; every FitPro and
+vendor-specific claim; static/audit completion until the final commands finish;
+physical Android record behavior; physical iPhone behavior; and bounded battery
+and complete resource certification. No acceptance checkbox was newly marked by
+this continuation: the physical Android criterion remains intentionally broad
+and therefore remains unchecked while the named device gates above are open.
+
+### HealthKit provider sprint evidence
+
+The local `feature/healthkit-provider` branch adds a narrow Swift HealthKit host
+and an `AppleHealthKitProvider` behind the same `HealthDataProvider`, canonical
+record, synchronization coordinator, encrypted repository and connection-screen
+boundaries used by Health Connect. The shared-contract criterion changed from
+unchecked to checked. Evidence is `HealthKitHost.swift`,
+`health_kit_provider.dart`, the expanded provider/coordinator tests and
+ADR-0006. No HealthKit record enters the hydration engine or modifies a target.
+
+Production iOS access is read-only and limited to workouts, active energy, steps
+and walking/running distance. Permission is requested only after Connect. The
+provider records authorization-flow completion without claiming that Apple
+revealed individual read grants. Empty-query text explicitly preserves Apple's
+denied-versus-empty ambiguity. English, French and Spanish permission-purpose
+strings are included in the Runner target; the widget target has no HealthKit
+entitlement or purpose string.
+
+Anchored responses and cursors are schema-versioned. Each metric retains an
+independent checkpoint; page size is 250, the initial history is 30 days and the
+shared coordinator caps a run at 100 pages. Tests cover all four metric mappings,
+optional provenance, time-zone offset, update/deletion reconciliation, invalid
+anchor recovery, unsupported schemas, partial metric failure, scoped retry and
+permission-request failure. Provider records and checkpoints still commit through
+the existing SQLCipher transaction.
+
+The iOS capability criterion remains unchecked because Windows cannot compile or
+execute `HKHealthStore.isHealthDataAvailable()`. The complete provider-state
+criterion also remains unchecked: HealthKit intentionally prevents Hydrion from
+distinguishing denied read access from an empty readable store. Combined
+Keystore/Keychain encryption, physical iPhone, source application, corrections,
+deletions, revocation, restart, performance, memory, resource release and battery
+criteria remain unchecked pending authorized macOS and physical-iPhone evidence.
+
+Windows validation completed with `flutter gen-l10n`, 33 focused iOS/provider/UI
+configuration tests, and the full 745-test Flutter suite passing. Repository-wide
+formatting reported 238 files with 0 changes, `flutter analyze` reported no
+issues, dependency resolution completed without changing `pubspec.yaml` or
+`pubspec.lock`, and the secret scan found no committed credentials or private-key
+blocks. Localization coverage remained 943/943 for EN, FR and ES plus 24/24 for
+each Android locale; the mixed-language audit reported no identical untranslated
+messages or placeholder drift. The production-literal audit reviewed all 936
+findings with 0 unresolved, both GitHub Actions workflows validated, and
+`git diff --check` passed. These Windows/static results do not satisfy any macOS,
+iOS simulator, physical-iPhone, HealthKit runtime or Keychain criterion.

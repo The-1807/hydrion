@@ -16,8 +16,18 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.os.Bundle
 
 class MainActivity : FlutterActivity() {
+    private var healthConnectHost: AndroidHealthConnectHost? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            healthConnectHost = AndroidHealthConnectHost(this)
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "hydrion/app_locale")
@@ -107,6 +117,51 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "hydrion/android_health_provider_discovery",
+        ).setMethodCallHandler { call, result ->
+            if (call.method != "discover") {
+                result.notImplemented()
+                return@setMethodCallHandler
+            }
+            try {
+                result.success(AndroidHealthProviderDiscovery(this).discover())
+            } catch (_: Exception) {
+                result.error(
+                    "provider_discovery_failed",
+                    "Android health-provider discovery is temporarily unavailable.",
+                    null,
+                )
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "hydrion/health_connect",
+        ).setMethodCallHandler { call, result ->
+            val host = healthConnectHost
+            if (host == null) {
+                result.error(
+                    "health_connect_unsupported",
+                    "Health Connect requires Android 9 or newer.",
+                    null,
+                )
+                return@setMethodCallHandler
+            }
+            host.handle(call, result)
+        }
+    }
+
+    override fun onDestroy() {
+        healthConnectHost?.dispose()
+        healthConnectHost = null
+        super.onDestroy()
+    }
+
+    @Deprecated("Deprecated by Android; retained for the Health Connect contract on FlutterActivity.")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (healthConnectHost?.onActivityResult(requestCode, resultCode, data) == true) return
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     private fun showTimedSessionNotification(arguments: Map<*, *>) {

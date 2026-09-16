@@ -1,250 +1,357 @@
-### IOS
-Apple HealthKit
-### Andriod:
-1. **Samsung** — Galaxy Watch, Galaxy Watch Ultra, Galaxy Ring. Samsung remains one of the largest Android wearable ecosystems. ([Samsung it][1])
-2. **Google** — Pixel Watch + Fitbit devices. ([Google Store][2])
-3. **Xiaomi** — Xiaomi Watch, Xiaomi Smart Band, Redmi Watch/Band, and some POCO wearables. ([Xiaomi Australia][3])
-4. **OnePlus** — OnePlus Watch series; current models use **Wear OS**. ([OnePlus][4])
-5. **OPPO** — OPPO Watch, Watch X, Watch X2/X3, Watch S, etc. ([OPPO][5])
-6. **vivo** — vivo Watch, Watch GT, Watch GT 2 and related devices. ([Vivo][6])
-7. **HONOR** — HONOR Watch and HONOR Band families. ([Honor][7])
-8. **Huawei** — Huawei Watch, Watch GT, Watch Fit, Watch D and Huawei Band. Huawei is a special case because its modern phones/watches increasingly use its own HarmonyOS ecosystem rather than the normal Google Android/Wear OS stack, but its wearables remain highly relevant to Android phones. ([Huawei Consumer][8])`
-9. **Motorola / Lenovo** — Moto Watch and the newer Moto Watch Ultra. ([Motorola][9])
-10. **ASUS** — ASUS VivoWatch series, including VivoWatch 5/6 and VivoWatch AERO health trackers. ([ASUS Global][10])
-11. **Nothing / CMF** — CMF Watch Pro, Watch Pro 2 and Watch 3 Pro. Nothing also manufactures Android phones. ([Nothing][11])
-12. **realme** — realme Watch family with heart-rate, SpO₂, sleep and activity tracking. ([Realme][12])
-13. **ZTE** — ZTE Watch family; current examples include the ZTE Watch K1 Pro. ([ZTE Devices][13])
-14. **nubia** — Android smartphone maker associated with the ZTE ecosystem and has produced smartwatches/wearable devices.
-15. **TCL** — Android phones plus smartwatches and other wearable devices; TCL continues to develop wearable products. ([TCL][14])
-16. **TECNO** — Android smartphones plus Watch Neo, Watch Pro, Watch Pro 2, Watch 3 and others. ([Tecno][15])
-17. **Infinix** — Android smartphones plus a substantial XWATCH range including XWATCH N4/N4 Pro, H4/H5 Pro, N5 Pro and others. ([Infinix][16])
-18. **itel** — Android smartphones plus Smart Watch Fit, Apex, Storm, Horizon and related products. ([itel Life][17])
-19. **Lava** — Android smartphones plus its **Prowatch** smartwatch line. ([Lava International Limited][18])
-20. **Meizu** — Android-based smartphones historically/currently in selected markets, with Meizu smartwatch/wearable products. ([Meizu][19])
+# Hydrion Wearable Integration Matrix and Product Scope
 
-For **Hydrion**, however, I would **not build 20 manufacturer-specific integrations**. The more sensible architecture is:
+Last revised: 2026-09-14
 
-**Android wearable → manufacturer's health app → Health Connect → Hydrion**
+## Purpose
 
-That gives you a much more manageable target. The highest-priority ecosystems would be **Samsung, Google/Fitbit, Xiaomi, OnePlus, OPPO, Huawei, HONOR, Garmin, Amazfit/Zepp, Fitbit, Oura, Polar and Withings**—and notice that the last several aren't Android phone manufacturers at all. That's why for a hydration app, classifying devices by **health-data provider**, rather than phone manufacturer, is the more useful compatibility model.
+This document defines:
 
-[1]: https://www.samsung.com/ca/support/mobile-devices/track-workouts-with-your-galaxy-ring/?utm_source=chatgpt.com "Tracking workouts with your Galaxy Ring | Samsung CA"
-[2]: https://store.google.com/category/watches_trackers?hl=en-US&utm_source=chatgpt.com "Google Fitbit, Pixel Watches & Trackers with Google Health"
-[3]: https://www.mi.com/global/product-list/bands/?utm_source=chatgpt.com "Xiaomi Global Home"
-[4]: https://www.oneplus.com/ca_en/oneplus-watch-3?utm_source=chatgpt.com "OnePlus Watch 3"
-[5]: https://www.oppo.com/en/wearables/?utm_source=chatgpt.com "OPPO Wearables | OPPO Global"
-[6]: https://www.vivo.com/en/products/watch3?utm_source=chatgpt.com "vivo Watch 3 | vivo Global"
-[7]: https://www.honor.com/global/wearables/honor-watch/?utm_source=chatgpt.com "HONOR Smart Watches - HONOR Global"
-[8]: https://consumer.huawei.com/ca/wearables/watch-fit3/?utm_source=chatgpt.com "HUAWEI Wearables - HUAWEI Canada"
-[9]: https://www.motorola.com/ca/en/family/wearables?utm_source=chatgpt.com "Motorola Watch Wearables | motorola US - Motorola | motorola"
-[10]: https://www.asus.com/us/mobile-handhelds/wearable-healthcare/asus-vivowatch/filter?Series=ASUS-VivoWatch&utm_source=chatgpt.com "VivoWatch - All Models｜Wearable｜ASUS USA"
-[11]: https://intl.nothing.tech/collections/cmf?utm_source=chatgpt.com "CMF | Nothing | US"
-[12]: https://www.realme.com/global/realme-watch?utm_source=chatgpt.com "realme Watch - realme (Global)"
-[13]: https://www.ztedevices.com/en/products/accessories/wearable/zte-watch-k1-pro.html?utm_source=chatgpt.com "ZTE Watch K1 Pro"
-[14]: https://www.tcl.com/global/en/news/tcl-to-display-the-future-with-advanced-visual-innovations-and-ai-powered-product-portfolio-at-ces-2026?utm_source=chatgpt.com "TCL to Display the Future with Advanced Visual Innovations and AI-Powered Product Portfolio at CES 2026"
-[15]: https://www.tecno-mobile.com/accessories/product-detail/product/watch-neo/?utm_source=chatgpt.com "TECNO Watch Neo | TECNO AIoT"
-[16]: https://www.infinixmobility.com/XWATCH-N4?utm_source=chatgpt.com "Infinix - XWATCH N4 - Global"
-[17]: https://www.itel-life.com/products/phone?utm_source=chatgpt.com "Phone - itel"
-[18]: https://shop.lavamobiles.com/collections/smartwatch?utm_source=chatgpt.com "Smartwatches – Lava International Limited"
-[19]: https://www.meizu.com/en/accessory/mix.html?utm_source=chatgpt.com "Smart Watch MIX - Meizu"
+- Hydrion’s supported wearable integration architecture.
+- The provider routes prioritized for production.
+- The limited compatibility candidates selected for research.
+- Hydrion’s user-facing wearable-data interface.
+- The evidence required before any device, application or route is advertised as supported.
 
-Exactly. **FitPro is better thought of as a wearable ecosystem/companion app, not a phone manufacturer.** This category is especially important for Hydrion because many inexpensive watches are white-label devices sold under dozens or hundreds of names while using the same underlying companion app.
+This is not a universal wearable-support claim.
 
-There is no practical way to enumerate *every* device brand because the white-label market constantly changes, but these are the major ecosystems you should account for.
+A wearable is supported only when its exact provider route, permissions, metrics,
+provenance, synchronization behaviour and physical-device operation have been
+implemented and verified independently on every applicable platform.
 
-### 1. Generic / white-label wearable ecosystems
+## Critical Testing Boundary
 
-These are the ones most similar to **FitPro**:
+Hydrion separates two activities:
 
-* **FitPro**
-* **Da Fit**
-* **WearFit Pro**
-* **FitCloudPro**
-* **HryFine**
-* **VeryFit**
-* **VeryFitPro**
-* **GloryFit**
-* **Lefun Health**
-* **JYouPro**
-* **Yoho Sports**
-* **DayBand**
-* **FlagFit 2.0**
-* **RDFit**
-* **MActivePro**
-* **SMART-TIME PRO**
-* **QWatch Pro**
-* **Fere Fit / FereFit**
-* **OnWear**
-* **OnWear Pro**
-* **V Band**
-* **Keep Health**
-* **Pubu Wear**
-* **WearPro**
-* **WearHealth**
-* **H Band**
-* **H Band 2.0**
-* **Fundo Wear**
-* **Fundo Pro**
-* **Runmifit**
-* **FitHere**
-* **Fitdock**
-* **Fitpolo**
-* **Co-Fit**
-* **Happy Sports**
-* **HeroBand / HeroBand III**
-* **Smart Wristband**
-* **Smart Wristband 3**
-* **SmartHealth**
-* **SmartHealth Pro**
-* **FitMore**
-* **FitBeing**
-* **FitGo**
-* **WearHeart**
-* **WearPro**
-* **FitVII**
-* **FitBridge**
-* **FitGo**
-* **FitTrack-style wearable ecosystems**
+### Production qualification
 
-For example, Da Fit supports compatible smart wearables and can pass supported wellness information to Apple Health. ([App Store][1]) VeryFit similarly manages compatible watches/bands and tracks things such as steps, heart rate, sleep, stress and workouts. ([App Store][2])
+Testing a documented standard, platform SDK or authorized vendor interface to
+demonstrate that it operates correctly under production conditions.
 
-FitCloudPro is another major white-label ecosystem; its current listing specifically names several KUMI watches while supporting steps, sleep, heart rate and SpO₂. ([Google Play][3]) WearFit Pro has more than 10 million Android installs and connects to multiple classes of wearable devices. ([Google Play][4])
+### Compatibility research
 
-RDFit, SMART-TIME PRO, JYouPro, OnWear, Fere Fit and Pubu Wear are the same general type of architecture: **BLE wearable → companion app → phone health ecosystem or proprietary database**. ([RDFit][5])
+Investigating whether a closed companion application or white-label wearable
+offers a legitimate interface that Hydrion could support.
 
-### 2. Independent major wearable brands
+Compatibility research does not establish production support and must not block
+or define Hydrion’s standard wearable architecture.
 
-These aren't tied to manufacturing a particular Android phone and generally operate their own wearable ecosystem:
+## Status Vocabulary
 
-* **Garmin** — Garmin Connect
-* **Amazfit** — Zepp
-* **Polar** — Polar Flow
-* **Suunto** — Suunto App
-* **COROS** — COROS App
-* **Oura** — Oura App / Oura Ring
-* **WHOOP** — WHOOP
-* **Withings** — Withings App
-* **RingConn** — RingConn smart rings
-* **Ultrahuman** — Ring AIR
-* **Zepp Health** — Amazfit/Zepp ecosystem
-* **Wahoo** — fitness sensors/computers
-* **Beurer** — health wearables
-* **Omron** — health wearables/medical devices
-* **Dexcom** — continuous glucose wearables
-* **Abbott FreeStyle Libre** — glucose wearables
-* **Polar** chest straps and watches
-* **Garmin** HR straps, watches and cycling devices
+- `verified-supported`: Exact production route and metrics passed physical-device acceptance.
+- `implemented-unverified`: Production code exists but physical acceptance is incomplete.
+- `planned`: A documented route exists but Hydrion has not implemented it.
+- `research-candidate`: Compatibility investigation only.
+- `partner-restricted`: Vendor approval, licensing or commercial agreement required.
+- `region-dependent`: Availability changes by country, account, firmware or store.
+- `unsupported`: Hydrion does not support the route.
+- `closed-no-legitimate-route`: No documented or authorized interface is known.
 
-COROS, for example, explicitly supports third-party synchronization including **Apple HealthKit and Google Health Connect**. ([App Store][6]) Zepp is the official Amazfit ecosystem. ([App Store][7])
+## Tier 1 — Core Production Routes
 
-### 3. White-label hardware brands
+These routes define Hydrion’s wearable architecture.
 
-Then there is another layer underneath FitPro/Da Fit/etc. These names may appear on Amazon, Temu, AliExpress, Walmart and similar marketplaces:
+| Priority | Provider route | Intended capability | Current status |
+|---:|---|---|---|
+| 1 | Android Health Connect | Imported workouts, active energy, steps, distance and supported records | Implemented-unverified |
+| 2 | Apple HealthKit | Imported workouts, active energy, steps and distance on iPhone | Implemented-unverified |
+| 3 | Wear OS Health Services | Live and passive measurements from compatible Wear OS devices | Planned |
+| 4 | watchOS workout sessions | Live Apple Watch workout measurements | Planned |
+| 5 | Standard Bluetooth GATT | Direct live data from devices implementing documented standard profiles | Planned |
 
-* KUMI
-* Colmi
-* Kieslect
-* Haylou
-* Zeblaze
-* Mibro
-* Blackview
-* Kospet
-* LIGE
-* YAMAY
-* Letsfit
-* Letscom
-* Fitpolo
-* Popglory
-* MorePro
-* Kalinco
-* Nerunsa
-* TOZO
-* Tensky
-* Woneligo
-* IOWODO
-* AGPTEK
-* GRV
-* Parsonver
-* MILOUZ
-* RUIMEN
-* Banlvs
-* VPSTAY
-* Ddidbi
-* Jugeman
-* EURANS
-* SoundPEATS
-* IDW-series watches
-* ID-series fitness trackers
-* T-series watches
-* W-series watches
-* P-series watches
-* HK-series watches
-* HW-series watches
-* DT-series watches
+Health Connect and HealthKit are record repositories. They are not assumed to
+provide continuous live sensor streaming.
 
-The important thing is that these **brand names are unreliable as an integration boundary**. One KUMI device might use FitCloudPro while another inexpensive device may use Da Fit, FitPro, GloryFit or something else.
+Live wearable sessions require Wear OS Health Services, watchOS workout sessions
+or an explicitly supported Bluetooth/device interface.
 
----
+### Standard BLE boundary
 
-## For Hydrion, this changes the architecture
+Initial BLE eligibility is limited to documented Bluetooth SIG services, such as
+the Heart Rate Service.
 
-I would classify wearable support into **three layers**, not by watch brand:
+A smartwatch exposing arbitrary proprietary Bluetooth characteristics is not a
+standard BLE device merely because it uses Bluetooth.
 
-**Tier 1 — OS health hubs**
+## Smart-Bottle Decision
 
-`Health Connect ← Android wearable apps`
+Smart-bottle support is deferred from the current scope.
 
-`HealthKit ← iOS wearable apps`
+Android Studio provides phone and Wear OS virtual-device testing, but no verified
+built-in Android Studio facility has been established that emulates a programmable
+smart bottle as an external BLE GATT peripheral.
 
-Hydrion integrates here first.
+A mocked Dart provider can validate Hydrion’s state management and UI, but cannot
+certify Bluetooth scanning, pairing, GATT discovery, reconnection, background
+behaviour or radio failure handling.
 
-**Tier 2 — Major independent ecosystems**
+Smart-bottle work may begin in a later sprint when at least one of these exists:
 
-Garmin Connect
-Zepp/Amazfit
-Oura
-Polar Flow
-Suunto
-COROS
-Withings
-WHOOP
-RingConn
-Ultrahuman
+- A physical documented smart bottle.
+- A Nordic or equivalent BLE development board acting as the bottle.
+- A second physical device capable of running a controlled GATT peripheral.
+- A vendor-provided simulator reproducing the production protocol.
 
-Only build direct integrations where Health Connect/HealthKit does **not provide the data Hydrion actually requires**.
+## Tier 2 — Prioritized Official Vendor Candidates
 
-**Tier 3 — Generic/white-label ecosystem**
+These candidates were selected for ecosystem reach, user adoption and availability
+of an official or potentially legitimate integration route. They are not all part
+of the immediate MVP.
 
-FitPro
-Da Fit
-WearFit Pro
-FitCloudPro
-GloryFit
-VeryFit
-HryFine
-Lefun Health
-RDFit
-JYouPro
-etc.
+| Priority | Ecosystem | Preferred route | Alternative route | Classification |
+|---:|---|---|---|---|
+| 1 | Samsung Galaxy Watch/Ring | Health Connect | Samsung Health Data SDK | Planned |
+| 2 | Fitbit and Pixel Watch | Health Connect/Wear OS | Google Health API | Planned |
+| 3 | Garmin | HealthKit or Health Connect where available | Garmin Health API | Partner-restricted |
+| 4 | Huawei Watch/Band | Huawei Health Kit | Verified hub export where available | Region-dependent |
+| 5 | Oura Ring | HealthKit or Health Connect where available | Oura API | Planned |
+| 6 | WHOOP | Verified hub export | WHOOP API | Planned |
 
-For these, **do not attempt to support every individual watch**.
+### Tier 2 implementation rules
 
-The compatibility path should be:
+- HealthKit or Health Connect must be attempted first when the required metrics
+  and provenance are available.
+- Vendor APIs must be separate providers behind `HealthDataProvider`.
+- Vendor APIs must not place client secrets inside the APK or iOS application.
+- Any backend requirement must receive a separate privacy, security and operating-cost review.
+- OAuth tokens must be revocable and securely stored.
+- Vendor-cloud data must be clearly distinguished from device-local data.
+- Hydrion must not advertise an entire brand based on one tested model or metric.
 
-**Watch → FitPro/Da Fit/etc. → Health Connect/HealthKit → Hydrion**
+## Tier 3 — Prioritized White-Label Research Candidates
 
-That gives Hydrion potential compatibility with **hundreds or thousands of wearable models without writing hundreds of BLE drivers**.
+These are experimental compatibility candidates only.
 
-And there is an important engineering consequence here: **we should stop describing Hydrion's future compatibility simply as “Apple Watch, Samsung Watch, Fitbit, Garmin…”**. The correct model is a **provider capability matrix**:
+| Priority | Companion application | Selection reason | Classification |
+|---:|---|---|---|
+| 1 | FitPro | Very large white-label wearable user base | Research candidate |
+| 2 | Da Fit | Large user and review footprint across generic watches | Research candidate |
+| 3 | GloryFit | Widely used companion application for multiple watch families | Research candidate |
+| 4 | FitCloudPro | Large installed base and numerous supported watch models | Research candidate |
+| 5 | WearFit Pro | Common companion for inexpensive white-label wearables | Research candidate |
+| 6 | HryFine | Common companion application for generic watches | Research candidate |
 
-**Device → Companion Provider → Health Hub → Metric → Hydrion**
+FitPro remains one candidate within this tier. It is not Hydrion’s wearable
+connection procedure or the definition of wearable-integration success.
 
-That will scale much better and is what I'd recommend putting into `HWI.md`.
+### Tier 3 research questions
 
-[1]: https://apps.apple.com/ca/app/da-fit/id1316004998?platform=watch&utm_source=chatgpt.com "‎Da Fit App - App Store"
-[2]: https://apps.apple.com/ca/app/veryfit/id1516248105?platform=watch&utm_source=chatgpt.com "‎VeryFit App - App Store"
-[3]: https://play.google.com/store/apps/details?hl=en-CA&id=com.topstep.fitcloudpro&utm_source=chatgpt.com "FitCloudPro - Apps on Google Play"
-[4]: https://play.google.com/store/apps/details?hl=en_CA&id=com.wakeup.howear&utm_source=chatgpt.com "Wearfit Pro - Apps on Google Play"
-[5]: https://rdfit.app/download/?utm_source=chatgpt.com "Download RDFit Smart Watch App - Free Smartwatch Companion | Google Play & App Store"
-[6]: https://apps.apple.com/ca/app/coros/id1277625343?platform=watch&utm_source=chatgpt.com "‎COROS App - App Store"
-[7]: https://apps.apple.com/ca/app/zepp/id1127269366?utm_source=chatgpt.com "‎Zepp App - App Store"
+Every candidate must be evaluated independently for:
+
+- Health Connect export on Android.
+- HealthKit export on iOS.
+- Metrics actually exported—not merely displayed inside the companion application.
+- Standard documented BLE services.
+- Official API or SDK availability.
+- Model-specific proprietary characteristics.
+- Pairing and authentication behaviour.
+- Encryption and replay protection.
+- Source and device provenance.
+- Background synchronization delay.
+- Firmware, account and region dependencies.
+- Legal authorization for any protocol implementation.
+
+Reverse engineering must be isolated from production qualification.
+
+No proprietary protocol may enter production merely because packet inspection
+made communication technically possible. Legal authority, stability, security,
+consent and maintainability must also be established.
+
+## Hydrion Wearable Interface
+
+Hydrion shall provide a dedicated `Wearable Health` area rather than hiding
+wearable operation inside general settings.
+
+### Wearable overview
+
+The screen shall show:
+
+- Available provider routes.
+- Connected providers.
+- Connected wearable or contributing application when known.
+- Provider type: hub, live watch, BLE or vendor API.
+- Granted data categories.
+- Last synchronization attempt.
+- Last successful synchronization.
+- Latest data timestamp.
+- Imported record count.
+- Whether live monitoring is active.
+- Whether wearable information currently influences hydration insights.
+- Clear privacy and local/cloud-storage status.
+
+### Required provider states
+
+The interface must visually distinguish:
+
+1. Provider unavailable.
+2. Installation or system update required.
+3. Permission not requested.
+4. Permission partially granted.
+5. Permission granted but not connected.
+6. Connecting.
+7. Connected but no contributing source found.
+8. Connected but no records found.
+9. Synchronizing.
+10. Data successfully imported.
+11. Live session active.
+12. Data stale.
+13. Permission revoked.
+14. Synchronization failed.
+15. Provider disconnected.
+16. Provider unsupported.
+
+These states must not reuse an identical screen with only hidden internal changes.
+
+### Successful imported-data state
+
+When data is available, the interface shall show:
+
+- `Health data connected`
+- Provider name.
+- Contributing application.
+- Wearable/device name when reliably supplied.
+- Latest synchronization time.
+- Records read, imported, updated, rejected and deleted.
+- Latest workout or activity summary.
+- Latest supported metrics and timestamps.
+- A `Synchronize again` control.
+- A `View imported data` control.
+- A `Manage permissions` control.
+- A `Disconnect` control.
+- A `Delete imported wearable data` control.
+
+### Live-session state
+
+When live measurements are supported, Hydrion shall show:
+
+- `Live wearable session active`
+- Connected device and provider.
+- Current supported measurements.
+- Time of the most recent event.
+- Signal/data freshness.
+- Connection-loss state.
+- Pause and stop controls.
+- A visible explanation of how the live information affects hydration guidance.
+
+A stale measurement must never continue appearing as live.
+
+### Connected-with-no-data state
+
+The interface shall identify the missing section of the route:
+
+- Hydrion lacks permission.
+- The health hub contains no requested records.
+- The companion application has not exported records.
+- The wearable has not synchronized with its companion.
+- The available records are outside the requested period.
+- The record types are unsupported.
+- The source cannot be identified.
+- Synchronization failed.
+
+The screen must provide the appropriate recovery action rather than only
+displaying a generic `Try again`.
+
+## Data Presentation
+
+Hydrion shall provide a wearable-data dashboard containing:
+
+- Activity and workout timeline.
+- Steps and distance trends.
+- Active-energy trend.
+- Live-session summaries where supported.
+- Provider and device provenance.
+- Data freshness.
+- Synchronization history.
+- Records excluded because of duplication or source priority.
+- Explanations of any hydration insight influenced by wearable information.
+
+Every value must display its source and timestamp.
+
+Hydrion must not represent consumer wearable measurements as medical diagnosis
+or direct measurement of hydration status.
+
+## Verified Android Environment
+
+| Item | Verified result |
+|---|---|
+| Phone | Infinix X6835B |
+| OS | Android 13 / API 33 |
+| Architecture | ARM64 |
+| Google services | Present |
+| Health Connect | Installed and SDK status `available` |
+| Hydrion permission | Read permission granted for selected categories |
+| Hydrion adapter | Able to read Health Connect records |
+| Toolbox records | Read successfully when deliberately inserted |
+| Repeat synchronization | 0 new records; imported total remained 3 |
+| Missing optional device metadata | Synthetic workout imported successfully |
+| Force-stop/relaunch | Imported records, connection state and manual hydration persisted |
+| Cold provider launch | Blocked by Infinix/XOS `AutoStart Limit` after Health Connect is killed |
+| FitPro export | Not established |
+| HealthLife export | Not established |
+| Production wearable route | Not yet physically certified |
+
+This proves Hydrion can consume supported Health Connect records. It does not
+prove that FitPro, HealthLife or the attached watch contributes records.
+
+The cold-start limitation is external to Hydrion's record mapper: the official
+Google Health Connect Toolbox also receives `RemoteException: Binding to service
+failed` when XOS refuses to start the standalone provider service. Hydrion makes
+one bounded fresh-client rebind attempt and then exposes the failure. Manually
+opening Health Connect restores access temporarily; that is a diagnostic fact,
+not an acceptable production workaround or a certification result.
+
+## Production Acceptance Gates
+
+- [ ] Health Connect imports real records written by a non-Toolbox production source.
+- [ ] HealthKit imports real records on a physical iPhone.
+- [ ] Wear OS live measurements are received from an authorized physical watch.
+- [ ] Apple Watch live measurements are independently verified.
+- [ ] Standard BLE is verified using a documented physical sensor.
+- [ ] The wearable interface displays every required provider state accurately.
+- [ ] Successful synchronization produces visible source, record and timestamp evidence.
+- [ ] Connected-with-no-data identifies the missing route without claiming success.
+- [ ] Stale data is never displayed as live.
+- [ ] Disconnecting preserves manual hydration history.
+- [ ] Deleting imported data does not delete the source platform’s records.
+- [ ] Imported data remains encrypted locally.
+- [ ] Logs and diagnostics contain no health values, tokens or encryption keys.
+- [ ] Android success does not satisfy iOS acceptance.
+- [ ] Simulator success is not reported as physical-device certification.
+- [ ] Health Connect can cold-bind after the provider process is killed under the phone's production battery/AutoStart policy.
+- [ ] Source updates and deletions are reconciled on the physical Android device.
+- [ ] Permission revocation and restoration are verified through user-controlled system settings.
+
+## Tier 3 Research Gates
+
+These gates are separate from production acceptance:
+
+- [ ] Exact watch model and firmware recorded.
+- [ ] Exact companion application package and version recorded.
+- [ ] Health Connect export tested.
+- [ ] HealthKit export tested.
+- [ ] Exported metrics and units recorded.
+- [ ] Standard BLE services enumerated.
+- [ ] Proprietary characteristics kept out of production code during discovery.
+- [ ] Authentication, encryption and replay behaviour assessed.
+- [ ] Legal and licensing position recorded.
+- [ ] Candidate classified as supported, partner-restricted, unsupported or closed.
+
+Failure of a Tier 3 candidate does not block Tier 1 or Tier 2 delivery.
+
+## Current Product Truth
+
+Hydrion currently has a secure provider-independent storage and synchronization
+foundation, an Android Health Connect record reader, and an implemented but
+physically unverified iOS Apple Health reader.
+
+Hydrion does not yet have physically certified production wearable support.
+The iOS implementation must not be advertised as Apple Health or Apple Watch
+support until its macOS and physical-iPhone acceptance gates pass.
+
+Toolbox-generated records validate the Health Connect reader but do not constitute
+wearable certification.
+
+The next production milestone is a complete real-source route with visible UI:
+
+`Supported wearable/source → documented provider → Hydrion → encrypted records → visible wearable dashboard`
+
+No integration is complete until that complete route passes.
