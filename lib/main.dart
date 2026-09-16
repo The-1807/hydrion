@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -34,6 +35,7 @@ import 'services/hydration_context_builder.dart';
 import 'services/health_data_persistence.dart';
 import 'services/android_health_provider_discovery.dart';
 import 'services/health_connect_provider.dart';
+import 'services/health_kit_provider.dart';
 import 'services/health_connection_controller.dart';
 import 'services/health_data_sync_coordinator.dart';
 import 'services/location_service.dart';
@@ -1085,6 +1087,9 @@ class HydrionServices {
 }
 
 UserManagedHealthDataProvider _healthProviderForPlatform() {
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    return const AppleHealthKitProvider();
+  }
   return const AndroidHealthConnectProvider(
     discovery: AndroidHealthProviderDiscovery(),
   );

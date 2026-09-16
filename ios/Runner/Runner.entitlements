@@ -10,5 +10,7 @@
 	<array>
 		<string>group.com.the1807.hydrion</string>
 	</array>
+	<key>com.apple.developer.healthkit</key>
+	<true/>
 </dict>
 </plist>

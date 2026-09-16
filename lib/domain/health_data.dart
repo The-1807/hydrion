@@ -65,6 +65,7 @@ enum HealthProviderAvailabilityStatus {
 
 enum HealthPermissionStatus {
   notRequested,
+  requestCompleted,
   granted,
   partial,
   denied,
