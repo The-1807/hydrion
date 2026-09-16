@@ -3149,7 +3149,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get healthDataAvailable =>
-      'Health Connect est disponible sur cet appareil.';
+      'Ce fournisseur de donnees de sante est disponible sur cet appareil.';
 
   @override
   String get healthDataLoading =>
@@ -3219,15 +3219,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get healthDataProviderFailure =>
-      'Le fournisseur de donnees de sante n\'a pas pu etre actualise. Reessayez ou ouvrez les parametres Android.';
+      'Le fournisseur de donnees de sante n\'a pas pu etre actualise. Reessayez ou gerez l\'acces au fournisseur.';
 
   @override
   String get healthDataDisconnected =>
-      'Deconnecte localement. Les autorisations Health Connect sont gerees dans les parametres Android.';
+      'Deconnecte dans Hydrion. Les autorisations sources restent gerees par le fournisseur de donnees de sante.';
 
   @override
   String get healthDataConsentIntro =>
-      'Health Connect est le fournisseur disponible sur cet appareil. Hydrion demande un acces en lecture seule uniquement apres votre choix de connexion.';
+      'Hydrion demande un acces en lecture seule au fournisseur affiche ci-dessus uniquement apres votre choix de connexion.';
 
   @override
   String get healthDataCategories => 'Categories demandees';
@@ -3250,7 +3250,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get healthDataPrivacyExplanation =>
-      'Les donnees importees restent chiffrees sur cet appareil. Aucun compte Hydrion ni envoi infonuagique n\'est requis. Vous pouvez refuser, revoquer l\'acces, vous deconnecter ou supprimer la copie importee sans supprimer les donnees sources.';
+      'Les donnees importees restent chiffrees sur cet appareil. Aucun compte Hydrion ni envoi infonuagique n\'est requis. Vous pouvez refuser, gerer l\'acces au fournisseur, vous deconnecter ou supprimer la copie importee sans supprimer les donnees sources.';
 
   @override
   String get healthDataWellnessDisclaimer =>
@@ -3280,7 +3280,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get healthDataDeleteExplanation =>
-      'Cette action supprime la copie chiffree importee par Hydrion et les points de reprise. Elle ne supprime ni les donnees sources de Health Connect ni l\'historique d\'hydratation manuel.';
+      'Cette action supprime la copie chiffree importee par Hydrion et les points de reprise. Elle ne supprime ni les donnees du fournisseur source ni l\'historique d\'hydratation manuel.';
 
   @override
   String healthDataImportedCount({required int count}) {
@@ -3318,11 +3318,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get healthDataPermissionRequesting =>
-      'Ouverture des autorisations Health Connect...';
+      'Ouverture des autorisations du fournisseur...';
 
   @override
   String get healthDataConnectedNotSynchronized =>
-      'Health Connect est connecte';
+      'Fournisseur de donnees de sante connecte';
 
   @override
   String get healthDataNoSyncYet =>
@@ -3337,7 +3337,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get healthDataNoDataExplanation =>
-      'Hydrion a l\'autorisation, mais Health Connect n\'a renvoye aucun entrainement, energie active, pas ou distance. Verifiez que votre application portable partage ses donnees avec Health Connect, puis reessayez.';
+      'Le fournisseur n\'a renvoye aucun entrainement, energie active, pas ou distance lisible. Il se peut qu\'aucune donnee correspondante ne soit disponible ou que l\'acces en lecture n\'ait pas ete autorise. Verifiez l\'application source, puis reessayez.';
 
   @override
   String get healthDataPermissionRevoked =>
@@ -3401,7 +3401,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get healthDataReasonUnavailable =>
-      'Health Connect etait indisponible.';
+      'Le fournisseur de donnees de sante etait indisponible.';
 
   @override
   String get healthDataReasonPermission =>

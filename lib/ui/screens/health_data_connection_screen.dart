@@ -253,6 +253,7 @@ class _StatusPanel extends StatelessWidget {
           l10n.healthDataReasonPermission,
         'provider_refresh_failed' ||
         'health_connect_unavailable' ||
+        'health_kit_unavailable' ||
         'unavailable' =>
           l10n.healthDataReasonUnavailable,
         _ => l10n.healthDataReasonOperation,
@@ -445,10 +446,7 @@ class _Actions extends StatelessWidget {
           key: const Key('health-data-settings'),
           onPressed: busy ? null : controller.openSettings,
           icon: const Icon(Icons.settings_outlined),
-          label: Text(controller.state ==
-                  HealthConnectionViewState.synchronizedNoRecords
-              ? l10n.healthDataCheckHealthConnect
-              : l10n.healthDataManageAccess),
+          label: Text(l10n.healthDataManageAccess),
         ),
         if (controller.importedRecordCount > 0)
           TextButton.icon(

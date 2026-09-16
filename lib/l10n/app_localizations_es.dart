@@ -3139,7 +3139,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get healthDataAvailable =>
-      'Health Connect esta disponible en este dispositivo.';
+      'Este proveedor de datos de salud esta disponible en el dispositivo.';
 
   @override
   String get healthDataLoading =>
@@ -3208,15 +3208,15 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get healthDataProviderFailure =>
-      'No se pudo actualizar el proveedor de datos de salud. Vuelve a intentarlo o abre los ajustes de Android.';
+      'No se pudo actualizar el proveedor de datos de salud. Vuelve a intentarlo o gestiona el acceso al proveedor.';
 
   @override
   String get healthDataDisconnected =>
-      'Desconectado localmente. Los permisos de Health Connect se controlan en los ajustes de Android.';
+      'Desconectado dentro de Hydrion. Los permisos de origen siguen controlados por el proveedor de datos de salud.';
 
   @override
   String get healthDataConsentIntro =>
-      'Health Connect es el proveedor disponible en este dispositivo. Hydrion solicita acceso de solo lectura solo despues de que elijas conectar.';
+      'Hydrion solicita acceso de solo lectura al proveedor mostrado arriba solo despues de que elijas conectar.';
 
   @override
   String get healthDataCategories => 'Categorias solicitadas';
@@ -3239,7 +3239,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get healthDataPrivacyExplanation =>
-      'Los registros importados permanecen cifrados en este dispositivo. No se requiere cuenta de Hydrion ni carga en la nube. Puedes rechazar, revocar, desconectar o borrar la copia importada sin borrar los registros de origen.';
+      'Los registros importados permanecen cifrados en este dispositivo. No se requiere cuenta de Hydrion ni carga en la nube. Puedes rechazar, gestionar el acceso al proveedor, desconectar o borrar la copia importada sin borrar los registros de origen.';
 
   @override
   String get healthDataWellnessDisclaimer =>
@@ -3269,7 +3269,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get healthDataDeleteExplanation =>
-      'Esto elimina la copia importada y cifrada de Hydrion y sus puntos de control. No elimina los registros de Health Connect ni el historial manual de hidratacion.';
+      'Esto elimina la copia importada y cifrada de Hydrion y sus puntos de control. No elimina los registros del proveedor de origen ni el historial manual de hidratacion.';
 
   @override
   String healthDataImportedCount({required int count}) {
@@ -3307,11 +3307,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get healthDataPermissionRequesting =>
-      'Abriendo los permisos de Health Connect...';
+      'Abriendo los permisos del proveedor...';
 
   @override
   String get healthDataConnectedNotSynchronized =>
-      'Health Connect esta conectado';
+      'Proveedor de datos de salud conectado';
 
   @override
   String get healthDataNoSyncYet =>
@@ -3326,7 +3326,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get healthDataNoDataExplanation =>
-      'Hydrion tiene permiso, pero Health Connect no devolvio entrenamientos, energia activa, pasos ni distancia. Comprueba que la aplicacion de tu dispositivo comparta datos con Health Connect e intentalo de nuevo.';
+      'El proveedor no devolvio entrenamientos, energia activa, pasos ni distancia legibles. Puede que no haya datos coincidentes o que no se permitiera el acceso de lectura. Comprueba la aplicacion de origen e intentalo de nuevo.';
 
   @override
   String get healthDataPermissionRevoked =>
@@ -3390,7 +3390,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get healthDataReasonUnavailable =>
-      'Health Connect no estaba disponible.';
+      'El proveedor de datos de salud no estaba disponible.';
 
   @override
   String get healthDataReasonPermission =>

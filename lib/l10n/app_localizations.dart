@@ -5393,7 +5393,7 @@ abstract class AppLocalizations {
   /// No description provided for @healthDataAvailable.
   ///
   /// In en, this message translates to:
-  /// **'Health Connect is available on this device.'**
+  /// **'This health-data provider is available on this device.'**
   String get healthDataAvailable;
 
   /// No description provided for @healthDataLoading.
@@ -5495,19 +5495,19 @@ abstract class AppLocalizations {
   /// No description provided for @healthDataProviderFailure.
   ///
   /// In en, this message translates to:
-  /// **'The health-data provider could not be refreshed. Try again or open Android settings.'**
+  /// **'The health-data provider could not be refreshed. Try again or manage provider access.'**
   String get healthDataProviderFailure;
 
   /// No description provided for @healthDataDisconnected.
   ///
   /// In en, this message translates to:
-  /// **'Disconnected locally. Health Connect permissions are controlled in Android settings.'**
+  /// **'Disconnected inside Hydrion. Source permissions remain controlled by the health-data provider.'**
   String get healthDataDisconnected;
 
   /// No description provided for @healthDataConsentIntro.
   ///
   /// In en, this message translates to:
-  /// **'Health Connect is the available provider on this device. Hydrion requests read-only access only after you choose Connect.'**
+  /// **'Hydrion requests read-only access from the provider shown above only after you choose Connect.'**
   String get healthDataConsentIntro;
 
   /// No description provided for @healthDataCategories.
@@ -5549,7 +5549,7 @@ abstract class AppLocalizations {
   /// No description provided for @healthDataPrivacyExplanation.
   ///
   /// In en, this message translates to:
-  /// **'Imported records remain encrypted on this device. No Hydrion account or cloud upload is required. You can decline, revoke access in Android settings, disconnect, or delete Hydrion\'s imported copy without deleting source records.'**
+  /// **'Imported records remain encrypted on this device. No Hydrion account or cloud upload is required. You can decline, manage provider access, disconnect, or delete Hydrion\'s imported copy without deleting source records.'**
   String get healthDataPrivacyExplanation;
 
   /// No description provided for @healthDataWellnessDisclaimer.
@@ -5603,7 +5603,7 @@ abstract class AppLocalizations {
   /// No description provided for @healthDataDeleteExplanation.
   ///
   /// In en, this message translates to:
-  /// **'This removes Hydrion\'s encrypted imported copy and checkpoints. It does not delete Health Connect source records or manual hydration history.'**
+  /// **'This removes Hydrion\'s encrypted imported copy and checkpoints. It does not delete records from the source provider or manual hydration history.'**
   String get healthDataDeleteExplanation;
 
   /// No description provided for @healthDataImportedCount.
@@ -5657,13 +5657,13 @@ abstract class AppLocalizations {
   /// No description provided for @healthDataPermissionRequesting.
   ///
   /// In en, this message translates to:
-  /// **'Opening Health Connect permissions...'**
+  /// **'Opening provider permissions...'**
   String get healthDataPermissionRequesting;
 
   /// No description provided for @healthDataConnectedNotSynchronized.
   ///
   /// In en, this message translates to:
-  /// **'Health Connect connected'**
+  /// **'Health-data provider connected'**
   String get healthDataConnectedNotSynchronized;
 
   /// No description provided for @healthDataNoSyncYet.
@@ -5687,7 +5687,7 @@ abstract class AppLocalizations {
   /// No description provided for @healthDataNoDataExplanation.
   ///
   /// In en, this message translates to:
-  /// **'Hydrion has permission, but Health Connect returned no workout, energy, step, or distance records. Make sure your wearable application is sharing data with Health Connect, then try again.'**
+  /// **'The provider returned no readable workout, energy, step, or distance records. This can mean no matching data is available or read access was not allowed. Check the source application, then try again.'**
   String get healthDataNoDataExplanation;
 
   /// No description provided for @healthDataPermissionRevoked.
@@ -5782,7 +5782,7 @@ abstract class AppLocalizations {
   /// No description provided for @healthDataReasonUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Health Connect was unavailable.'**
+  /// **'The health-data provider was unavailable.'**
   String get healthDataReasonUnavailable;
 
   /// No description provided for @healthDataReasonPermission.
