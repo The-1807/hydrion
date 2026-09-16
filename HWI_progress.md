@@ -30,7 +30,7 @@ This story does not promise universal wearable compatibility. A wearable is supp
 ### Architecture
 
 - [x] A platform-independent `HealthDataProvider` contract exists and is separated from hydration calculations, UI state, persistence and platform-specific code.
-- [ ] HealthKit and Health Connect implementations conform to the same provider contract without forcing platform-specific records into the hydration engine.
+- [x] HealthKit and Health Connect implementations conform to the same provider contract without forcing platform-specific records into the hydration engine.
 - [x] The existing `WearableService`, `BLEService`, `HydrionServices` composition and Provider state-management architecture have been inspected before deciding what to reuse, replace or deprecate.
 - [x] The implementation does not turn `WearableService` or another class into a service responsible for permissions, synchronization, storage, analysis and UI simultaneously.
 - [x] Unsupported platforms and unavailable providers return explicit capability states rather than empty data or false success.
@@ -110,7 +110,7 @@ This story does not promise universal wearable compatibility. A wearable is supp
 - [x] Repository integration tests use realistic synthetic histories and failed-write scenarios.
 - [x] Permission denial, revocation, unsupported provider, empty history and malformed record scenarios are tested.
 - [x] Existing Hydrion unit and integration suites continue to pass.
-- [ ] Static analysis, formatting, dependency, secret and platform-configuration checks pass.
+- [x] Static analysis, formatting, dependency, secret and platform-configuration checks pass.
 - [ ] Android behavior is validated on an authorized physical Android device.
 - [ ] iOS behavior is independently validated on an authorized physical iPhone.
 - [x] Android success does not satisfy iOS acceptance criteria, and iOS success does not satisfy Android acceptance criteria.
@@ -404,3 +404,49 @@ physical Android record behavior; physical iPhone behavior; and bounded battery
 and complete resource certification. No acceptance checkbox was newly marked by
 this continuation: the physical Android criterion remains intentionally broad
 and therefore remains unchecked while the named device gates above are open.
+
+### HealthKit provider sprint evidence
+
+The local `feature/healthkit-provider` branch adds a narrow Swift HealthKit host
+and an `AppleHealthKitProvider` behind the same `HealthDataProvider`, canonical
+record, synchronization coordinator, encrypted repository and connection-screen
+boundaries used by Health Connect. The shared-contract criterion changed from
+unchecked to checked. Evidence is `HealthKitHost.swift`,
+`health_kit_provider.dart`, the expanded provider/coordinator tests and
+ADR-0006. No HealthKit record enters the hydration engine or modifies a target.
+
+Production iOS access is read-only and limited to workouts, active energy, steps
+and walking/running distance. Permission is requested only after Connect. The
+provider records authorization-flow completion without claiming that Apple
+revealed individual read grants. Empty-query text explicitly preserves Apple's
+denied-versus-empty ambiguity. English, French and Spanish permission-purpose
+strings are included in the Runner target; the widget target has no HealthKit
+entitlement or purpose string.
+
+Anchored responses and cursors are schema-versioned. Each metric retains an
+independent checkpoint; page size is 250, the initial history is 30 days and the
+shared coordinator caps a run at 100 pages. Tests cover all four metric mappings,
+optional provenance, time-zone offset, update/deletion reconciliation, invalid
+anchor recovery, unsupported schemas, partial metric failure, scoped retry and
+permission-request failure. Provider records and checkpoints still commit through
+the existing SQLCipher transaction.
+
+The iOS capability criterion remains unchecked because Windows cannot compile or
+execute `HKHealthStore.isHealthDataAvailable()`. The complete provider-state
+criterion also remains unchecked: HealthKit intentionally prevents Hydrion from
+distinguishing denied read access from an empty readable store. Combined
+Keystore/Keychain encryption, physical iPhone, source application, corrections,
+deletions, revocation, restart, performance, memory, resource release and battery
+criteria remain unchecked pending authorized macOS and physical-iPhone evidence.
+
+Windows validation completed with `flutter gen-l10n`, 33 focused iOS/provider/UI
+configuration tests, and the full 745-test Flutter suite passing. Repository-wide
+formatting reported 238 files with 0 changes, `flutter analyze` reported no
+issues, dependency resolution completed without changing `pubspec.yaml` or
+`pubspec.lock`, and the secret scan found no committed credentials or private-key
+blocks. Localization coverage remained 943/943 for EN, FR and ES plus 24/24 for
+each Android locale; the mixed-language audit reported no identical untranslated
+messages or placeholder drift. The production-literal audit reviewed all 936
+findings with 0 unresolved, both GitHub Actions workflows validated, and
+`git diff --check` passed. These Windows/static results do not satisfy any macOS,
+iOS simulator, physical-iPhone, HealthKit runtime or Keychain criterion.

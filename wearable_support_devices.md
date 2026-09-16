@@ -53,7 +53,7 @@ These routes define Hydrion’s wearable architecture.
 | Priority | Provider route | Intended capability | Current status |
 |---:|---|---|---|
 | 1 | Android Health Connect | Imported workouts, active energy, steps, distance and supported records | Implemented-unverified |
-| 2 | Apple HealthKit | Imported activity and wellness records on iPhone | Planned |
+| 2 | Apple HealthKit | Imported workouts, active energy, steps and distance on iPhone | Implemented-unverified |
 | 3 | Wear OS Health Services | Live and passive measurements from compatible Wear OS devices | Planned |
 | 4 | watchOS workout sessions | Live Apple Watch workout measurements | Planned |
 | 5 | Standard Bluetooth GATT | Direct live data from devices implementing documented standard profiles | Planned |
@@ -340,9 +340,12 @@ Failure of a Tier 3 candidate does not block Tier 1 or Tier 2 delivery.
 ## Current Product Truth
 
 Hydrion currently has a secure provider-independent storage and synchronization
-foundation plus an Android Health Connect record reader.
+foundation, an Android Health Connect record reader, and an implemented but
+physically unverified iOS Apple Health reader.
 
 Hydrion does not yet have physically certified production wearable support.
+The iOS implementation must not be advertised as Apple Health or Apple Watch
+support until its macOS and physical-iPhone acceptance gates pass.
 
 Toolbox-generated records validate the Health Connect reader but do not constitute
 wearable certification.

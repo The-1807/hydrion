@@ -179,6 +179,31 @@ const storageKey = 'challenge_state_v2';
           ProductionStringClassification.diagnostic);
     });
 
+    test('classifies HealthKit exception text as internal diagnostics', () {
+      final findings = scanDartSource(
+        "throw const FormatException('Invalid HealthKit checkpoint.');",
+        path: 'lib/services/health_kit_provider.dart',
+      );
+      expect(findings, hasLength(1));
+      expect(findings.single.resolved, isTrue);
+      expect(findings.single.classification,
+          ProductionStringClassification.diagnostic);
+    });
+
+    test('classifies anchored reason-code patterns as formatting values', () {
+      final findings = scanDartSource(
+        '''String valid(String value) {
+          return RegExp(r'^[a-z0-9_]{1,80}\$').hasMatch(value) ? value : '';
+        }
+        Widget build(String code) => Text(valid(code));''',
+        path: 'lib/services/health_connection_controller.dart',
+      );
+      expect(findings, hasLength(1));
+      expect(findings.single.resolved, isTrue);
+      expect(findings.single.classification,
+          ProductionStringClassification.formattingValue);
+    });
+
     test('still detects ordinary health service presentation sentences', () {
       final findings = scanDartSource(
         "String label() => 'Your health connection is ready.';",

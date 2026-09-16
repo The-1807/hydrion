@@ -58,6 +58,15 @@ separate work and is not silently folded into this migration.
   rebind after a remote binding failure and then reports failure. It does not
   auto-launch the provider, retry indefinitely or treat an unavailable service
   as an empty successful synchronization.
+- **Opaque Apple read authorization:** HealthKit intentionally does not reveal
+  whether read access was denied. Hydrion records that the authorization flow
+  completed and then reports readable records, empty readable history or query
+  failure. It never uses write-authorization status to claim a read grant.
+- **Native HealthKit channel payloads:** the channel accepts only four allowlisted
+  metrics, bounded ISO-8601 windows and bounded/versioned anchors. Responses are
+  capped at 250 objects, schema-versioned and mapped into allowlisted canonical
+  fields. Native errors return categorical codes without record values or
+  identifiers.
 - **Rollback and replay:** a checkpoint advances only in the successful record
   transaction. A retry replays the provider identity as an upsert.
 - **Deletion:** provider deletion removes imported records and its checkpoints but
@@ -79,3 +88,8 @@ UI and encryption of unrelated profile/preferences remain separate reviewed work
 The tested Infinix/XOS configuration can block cold binding to standalone Health
 Connect through its AutoStart policy; the official Health Connect Toolbox is
 affected as well. This remains a device-policy acceptance blocker.
+
+The iOS Runner now has a read-only HealthKit implementation and localized purpose
+strings, but Swift compilation, signing, Keychain lifecycle, device logging,
+resource release and Apple Health record behavior remain unverified until the
+authorized macOS and physical-iPhone gates run.

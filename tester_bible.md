@@ -1383,6 +1383,13 @@ not be described as an OEM-policy bypass.
 
 ### Apple HealthKit
 
+Windows automation now covers provider capability mapping, user-initiated consent,
+opaque read-authorization wording, all four canonical metric mappings, optional
+provenance, anchored updates/deletions, independent checkpoints, partial failure,
+scoped retry, schema rejection and encrypted-repository reuse. These results do
+not check any physical-iPhone item below. Execute every unchecked scenario on the
+authorized Mac/iPhone before describing the route as supported.
+
 - [ ] Unsupported/unavailable HealthKit leaves manual hydration functional.
 - [ ] Permission is requested only after the user selects Connect.
 - [ ] Partial authorization imports only readable workout/activity categories.

@@ -78,7 +78,7 @@ void main() {
       controller.state,
       HealthConnectionViewState.connectedNotSynchronized,
     );
-    expect(find.text('Health Connect connected'), findsOneWidget);
+    expect(find.text('Health-data provider connected'), findsOneWidget);
     expect(find.text('No synchronization completed yet.'), findsOneWidget);
   });
 
@@ -152,9 +152,9 @@ void main() {
 
     expect(
         find.text('Connected, but no health data was found'), findsOneWidget);
-    expect(find.textContaining('returned no workout'), findsOneWidget);
+    expect(find.textContaining('no readable workout'), findsOneWidget);
     expect(find.text('Try again'), findsOneWidget);
-    expect(find.text('Open Health Connect'), findsOneWidget);
+    expect(find.text('Manage access'), findsOneWidget);
   });
 
   testWidgets('renders failed latest attempt without hiding prior success',
