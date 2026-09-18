@@ -313,6 +313,27 @@ class HealthConnectionController extends ChangeNotifier {
 
   Future<void> openSettings() => _provider.openSettings();
 
+  /// Non-deleted, non-duplicate records imported by this provider, newest
+  /// first, bounded to [limit] to keep the dashboard read predictable.
+  Future<List<CanonicalHealthRecord>> importedRecords(
+      {int limit = 2000}) async {
+    final records = <CanonicalHealthRecord>[];
+    var offset = 0;
+    while (records.length < limit) {
+      final page = await _repository.records(
+        metrics: metrics,
+        limit: HealthDataRepository.maximumPageSize,
+        offset: offset,
+      );
+      records.addAll(
+          page.where((record) => record.providerId == _provider.providerId));
+      if (page.length < HealthDataRepository.maximumPageSize) break;
+      offset += page.length;
+    }
+    records.sort((a, b) => b.startTime.compareTo(a.startTime));
+    return records.length > limit ? records.sublist(0, limit) : records;
+  }
+
   String get _storageKey => _provider.providerId == 'android.health_connect'
       ? 'health_connect_connection_v1'
       : 'health_connection_${_provider.providerId}_v1';

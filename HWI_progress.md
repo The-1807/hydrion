@@ -27,6 +27,10 @@ This story does not promise universal wearable compatibility. A wearable is supp
 
 ## Acceptance Criteria
 
+Mac follow-up: [2026-09-17 Xcode Simulator validation](docs/validation/healthkit-macos-simulator-2026-09-17.md).
+The user selected Simulator because no physical iPhone is available. This run
+does not check physical-device criteria or expand supported wearable routes.
+
 ### Architecture
 
 - [x] A platform-independent `HealthDataProvider` contract exists and is separated from hydration calculations, UI state, persistence and platform-specific code.
@@ -37,7 +41,7 @@ This story does not promise universal wearable compatibility. A wearable is supp
 
 ### Platform capability discovery
 
-- [ ] iOS can determine whether HealthKit is available and display an accurate connection state.
+- [x] iOS can determine whether HealthKit is available and display an accurate connection state.
 - [x] Android can determine whether Health Connect is available, unavailable, unsupported or requires user action.
 - [ ] The application distinguishes provider unavailable, permission not granted, permission revoked, no contributing source, unsupported metric, empty history, synchronization failure and successful synchronization.
 - [x] Hydrion continues to support manual hydration tracking when no wearable-data provider is available.
@@ -405,6 +409,32 @@ and complete resource certification. No acceptance checkbox was newly marked by
 this continuation: the physical Android criterion remains intentionally broad
 and therefore remains unchecked while the named device gates above are open.
 
+### Phone-side wearable dashboard and watchOS scaffold — 2026-09-18
+
+Full detail: [docs/validation/healthkit-macos-simulator-2026-09-17.md](docs/validation/healthkit-macos-simulator-2026-09-17.md#watchos-companion-app-scaffold--2026-09-18).
+
+Added `lib/ui/screens/wearable_data_dashboard_screen.dart` (workout timeline,
+steps/distance/active-energy trends, reachable from a new "View imported
+data" control on the connection screen) and `HealthConnectionController.importedRecords()`.
+Localized in English, French and Spanish (11 new ARB keys, verified equal
+counts across all three locales); covered by a passing widget test; `flutter
+analyze` and the full `flutter test` suite (743 passed, 2 Windows-only
+skipped) both re-confirmed clean.
+
+Added a `HydrionWatch` watchOS App target and phone-side WatchConnectivity
+wiring (`ios/Runner/WatchConnectivityHost.swift`,
+`lib/services/watch_connectivity_service.dart`). The watch target compiles
+for real (`xcodebuild -target HydrionWatch -sdk watchsimulator` produces an
+arm64 Mach-O binary), but is not embedded in the shipped Runner app: embedding
+requires a watchOS Simulator runtime this Mac does not have installed, and a
+first attempt to embed it broke Runner's own build entirely. That regression
+was caught and reverted the same session; a second, unrelated bug (a new
+Swift file never registered in Xcode's Sources build phase) was found and
+fixed while re-verifying. Runner's production build is confirmed working
+after both fixes. No watch app has been launched in any simulator, no
+WatchConnectivity pairing has been observed, and no physical Apple Watch is
+available — the watchOS UI is real, compiling, and unverified at runtime.
+
 ### HealthKit provider sprint evidence
 
 The local `feature/healthkit-provider` branch adds a narrow Swift HealthKit host
@@ -450,3 +480,66 @@ messages or placeholder drift. The production-literal audit reviewed all 936
 findings with 0 unresolved, both GitHub Actions workflows validated, and
 `git diff --check` passed. These Windows/static results do not satisfy any macOS,
 iOS simulator, physical-iPhone, HealthKit runtime or Keychain criterion.
+
+### Mac/Simulator HealthKit runtime continuation — 2026-09-18
+
+Full detail: [docs/validation/healthkit-macos-simulator-2026-09-17.md](docs/validation/healthkit-macos-simulator-2026-09-17.md).
+
+The native `RunnerTests.swift` suite (6 tests covering anchor validation, date
+bounding, quantity/workout mapping and metric-mismatch rejection) passed on the
+isolated `HydrionHealthKitCertification` simulator after correcting the
+synthetic workout fixture's missing `HKMetadataKeySyncIdentifier`.
+
+`flutter build ios --release --no-codesign` passed: 54 MB `Runner.app`, arm64,
+version 1.2.0 (4), confirmed unsigned and read-only (`NSHealthShareUsageDescription`
+present, no `NSHealthUpdateUsageDescription`).
+
+The synthetic HealthKit fixture (`tool/healthkit_fixture`, real Simulator
+HealthKit store, production `HealthKitHost.swift` unmodified) initially hung
+indefinitely. Root cause: the fixture's own XCUITest driver was tapping the
+wrong accessibility elements on iOS 18.3's authorization sheet — `Turn On All`
+is a table `Cell`, and the `Allow` confirm button starts `Disabled` until a
+category is toggled, so the original tap sequence was a silent no-op that left
+the sheet open forever. This was diagnosed by dumping the sheet's real
+accessibility tree rather than assumed, and confirmed as a test-harness defect
+(not a `HealthKitHost` defect) by ruling out slow bulk-write latency at a 420
+second timeout. After correcting the driver to address the real elements by
+identifier, the fixture passed in 23.7 seconds with full evidence: workout,
+active energy and distance each imported exactly 1 record; 503 step records
+paginated across 3 pages of ≤250; an energy correction reconciled as
+insert-plus-tombstone; a distance deletion reconciled as a tombstone; and ten
+repeat incremental-anchor sync cycles each returned 0 new records.
+
+The Flutter-level `integration_test/healthkit_simulator_test.dart` (exercising
+the production `AppleHealthKitProvider` and the encrypted SQLCipher/Keychain
+repository directly, not the native fixture) initially failed at `setUpAll` on
+an unrelated bug in its own device-guard (`Platform.environment` does not
+reach on-device Dart processes; fixed to use `--dart-define`, matching the
+adjacent guard already in the file). With that fixed, both tests passed: the
+production provider reports HealthKit `available` with `notRequested`
+authorization and no prompt, and a real Simulator Keychain key round-trips
+through the encrypted repository with atomic rollback and no plaintext leakage
+on disk.
+
+This continuation certifies the native mapping/anchor/pagination/correction/
+deletion path end-to-end against a real Simulator HealthKit store, plus the
+Dart-level provider availability/authorization primitives and Keychain-backed
+encrypted persistence against a real Simulator Keychain. It still does not
+certify physical-iPhone behavior, physical Secure-Enclave-backed Keychain
+protection, Apple Watch contribution, the full 16-state connection-screen UI,
+or battery/memory/performance criteria, which remain unchecked below pending
+authorized physical-device access.
+
+The "iOS can determine whether HealthKit is available and display an accurate
+connection state" criterion changed from unchecked to checked. Its evidence is
+composed of two parts together, neither sufficient alone: `test/health_connection_controller_test.dart`
+and `test/health_data_connection_screen_test.dart` (part of the passing Mac
+suite) exercise the UI's state rendering against a mocked provider, and this
+session's `integration_test/healthkit_simulator_test.dart` confirms the real
+native `AppleHealthKitProvider.availability()` call that feeds that same
+controller reports `available` correctly against a real Simulator HealthKit
+store. This is not a screenshot-verified, fully wired real-device run of the
+connection screen; the broader "distinguishes provider unavailable, permission
+not granted, permission revoked, no contributing source, unsupported metric,
+empty history, synchronization failure and successful synchronization"
+criterion remains unchecked and is a materially larger claim.

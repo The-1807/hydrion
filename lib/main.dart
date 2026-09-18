@@ -52,6 +52,7 @@ import 'services/wearable_service.dart';
 import 'services/weather_goal_service.dart';
 import 'services/app_refresh_controller.dart';
 import 'services/android_widget_service.dart';
+import 'services/watch_connectivity_service.dart';
 import 'services/dynamic_theme_clock.dart';
 import 'services/daily_hydration_recommendation_coordinator.dart';
 import 'services/challenge_recommendation_service.dart';
@@ -68,6 +69,7 @@ import 'ui/screens/permission_center_screen.dart';
 import 'ui/screens/reminders_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/health_data_connection_screen.dart';
+import 'ui/screens/wearable_data_dashboard_screen.dart';
 import 'ui/screens/social_challenges_screen.dart';
 import 'ui/screens/startup_screen.dart';
 import 'ui/screens/profile_screen.dart';
@@ -373,6 +375,7 @@ class HydrionApp extends StatelessWidget {
         '/reminders': (_) => const RemindersScreen(),
       '/settings': (_) => const SettingsScreen(),
       '/health-data': (_) => const HealthDataConnectionScreen(),
+      '/health-data/imported': (_) => const WearableDataDashboardScreen(),
       '/permissions': (_) => const PermissionCenterScreen(),
       '/profile': (_) => const ProfileScreen(),
       '/profile-age-review': (_) => const ProfileAgeReviewScreen(),
@@ -575,6 +578,7 @@ class HydrionServices {
   final EcoTracker ecoTracker;
   final LocalProfileResetService localProfileResetService;
   final AndroidWidgetService androidWidgetService;
+  final WatchConnectivityService watchConnectivityService;
 
   HydrionServices({
     this.aiRuntimeConfig = const HydrionAiRuntimeConfig(),
@@ -623,6 +627,7 @@ class HydrionServices {
     required this.ecoTracker,
     required this.localProfileResetService,
     AndroidWidgetService? androidWidgetService,
+    WatchConnectivityService? watchConnectivityService,
   })  : healthDataRepository = healthPersistence.repository,
         healthConnectionController = healthConnectionController ??
             _fallbackHealthConnectionController(
@@ -638,6 +643,12 @@ class HydrionServices {
               hydrationRepository: hydrationRepository,
               settingsRepository: settingsRepository,
               challengeRepository: challengeRepository,
+              appLocaleRepository: appLocaleRepository,
+            ),
+        watchConnectivityService = watchConnectivityService ??
+            WatchConnectivityService(
+              hydrationRepository: hydrationRepository,
+              settingsRepository: settingsRepository,
               appLocaleRepository: appLocaleRepository,
             );
 
@@ -724,6 +735,14 @@ class HydrionServices {
     await services.androidWidgetService.initialize();
     HydrionStartupTrace.log(
       'HydrionServices.local gate=android_widget_init status=done',
+    );
+
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=watch_connectivity_init status=start',
+    );
+    await services.watchConnectivityService.initialize();
+    HydrionStartupTrace.log(
+      'HydrionServices.local gate=watch_connectivity_init status=done',
     );
     return services;
   }

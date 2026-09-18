@@ -6,6 +6,7 @@ final class HealthKitHost {
   private static let channelName = "hydrion/health_kit"
   private static let schemaVersion = 1
   private static let pageSize = 250
+  private static let maximumAnchorLength = 16_384
   private static let supportedMetrics = Set(["workout", "activeEnergy", "steps", "distance"])
 
   private let store = HKHealthStore()
@@ -72,7 +73,7 @@ final class HealthKitHost {
           let arguments = call.arguments as? [String: Any],
           let metric = arguments["metric"] as? String,
           Self.supportedMetrics.contains(metric),
-          let type = sampleType(metric),
+          let type = Self.sampleType(metric),
           let historyStartText = arguments["historyStart"] as? String,
           let historyStart = Self.isoDate(historyStartText),
           let historyEndText = arguments["historyEnd"] as? String,
@@ -83,7 +84,7 @@ final class HealthKitHost {
     }
     let anchor: HKQueryAnchor?
     do {
-      anchor = try decodeAnchor(arguments["anchor"] as? String)
+      anchor = try Self.decodeAnchor(arguments["anchor"])
     } catch {
       result(flutterError("invalid_anchor"))
       return
@@ -104,7 +105,7 @@ final class HealthKitHost {
           return self.flutterError("health_kit_read_failed")
         }
         do {
-          let records = try (samples ?? []).map { try self.mapSample($0, metric: metric) }
+          let records = try (samples ?? []).map { try Self.mapSample($0, metric: metric) }
           let deletions = (deleted ?? []).map {
             [
               "schemaVersion": Self.schemaVersion,
@@ -116,7 +117,7 @@ final class HealthKitHost {
           return [
             "schemaVersion": Self.schemaVersion,
             "records": records + deletions,
-            "anchor": try self.encodeAnchor(nextAnchor),
+            "anchor": try Self.encodeAnchor(nextAnchor),
             "hasMore": records.count + deletions.count >= Self.pageSize,
           ]
         } catch {
@@ -142,11 +143,11 @@ final class HealthKitHost {
           let metrics = arguments["metrics"] as? [String],
           !metrics.isEmpty,
           Set(metrics).isSubset(of: Self.supportedMetrics) else { return nil }
-    let types = metrics.compactMap(sampleType)
+    let types = metrics.compactMap(Self.sampleType)
     return types.count == metrics.count ? Set(types) : nil
   }
 
-  private func sampleType(_ metric: String) -> HKSampleType? {
+  private static func sampleType(_ metric: String) -> HKSampleType? {
     switch metric {
     case "workout": return HKObjectType.workoutType()
     case "activeEnergy": return HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)
@@ -156,7 +157,10 @@ final class HealthKitHost {
     }
   }
 
-  private func mapSample(_ sample: HKSample, metric: String) throws -> [String: Any] {
+  static func mapSample(_ sample: HKSample, metric: String) throws -> [String: Any] {
+    // Reject mismatched quantity types before HKQuantity performs unit conversion,
+    // which can raise an Objective-C exception for incompatible units.
+    guard sample.sampleType == sampleType(metric) else { throw MappingError.typeMismatch }
     let value: Double
     let unit: String
     var category: String?
@@ -232,16 +236,20 @@ final class HealthKitHost {
       .joined(separator: "|")
   }
 
-  private func encodeAnchor(_ anchor: HKQueryAnchor) throws -> String {
-    try NSKeyedArchiver.archivedData(
+  static func encodeAnchor(_ anchor: HKQueryAnchor) throws -> String {
+    let encoded = try NSKeyedArchiver.archivedData(
       withRootObject: anchor,
       requiringSecureCoding: true
     ).base64EncodedString()
+    guard encoded.utf8.count <= maximumAnchorLength else { throw MappingError.invalidAnchor }
+    return encoded
   }
 
-  private func decodeAnchor(_ encoded: String?) throws -> HKQueryAnchor? {
-    guard let encoded = encoded else { return nil }
-    guard let data = Data(base64Encoded: encoded),
+  static func decodeAnchor(_ value: Any?) throws -> HKQueryAnchor? {
+    guard let value = value, !(value is NSNull) else { return nil }
+    guard let encoded = value as? String,
+          !encoded.isEmpty, encoded.utf8.count <= maximumAnchorLength,
+          let data = Data(base64Encoded: encoded),
           let anchor = try NSKeyedUnarchiver.unarchivedObject(
             ofClass: HKQueryAnchor.self,
             from: data
@@ -258,14 +266,18 @@ final class HealthKitHost {
   }
 
   private func finish(_ result: @escaping FlutterResult, value: @escaping () -> Any) {
-    DispatchQueue.main.async { result(value()) }
+    // HealthKit invokes completion handlers on a background queue. Keep sample
+    // mapping and secure anchor archiving there; only Flutter delivery needs main.
+    let response = value()
+    DispatchQueue.main.async { result(response) }
   }
 
   private func flutterError(_ code: String) -> FlutterError {
     FlutterError(code: code, message: "Apple Health could not complete the request.", details: nil)
   }
 
-  private static func isoDate(_ value: String) -> Date? {
+  static func isoDate(_ value: String) -> Date? {
+    guard !value.isEmpty, value.utf8.count <= 64 else { return nil }
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     return formatter.date(from: value) ?? ISO8601DateFormatter().date(from: value)

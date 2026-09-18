@@ -58,6 +58,10 @@ These routes define Hydrion’s wearable architecture.
 | 4 | watchOS workout sessions | Live Apple Watch workout measurements | Planned |
 | 5 | Standard Bluetooth GATT | Direct live data from devices implementing documented standard profiles | Planned |
 
+The [2026-09-17 Mac/Simulator validation](docs/validation/healthkit-macos-simulator-2026-09-17.md)
+records native build, XCTest and synthetic simulator results separately. No
+physical iPhone or contributing wearable is certified by simulator evidence.
+
 Health Connect and HealthKit are record repositories. They are not assumed to
 provide continuous live sensor streaming.
 

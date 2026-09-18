@@ -427,6 +427,16 @@ class _Actions extends StatelessWidget {
             icon: const Icon(Icons.add_moderator_outlined),
             label: Text(l10n.healthDataRequestMissing),
           ),
+        if (controller.importedRecordCount > 0)
+          OutlinedButton.icon(
+            key: const Key('health-data-view-imported'),
+            onPressed: busy
+                ? null
+                : () =>
+                    Navigator.of(context).pushNamed('/health-data/imported'),
+            icon: const Icon(Icons.insights_outlined),
+            label: Text(l10n.healthDataViewImportedData),
+          ),
         if (controller.isConnected && controller.grantedMetrics.isNotEmpty)
           FilledButton.tonalIcon(
             key: const Key('health-data-sync'),

@@ -41,7 +41,8 @@ class AndroidWidgetService {
     required this.appLocaleRepository,
   });
 
-  @visibleForTesting
+  /// Also used by [WatchConnectivityService] to keep watch and widget
+  /// snapshots consistent.
   static Map<String, Object> hydrationSnapshotData({
     required int todayMl,
     required UserSettings settings,

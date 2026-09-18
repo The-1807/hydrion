@@ -4,6 +4,7 @@ import UIKit
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var healthKitHost: HealthKitHost?
+  private var watchConnectivityHost: WatchConnectivityHost?
 
   override func application(
     _ application: UIApplication,
@@ -16,6 +17,9 @@ import UIKit
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "HydrionHealthKit") {
       healthKitHost = HealthKitHost(messenger: registrar.messenger())
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "HydrionWatchConnectivity") {
+      watchConnectivityHost = WatchConnectivityHost(messenger: registrar.messenger())
     }
   }
 }
