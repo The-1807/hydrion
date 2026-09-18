@@ -29,7 +29,7 @@ dependencies:
   share_plus: ^10.1.4
   flutter_secure_storage: ^10.3.3
   path_provider: ^2.1.5
-  sqlite3: ^3.5.2
+  sqlite3: ^3.6.0
   sqlite_async: ^0.14.5
 dev_dependencies:
   flutter_test:
