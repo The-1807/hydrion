@@ -68,3 +68,16 @@ prove physical Apple Health behavior. Therefore the provider remains
 `implemented-unverified`; Hydrion must not advertise Apple Health, Apple Watch or
 iOS wearable support until the macOS and physical-iPhone acceptance matrix is
 complete.
+
+## Mac and Simulator follow-up
+
+The user selected Xcode Simulator for the 2026-09-17 Mac validation because no
+physical iPhone is available. See the [validation record](../validation/healthkit-macos-simulator-2026-09-17.md)
+for actual results and remaining gates. Simulator evidence does not change the
+physical compatibility classification.
+
+The native boundary now rejects malformed or oversized anchors before secure
+decoding, bounds date input strings, and validates sample types before converting
+units. Sample mapping and anchor archiving run on the HealthKit completion queue;
+only completed method-channel results move to the main thread. Native XCTest
+coverage exercises these production helpers with synthetic HealthKit objects.

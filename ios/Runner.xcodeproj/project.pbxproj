@@ -11,17 +11,22 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
+		3F1683B04D780D1377EF092D /* HydrionWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67BF5D5A545DE600952FAF3 /* HydrionWatchApp.swift */; };
+		67C0363B0E0F157D971302AC /* WatchConnectivityHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D322BC46013D8495E035423 /* WatchConnectivityHost.swift */; };
 		6F9B2A622A4B4C2100C2D001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 6F9B2A612A4B4C2100C2D001 /* PrivacyInfo.xcprivacy */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
-		B71807010000000000000001 /* HealthKitHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B71807020000000000000001 /* HealthKitHost.swift */; };
-		B71807060000000000000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B71807070000000000000001 /* InfoPlist.strings */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 		8B066F969CB45FE33B1E7430 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBC7C6F5A2C5D50533A33A0C /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		A201F923C16E826A6F422DB3 /* HydrationConnectivityReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEAA2AA7476B544AEDDD5D4D /* HydrationConnectivityReceiver.swift */; };
 		AA1000010000000000000001 /* HydrionWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000020000000000000001 /* HydrionWidgets.swift */; };
 		AA1000030000000000000001 /* HydrionWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AA1000040000000000000001 /* HydrionWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AAD419DEDF1C0AA8126BD588 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2FADC3C7EE299C628631B752 /* Foundation.framework */; };
+		B71807010000000000000001 /* HealthKitHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B71807020000000000000001 /* HealthKitHost.swift */; };
+		B71807060000000000000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B71807070000000000000001 /* InfoPlist.strings */; };
+		BE8797B69E1AD441CADF066E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BB4F31E21BC8498D738CFE /* ContentView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,10 +71,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0E81FFC1AD081C84E2B47A06 /* HydrionWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HydrionWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		183B05C2A6FA6C34335F6F7B /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
+		24BB4F31E21BC8498D738CFE /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2743C297B419BDFACFD46027 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
+		2FADC3C7EE299C628631B752 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
@@ -77,12 +85,9 @@
 		7403074EBCE913E42DF01FBA /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		B71807020000000000000001 /* HealthKitHost.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HealthKitHost.swift; sourceTree = "<group>"; };
-		B71807030000000000000001 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		B71807040000000000000001 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		B71807050000000000000001 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		7D322BC46013D8495E035423 /* WatchConnectivityHost.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchConnectivityHost.swift; sourceTree = "<group>"; };
 		90A392F9282463AC53781BC1 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		954891047ED60A9EDAA04385 /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
@@ -96,7 +101,14 @@
 		AA1000040000000000000001 /* HydrionWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HydrionWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA1000080000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AA1000090000000000000001 /* HydrionWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HydrionWidgets.entitlements; sourceTree = "<group>"; };
+		B05846C95E49A23C3BA4864C /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B71807020000000000000001 /* HealthKitHost.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HealthKitHost.swift; sourceTree = "<group>"; };
+		B71807030000000000000001 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		B71807040000000000000001 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		B71807050000000000000001 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		BEAA2AA7476B544AEDDD5D4D /* HydrationConnectivityReceiver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HydrationConnectivityReceiver.swift; sourceTree = "<group>"; };
 		D1DAF87A1B431F86495FA832 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
+		D67BF5D5A545DE600952FAF3 /* HydrionWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HydrionWatchApp.swift; sourceTree = "<group>"; };
 		EBC7C6F5A2C5D50533A33A0C /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F297D137A04B876847B9781D /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -107,6 +119,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				0AE9F802D763D9D12A1A211D /* Pods_RunnerTests.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8B3D7E07F31F6AB602C9F694 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AAD419DEDF1C0AA8126BD588 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -129,13 +149,34 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0A2E17ABADA0636C224E922D /* HydrionWatch */ = {
+			isa = PBXGroup;
+			children = (
+				D67BF5D5A545DE600952FAF3 /* HydrionWatchApp.swift */,
+				24BB4F31E21BC8498D738CFE /* ContentView.swift */,
+				BEAA2AA7476B544AEDDD5D4D /* HydrationConnectivityReceiver.swift */,
+				B05846C95E49A23C3BA4864C /* Info.plist */,
+			);
+			name = HydrionWatch;
+			path = HydrionWatch;
+			sourceTree = "<group>";
+		};
 		14EEA928F4E9A40F98ED9B5F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				EBC7C6F5A2C5D50533A33A0C /* Pods_Runner.framework */,
 				7403074EBCE913E42DF01FBA /* Pods_RunnerTests.framework */,
+				1F1E805D188EBECB48C8BE81 /* watchOS */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		1F1E805D188EBECB48C8BE81 /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+				2FADC3C7EE299C628631B752 /* Foundation.framework */,
+			);
+			name = watchOS;
 			sourceTree = "<group>";
 		};
 		207ACDE35C49922653E85EE9 /* Pods */ = {
@@ -181,6 +222,7 @@
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				207ACDE35C49922653E85EE9 /* Pods */,
 				14EEA928F4E9A40F98ED9B5F /* Frameworks */,
+				0A2E17ABADA0636C224E922D /* HydrionWatch */,
 			);
 			sourceTree = "<group>";
 		};
@@ -190,6 +232,7 @@
 				AA1000040000000000000001 /* HydrionWidgets.appex */,
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
+				0E81FFC1AD081C84E2B47A06 /* HydrionWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -206,6 +249,7 @@
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
+				7D322BC46013D8495E035423 /* WatchConnectivityHost.swift */,
 				B71807020000000000000001 /* HealthKitHost.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
@@ -287,6 +331,23 @@
 			productReference = AA1000040000000000000001 /* HydrionWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		F8284813A0CE6D508FE56A40 /* HydrionWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7E9CFEBD89D28B42BD6C7A10 /* Build configuration list for PBXNativeTarget "HydrionWatch" */;
+			buildPhases = (
+				3562DCF7F0764C97F86B29E5 /* Sources */,
+				8B3D7E07F31F6AB602C9F694 /* Frameworks */,
+				66879459A12FE9DFBE7ECBAE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HydrionWatch;
+			productName = HydrionWatch;
+			productReference = 0E81FFC1AD081C84E2B47A06 /* HydrionWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -327,7 +388,7 @@
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
 			packageReferences = (
-				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */,
+				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */,
 			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
@@ -336,12 +397,20 @@
 				AA1000060000000000000001 /* HydrionWidgets */,
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
+				F8284813A0CE6D508FE56A40 /* HydrionWatch */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		331C807F294A63A400263BE5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		66879459A12FE9DFBE7ECBAE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -457,6 +526,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3562DCF7F0764C97F86B29E5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3F1683B04D780D1377EF092D /* HydrionWatchApp.swift in Sources */,
+				BE8797B69E1AD441CADF066E /* ContentView.swift in Sources */,
+				A201F923C16E826A6F422DB3 /* HydrationConnectivityReceiver.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EA1CF9000F007C117D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -464,6 +543,7 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				B71807010000000000000001 /* HealthKitHost.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
+				67C0363B0E0F157D971302AC /* WatchConnectivityHost.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -491,16 +571,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		B71807070000000000000001 /* InfoPlist.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				B71807030000000000000001 /* en */,
-				B71807040000000000000001 /* fr */,
-				B71807050000000000000001 /* es */,
-			);
-			name = InfoPlist.strings;
-			sourceTree = "<group>";
-		};
 		97C146FA1CF9000F007C117D /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -515,6 +585,16 @@
 				97C147001CF9000F007C117D /* Base */,
 			);
 			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		B71807070000000000000001 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				B71807030000000000000001 /* en */,
+				B71807040000000000000001 /* fr */,
+				B71807050000000000000001 /* es */,
+			);
+			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -645,6 +725,51 @@
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
 			};
 			name = Profile;
+		};
+		70284A5AC3E5187CCD12DC11 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				"CURRENT_PROJECT_VERSION[sdk=*]" = 4;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HydrionWatch/Info.plist;
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				"MARKETING_VERSION[sdk=*]" = 1.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Profile;
+		};
+		81C57664666F347ABBF76465 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				"CURRENT_PROJECT_VERSION[sdk=*]" = 4;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HydrionWatch/Info.plist;
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				"MARKETING_VERSION[sdk=*]" = 1.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
 		};
 		97C147031CF9000F007C117D /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -806,6 +931,29 @@
 			};
 			name = Release;
 		};
+		9BDA955FD3B86BA884B92B8F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				"CURRENT_PROJECT_VERSION[sdk=*]" = 4;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HydrionWatch/Info.plist;
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				"MARKETING_VERSION[sdk=*]" = 1.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		AA1000100000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -899,6 +1047,16 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		7E9CFEBD89D28B42BD6C7A10 /* Build configuration list for PBXNativeTarget "HydrionWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9BDA955FD3B86BA884B92B8F /* Release */,
+				81C57664666F347ABBF76465 /* Debug */,
+				70284A5AC3E5187CCD12DC11 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		97C146E91CF9000F007C117D /* Build configuration list for PBXProject "Runner" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -932,7 +1090,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */ = {
+		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage;
 		};

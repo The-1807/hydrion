@@ -3384,6 +3384,51 @@ class AppLocalizationsFr extends AppLocalizations {
   String get healthDataWhatReads => 'Ce que lit Hydrion';
 
   @override
+  String get healthDataViewImportedData => 'Voir les données importées';
+
+  @override
+  String get healthDataImportedDataTitle => 'Données wearable importées';
+
+  @override
+  String get healthDataWorkoutTimeline => 'Chronologie des entraînements';
+
+  @override
+  String get healthDataWorkoutTimelineEmpty =>
+      'Aucun entraînement importé pour le moment.';
+
+  @override
+  String healthDataWorkoutRow({required int minutes}) {
+    return 'Entraînement de $minutes min';
+  }
+
+  @override
+  String get healthDataStepsTrend => 'Tendance des pas (14 derniers jours)';
+
+  @override
+  String get healthDataDistanceTrend =>
+      'Tendance de la distance (14 derniers jours)';
+
+  @override
+  String get healthDataActiveEnergyTrend =>
+      'Tendance de l\'énergie active (14 derniers jours)';
+
+  @override
+  String get healthDataTrendEmpty =>
+      'Aucune donnée au cours des 14 derniers jours.';
+
+  @override
+  String healthDataTrendDayTotal(
+      {required String date, required String value, required String unit}) {
+    return '$date : $value $unit';
+  }
+
+  @override
+  String healthDataRecordSource(
+      {required String source, required String date}) {
+    return '$source · $date';
+  }
+
+  @override
   String get healthDataSyncNow => 'Synchroniser';
 
   @override

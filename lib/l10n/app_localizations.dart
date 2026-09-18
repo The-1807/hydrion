@@ -5749,6 +5749,73 @@ abstract class AppLocalizations {
   /// **'What Hydrion reads'**
   String get healthDataWhatReads;
 
+  /// No description provided for @healthDataViewImportedData.
+  ///
+  /// In en, this message translates to:
+  /// **'View imported data'**
+  String get healthDataViewImportedData;
+
+  /// No description provided for @healthDataImportedDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported wearable data'**
+  String get healthDataImportedDataTitle;
+
+  /// No description provided for @healthDataWorkoutTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout timeline'**
+  String get healthDataWorkoutTimeline;
+
+  /// No description provided for @healthDataWorkoutTimelineEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No workouts imported yet.'**
+  String get healthDataWorkoutTimelineEmpty;
+
+  /// No description provided for @healthDataWorkoutRow.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min workout'**
+  String healthDataWorkoutRow({required int minutes});
+
+  /// No description provided for @healthDataStepsTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps trend (last 14 days)'**
+  String get healthDataStepsTrend;
+
+  /// No description provided for @healthDataDistanceTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance trend (last 14 days)'**
+  String get healthDataDistanceTrend;
+
+  /// No description provided for @healthDataActiveEnergyTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Active energy trend (last 14 days)'**
+  String get healthDataActiveEnergyTrend;
+
+  /// No description provided for @healthDataTrendEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No data in the last 14 days.'**
+  String get healthDataTrendEmpty;
+
+  /// No description provided for @healthDataTrendDayTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{date}: {value} {unit}'**
+  String healthDataTrendDayTotal(
+      {required String date, required String value, required String unit});
+
+  /// No description provided for @healthDataRecordSource.
+  ///
+  /// In en, this message translates to:
+  /// **'{source} · {date}'**
+  String healthDataRecordSource({required String source, required String date});
+
   /// No description provided for @healthDataSyncNow.
   ///
   /// In en, this message translates to:

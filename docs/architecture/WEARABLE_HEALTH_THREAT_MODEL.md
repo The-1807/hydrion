@@ -63,7 +63,11 @@ separate work and is not silently folded into this migration.
   completed and then reports readable records, empty readable history or query
   failure. It never uses write-authorization status to claim a read grant.
 - **Native HealthKit channel payloads:** the channel accepts only four allowlisted
-  metrics, bounded ISO-8601 windows and bounded/versioned anchors. Responses are
+  metrics, ISO-8601 date strings capped at 64 UTF-8 bytes with ordered endpoints,
+  and secure-coded anchors capped at 16,384 UTF-8 bytes. The coordinator supplies
+  the initial 30-day lower bound; the native boundary does not enforce a separate
+  maximum history span. Wrong-typed anchors fail rather than becoming initial
+  queries. Persisted Dart cursor envelopes are versioned. Responses are
   capped at 250 objects, schema-versioned and mapped into allowlisted canonical
   fields. Native errors return categorical codes without record values or
   identifiers.
@@ -93,3 +97,9 @@ The iOS Runner now has a read-only HealthKit implementation and localized purpos
 strings, but Swift compilation, signing, Keychain lifecycle, device logging,
 resource release and Apple Health record behavior remain unverified until the
 authorized macOS and physical-iPhone gates run.
+
+The [2026-09-17 Mac/Simulator validation record](../validation/healthkit-macos-simulator-2026-09-17.md)
+separates macOS tests, native compilation, simulator runtime evidence and pending
+physical-device gates. The isolated simulator contains synthetic test data only.
+Simulator Keychain or SQLCipher results do not certify device hardware security,
+backup, lock-state protection or physical-device leakage behavior.

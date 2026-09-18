@@ -1383,6 +1383,17 @@ not be described as an OEM-policy bypass.
 
 ### Apple HealthKit
 
+Mac/Simulator execution and blockers are recorded in the
+[2026-09-17 validation report](docs/validation/healthkit-macos-simulator-2026-09-17.md).
+The native `RunnerTests` cover production Swift mapping and anchor decoding.
+`integration_test/healthkit_simulator_test.dart` is a separate synthetic runtime
+test for method-channel registration and iOS Keychain/SQLCipher behavior. Run it
+only on the fresh validation simulator with
+`--dart-define=HYDRION_SIMULATOR_VALIDATION=true`; it refuses a non-simulator
+environment and never writes to HealthKit. Its database fixtures are deleted in
+`finally`; its test Keychain material stays inside the disposable simulator.
+These tests do not replace the physical acceptance checklist below.
+
 Windows automation now covers provider capability mapping, user-initiated consent,
 opaque read-authorization wording, all four canonical metric mappings, optional
 provenance, anchored updates/deletions, independent checkpoints, partial failure,
