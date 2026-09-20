@@ -39,6 +39,32 @@ void main() {
 
   group('iOS Xcode project configuration', () {
     test(
+        'Runner embeds the intentional watch companion separately from widgets',
+        () {
+      final runner = pbxproj.substring(
+        pbxproj.indexOf('97C146ED1CF9000F007C117D /* Runner */ = {'),
+        pbxproj.indexOf('name = Runner;'),
+      );
+      expect(runner, contains('/* Embed Watch Content */'));
+      expect(runner, contains('B91900040000000000000001'));
+      expect(pbxproj, contains(r'dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";'));
+      expect(pbxproj, contains('HydrionWatch.app in Embed Watch Content'));
+      expect(pbxproj, isNot(contains('WatchOS26.0.sdk')));
+      expect(
+        RegExp(r'SUPPORTED_PLATFORMS = "watchos watchsimulator";')
+            .allMatches(pbxproj),
+        hasLength(3),
+        reason: 'Debug, Release and Profile must override the project iOS '
+            'platform restriction for the watch target.',
+      );
+      final watchInfo =
+          File('$repoRoot/ios/HydrionWatch/Info.plist').readAsStringSync();
+      expect(watchInfo, contains('WKCompanionAppBundleIdentifier'));
+      expect(watchInfo, contains('<string>com.the1807.hydrion</string>'));
+      expect(watchInfo, isNot(contains('NSHealthShareUsageDescription')));
+    });
+
+    test(
         'Runner and HydrionWidgets bundle identifiers use the expected '
         'namespace', () {
       expect(

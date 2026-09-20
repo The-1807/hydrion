@@ -4,13 +4,15 @@ import WatchConnectivity
 
 /// One-way hydration snapshot delivery from Runner to the paired Hydrion
 /// watch app, using WCSession's application context (last-value delivery,
-/// no queuing, no acknowledgement). This is a passive receiver on the watch
+/// latest-value queuing, no acknowledgement). This is a passive receiver on the watch
 /// side: Hydrion does not read anything back from the watch in this version,
 /// and no HealthKit or sensor data is involved here.
 final class WatchConnectivityHost: NSObject {
   private static let channelName = "hydrion/watch_connectivity"
 
   private let channel: FlutterMethodChannel
+  // Confined to the main queue. Retain the latest value across activation races.
+  private var pendingContext: [String: Any]?
 
   init(messenger: FlutterBinaryMessenger) {
     channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: messenger)
@@ -64,36 +66,67 @@ final class WatchConnectivityHost: NSObject {
           let goalMl = arguments["goalMl"] as? Int,
           let progressPercent = arguments["progressPercent"] as? Int,
           let status = arguments["status"] as? String,
-          status.utf8.count <= 200
+          (0...1_000_000).contains(todayMl), (0...1_000_000).contains(goalMl),
+          (0...999).contains(progressPercent), !status.isEmpty, status.utf8.count <= 200
     else {
       result(FlutterError(code: "invalid_arguments", message: "Malformed hydration snapshot.", details: nil))
       return
     }
+    pendingContext = [
+      "schemaVersion": 1,
+      "todayMl": todayMl,
+      "goalMl": goalMl,
+      "progressPercent": progressPercent,
+      "status": status,
+      "updatedAtEpochMs": Int(Date().timeIntervalSince1970 * 1000),
+    ]
+    result(flushPendingContext())
+  }
+
+  private func flushPendingContext() -> [String: Any] {
     let session = WCSession.default
     guard session.activationState == .activated else {
-      result(["delivered": false, "reason": "not_activated"])
-      return
+      return ["delivered": false, "queued": false, "reason": "not_activated"]
+    }
+    guard session.isPaired else {
+      return ["delivered": false, "queued": false, "reason": "not_paired"]
+    }
+    guard session.isWatchAppInstalled else {
+      return ["delivered": false, "queued": false, "reason": "watch_app_not_installed"]
+    }
+    guard let context = pendingContext else {
+      return ["delivered": false, "queued": false, "reason": "no_data"]
     }
     do {
-      try session.updateApplicationContext([
-        "schemaVersion": 1,
-        "todayMl": todayMl,
-        "goalMl": goalMl,
-        "progressPercent": progressPercent,
-        "status": status,
-        "updatedAtEpochMs": Int(Date().timeIntervalSince1970 * 1000),
-      ])
-      result(["delivered": true])
+      try session.updateApplicationContext(context)
+      pendingContext = nil
+      // updateApplicationContext confirms only queuing, never remote receipt.
+      return ["delivered": false, "queued": true, "reason": "queued"]
     } catch {
       // WCErrorCode cases (e.g. watch app not installed, session not paired)
       // are expected outcomes here, not failures Flutter needs to surface.
-      result(["delivered": false, "reason": "send_failed"])
+      return ["delivered": false, "queued": false, "reason": "send_failed"]
     }
   }
 }
 
 extension WatchConnectivityHost: WCSessionDelegate {
   func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+    DispatchQueue.main.async { [weak self] in
+      _ = self?.flushPendingContext()
+    }
+  }
+
+  func sessionWatchStateDidChange(_ session: WCSession) {
+    DispatchQueue.main.async { [weak self] in
+      _ = self?.flushPendingContext()
+    }
+  }
+
+  func sessionReachabilityDidChange(_ session: WCSession) {
+    DispatchQueue.main.async { [weak self] in
+      _ = self?.flushPendingContext()
+    }
   }
 
   func sessionDidBecomeInactive(_ session: WCSession) {
