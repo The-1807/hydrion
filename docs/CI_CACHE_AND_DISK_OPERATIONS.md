@@ -123,3 +123,31 @@ The diagnostics are evidence only. They do not suppress Gradle, signing,
 validation, or artifact failures. Hosted-runner image contents and available
 capacity can change over time, and only a successful hosted run can establish
 that the current release fits.
+
+## Paired Apple simulator destinations
+
+The iOS job uses `python3 tool/apple_simulator.py --create-pair
+--build-and-launch --output build/apple-simulator-destination.json`. Install
+locked CocoaPods with `pod install --deployment` under a UTF-8 locale. The job
+installs a missing watchOS runtime matching the selected Xcode simulator SDK
+with a 20-minute bound; runtime installation can require several GB of free disk.
+The job does not erase devices or remove platform runtimes to reclaim space.
+
+Discovery reads project deployment targets, available runtimes, device types and
+existing pairs. A renamed iPhone remains eligible by its device type. Pair
+creation is bounded and preserves existing pairs. The helper verifies boot,
+Flutter visibility and Xcode destinations before compiling. Failure categories
+separate missing runtimes/devices, pairing, boot, Flutter discovery, Xcode
+rejection, compilation, embedding, installation and launch. Destination JSON is
+uploaded only when selection succeeds; stale JSON is removed at the start.
+
+The simulator build explicitly passes the discovered **iPhone UDID** with `-d`.
+Do not pass `-sdk iphonesimulator` across a mixed iOS/watchOS scheme: Xcode must
+resolve the platform for each target. Generic unsigned device release builds
+remain separate; Flutter release mode is not supported on an iOS simulator.
+Both app launch requests are smoke evidence, not UI/transport certification.
+The total job budget is 90 minutes, including a maximum 30-minute compilation;
+individual discovery/boot commands also have timeouts. The watch boots first
+to avoid concurrent first-boot migrations. Readiness defaults to 900 seconds
+per device; `--boot-timeout` accepts only 30 through 1200 seconds. Build products,
+destination JSON, simulator state and runtime downloads stay out of Git.

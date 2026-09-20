@@ -103,3 +103,21 @@ separates macOS tests, native compilation, simulator runtime evidence and pendin
 physical-device gates. The isolated simulator contains synthetic test data only.
 Simulator Keychain or SQLCipher results do not certify device hardware security,
 backup, lock-state protection or physical-device leakage behavior.
+
+## Passive watch companion boundary — 2026-09-19
+
+The WatchConnectivity channel carries manual hydration snapshots, not imported
+HealthKit records, authorization tokens, encryption keys, or source identifiers.
+Snapshots are still private wellness information: neither side logs payloads or
+raw platform exceptions. Runner retains only the newest pending context in
+memory, and WatchConnectivity manages the latest application context. This is
+not evidence of SQLCipher encryption for watch-local application contexts.
+
+The watch rejects unsupported schemas, wrong types, out-of-range numbers,
+missing timestamps and oversized text. Duplicate/older snapshots cannot replace
+a newer accepted snapshot. Reachability and update errors remain visible while
+last-known data is retained. A queued update is never labeled delivered.
+No HealthKit, App Group, background mode or new authorization capability is
+assigned to HydrionWatch. Runner's read-only HealthKit boundary and the widget's
+separate App Group remain unchanged. Transport, restart and physical background
+behavior require their own tests; parser tests alone do not establish them.

@@ -1520,3 +1520,31 @@ passing Dart/widget suite or web build does not certify a system share target.
 ---
 
 *End of tester bible. See `AUTOMATION_CANDIDATES.md`, `DEVICE_OS_MATRIX.md`, `SECURITY_TEST_MATRIX.md`, `TEST_COVERAGE_GAPS.md`, and `REMEDIATION_LEDGER.md` for the companion artifacts referenced throughout. No checkbox above has been executed or marked complete by the audit itself — all Result fields are left blank for the testing team.*
+
+## MrGoldApple paired Apple simulator checks
+
+Use `python3 tool/apple_simulator.py --create-pair --build-and-launch --output
+build/apple-simulator-destination.json` after locked Flutter/CocoaPods resolution.
+For local behavioral testing, use a fresh dedicated iPhone/Apple Watch pair;
+do not install synthetic fixtures into a simulator containing personal records.
+The JSON records both models, OS versions, UDIDs, boot state and pairing state.
+Use its iPhone UDID for Flutter and Runner XCTest destinations and its watch UDID
+for watch installation/launch. Never use a committed machine-specific UDID.
+
+Inspect the watch's waiting screen, then update manual hydration on the phone
+and verify the ring, amount, goal and status. There are no watch navigation or
+entry controls in this version. Exercise phone/watch termination and restart,
+disconnect/reconnect, latest-context restoration, duplicate/delayed contexts,
+invalid schema/payloads and activation errors. Verify manual phone tracking
+while the watch is unavailable. Inspect screenshots and sanitized diagnostics;
+never collect real health values, identifiers, anchors, keys or tokens in logs.
+Unit parser tests and launch requests must be recorded separately from UI and
+WatchConnectivity transport evidence. Mark any unexercised behavior unverified.
+
+Use the existing isolated native HealthKit fixture for synthetic four-metric
+pagination, correction/deletion and provenance checks, and
+`integration_test/healthkit_simulator_test.dart` for the real simulator bridge
+and simulator Keychain/SQLCipher behavior. Neither establishes physical-iPhone
+or physical-Apple-Watch certification. Zero physical iPhones are available.
+See `docs/validation/apple-wearable-sprint-2026-09-19.md` for this run's results.
+Wear OS has no implementation; Apple evidence does not satisfy its test gates.
