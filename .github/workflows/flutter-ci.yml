@@ -968,8 +968,11 @@ jobs:
   build-ios:
     name: Build iOS (simulator + unsigned release)
     runs-on: macos-14
-    timeout-minutes: 45
+    timeout-minutes: 90
     needs: quality-gate
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
 
     defaults:
       run:
@@ -989,14 +992,46 @@ jobs:
           pub-cache: ${{ github.event_name != 'pull_request' }}
 
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Install CocoaPods dependencies
         working-directory: ios
-        run: pod install --repo-update
+        env:
+          LANG: en_US.UTF-8
+          LC_ALL: en_US.UTF-8
+        run: pod install --deployment
 
-      - name: Build iOS simulator app
-        run: flutter build ios --simulator
+      - name: Test Apple destination discovery
+        run: python3 -m unittest discover -s tool/tests -p 'test_apple_simulator.py'
+
+      - name: Ensure watchOS simulator runtime is installed
+        timeout-minutes: 21
+        run: |
+          python3 - <<'PYTHON'
+          import json, subprocess
+          runtimes = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "runtimes", "--json"], timeout=60))["runtimes"]
+          if not any(r.get("isAvailable") and ".watchOS-" in r["identifier"] for r in runtimes):
+              version = subprocess.check_output(
+                  ["xcrun", "--sdk", "watchsimulator", "--show-sdk-version"],
+                  text=True, timeout=60).strip()
+              subprocess.run(["xcodebuild", "-downloadPlatform", "watchOS",
+                              "-buildVersion", version], check=True, timeout=1200)
+          PYTHON
+
+      - name: Build and launch paired Apple simulator apps
+        timeout-minutes: 60
+        run: >-
+          python3 tool/apple_simulator.py --create-pair --build-and-launch
+          --output build/apple-simulator-destination.json
+
+      - name: Upload Apple destination evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hydrion-apple-destination-${{ github.run_number }}-${{ github.run_attempt }}
+          path: build/apple-simulator-destination.json
+          if-no-files-found: warn
 
       - name: Build unsigned iOS release app
         run: flutter build ios --release --no-codesign
