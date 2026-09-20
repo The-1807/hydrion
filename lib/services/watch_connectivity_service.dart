@@ -13,8 +13,8 @@ import 'android_widget_service.dart';
 /// to the paired Apple Watch app whenever hydration data changes.
 ///
 /// This is one-way and best-effort: `WCSession.updateApplicationContext`
-/// keeps only the latest value and silently no-ops when no watch is paired
-/// or the companion app is not installed. Hydrion never reads sensor or
+/// keeps only the latest value. Native results distinguish unavailable and
+/// queued states; queuing does not prove delivery. Hydrion never reads sensor or
 /// workout data back from the watch through this channel.
 class WatchConnectivityService {
   static const _channel = MethodChannel('hydrion/watch_connectivity');
@@ -62,8 +62,9 @@ class WatchConnectivityService {
         'progressPercent': snapshot['progress_percent'],
         'status': snapshot['status'],
       });
-    } catch (error, stackTrace) {
-      debugPrint('Hydrion watch sync failed: $error\n$stackTrace');
+    } catch (_) {
+      // Platform errors can include payloads; never log hydration values.
+      debugPrint('Hydrion watch sync failed.');
     } finally {
       _syncing = false;
     }

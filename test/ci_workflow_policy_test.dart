@@ -12,6 +12,20 @@ void main() {
     expect(loadYaml(releaseFile.readAsStringSync()), isA<YamlMap>());
   });
 
+  test('Apple CI discovers a paired destination before building and launching',
+      () {
+    final job = _jobBlock(flutterCiFile.readAsStringSync(), 'build-ios');
+    expect(job, contains('tool/apple_simulator.py --create-pair'));
+    expect(job, contains('--build-and-launch'));
+    expect(job, contains('pod install --deployment'));
+    expect(job, isNot(contains('run: flutter build ios --simulator')));
+    expect(
+        job,
+        isNot(matches(RegExp(
+          r'[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}',
+        ))));
+  });
+
   test('debug and release Android artifacts build on separate fresh jobs', () {
     final workflow = flutterCiFile.readAsStringSync();
     final debugJob = _jobBlock(workflow, 'build-android-debug');

@@ -17,10 +17,24 @@ struct ContentView: View {
   var body: some View {
     ZStack {
       HydrionWatchPalette.abyss.ignoresSafeArea()
-      if let snapshot = receiver.snapshot {
-        HydrationRing(snapshot: snapshot)
-      } else {
-        WaitingForPhoneView(isReachable: receiver.isReachable)
+      VStack(spacing: 4) {
+        if let snapshot = receiver.snapshot {
+          HydrationRing(snapshot: snapshot)
+          if !receiver.isReachable {
+            Text("iPhone not reachable — last update")
+              .font(.system(size: 10))
+              .multilineTextAlignment(.center)
+              .foregroundStyle(.white.opacity(0.7))
+          }
+        } else {
+          WaitingForPhoneView(isReachable: receiver.isReachable)
+        }
+        if receiver.hasError {
+          Text("Unable to update from iPhone")
+            .font(.system(size: 10))
+            .multilineTextAlignment(.center)
+            .foregroundStyle(.white)
+        }
       }
     }
   }

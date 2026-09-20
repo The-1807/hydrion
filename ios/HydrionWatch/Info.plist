@@ -23,7 +23,7 @@
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.the1807.hydrion</string>
 	<key>WKRunsIndependentlyOfCompanionApp</key>
-	<true/>
+	<false/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

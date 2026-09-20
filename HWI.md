@@ -784,3 +784,15 @@ Sources were checked on 2026-09-11. Product availability, policies, package vers
 - [National Academies dietary reference intake for water](https://www.nationalacademies.org/read/10925)
 - [CDC heat and athletes guidance](https://www.cdc.gov/heat-health/risk-factors/heat-and-athletes.html)
 - [NIOSH heat-stress hydration guidance](https://www.cdc.gov/niosh/docs/mining/userfiles/works/pdfs/2017-126.pdf)
+
+## Apple companion implementation boundary — 2026-09-19
+
+The existing watchOS companion is a **passive manual-hydration display**, not
+the future live workout design described above. Its one-way WatchConnectivity
+context does not read HealthKit or sensors and never changes hydration targets.
+See [ADR-0007](docs/architecture/ADR-0007-watchos-hydration-companion.md) and the
+[Apple sprint evidence](docs/validation/apple-wearable-sprint-2026-09-19.md).
+Apple Health provenance stays attached to the contributing application; watch
+companion compilation establishes no third-party wearable compatibility.
+Wear OS has no implementation; its follow-on plan requiring authorization is in
+`wearable_support_devices.md`. Physical-device gates remain unchecked.

@@ -543,3 +543,30 @@ connection screen; the broader "distinguishes provider unavailable, permission
 not granted, permission revoked, no contributing source, unsupported metric,
 empty history, synchronization failure and successful synchronization"
 criterion remains unchecked and is a materially larger claim.
+
+### MrGoldApple paired Apple simulator repair — 2026-09-19
+
+Current-run evidence: [Apple wearable sprint report](docs/validation/apple-wearable-sprint-2026-09-19.md).
+The original failure is Flutter's required explicit iPhone simulator destination
+for an intentional watchOS companion. The repair adds bounded paired-destination
+discovery and CI launch smoke checks, restores Runner's watch product dependency
+and embedding, and resolves Foundation from the selected SDK. CocoaPods remains
+in use; HealthKit capability ownership and widget App Groups are unchanged.
+
+The full Flutter suite passed 743 tests with two Windows-only skips. Thirteen
+Python destination regression tests and 16 targeted Apple topology/CI tests pass.
+Analysis, formatting, localization, production-literal, secret and workflow
+audits pass; the mixed-language audit now recognizes placeholder-only strings
+and reviewed French labels without suppressing Spanish translation checks.
+
+watchOS 11.2 was installed and an isolated iPhone 16 / Apple Watch Series 10
+(46mm) pair created. Native build, launch and behavioral outcomes are recorded
+separately in the report; boot-state labels alone do not establish usable apps.
+The watch implementation is a passive manual-hydration display, not a live
+HealthKit workout implementation. Wear OS is not implemented; its separate,
+bounded follow-on plan is documented in `wearable_support_devices.md`.
+
+No existing acceptance checkbox is newly checked or removed by this continuation.
+Physical iPhones available: **0**; completed physical-iPhone tests: **0**; no
+physical Apple Watch certification. Real-device Keychain, HealthKit authorization,
+physical provenance, memory, battery and background-delivery gates remain open.

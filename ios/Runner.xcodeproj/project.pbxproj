@@ -27,6 +27,9 @@
 		B71807010000000000000001 /* HealthKitHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B71807020000000000000001 /* HealthKitHost.swift */; };
 		B71807060000000000000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B71807070000000000000001 /* InfoPlist.strings */; };
 		BE8797B69E1AD441CADF066E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BB4F31E21BC8498D738CFE /* ContentView.swift */; };
+		B91900010000000000000001 /* HydrionWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 0E81FFC1AD081C84E2B47A06 /* HydrionWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B91900050000000000000001 /* HydrationSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B91900060000000000000001 /* HydrationSnapshot.swift */; };
+		B91900070000000000000001 /* HydrationSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B91900060000000000000001 /* HydrationSnapshot.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,6 +46,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = AA1000060000000000000001;
 			remoteInfo = HydrionWidgets;
+		};
+		B91900020000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F8284813A0CE6D508FE56A40;
+			remoteInfo = HydrionWatch;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -68,6 +78,17 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B91900030000000000000001 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				B91900010000000000000001 /* HydrionWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -77,7 +98,7 @@
 		183B05C2A6FA6C34335F6F7B /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		24BB4F31E21BC8498D738CFE /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2743C297B419BDFACFD46027 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
-		2FADC3C7EE299C628631B752 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		2FADC3C7EE299C628631B752 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
@@ -111,6 +132,7 @@
 		D67BF5D5A545DE600952FAF3 /* HydrionWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HydrionWatchApp.swift; sourceTree = "<group>"; };
 		EBC7C6F5A2C5D50533A33A0C /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F297D137A04B876847B9781D /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
+		B91900060000000000000001 /* HydrationSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydrationSnapshot.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -153,6 +175,7 @@
 			isa = PBXGroup;
 			children = (
 				D67BF5D5A545DE600952FAF3 /* HydrionWatchApp.swift */,
+				B91900060000000000000001 /* HydrationSnapshot.swift */,
 				24BB4F31E21BC8498D738CFE /* ContentView.swift */,
 				BEAA2AA7476B544AEDDD5D4D /* HydrationConnectivityReceiver.swift */,
 				B05846C95E49A23C3BA4864C /* Info.plist */,
@@ -299,12 +322,14 @@
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				AA1000070000000000000001 /* Embed Foundation Extensions */,
+				B91900030000000000000001 /* Embed Watch Content */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				AA10000F0000000000000001 /* PBXTargetDependency */,
+				B91900040000000000000001 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -523,6 +548,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */,
+				B91900070000000000000001 /* HydrationSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -531,6 +557,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3F1683B04D780D1377EF092D /* HydrionWatchApp.swift in Sources */,
+				B91900050000000000000001 /* HydrationSnapshot.swift in Sources */,
 				BE8797B69E1AD441CADF066E /* ContentView.swift in Sources */,
 				A201F923C16E826A6F422DB3 /* HydrationConnectivityReceiver.swift in Sources */,
 			);
@@ -567,6 +594,11 @@
 			isa = PBXTargetDependency;
 			target = AA1000060000000000000001 /* HydrionWidgets */;
 			targetProxy = AA1000050000000000000001 /* PBXContainerItemProxy */;
+		};
+		B91900040000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F8284813A0CE6D508FE56A40 /* HydrionWatch */;
+			targetProxy = B91900020000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -740,6 +772,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
 				SKIP_INSTALL = YES;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
@@ -763,6 +796,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
 				SKIP_INSTALL = YES;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
@@ -945,6 +979,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.the1807.hydrion.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
 				SKIP_INSTALL = YES;
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;

@@ -7,6 +7,48 @@ import XCTest
 final class RunnerTests: XCTestCase {
   private let start = Date(timeIntervalSince1970: 1_800_000_000)
 
+  private var watchContext: [String: Any] {
+    ["schemaVersion": 1, "todayMl": 500, "goalMl": 2000,
+     "progressPercent": 25, "status": "Synthetic status",
+     "updatedAtEpochMs": 1_800_000_000_000]
+  }
+
+  func testWatchSnapshotRejectsInvalidAndUnsupportedPayloads() {
+    XCTAssertNil(HydrationSnapshot.decode([:]))
+    for (key, value) in [("schemaVersion", 2 as Any), ("todayMl", -1),
+                         ("goalMl", "2000"), ("progressPercent", 1000),
+                         ("status", String(repeating: "a", count: 201)),
+                         ("updatedAtEpochMs", 0), ("updatedAtEpochMs", Int64.max),
+                         ("updatedAtEpochMs", Double.infinity),
+                         ("updatedAtEpochMs", 1.5),
+                         ("updatedAtEpochMs", NSNumber(value: true))] {
+      var context = watchContext
+      context[key] = value
+      XCTAssertNil(HydrationSnapshot.decode(context))
+    }
+  }
+
+  func testWatchSnapshotIgnoresDuplicateAndDelayedDelivery() throws {
+    let original = try XCTUnwrap(HydrationSnapshot.decode(watchContext))
+    XCTAssertTrue(original.replaces(nil))
+    XCTAssertFalse(original.replaces(original))
+    var newer = watchContext
+    newer["updatedAtEpochMs"] = 1_800_000_000_001
+    let next = try XCTUnwrap(HydrationSnapshot.decode(newer))
+    XCTAssertTrue(next.replaces(original))
+    XCTAssertFalse(original.replaces(next))
+  }
+
+  func testWatchSnapshotRestoresLatestContextAndBoundsRing() throws {
+    let restored = try XCTUnwrap(HydrationSnapshot.decode(watchContext))
+    XCTAssertEqual(restored.progressFraction, 0.25)
+    var context = watchContext
+    context["goalMl"] = 0
+    XCTAssertEqual(HydrationSnapshot.decode(context)?.progressFraction, 0)
+    context["goalMl"] = 100
+    XCTAssertEqual(HydrationSnapshot.decode(context)?.progressFraction, 1)
+  }
+
   func testSecureAnchorRoundTripAndAbsentAnchor() throws {
     XCTAssertNil(try HealthKitHost.decodeAnchor(nil))
     XCTAssertNil(try HealthKitHost.decodeAnchor(NSNull()))

@@ -3,6 +3,12 @@ import 'dart:io';
 
 const _locales = ['fr', 'es'];
 
+// These French labels have the same spelling as English; Spanish must still
+// translate them. Keep language-specific exceptions out of the global list.
+const _localeIdenticalAllowlist = <String, Set<String>>{
+  'fr': {'reportsDate', 'reportsPage'},
+};
+
 // Values whose spelling intentionally does not change across supported locales.
 const _identicalValueAllowlist = <String>{
   'appTitle',
@@ -49,7 +55,8 @@ void main() {
       if (translated == null) continue;
       if (translated == entry.value &&
           _containsWords(entry.value) &&
-          !_identicalValueAllowlist.contains(entry.key)) {
+          !_identicalValueAllowlist.contains(entry.key) &&
+          !(_localeIdenticalAllowlist[locale]?.contains(entry.key) ?? false)) {
         identical.add(entry.key);
       }
       if (!_placeholderExceptionKeys.contains(entry.key) &&
@@ -83,7 +90,9 @@ Map<String, String> _messages(File file) {
   };
 }
 
-bool _containsWords(String value) => RegExp(r'[A-Za-z]').hasMatch(value);
+bool _containsWords(String value) => RegExp(r'[A-Za-z]').hasMatch(
+      value.replaceAll(RegExp(r'\{[A-Za-z_]\w*\}'), ''),
+    );
 
 bool _samePlaceholders(String english, String localized) {
   Set<String> placeholders(String value) => RegExp(r'\{([A-Za-z_]\w*)\}')

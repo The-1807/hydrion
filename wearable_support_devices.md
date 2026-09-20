@@ -359,3 +359,36 @@ The next production milestone is a complete real-source route with visible UI:
 `Supported wearable/source → documented provider → Hydrion → encrypted records → visible wearable dashboard`
 
 No integration is complete until that complete route passes.
+
+## Apple simulator repair and separate Wear OS track — 2026-09-19
+
+See [the reproducible Apple sprint evidence](docs/validation/apple-wearable-sprint-2026-09-19.md).
+The watchOS companion mirrors manual hydration snapshots. It is separate from
+read-only Apple Health imports and from the WidgetKit extension. An Apple Health
+record retains its contributing application and optional device provenance;
+its presence does not prove Apple Watch, Garmin, Fitbit, Oura or FitPro support.
+
+**Wear OS is not implemented.** Repository inspection found only Android's
+`:app` phone module, no Wear OS module/manifest/Gradle configuration, watch UI,
+Data Layer or Health Services integration, wear permissions, tests or emulator
+workflow. A commit subject mentioning a scaffold is not implementation evidence.
+
+The bounded follow-on plan requires separate authorization before coding:
+
+1. Agree the first product slice: a passive hydration mirror, or a separately
+   scoped Health Services workout feature. Define permissions and ownership.
+2. Add an isolated Wear OS module, manifest and Gradle configuration compatible
+   with the existing Android toolchain; keep the phone app working alone.
+3. Define a versioned, validated snapshot protocol, explicit connection/error
+   states, latest-value delivery and duplicate/delayed-update rules. Use the
+   Data Layer for phone communication; select Health Services only for an
+   authorized sensor/workout slice, never for the passive mirror by default.
+4. Add parser/state tests, then build/install/launch an Android phone and Wear OS
+   emulator pair. Exercise permissions, no data, invalid payloads, disconnect,
+   reconnect, process termination and state restoration independently of Apple.
+5. Record emulator evidence separately. Physical Wear OS support, device model,
+   metrics, battery, memory and background delivery remain physical test gates.
+
+No Wear OS acceptance criterion is checked by this Apple sprint. There are
+zero physical iPhones available and zero completed physical-iPhone tests;
+physical Apple Watch certification is also unavailable.
