@@ -11,6 +11,14 @@ on:
       - main
       - develop
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Validation scope (Apple includes the quality gate)
+        type: choice
+        options:
+          - full
+          - apple
+        default: full
 
 permissions:
   contents: read
@@ -752,6 +760,7 @@ jobs:
           echo "Hydrion quality gate passed."
 
   build-android-debug:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.scope != 'apple' }}
     name: Build Android debug smoke APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -808,6 +817,7 @@ jobs:
         run: timeout 2m bash tool/ci_disk_diagnostics.sh "Android debug job final state"
 
   build-android-release:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.scope != 'apple' }}
     name: Build Android signed release APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -929,6 +939,7 @@ jobs:
           retention-days: 14
 
   build-web:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.scope != 'apple' }}
     name: Build Web
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -1019,19 +1030,37 @@ jobs:
                               "-buildVersion", version], check=True, timeout=1200)
           PYTHON
 
+      - name: Record Apple runner capacity before simulator validation
+        run: |
+          mkdir -p build
+          df -h . "$HOME" | tee build/apple-capacity-before.txt
+          df -i . "$HOME" | tee -a build/apple-capacity-before.txt
+
       - name: Build and launch paired Apple simulator apps
         timeout-minutes: 60
         run: >-
           python3 tool/apple_simulator.py --create-pair --build-and-launch
+          --pair-timeout 300
           --output build/apple-simulator-destination.json
+
+      - name: Record Apple runner capacity after simulator validation
+        if: always()
+        run: |
+          mkdir -p build
+          df -h . "$HOME" | tee build/apple-capacity-after.txt
+          df -i . "$HOME" | tee -a build/apple-capacity-after.txt
 
       - name: Upload Apple destination evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: hydrion-apple-destination-${{ github.run_number }}-${{ github.run_attempt }}
-          path: build/apple-simulator-destination.json
+          path: |
+            build/apple-simulator-destination.json
+            build/apple-simulator-destination.events.jsonl
+            build/apple-capacity-*.txt
           if-no-files-found: warn
+          retention-days: 7
 
       - name: Build unsigned iOS release app
         run: flutter build ios --release --no-codesign

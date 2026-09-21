@@ -390,3 +390,105 @@ and watch. **Both shutdown requests exceeded 60 seconds**; neither is reported
 as successful cleanup. No erase, cache deletion or further service restart was
 performed. The host's CoreSimulator state needs recovery before runtime work
 continues; the isolated devices and temporary diagnostics are retained.
+
+## September 21 Windows follow-up: paired simulator installation timeout
+
+Read-only GitHub job inspection establishes two different results for the same
+Apple helper, workflow and iOS source (no diff between the two commits):
+
+| Evidence | PR run | Merged-main run |
+|---|---|---|
+| Run | [35542205719](https://github.com/The-1807/hydrion/actions/runs/35542205719) | [35542210514](https://github.com/The-1807/hydrion/actions/runs/35542210514) |
+| Commit | `5c0518b58469715607643cd6bca135813b03a16c` | `f23370376717781d2fa89dcb5268918edb6144e3` |
+| iOS job | `106162267176`, success | `106162352809`, failure |
+| Pair state after discovery | `(active, connected)` | `(active, disconnected)` |
+| Watch install | 22:54:03 to 22:54:20 UTC, about 17 seconds | 22:48:22 to 22:50:22 UTC, helper timeout at 120 seconds |
+| Phone/watch launch | Both succeeded | Phone succeeded; watch launch not attempted |
+| Unsigned iOS release build | Passed | Skipped after simulator failure |
+
+Both runs began with a disconnected pair. Both booted the same simulator models
+(iPhone 16 Pro Max / iOS 18.2 and Watch Series 10 46mm / watchOS 11.2).
+In the failing run, compilation and phone installation/launch succeeded. This
+is an installation timeout, not a compiler error or failed HealthKit assertion.
+Android debug, Android release, Web and the quality gate passed in the main run.
+
+**Confirmed helper defect:** it accepted two Booted devices and eligible Xcode
+destinations without requiring their paired connection to be ready. Its snapshot
+therefore explicitly accepted a disconnected pair. The connection state at the
+exact moment of the failed install was not recorded, so this comparison supports
+a readiness-race diagnosis but does not prove CoreSimulator's underlying stall
+mechanism. No disk-full message or free-space measurement was captured in that
+hosted job. The Mac's earlier 1.4 GiB free-space observation is separate evidence.
+
+Local correction, not yet executed on a Mac or a new hosted run:
+
+- Poll the selected pair for active/connected state with both devices Booted,
+  bounded by a 300-second deadline. Fail explicitly if the pair changes or never
+  connects; do not replace, erase or unpair devices.
+- Require that readiness after destination discovery and again before each app
+  install. A build taking several minutes does not invalidate the check silently.
+- Retain the existing 120-second install deadline, actual install/launch checks,
+  and nonzero failures. No installer retries or ignored errors were introduced.
+- Preserve status (`running`, `ready`, `launched` or `failed`), error, free bytes
+  on checkout/home volumes, simulator inventory, memory counters and bounded
+  watch-installer diagnostics in the existing always-uploaded destination JSON.
+  `launched` means both launch commands succeeded, not behavioral acceptance.
+- Make timeout cleanup portable so real subprocess timeout tests run on Windows
+  as well as macOS, retaining bounded process-group cleanup on macOS.
+
+The last recorded successful **HealthKit simulator milestone** remains
+[September 17 validation](healthkit-macos-simulator-2026-09-17.md): 6/6 native
+XCTest cases, synthetic records imported/corrected/deleted through the production
+native HealthKit host, 2/2 Flutter provider/encrypted-storage simulator integration
+tests, and debug simulator plus unsigned release builds. The September 18
+continuation records 743 Flutter tests passed and two Windows-only skips.
+This is not a completed physical-iPhone, Apple Watch or whole-UI sprint.
+
+The September 19-20 continuation above remains the latest Apple-machine sprint
+report, with source/build success but incomplete runtime acceptance. The later
+successful PR smoke run establishes simulator installation/launch and unsigned
+release compilation on that hosted runner only; it does not execute the remaining
+HealthKit/watch behavioral integration tests. No acceptance boxes are changed by
+this follow-up. Recover development-Mac storage with an approved, enumerated
+cleanup before resuming those tests; no cleanup was performed from Windows.
+
+### Local validation of the September 21 correction
+
+| Check | Result |
+|---|---|
+| `python -m unittest discover -s tool/tests -p test_apple_simulator.py` | 23 passed; includes disconnected/inactive pairs, lost pairing, bounded timeouts, failed-install propagation and evidence status |
+| Focused Flutter workflow/iOS configuration tests | 16 passed |
+| `flutter test --no-pub --reporter expanded` | 748 passed, no skips, 3m40s on Windows |
+| `flutter analyze` | No issues found |
+| `dart format --output=none --set-exit-if-changed .` | 243 files, zero changes |
+| `dart run tool/secret_scan.dart` | Passed |
+| `dart run tool/validate_ci_workflows.dart` | Two workflows validated |
+| `git diff --check` | Passed |
+| macOS simulator run of this correction | Not run; current host is Windows |
+| New hosted CI run of this correction | Not run; changes remain uncommitted and unpushed |
+
+The first sandboxed Dart checks were interrupted by SDK lock/telemetry write
+restrictions, not reported as successful. Final Dart checks above used the same
+SDK's executable with approved cache access. No dependency or SDK upgrade occurred.
+The five files changed for this correction are this report, the Apple helper and
+its Python tests, `.github/workflows/flutter-ci.yml`, and
+`test/ci_workflow_policy_test.dart`. Pre-existing startup source/test, localization
+audit changes and the untracked device storage integration test are preserved.
+
+### Hosted validation preparation
+
+The authorized repair branch is `fix/apple-simulator-pair-readiness`, based on
+freshly fetched `origin/main` at `f23370376717781d2fa89dcb5268918edb6144e3`.
+No MrGoldApple operations or physical-device certification are part of this run.
+The correction now journals exact commands, command durations, observed pair
+states, free bytes and available inodes. On failure it also captures bounded
+CoreSimulator and both simulator installer logs. Diagnostic artifacts have an
+explicit seven-day retention period. Raw evidence remains generated output,
+not source-controlled data.
+
+Manual workflow dispatch supports `scope=apple` (quality gate plus hosted macOS)
+followed by `scope=full` (the ordinary full platform suite). Normal push/PR
+validation still runs all platform jobs. Pre-publication checks after these
+additions: 28 Python helper tests, 17 focused Flutter configuration/policy tests,
+and the two-workflow validator passed. Hosted execution remains a separate gate;
+no physical-iPhone, physical-Apple-Watch or MrGoldApple runtime box is checked.
