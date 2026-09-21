@@ -17,6 +17,10 @@ void main() {
     final job = _jobBlock(flutterCiFile.readAsStringSync(), 'build-ios');
     expect(job, contains('tool/apple_simulator.py --create-pair'));
     expect(job, contains('--build-and-launch'));
+    expect(job, contains('--pair-timeout 300'));
+    expect(job, contains('retention-days: 7'));
+    expect(job, contains('apple-simulator-destination.events.jsonl'));
+    expect(job, contains('df -i'));
     expect(job, contains('pod install --deployment'));
     expect(job, isNot(contains('run: flutter build ios --simulator')));
     expect(
@@ -42,6 +46,26 @@ void main() {
     expect(releaseJob, contains('ci_run_android_build.sh release'));
     expect(releaseJob, isNot(contains('ci_run_android_build.sh debug')));
     expect(releaseJob, contains('validate_android_release.dart'));
+  });
+
+  test('Apple-only dispatch does not disable the default full CI suite', () {
+    final workflow = loadYaml(flutterCiFile.readAsStringSync()) as YamlMap;
+    expect(workflow['on']['workflow_dispatch']['inputs']['scope']['default'],
+        'full');
+    final jobs = workflow['jobs'] as YamlMap;
+    expect(jobs['build-ios']['needs'], 'quality-gate');
+    expect(jobs['quality-gate']['if'], isNull);
+    expect(jobs['build-ios']['if'], isNull);
+    for (final name in [
+      'build-android-debug',
+      'build-android-release',
+      'build-web'
+    ]) {
+      expect(
+          jobs[name]['if'],
+          contains(
+              "github.event_name != 'workflow_dispatch' || inputs.scope != 'apple'"));
+    }
   });
 
   test('Android artifact runners restore no Flutter or Pub cache', () {

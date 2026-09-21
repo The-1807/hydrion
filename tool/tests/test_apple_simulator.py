@@ -1,7 +1,9 @@
 """Failure and destination regression tests; no Apple tooling required."""
 import importlib.util
+import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -73,9 +75,13 @@ class DestinationTests(unittest.TestCase):
         process = Mock()
         process.communicate.side_effect = apple.subprocess.TimeoutExpired(
             "simctl", 1, output=b"waiting on system app")
-        process.send_signal.side_effect = PermissionError("denied")
+        process.terminate.side_effect = PermissionError("denied")
+        process.kill.side_effect = PermissionError("denied")
         with patch.object(apple.subprocess, "Popen", return_value=process), \
-                patch.object(apple.os, "killpg", side_effect=PermissionError("denied")):
+                patch.object(apple, "disk_evidence", return_value={}), \
+                patch.object(apple.os, "name", "posix"), \
+                patch.object(apple.signal, "SIGKILL", 9, create=True), \
+                patch.object(apple.os, "killpg", side_effect=PermissionError("denied"), create=True):
             with self.assertRaisesRegex(apple.DestinationError,
                                         "(?s)PAIR_BOOT_FAILED: timed out.*waiting on system app.*cleanup failed"):
                 apple.run(["simctl"], "PAIR_BOOT_FAILED", timeout=1)
@@ -113,6 +119,184 @@ class DestinationTests(unittest.TestCase):
             self.assertEqual(command[-2:], ["-d", "phone"])
             self.assertEqual(category, "COMPILATION_FAILED_AFTER_DESTINATION_SELECTION")
             self.assertLessEqual(timeout, 1800)
+
+    def test_disconnected_pair_waits_until_connected(self):
+        disconnected = fixture()
+        disconnected["pairs"]["pair"]["state"] = "(active, disconnected)"
+        connected = fixture()
+        connected["pairs"]["pair"]["state"] = "(active, connected)"
+        destination = self.destination()
+        with patch.object(apple, "inventory", side_effect=[disconnected, connected]), \
+                patch.object(apple.time, "sleep") as sleep:
+            apple.wait_for_connection(destination)
+        sleep.assert_called_once()
+        self.assertEqual(destination["pair_state"], "(active, connected)")
+
+    def test_unready_pair_has_bounded_distinct_failure(self):
+        for state, booted in (("(active, disconnected)", True),
+                              ("(inactive, connected)", True),
+                              ("(active, connected)", False)):
+            with self.subTest(state=state, booted=booted):
+                data = fixture()
+                data["pairs"]["pair"]["state"] = state
+                if not booted:
+                    next(iter(data["devices"].values()))[0]["state"] = "Shutdown"
+                with patch.object(apple, "inventory", return_value=data) as inventory, \
+                        patch.object(apple.time, "monotonic", side_effect=[0, 0, 0, 30, 30]), \
+                        patch.object(apple.time, "sleep") as sleep:
+                    with self.assertRaisesRegex(apple.DestinationError, "PAIR_CONNECTION_TIMEOUT"):
+                        apple.wait_for_connection(self.destination(), timeout=30)
+                inventory.assert_called_once_with(timeout=30)
+                sleep.assert_not_called()
+
+    def test_changed_pair_is_not_silently_replaced(self):
+        data = fixture()
+        data["pairs"]["pair"]["watch"]["udid"] = "different-watch"
+        with patch.object(apple, "inventory", return_value=data):
+            with self.assertRaisesRegex(apple.DestinationError, "PAIR_CHANGED"):
+                apple.wait_for_connection(self.destination())
+
+    def test_prepare_requires_connection_after_destination_discovery(self):
+        def run(command, *args):
+            if command[0] == "flutter":
+                return '[{"id":"phone"}]'
+            return "Available destinations: phone watch"
+        with patch.object(apple, "inventory", return_value=fixture()), \
+                patch.object(apple, "run", side_effect=run), \
+                patch.object(apple, "wait_for_connection", side_effect=apple.DestinationError("PAIR_CONNECTION_TIMEOUT")) as ready:
+            with self.assertRaisesRegex(apple.DestinationError, "PAIR_CONNECTION_TIMEOUT"):
+                apple.prepare(pair_timeout=45)
+        self.assertEqual(ready.call_args.args[1], 45)
+
+    @staticmethod
+    def destination():
+        return {"pair_id": "pair", "iphone": {"udid": "phone"}, "watch": {"udid": "watch"}}
+
+    def test_connection_rechecked_before_each_install(self):
+        events = []
+        with patch.object(apple.Path, "is_dir", return_value=True), \
+                patch.object(apple, "wait_for_connection", side_effect=lambda *args: events.append("ready")), \
+                patch.object(apple, "run", side_effect=lambda command, *args: events.append(command) or ""):
+            apple.build_and_launch(self.destination())
+        self.assertEqual(events[1], "ready")
+        self.assertEqual(events[2][:4], ["xcrun", "simctl", "install", "phone"])
+        self.assertEqual(events[4], "ready")
+        self.assertEqual(events[5][:4], ["xcrun", "simctl", "install", "watch"])
+        self.assertEqual(events[6][:4], ["xcrun", "simctl", "launch", "watch"])
+
+    def test_no_install_when_connection_is_lost_during_build(self):
+        with patch.object(apple.Path, "is_dir", return_value=True), \
+                patch.object(apple, "wait_for_connection", side_effect=apple.DestinationError("PAIR_CONNECTION_TIMEOUT")), \
+                patch.object(apple, "run", return_value="") as run:
+            with self.assertRaisesRegex(apple.DestinationError, "PAIR_CONNECTION_TIMEOUT"):
+                apple.build_and_launch(self.destination())
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(run.call_args.args[0][:2], ["flutter", "build"])
+
+    def test_watch_install_failure_is_not_retried_or_ignored(self):
+        def run(command, *args):
+            if command[:4] == ["xcrun", "simctl", "install", "watch"]:
+                raise apple.DestinationError("APP_INSTALL_FAILED: timed out after 120s")
+            return ""
+        with patch.object(apple.Path, "is_dir", return_value=True), \
+                patch.object(apple, "wait_for_connection"), \
+                patch.object(apple, "run", side_effect=run) as calls:
+            with self.assertRaisesRegex(apple.DestinationError, "APP_INSTALL_FAILED"):
+                apple.build_and_launch(self.destination())
+        commands = [call.args[0] for call in calls.call_args_list]
+        self.assertEqual(sum(c[:4] == ["xcrun", "simctl", "install", "watch"] for c in commands), 1)
+        self.assertFalse(any(c[:4] == ["xcrun", "simctl", "launch", "watch"] for c in commands))
+
+    def test_failed_run_replaces_stale_success_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "destination.json"
+            output.write_text('{"validation_status":"launched"}')
+            with patch.object(sys, "argv", ["apple_simulator.py", "--output", str(output), "--build-and-launch"]), \
+                    patch.object(apple, "prepare", return_value=self.destination()), \
+                    patch.object(apple, "build_and_launch", side_effect=apple.DestinationError("APP_INSTALL_FAILED")), \
+                    patch.object(apple, "failure_diagnostics", return_value={"memory": "captured"}), \
+                    patch.object(apple, "disk_evidence", return_value={"free": 123}):
+                self.assertEqual(apple.main(), 1)
+            evidence = json.loads(output.read_text())
+            self.assertEqual(evidence["validation_status"], "failed")
+            self.assertEqual(evidence["error"], "APP_INSTALL_FAILED")
+            self.assertEqual(evidence["diagnostics"]["memory"], "captured")
+            self.assertEqual(evidence["disk_after"]["free"], 123)
+
+    def test_success_evidence_distinguishes_readiness_from_launch(self):
+        for launch in (False, True):
+            with self.subTest(launch=launch), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "destination.json"
+                args = ["apple_simulator.py", "--output", str(output)]
+                if launch:
+                    args.append("--build-and-launch")
+                with patch.object(sys, "argv", args), \
+                        patch.object(apple, "prepare", return_value=self.destination()) as prepare, \
+                        patch.object(apple, "build_and_launch") as build, \
+                        patch.object(apple, "disk_evidence", return_value={}):
+                    self.assertEqual(apple.main(), 0)
+                prepare.assert_called_once_with(False, 900, 300)
+                self.assertEqual(build.call_count, int(launch))
+                self.assertEqual(json.loads(output.read_text())["validation_status"],
+                                 "launched" if launch else "ready")
+
+    def test_failed_diagnostics_remain_bounded(self):
+        with patch.object(apple, "run", side_effect=apple.DestinationError("DIAGNOSTIC_FAILED")) as run:
+            result = apple.failure_diagnostics(self.destination())
+        self.assertEqual(len(result), 6)
+        self.assertTrue(all(call.args[2] == 15 for call in run.call_args_list))
+        self.assertTrue(all(value == "DIAGNOSTIC_FAILED" for value in result.values()))
+
+    def test_command_journal_records_exact_command_duration_and_capacity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            journal = Path(directory) / "events.jsonl"
+            with patch.object(apple, "TRACE_PATH", journal), \
+                    patch.object(apple, "disk_evidence", return_value={"free": 123}), \
+                    patch.object(apple, "_run", return_value="installed"):
+                apple.run(["simctl", "install", "watch", "app"], "APP_INSTALL_FAILED")
+            start, end = [json.loads(line) for line in journal.read_text().splitlines()]
+            self.assertEqual(start["status"], "running")
+            self.assertEqual(start["command"], ["simctl", "install", "watch", "app"])
+            self.assertEqual(end["status"], "success")
+            self.assertEqual(end["capacity_before"]["free"], 123)
+            self.assertGreaterEqual(end["duration_seconds"], 0)
+
+    def test_command_journal_preserves_failed_command_and_diagnostic(self):
+        with tempfile.TemporaryDirectory() as directory:
+            journal = Path(directory) / "events.jsonl"
+            with patch.object(apple, "TRACE_PATH", journal), \
+                    patch.object(apple, "_run", side_effect=apple.DestinationError("APP_LAUNCH_FAILED: exit 3")):
+                with self.assertRaisesRegex(apple.DestinationError, "APP_LAUNCH_FAILED"):
+                    apple.run(["simctl", "launch", "watch", "bundle"], "APP_LAUNCH_FAILED")
+            end = json.loads(journal.read_text().splitlines()[-1])
+            self.assertEqual(end["status"], "failed")
+            self.assertEqual(end["error"], "APP_LAUNCH_FAILED: exit 3")
+
+    def test_capacity_includes_available_inodes_on_posix(self):
+        stats = Mock(f_files=1000, f_favail=800)
+        usage = Mock()
+        usage._asdict.return_value = {"free": 123, "total": 456, "used": 333}
+        with patch.object(apple.os, "statvfs", return_value=stats, create=True), \
+                patch.object(apple.shutil, "disk_usage", return_value=usage):
+            result = apple.disk_evidence()
+        self.assertTrue(all(value["inodes_available"] == 800 for value in result.values()))
+        self.assertTrue(all(value["free"] >= 0 for value in result.values()))
+
+    def test_unavailable_capacity_is_explicit_not_fabricated(self):
+        with patch.object(apple.shutil, "disk_usage", side_effect=PermissionError("denied")):
+            result = apple.disk_evidence()
+        self.assertTrue(all(value == {"measurement_error": "denied"} for value in result.values()))
+
+    def test_launch_failure_still_fails_build_and_launch(self):
+        def run(command, *args):
+            if command[:3] == ["xcrun", "simctl", "launch"]:
+                raise apple.DestinationError("APP_LAUNCH_FAILED")
+            return ""
+        with patch.object(apple.Path, "is_dir", return_value=True), \
+                patch.object(apple, "wait_for_connection"), \
+                patch.object(apple, "run", side_effect=run):
+            with self.assertRaisesRegex(apple.DestinationError, "APP_LAUNCH_FAILED"):
+                apple.build_and_launch(self.destination())
 
 
 if __name__ == "__main__":
