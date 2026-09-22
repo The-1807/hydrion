@@ -1,4 +1,5 @@
 """Failure and destination regression tests; no Apple tooling required."""
+import ast
 import importlib.util
 import json
 from pathlib import Path
@@ -15,7 +16,8 @@ spec.loader.exec_module(apple)
 
 def fixture():
     data = {"runtimes": [], "devices": {}, "pairs": {
-        "pair": {"phone": {"udid": "phone"}, "watch": {"udid": "watch"}, "state": "active"}}}
+        "pair": {"phone": {"udid": "phone"}, "watch": {"udid": "watch"},
+                 "state": "(active, connected)"}}}
     for platform, os, name, udid in (("iOS", "18.3", "iPhone-16", "phone"),
                                       ("watchOS", "11.2", "Apple-Watch-Series-10", "watch")):
         rid = f"com.apple.CoreSimulator.SimRuntime.{platform}-{os.replace('.', '-')}"
@@ -96,16 +98,18 @@ class DestinationTests(unittest.TestCase):
             with self.assertRaisesRegex(apple.DestinationError, "PAIR_BOOT_FAILED"):
                 apple.prepare()
 
-    def test_flutter_missing_phone_is_distinct(self):
-        with patch.object(apple, "inventory", return_value=fixture()), \
-                patch.object(apple, "run", return_value="[]"):
-            with self.assertRaisesRegex(apple.DestinationError, "FLUTTER_IPHONE_NOT_EXPOSED"):
+    def test_unbooted_phone_is_rejected_before_destination_discovery(self):
+        data = fixture()
+        next(iter(data["devices"].values()))[0]["state"] = "Shutdown"
+        with patch.object(apple, "inventory", return_value=data), \
+                patch.object(apple, "run", return_value="") as run:
+            with self.assertRaisesRegex(apple.DestinationError, "PAIR_BOOT_FAILED"):
                 apple.prepare()
+        self.assertTrue(all(call.args[0][:2] == ["xcrun", "simctl"]
+                            for call in run.call_args_list))
 
     def test_ineligible_xcode_destination_is_rejected(self):
         def run(command, *args):
-            if command[0] == "flutter":
-                return '[{"id":"phone"}]'
             return "Available destinations:\nIneligible destinations:\nphone"
         with patch.object(apple, "inventory", return_value=fixture()), patch.object(apple, "run", run):
             with self.assertRaisesRegex(apple.DestinationError, "XCODE_DESTINATION_REJECTED"):
@@ -156,17 +160,46 @@ class DestinationTests(unittest.TestCase):
             with self.assertRaisesRegex(apple.DestinationError, "PAIR_CHANGED"):
                 apple.wait_for_connection(self.destination())
 
-    def test_prepare_requires_connection_after_destination_discovery(self):
-        def run(command, *args):
-            if command[0] == "flutter":
-                return '[{"id":"phone"}]'
-            return "Available destinations: phone watch"
+    def test_prepare_requires_connection_before_destination_discovery(self):
         with patch.object(apple, "inventory", return_value=fixture()), \
-                patch.object(apple, "run", side_effect=run), \
+                patch.object(apple, "run", return_value="") as run, \
                 patch.object(apple, "wait_for_connection", side_effect=apple.DestinationError("PAIR_CONNECTION_TIMEOUT")) as ready:
             with self.assertRaisesRegex(apple.DestinationError, "PAIR_CONNECTION_TIMEOUT"):
                 apple.prepare(pair_timeout=45)
         self.assertEqual(ready.call_args.args[1], 45)
+        self.assertTrue(all(call.args[0][:3] == ["xcrun", "simctl", "bootstatus"]
+                            for call in run.call_args_list))
+
+    def test_prepare_uses_selected_simulators_without_global_flutter_discovery(self):
+        events = []
+
+        def run(command, *args):
+            self.assertNotEqual(command[0], "flutter")
+            events.append(command)
+            return "Available destinations: phone watch"
+
+        destination = {}
+        with patch.object(apple, "inventory", return_value=fixture()), \
+                patch.object(apple, "run", side_effect=run), \
+                patch.object(apple, "wait_for_connection", side_effect=lambda *args: events.append("ready")):
+            result = apple.prepare(destination=destination)
+        self.assertIs(result, destination)
+        self.assertEqual(result["iphone"]["udid"], "phone")
+        self.assertEqual(result["watch"]["udid"], "watch")
+        self.assertEqual(events[2], "ready")
+        self.assertEqual([event[event.index("-scheme") + 1] for event in events[3:]],
+                         ["Runner", "HydrionWatch"])
+
+    def test_watch_ineligible_destination_still_fails(self):
+        def run(command, *args):
+            if command[0] == "xcodebuild" and "HydrionWatch" in command:
+                return "Available destinations: phone\nIneligible destinations: watch"
+            return "Available destinations: phone watch"
+
+        with patch.object(apple, "inventory", return_value=fixture()), \
+                patch.object(apple, "run", side_effect=run):
+            with self.assertRaisesRegex(apple.DestinationError, "XCODE_DESTINATION_REJECTED: HydrionWatch"):
+                apple.prepare()
 
     @staticmethod
     def destination():
@@ -207,6 +240,33 @@ class DestinationTests(unittest.TestCase):
         self.assertEqual(sum(c[:4] == ["xcrun", "simctl", "install", "watch"] for c in commands), 1)
         self.assertFalse(any(c[:4] == ["xcrun", "simctl", "launch", "watch"] for c in commands))
 
+    def test_each_install_and_launch_failure_is_fatal_without_success_output(self):
+        for operation in ("install", "launch"):
+            for device in ("phone", "watch"):
+                with self.subTest(operation=operation, device=device), tempfile.TemporaryDirectory() as directory:
+                    output = Path(directory) / "destination.json"
+                    failed_command = ["xcrun", "simctl", operation, device]
+
+                    def run(command, *args):
+                        if command[:4] == failed_command:
+                            raise apple.DestinationError("TEST_ACCEPTANCE_FAILURE")
+                        return ""
+
+                    with patch.object(sys, "argv", ["apple_simulator.py", "--output", str(output), "--build-and-launch"]), \
+                            patch.object(apple, "prepare", return_value=self.destination()), \
+                            patch.object(apple.Path, "is_dir", return_value=True), \
+                            patch.object(apple, "wait_for_connection"), \
+                            patch.object(apple, "run", side_effect=run) as commands, \
+                            patch.object(apple, "failure_diagnostics", return_value={}), \
+                            patch("builtins.print") as messages:
+                        self.assertEqual(apple.main(), 1)
+                    self.assertEqual(commands.call_args.args[0][:4], failed_command)
+                    self.assertEqual(sum(call.args[0][:4] == failed_command
+                                         for call in commands.call_args_list), 1)
+                    self.assertFalse(any("Both launch requests succeeded" in str(call)
+                                         for call in messages.call_args_list))
+                    self.assertEqual(json.loads(output.read_text())["validation_status"], "failed")
+
     def test_failed_run_replaces_stale_success_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "destination.json"
@@ -235,7 +295,7 @@ class DestinationTests(unittest.TestCase):
                         patch.object(apple, "build_and_launch") as build, \
                         patch.object(apple, "disk_evidence", return_value={}):
                     self.assertEqual(apple.main(), 0)
-                prepare.assert_called_once_with(False, 900, 300)
+                prepare.assert_called_once_with(False, 900, 300, {})
                 self.assertEqual(build.call_count, int(launch))
                 self.assertEqual(json.loads(output.read_text())["validation_status"],
                                  "launched" if launch else "ready")
@@ -246,6 +306,74 @@ class DestinationTests(unittest.TestCase):
         self.assertEqual(len(result), 6)
         self.assertTrue(all(call.args[2] == 15 for call in run.call_args_list))
         self.assertTrue(all(value == "DIAGNOSTIC_FAILED" for value in result.values()))
+
+    def test_prepare_failure_preserves_selected_devices_for_diagnostics(self):
+        for stage in ("bootstatus", "xcodebuild"):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "destination.json"
+
+                def run(command, *args):
+                    if stage in command:
+                        raise apple.DestinationError("TEST_FAILURE: timed out")
+                    return "Available destinations: phone watch"
+
+                with patch.object(sys, "argv", ["apple_simulator.py", "--output", str(output)]), \
+                        patch.object(apple, "inventory", return_value=fixture()), \
+                        patch.object(apple, "run", side_effect=run), \
+                        patch.object(apple, "failure_diagnostics", return_value={}) as diagnostics:
+                    self.assertEqual(apple.main(), 1)
+                selected = diagnostics.call_args.args[0]
+                self.assertEqual(selected["iphone"]["udid"], "phone")
+                self.assertEqual(selected["watch"]["udid"], "watch")
+                evidence = json.loads(output.read_text())
+                self.assertEqual(evidence["validation_status"], "failed")
+                self.assertEqual(evidence["pair_id"], "pair")
+                journal = [json.loads(line) for line in output.with_suffix(".events.jsonl").read_text().splitlines()]
+                self.assertEqual(journal[0]["event"], "pair_selected")
+
+    def test_evidence_write_failure_returns_failure_and_resets_trace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "destination.json"
+            with patch.object(sys, "argv", ["apple_simulator.py", "--output", str(output)]), \
+                    patch.object(apple, "prepare", return_value=self.destination()), \
+                    patch.object(apple.Path, "write_text", side_effect=OSError("disk full")), \
+                    patch.object(apple, "failure_diagnostics", return_value={}):
+                self.assertEqual(apple.main(), 1)
+            self.assertIsNone(apple.TRACE_PATH)
+
+    def test_evidence_failure_does_not_swallow_keyboard_interrupt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "destination.json"
+            with patch.object(sys, "argv", ["apple_simulator.py", "--output", str(output)]), \
+                    patch.object(apple, "prepare", side_effect=KeyboardInterrupt), \
+                    patch.object(apple.Path, "write_text", side_effect=[None, OSError("disk full")]):
+                with self.assertRaises(KeyboardInterrupt):
+                    apple.main()
+            self.assertIsNone(apple.TRACE_PATH)
+
+    def test_final_evidence_write_failure_does_not_report_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "destination.json"
+            with patch.object(sys, "argv", ["apple_simulator.py", "--output", str(output)]), \
+                    patch.object(apple, "prepare", return_value=self.destination()), \
+                    patch.object(apple.Path, "write_text", side_effect=[None, None, OSError("disk full")]):
+                self.assertEqual(apple.main(), 1)
+            self.assertIsNone(apple.TRACE_PATH)
+
+    def test_no_return_exits_a_finally_block(self):
+        source = Path(apple.__file__).read_text(encoding="utf-8")
+        for node in ast.walk(ast.parse(source)):
+            if isinstance(node, ast.Try):
+                for statement in node.finalbody:
+                    self.assertFalse(any(isinstance(child, ast.Return)
+                                         for child in ast.walk(statement)))
+
+    def test_success_log_does_not_report_a_failure_category(self):
+        with patch.object(apple, "_run", return_value=""), patch("builtins.print") as output:
+            apple.run(["simctl", "list"], "SIMCTL_FAILED")
+        message = output.call_args.args[0]
+        self.assertIn("Command result: success", message)
+        self.assertNotIn("SIMCTL_FAILED", message)
 
     def test_command_journal_records_exact_command_duration_and_capacity(self):
         with tempfile.TemporaryDirectory() as directory:
