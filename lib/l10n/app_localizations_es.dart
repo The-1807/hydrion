@@ -9,6 +9,38 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get healthDataRetrying =>
+      'Reintentando la sincronización de datos de salud...';
+
+  @override
+  String get healthDataNoNewRecords =>
+      'Sincronizado: no hay datos de salud nuevos';
+
+  @override
+  String get healthDataLocalRecordsRetained =>
+      'Los datos importados siguen disponibles en este dispositivo. Puede que no estén actualizados.';
+
+  @override
+  String get healthDataPermissionsUnknown =>
+      'No se pudo comprobar el acceso actual. Los registros guardados no se han modificado.';
+
+  @override
+  String get healthDataProviderRecovery =>
+      'Abre el proveedor de salud, vuelve aquí y reintenta. Revisa sus restricciones en segundo plano si el problema continúa.';
+
+  @override
+  String get healthDataSummaryUnavailable =>
+      'No se pudieron leer los datos de salud guardados. Reintenta sin borrar tus datos.';
+
+  @override
+  String get healthDataMetadataUnavailable =>
+      'No se pudo restaurar o guardar el historial de sincronización. Los registros almacenados están separados y no se han borrado.';
+
+  @override
+  String get healthDataDeletionFailed =>
+      'La limpieza de datos del dispositivo no se completó. Reintenta; no asumas que se borraron todos los datos locales.';
+
+  @override
   String get appTitle => 'Hydrion';
 
   @override
@@ -1319,7 +1351,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileDeletionPersonalizationDisclosure =>
-      'Esto borra de este dispositivo el perfil local, las medidas corporales, los contextos diarios, el historial de hidratación, los recordatorios, los desafíos, el estado de recomendaciones y la caché meteorológica. Tus preferencias de idioma y apariencia permanecen guardadas.';
+      'Esto borra de este dispositivo el perfil local, las medidas corporales, los contextos diarios, el historial de hidratación, los recordatorios, los desafíos, el estado de recomendaciones, la caché meteorológica, los registros importados de dispositivos y su contexto derivado. Los registros del proveedor de salud no cambian. Tus preferencias de idioma y apariencia permanecen guardadas.';
 
   @override
   String get dailyContextTitle => 'Contexto de hoy';
@@ -3269,7 +3301,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get healthDataDeleteExplanation =>
-      'Esto elimina la copia importada y cifrada de Hydrion y sus puntos de control. No elimina los registros del proveedor de origen ni el historial manual de hidratacion.';
+      'Esto elimina la copia importada y cifrada de Hydrion, sus puntos de control y el contexto derivado de los dispositivos. No elimina los registros del proveedor de origen ni el historial manual de hidratacion.';
 
   @override
   String healthDataImportedCount({required int count}) {

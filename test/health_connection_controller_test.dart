@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/health_data.dart';
 import 'package:hydrion/repositories/health_data_repository.dart';
+import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/services/android_health_provider_discovery.dart';
 import 'package:hydrion/services/health_connect_provider.dart';
 import 'package:hydrion/services/health_connection_controller.dart';
@@ -15,6 +16,154 @@ void main() {
 
   setUp(() => debugDefaultTargetPlatformOverride = TargetPlatform.android);
   tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+  test('cold provider failure preserves durable summary and previous success',
+      () async {
+    final bridge = _SyncControllerBridge(recordsByMetric: {
+      HealthMetric.steps: [_bridgeRecord('steps', 4321)],
+    });
+    final repository = MemoryHealthDataRepository();
+    final store = MemoryHydrionStore();
+    final controller = _syncController(bridge, repository, store);
+    await controller.initialize();
+    await controller.connect();
+    await controller.synchronize();
+    final success = controller.lastSuccessfulSynchronization;
+    bridge.failAuthorization = true;
+    final restarted = _syncController(bridge, repository, store);
+    await restarted.initialize();
+    expect(restarted.state, HealthConnectionViewState.providerUnavailable);
+    expect(restarted.permissionStatus, isNull);
+    expect(restarted.hasRecordSummary, isTrue);
+    expect(restarted.importedRecordCount, 1);
+    expect(restarted.contributingApplications, {'synthetic.health.writer'});
+    expect(restarted.lastSuccessfulSynchronization, success);
+    expect(restarted.localDataIsStale, isTrue);
+    bridge.failAuthorization = false;
+    await restarted.synchronize(retry: true);
+    expect(restarted.state, HealthConnectionViewState.synchronizedNoNewRecords);
+    expect(restarted.importedRecordCount, 1);
+  });
+
+  test('failed retry advances attempt but not successful time across restart',
+      () async {
+    final bridge = _SyncControllerBridge();
+    final repository = MemoryHealthDataRepository();
+    final store = MemoryHydrionStore();
+    var now = DateTime.utc(2026, 9, 13, 10, 26);
+    final controller =
+        _syncController(bridge, repository, store, clock: () => now);
+    await controller.initialize();
+    await controller.connect();
+    await controller.synchronize();
+    final success = now;
+    now = now.add(const Duration(hours: 1));
+    bridge.failReads = true;
+    await controller.synchronize(retry: true);
+    final restarted = _syncController(bridge, repository, store);
+    await restarted.initialize();
+    expect(restarted.lastAttemptedSynchronization, now);
+    expect(restarted.lastSuccessfulSynchronization, success);
+    expect(restarted.lastSynchronizationOutcome, HealthSyncStatus.failed);
+    expect(restarted.state, HealthConnectionViewState.synchronizationFailed);
+  });
+
+  test(
+      'unavailable summary retains cached truth and never reports empty success',
+      () async {
+    final repository = _UnavailableRepository();
+    final bridge = _SyncControllerBridge(recordsByMetric: {
+      HealthMetric.steps: [_bridgeRecord('steps', 4321)],
+    });
+    final store = MemoryHydrionStore();
+    final controller = _syncController(bridge, repository, store);
+    await controller.initialize();
+    await controller.connect();
+    await controller.synchronize();
+    repository.failSummary = true;
+    await controller.refresh();
+    expect(controller.importedRecordCount, 1);
+    expect(controller.summaryUnavailable, isTrue);
+    final restarted = _syncController(bridge, repository, store);
+    await restarted.initialize();
+    expect(restarted.hasRecordSummary, isFalse);
+    expect(restarted.state, HealthConnectionViewState.synchronizationFailed);
+  });
+
+  test('malformed metadata does not hide repository records', () async {
+    final repository = MemoryHealthDataRepository();
+    await repository.commitImport(
+        records: [_healthRecord()],
+        checkpoint: HealthSyncCheckpoint(
+          providerId: AndroidHealthConnectProvider.id,
+          metric: HealthMetric.steps,
+          historyStart: DateTime.utc(2026, 8, 14),
+        ));
+    final controller = _syncController(_SyncControllerBridge(), repository,
+        MemoryHydrionStore({'health_connect_connection_v1': '{invalid'}));
+    await controller.initialize();
+    expect(controller.metadataUnavailable, isTrue);
+    expect(controller.importedRecordCount, 1);
+    expect(controller.hasRecordSummary, isTrue);
+  });
+
+  test(
+      'failed deletion retains summary and successful retry clears checkpoints',
+      () async {
+    final repository = _UnavailableRepository();
+    final bridge = _SyncControllerBridge(recordsByMetric: {
+      HealthMetric.steps: [_bridgeRecord('steps', 4321)],
+    });
+    final store = MemoryHydrionStore();
+    final hydration = await HydrationRepository.load(store);
+    await hydration.addLog(
+        volumeMl: 150, timestamp: DateTime.utc(2026, 9, 13), source: 'test');
+    final controller = _syncController(bridge, repository, store);
+    await controller.initialize();
+    await controller.connect();
+    await controller.synchronize();
+    repository.failDeletion = true;
+    expect(await controller.deleteImportedData(), -1);
+    expect(controller.deletionFailed, isTrue);
+    expect(controller.importedRecordCount, 1);
+    expect(controller.lastSuccessfulSynchronization, isNotNull);
+    repository.failDeletion = false;
+    await controller.disconnect();
+    expect(await controller.deleteImportedData(), 1);
+    expect(await controller.deleteImportedData(), 0);
+    expect(
+        await repository.checkpointFor(
+            AndroidHealthConnectProvider.id, HealthMetric.steps),
+        isNull);
+    final restarted = _syncController(bridge, repository, store);
+    await restarted.initialize();
+    expect(restarted.importedRecordCount, 0);
+    expect(restarted.lastSuccessfulSynchronization, isNull);
+    expect((await HydrationRepository.load(store)).logs.single.volumeMl, 150);
+  });
+
+  test('full wearable reset removes records and connection metadata', () async {
+    final bridge = _SyncControllerBridge(recordsByMetric: {
+      HealthMetric.steps: [_bridgeRecord('steps', 4321)],
+    });
+    final repository = MemoryHealthDataRepository();
+    final store = MemoryHydrionStore();
+    final controller = _syncController(bridge, repository, store);
+    await controller.initialize();
+    await controller.connect();
+    await controller.synchronize();
+    await controller.resetWearableData();
+    await controller.resetWearableData();
+    final restarted = _syncController(bridge, repository, store);
+    await restarted.initialize();
+    expect(restarted.isConnected, isFalse);
+    expect(restarted.importedRecordCount, 0);
+    expect(restarted.lastSuccessfulSynchronization, isNull);
+    expect(
+        await repository.checkpointFor(
+            AndroidHealthConnectProvider.id, HealthMetric.steps),
+        isNull);
+  });
 
   test('permission is requested only by explicit connect action', () async {
     final bridge = _ControllerBridge();
@@ -52,7 +201,7 @@ void main() {
     await controller.initialize();
 
     expect(controller.state, HealthConnectionViewState.providerUnavailable);
-    expect(controller.failureReason, 'provider_refresh_failed');
+    expect(controller.providerFailureReason, 'provider_refresh_failed');
     expect(bridge.permissionRequests, 0);
   });
 
@@ -299,18 +448,16 @@ void main() {
   });
 }
 
-HealthConnectionController _syncController(
-  _SyncControllerBridge bridge,
-  HealthDataRepository repository,
-  HydrionLocalStore store,
-) {
+HealthConnectionController _syncController(_SyncControllerBridge bridge,
+    HealthDataRepository repository, HydrionLocalStore store,
+    {DateTime Function()? clock}) {
   final provider = AndroidHealthConnectProvider(
     bridge: bridge,
     discovery: AndroidHealthProviderDiscovery(
       bridge: _ControllerDiscoveryBridge(),
       forceAndroidForTesting: true,
     ),
-    clock: () => DateTime.utc(2026, 9, 13, 10, 26),
+    clock: clock ?? () => DateTime.utc(2026, 9, 13, 10, 26),
   );
   return HealthConnectionController(
     provider: provider,
@@ -321,7 +468,7 @@ HealthConnectionController _syncController(
     ),
     repository: repository,
     store: store,
-    clock: () => DateTime.utc(2026, 9, 13, 10, 26),
+    clock: clock ?? () => DateTime.utc(2026, 9, 13, 10, 26),
   );
 }
 
@@ -414,6 +561,7 @@ class _SyncControllerBridge implements HealthConnectBridge {
   Set<HealthMetric> grantedMetrics =
       AndroidHealthConnectProvider.supportedMetrics;
   bool failReads = false;
+  bool failAuthorization = false;
   final Set<HealthMetric> failMetrics;
   final List<HealthMetric> attemptedMetrics = [];
 
@@ -429,6 +577,7 @@ class _SyncControllerBridge implements HealthConnectBridge {
     Map<String, Object?> arguments = const {},
   ]) async {
     if (method == 'authorizationState' || method == 'requestPermissions') {
+      if (failAuthorization) throw StateError('synthetic binding failure');
       return {
         'state': grantedMetrics.length ==
                 AndroidHealthConnectProvider.supportedMetrics.length
@@ -462,6 +611,37 @@ class _SyncControllerBridge implements HealthConnectBridge {
 
   @override
   Future<void> openSettings() async {}
+}
+
+class _UnavailableRepository extends MemoryHealthDataRepository {
+  bool failSummary = false;
+  bool failDeletion = false;
+
+  @override
+  Future<List<CanonicalHealthRecord>> records(
+      {Set<HealthMetric>? metrics,
+      DateTime? start,
+      DateTime? end,
+      bool includeDeleted = false,
+      bool includeDuplicates = false,
+      int limit = HealthDataRepository.defaultPageSize,
+      int offset = 0}) {
+    if (failSummary) throw StateError('synthetic unavailable summary');
+    return super.records(
+        metrics: metrics,
+        start: start,
+        end: end,
+        includeDeleted: includeDeleted,
+        includeDuplicates: includeDuplicates,
+        limit: limit,
+        offset: offset);
+  }
+
+  @override
+  Future<int> deleteImportedProvider(String providerId) {
+    if (failDeletion) throw StateError('synthetic deletion failure');
+    return super.deleteImportedProvider(providerId);
+  }
 }
 
 Map<String, Object?> _bridgeRecord(String metric, num value) => {

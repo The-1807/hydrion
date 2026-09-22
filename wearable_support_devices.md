@@ -392,3 +392,19 @@ The bounded follow-on plan requires separate authorization before coding:
 No Wear OS acceptance criterion is checked by this Apple sprint. There are
 zero physical iPhones available and zero completed physical-iPhone tests;
 physical Apple Watch certification is also unavailable.
+
+## Scoped correctness verification (2026-09-22)
+
+See [edge_case.md](edge_case.md#21-correctness-sprint-2026-09-22).
+Infinix X6835B / Android 13, isolated ARM64 debug QA: previously imported
+synthetic Health Connect Toolbox records survived service-binding failure,
+last-failure/last-success stayed distinct, manual provider opening enabled a
+zero-new-data sync, permission revocation retained records/manual logging, and
+local wearable deletion/disconnection preserved manual history across restart.
+This does not establish new live wearable ingestion or general Infinix/XOS support.
+
+Health Connect remains L5 scoped historical synthetic ingestion; HealthKit L4
+historical simulator verification; watchOS L4 install/launch only, sensor ingestion
+unproven; Wear OS L0; direct BLE inactive/stub. OEM routes: **0/14 verified**.
+Release-certified providers: **0/2**. Production hydration-target consumption of
+wearable features remains disabled. No physical Apple gate changed.

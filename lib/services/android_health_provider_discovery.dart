@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../domain/android_health_provider.dart';
+import '../utils/startup_trace.dart';
 
 abstract interface class AndroidHealthDiscoveryBridge {
   Future<Map<String, Object?>> discover();
@@ -17,7 +18,17 @@ class MethodChannelAndroidHealthDiscoveryBridge
 
   @override
   Future<Map<String, Object?>> discover() async {
-    final result = await _channel.invokeMapMethod<String, Object?>('discover');
+    final timer = Stopwatch()..start();
+    late final Map<String, Object?>? result;
+    try {
+      result = await _channel
+          .invokeMapMethod<String, Object?>('discover')
+          .timeout(const Duration(seconds: 10));
+    } finally {
+      HydrionStartupTrace.log('health provider discovery complete', data: {
+        'elapsedMs': timer.elapsedMilliseconds,
+      });
+    }
     if (result == null) {
       throw const FormatException(
           'Android provider discovery returned no data.');

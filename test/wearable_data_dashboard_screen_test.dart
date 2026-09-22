@@ -15,6 +15,42 @@ import 'package:provider/provider.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('repository failure shows an error and retry can recover',
+      (tester) async {
+    final repository = _FailingDashboardRepository();
+    final provider = AndroidHealthConnectProvider(
+        bridge: _DashboardBridge(granted: true),
+        discovery: AndroidHealthProviderDiscovery(
+            bridge: _DashboardDiscoveryBridge(), forceAndroidForTesting: true));
+    final controller = HealthConnectionController(
+        provider: provider,
+        coordinator: HealthDataSyncCoordinator(
+            providers: [provider], repository: repository),
+        repository: repository,
+        store: MemoryHydrionStore());
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+        value: controller,
+        child: const MaterialApp(
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: WearableDataDashboardScreen())));
+    await tester.pumpAndSettle();
+    final l10n = AppLocalizations.of(
+        tester.element(find.byType(WearableDataDashboardScreen)));
+    expect(find.text(l10n.healthDataSummaryUnavailable), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    repository.failRead = false;
+    await tester.tap(find.text(l10n.healthDataTryAgain));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.healthDataSummaryUnavailable), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('renders workout timeline and steps trend from imported records',
       (tester) async {
     final repository = MemoryHealthDataRepository();
@@ -89,6 +125,23 @@ void main() {
     expect(find.text('Distance trend (last 14 days)'), findsOneWidget);
     expect(find.text('No data in the last 14 days.'), findsWidgets);
   });
+}
+
+class _FailingDashboardRepository extends MemoryHealthDataRepository {
+  bool failRead = true;
+
+  @override
+  Future<List<CanonicalHealthRecord>> records(
+      {Set<HealthMetric>? metrics,
+      DateTime? start,
+      DateTime? end,
+      bool includeDeleted = false,
+      bool includeDuplicates = false,
+      int limit = HealthDataRepository.defaultPageSize,
+      int offset = 0}) async {
+    if (failRead) throw StateError('synthetic storage failure');
+    return [];
+  }
 }
 
 CanonicalHealthRecord _record({

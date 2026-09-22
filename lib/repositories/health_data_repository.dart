@@ -26,6 +26,8 @@ abstract interface class HealthDataRepository {
 
   Future<int> deleteImportedProvider(String providerId);
 
+  Future<void> deleteAllWearableData();
+
   Future<int> purgeBefore(DateTime cutoff);
 
   Future<void> close();
@@ -117,10 +119,29 @@ class MemoryHealthDataRepository implements HealthDataRepository {
 
   @override
   Future<int> deleteImportedProvider(String providerId) async {
+    final removedIds = _records.values
+        .where((r) => r.providerId == providerId && !r.isDerived)
+        .map((r) => r.id)
+        .toSet();
+    var changed = true;
+    while (changed) {
+      final before = removedIds.length;
+      removedIds.addAll(_records.values
+          .where((r) =>
+              r.isDerived && r.contributingRecordIds.any(removedIds.contains))
+          .map((r) => r.id));
+      changed = removedIds.length != before;
+    }
     final before = _records.length;
-    _records.removeWhere((_, record) => record.providerId == providerId);
+    _records.removeWhere((_, record) => removedIds.contains(record.id));
     _checkpoints.removeWhere((key, _) => key.startsWith('$providerId|'));
     return before - _records.length;
+  }
+
+  @override
+  Future<void> deleteAllWearableData() async {
+    _records = {};
+    _checkpoints = {};
   }
 
   @override

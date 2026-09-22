@@ -9,6 +9,38 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get healthDataRetrying =>
+      'Nouvelle tentative de synchronisation des données de santé...';
+
+  @override
+  String get healthDataNoNewRecords =>
+      'Synchronisé : aucune nouvelle donnée de santé';
+
+  @override
+  String get healthDataLocalRecordsRetained =>
+      'Les données déjà importées restent disponibles sur cet appareil. Elles peuvent ne plus être à jour.';
+
+  @override
+  String get healthDataPermissionsUnknown =>
+      'L\'accès actuel n\'a pas pu être vérifié. Les données enregistrées restent intactes.';
+
+  @override
+  String get healthDataProviderRecovery =>
+      'Ouvrez le fournisseur de santé, revenez ici et réessayez. Vérifiez ses restrictions en arrière-plan si le problème persiste.';
+
+  @override
+  String get healthDataSummaryUnavailable =>
+      'Les données de santé enregistrées n\'ont pas pu être lues. Réessayez sans supprimer vos données.';
+
+  @override
+  String get healthDataMetadataUnavailable =>
+      'L\'historique de synchronisation n\'a pas pu être restauré ou enregistré. Les données stockées sont séparées et n\'ont pas été effacées.';
+
+  @override
+  String get healthDataDeletionFailed =>
+      'Le nettoyage des données du dispositif n\'est pas terminé. Réessayez ; ne supposez pas que toutes les données locales ont été supprimées.';
+
+  @override
   String get appTitle => 'Hydrion';
 
   @override
@@ -1316,7 +1348,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get profileDeletionPersonalizationDisclosure =>
-      'Cela efface sur cet appareil votre profil local, les mesures corporelles, les contextes quotidiens, l\'historique d\'hydratation, les rappels, les défis, l\'état des recommandations et le cache météo. Vos préférences de langue et d\'apparence restent enregistrées.';
+      'Cela efface sur cet appareil votre profil local, les mesures corporelles, les contextes quotidiens, l\'historique d\'hydratation, les rappels, les défis, l\'état des recommandations, le cache météo, les données importées des objets connectés et leur contexte dérivé. Les données du fournisseur de santé restent intactes. Vos préférences de langue et d\'apparence restent enregistrées.';
 
   @override
   String get dailyContextTitle => 'Contexte d\'aujourd\'hui';
@@ -3280,7 +3312,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get healthDataDeleteExplanation =>
-      'Cette action supprime la copie chiffree importee par Hydrion et les points de reprise. Elle ne supprime ni les donnees du fournisseur source ni l\'historique d\'hydratation manuel.';
+      'Cette action supprime la copie chiffree importee par Hydrion, les points de reprise et le contexte derive des objets connectes. Elle ne supprime ni les donnees du fournisseur source ni l\'historique d\'hydratation manuel.';
 
   @override
   String healthDataImportedCount({required int count}) {

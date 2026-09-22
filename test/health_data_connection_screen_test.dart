@@ -18,6 +18,109 @@ import 'package:provider/provider.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('binding failure retains local sources and offers retry',
+      (tester) async {
+    final repository = MemoryHealthDataRepository();
+    await repository.commitImport(
+        records: [_screenRecord()],
+        checkpoint: HealthSyncCheckpoint(
+            providerId: AndroidHealthConnectProvider.id,
+            metric: HealthMetric.steps,
+            historyStart: DateTime.utc(2026, 8, 14)));
+    final bridge = _ScreenBridge(granted: true)..failAuthorization = true;
+    await _pumpPersistedScreen(tester,
+        repository: repository,
+        bridge: bridge,
+        values: {
+          'connected': true,
+          'lastOutcome': 'success',
+          'recordsRead': 1,
+          'lastSuccessful': '2026-09-13T10:26:00Z'
+        });
+    expect(find.text('Imported records: 1'), findsOneWidget);
+    expect(find.textContaining('synthetic.health.writer: 1'), findsOneWidget);
+    expect(find.textContaining('Last successful synchronization:'),
+        findsOneWidget);
+    expect(find.text('Imported records: 0'), findsNothing);
+    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(find.text('Try again'), findsOneWidget);
+  });
+
+  testWidgets('zero new changes does not erase existing records',
+      (tester) async {
+    final repository = MemoryHealthDataRepository();
+    await repository.commitImport(
+        records: [_screenRecord()],
+        checkpoint: HealthSyncCheckpoint(
+            providerId: AndroidHealthConnectProvider.id,
+            metric: HealthMetric.steps,
+            historyStart: DateTime.utc(2026, 8, 14)));
+    final controller = await _pumpPersistedScreen(tester,
+        repository: repository,
+        values: {
+          'connected': true,
+          'lastOutcome': 'success',
+          'recordsRead': 0
+        });
+    expect(
+        controller.state, HealthConnectionViewState.synchronizedNoNewRecords);
+    final l10n = AppLocalizations.of(
+        tester.element(find.byType(HealthDataConnectionScreen)));
+    expect(find.text(l10n.healthDataNoNewRecords), findsOneWidget);
+    expect(find.text('Imported records: 1'), findsOneWidget);
+  });
+
+  for (final state in HealthConnectionViewState.values) {
+    testWidgets('status semantics cover ${state.name}', (tester) async {
+      final controller =
+          await _pumpPersistedScreen(tester, values: {'connected': true});
+      controller.state = state;
+      controller.isRetrying = state == HealthConnectionViewState.synchronizing;
+      // Rebuild the production screen with this explicit state, without a
+      // provider fake deciding which UI states the test can reach.
+      tester.element(find.byType(HealthDataConnectionScreen)).markNeedsBuild();
+      await tester.pump();
+      final l10n = AppLocalizations.of(
+          tester.element(find.byType(HealthDataConnectionScreen)));
+      final label = switch (state) {
+        HealthConnectionViewState.loading => l10n.healthDataLoading,
+        HealthConnectionViewState.providerUnavailable =>
+          l10n.healthDataProviderFailure,
+        HealthConnectionViewState.installationRequired =>
+          l10n.healthDataInstallationRequired,
+        HealthConnectionViewState.updateRequired =>
+          l10n.healthDataUpdateRequired,
+        HealthConnectionViewState.unsupported => l10n.healthDataUnsupported,
+        HealthConnectionViewState.disconnected => l10n.healthDataDisconnected,
+        HealthConnectionViewState.consentRequired => l10n.healthDataAvailable,
+        HealthConnectionViewState.permissionRequesting =>
+          l10n.healthDataPermissionRequesting,
+        HealthConnectionViewState.permissionDenied =>
+          l10n.healthDataPermissionDenied,
+        HealthConnectionViewState.permissionPartiallyGranted =>
+          l10n.healthDataPermissionPartial,
+        HealthConnectionViewState.connectedNotSynchronized =>
+          l10n.healthDataConnectedNotSynchronized,
+        HealthConnectionViewState.synchronizing => l10n.healthDataRetrying,
+        HealthConnectionViewState.synchronizedWithRecords =>
+          l10n.healthDataSynchronizedWithRecords,
+        HealthConnectionViewState.synchronizedNoNewRecords =>
+          l10n.healthDataNoNewRecords,
+        HealthConnectionViewState.synchronizedNoRecords =>
+          l10n.healthDataSynchronizedNoRecords,
+        HealthConnectionViewState.synchronizationPartiallySuccessful =>
+          l10n.healthDataSyncPartial,
+        HealthConnectionViewState.synchronizationFailed =>
+          l10n.healthDataSyncFailed,
+        HealthConnectionViewState.permissionsRevoked =>
+          l10n.healthDataPermissionRevoked,
+      };
+      expect(find.text(label), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('explains consent before user initiates permission request',
       (tester) async {
     final bridge = _ScreenBridge();
@@ -246,6 +349,7 @@ void main() {
 
     final synchronization = controller.synchronize();
     await tester.pump();
+    await tester.pump();
 
     expect(find.text('Synchronizing health data...'), findsOneWidget);
     expect(find.byKey(const Key('health-data-sync-progress')), findsOneWidget);
@@ -312,6 +416,7 @@ Future<HealthConnectionController> _pumpPersistedScreen(
 }
 
 class _ScreenBridge implements HealthConnectBridge {
+  bool failAuthorization = false;
   int permissionRequests = 0;
   final Completer<void>? readGate;
   Set<HealthMetric> grantedMetrics;
@@ -330,6 +435,7 @@ class _ScreenBridge implements HealthConnectBridge {
     String method, [
     Map<String, Object?> arguments = const {},
   ]) async {
+    if (failAuthorization) throw StateError('synthetic binding failure');
     if (method == 'requestPermissions') {
       permissionRequests += 1;
       grantedMetrics = AndroidHealthConnectProvider.supportedMetrics;

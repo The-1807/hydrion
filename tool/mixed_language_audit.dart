@@ -32,6 +32,8 @@ const _identicalValueAllowlist = <String>{
   'pauseAction',
   'poundsLabel',
   'relativeDateTime',
+  'reportsDate',
+  'reportsPage',
   'suggestionDelayValue',
   'suggestionDetailVolume',
   'suggestionVolumeValue',

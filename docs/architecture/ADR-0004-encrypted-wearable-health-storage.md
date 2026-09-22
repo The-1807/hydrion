@@ -34,6 +34,24 @@ the application does not delete the file or generate a replacement.
 
 ## Evaluation
 
+### Deletion and observable state clarification (2026-09-22)
+
+Provider-local deletion now cascades transitively from imported rows to derived
+rows referencing them and removes that provider's checkpoints in one transaction.
+Injected failure after row deletion rolls back rows and checkpoints together.
+Full-profile reset first deletes all wearable rows/checkpoints; failure stops the
+remaining reset. Connection metadata is cleared afterward and failures remain
+visible/retryable, not reported as complete. Provider records are never deleted.
+Manual hydration survives wearable-only deletion and disconnection, but is
+intentionally included in an explicit full-profile reset.
+
+Durable record summaries load independently of current provider authorization.
+Unavailable storage is not presented as an empty store. Current access, latest
+attempt, last success and local summaries are distinct observable state. Android
+discovery and non-permission-sheet calls have bounded deadlines; these do not
+bypass OEM binding restrictions or certify provider availability. See
+[the correctness evidence](../../edge_case.md#21-correctness-sprint-2026-09-22).
+
 | Option | Transactions/indexes/migrations | Encryption and key protection | Compatibility and maintenance | Decision |
 | --- | --- | --- | --- | --- |
 | `sqlite_async` + `sqlite3` SQLCipher | Native SQLite transactions, indexes, bounded SQL and versioned migrations | SQLCipher database; app key from Keystore/Keychain | Android/iOS including iOS 14; active PowerSync and sqlite3.dart releases; MIT library licenses, SQLCipher community BSD license | Selected |
