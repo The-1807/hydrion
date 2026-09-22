@@ -9,6 +9,36 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get healthDataRetrying => 'Retrying health-data synchronization...';
+
+  @override
+  String get healthDataNoNewRecords => 'Synchronized: no new health data';
+
+  @override
+  String get healthDataLocalRecordsRetained =>
+      'Previously imported data is still available on this device. It may be out of date.';
+
+  @override
+  String get healthDataPermissionsUnknown =>
+      'Current access could not be checked. Previously stored records are unaffected.';
+
+  @override
+  String get healthDataProviderRecovery =>
+      'Open the health provider, return here, and retry. Check its background restrictions if the problem continues.';
+
+  @override
+  String get healthDataSummaryUnavailable =>
+      'Stored health data could not be read. Retry without deleting your data.';
+
+  @override
+  String get healthDataMetadataUnavailable =>
+      'Synchronization history could not be restored or saved. Stored records are separate and have not been cleared.';
+
+  @override
+  String get healthDataDeletionFailed =>
+      'Wearable cleanup did not fully complete. Retry; do not assume all local wearable data was deleted.';
+
+  @override
   String get appTitle => 'Hydrion';
 
   @override
@@ -1300,7 +1330,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileDeletionPersonalizationDisclosure =>
-      'This clears your local profile, body metrics, daily contexts, hydration history, reminders, challenges, recommendation state, and weather cache on this device. Your language and appearance preferences remain saved.';
+      'This clears your local profile, body metrics, daily contexts, hydration history, reminders, challenges, recommendation state, weather cache, imported wearable records and derived wearable context on this device. Health-provider records are unchanged. Your language and appearance preferences remain saved.';
 
   @override
   String get dailyContextTitle => 'Today\'s context';
@@ -3231,7 +3261,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get healthDataDeleteExplanation =>
-      'This removes Hydrion\'s encrypted imported copy and checkpoints. It does not delete records from the source provider or manual hydration history.';
+      'This removes Hydrion\'s encrypted imported copy, checkpoints and derived wearable context. It does not delete records from the source provider or manual hydration history.';
 
   @override
   String healthDataImportedCount({required int count}) {

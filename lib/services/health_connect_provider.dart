@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../domain/android_health_provider.dart';
 import '../domain/health_data.dart';
 import 'android_health_provider_discovery.dart';
+import '../utils/startup_trace.dart';
 
 abstract interface class HealthConnectBridge {
   Future<Map<String, Object?>> invoke(
@@ -25,10 +26,20 @@ class MethodChannelHealthConnectBridge implements HealthConnectBridge {
     String method, [
     Map<String, Object?> arguments = const {},
   ]) async {
-    final value = await _channel.invokeMapMethod<String, Object?>(
-      method,
-      arguments,
-    );
+    final timer = Stopwatch()..start();
+    late final Map<String, Object?>? value;
+    try {
+      final call = _channel.invokeMapMethod<String, Object?>(method, arguments);
+      // User permission sheets may remain open; service calls must be bounded.
+      value = await (method == 'requestPermissions'
+          ? call
+          : call.timeout(const Duration(seconds: 15)));
+    } finally {
+      HydrionStartupTrace.log('health connect operation complete', data: {
+        'operation': method,
+        'elapsedMs': timer.elapsedMilliseconds,
+      });
+    }
     if (value == null) {
       throw const FormatException('Health Connect returned no result.');
     }

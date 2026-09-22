@@ -673,7 +673,13 @@ class HydrionServices {
     final store = await SharedPreferencesHydrionStore.create();
     HydrionStartupTrace.log('HydrionServices.local gate=storage status=done');
 
+    final healthTimer = Stopwatch()..start();
+    HydrionStartupTrace.log('wearable storage initialization start');
     final healthPersistence = await initializeHealthDataPersistence();
+    HydrionStartupTrace.log('wearable storage initialization end', data: {
+      'elapsedMs': healthTimer.elapsedMilliseconds,
+      'status': healthPersistence.status.name,
+    });
 
     HydrionStartupTrace.log(
       'HydrionServices.local gate=dependency_init status=start',
@@ -1004,24 +1010,6 @@ class HydrionServices {
       hydrationRepository: hydrationRepository,
       settingsRepository: settingsRepository,
     );
-    final localProfileResetService = LocalProfileResetService(
-      settingsRepository: settingsRepository,
-      hydrationRepository: hydrationRepository,
-      challengeRepository: challengeRepository,
-      reminderRepository: reminderRepository,
-      notificationService: notificationService,
-      weatherForecastService: weatherForecastService,
-      bodyMetricsRepository: bodyMetricsRepository,
-      dailyHydrationContextRepository: dailyHydrationContextRepository,
-      personalizationStateRepository: personalizationStateRepository,
-      timedSessionNotificationService: timedSessionNotificationService,
-    );
-    final androidWidgetService = AndroidWidgetService(
-      hydrationRepository: hydrationRepository,
-      settingsRepository: settingsRepository,
-      challengeRepository: challengeRepository,
-      appLocaleRepository: appLocaleRepository,
-    );
     final healthRepository =
         healthPersistence.repository ?? MemoryHealthDataRepository();
     final healthProvider = _healthProviderForPlatform();
@@ -1035,6 +1023,28 @@ class HydrionServices {
       store: store,
       persistenceReady:
           healthPersistence.status == HealthPersistenceStatus.ready,
+    );
+    final localProfileResetService = LocalProfileResetService(
+      settingsRepository: settingsRepository,
+      hydrationRepository: hydrationRepository,
+      challengeRepository: challengeRepository,
+      reminderRepository: reminderRepository,
+      notificationService: notificationService,
+      weatherForecastService: weatherForecastService,
+      bodyMetricsRepository: bodyMetricsRepository,
+      dailyHydrationContextRepository: dailyHydrationContextRepository,
+      personalizationStateRepository: personalizationStateRepository,
+      timedSessionNotificationService: timedSessionNotificationService,
+      resetWearableData: healthPersistence.status ==
+              HealthPersistenceStatus.unsupportedPlatform
+          ? null
+          : healthConnectionController.resetWearableData,
+    );
+    final androidWidgetService = AndroidWidgetService(
+      hydrationRepository: hydrationRepository,
+      settingsRepository: settingsRepository,
+      challengeRepository: challengeRepository,
+      appLocaleRepository: appLocaleRepository,
     );
 
     return HydrionServices(

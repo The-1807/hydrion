@@ -14,7 +14,11 @@ enum HealthRepositoryOpenStatus {
   unreadableOrCorrupt,
 }
 
-enum HealthRepositoryWriteStage { recordsWritten, beforeCheckpoint }
+enum HealthRepositoryWriteStage {
+  recordsWritten,
+  beforeCheckpoint,
+  recordsDeleted,
+}
 
 class HealthRepositoryOpenException implements Exception {
   final HealthRepositoryOpenStatus status;
@@ -304,16 +308,35 @@ ON CONFLICT(provider_id, metric) DO UPDATE SET
     _checkOpen();
     return _database.writeTransaction((tx) async {
       await tx.execute(
-        "DELETE FROM health_records WHERE provider_id = ? AND record_kind = 'imported'",
+        '''
+WITH RECURSIVE removed(id) AS (
+  SELECT id FROM health_records WHERE provider_id = ? AND record_kind = 'imported'
+  UNION
+  SELECT r.id FROM health_records r, json_each(r.contributing_record_ids_json) ref
+  JOIN removed ON removed.id = ref.value WHERE r.record_kind = 'derived'
+)
+DELETE FROM health_records WHERE id IN (SELECT id FROM removed)
+''',
         [providerId],
       );
       final changes =
           (await tx.get('SELECT changes() AS count'))['count'] as int;
+      await _failureInjector?.call(HealthRepositoryWriteStage.recordsDeleted);
       await tx.execute(
         'DELETE FROM health_sync_checkpoints WHERE provider_id = ?',
         [providerId],
       );
       return changes;
+    });
+  }
+
+  @override
+  Future<void> deleteAllWearableData() async {
+    _checkOpen();
+    await _database.writeTransaction((tx) async {
+      await tx.execute('DELETE FROM health_records');
+      await _failureInjector?.call(HealthRepositoryWriteStage.recordsDeleted);
+      await tx.execute('DELETE FROM health_sync_checkpoints');
     });
   }
 

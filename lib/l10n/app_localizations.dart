@@ -100,6 +100,54 @@ abstract class AppLocalizations {
     Locale('fr')
   ];
 
+  /// No description provided for @healthDataRetrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrying health-data synchronization...'**
+  String get healthDataRetrying;
+
+  /// No description provided for @healthDataNoNewRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronized: no new health data'**
+  String get healthDataNoNewRecords;
+
+  /// No description provided for @healthDataLocalRecordsRetained.
+  ///
+  /// In en, this message translates to:
+  /// **'Previously imported data is still available on this device. It may be out of date.'**
+  String get healthDataLocalRecordsRetained;
+
+  /// No description provided for @healthDataPermissionsUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Current access could not be checked. Previously stored records are unaffected.'**
+  String get healthDataPermissionsUnknown;
+
+  /// No description provided for @healthDataProviderRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the health provider, return here, and retry. Check its background restrictions if the problem continues.'**
+  String get healthDataProviderRecovery;
+
+  /// No description provided for @healthDataSummaryUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Stored health data could not be read. Retry without deleting your data.'**
+  String get healthDataSummaryUnavailable;
+
+  /// No description provided for @healthDataMetadataUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization history could not be restored or saved. Stored records are separate and have not been cleared.'**
+  String get healthDataMetadataUnavailable;
+
+  /// No description provided for @healthDataDeletionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wearable cleanup did not fully complete. Retry; do not assume all local wearable data was deleted.'**
+  String get healthDataDeletionFailed;
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
@@ -2259,7 +2307,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileDeletionPersonalizationDisclosure.
   ///
   /// In en, this message translates to:
-  /// **'This clears your local profile, body metrics, daily contexts, hydration history, reminders, challenges, recommendation state, and weather cache on this device. Your language and appearance preferences remain saved.'**
+  /// **'This clears your local profile, body metrics, daily contexts, hydration history, reminders, challenges, recommendation state, weather cache, imported wearable records and derived wearable context on this device. Health-provider records are unchanged. Your language and appearance preferences remain saved.'**
   String get profileDeletionPersonalizationDisclosure;
 
   /// No description provided for @dailyContextTitle.
@@ -5603,7 +5651,7 @@ abstract class AppLocalizations {
   /// No description provided for @healthDataDeleteExplanation.
   ///
   /// In en, this message translates to:
-  /// **'This removes Hydrion\'s encrypted imported copy and checkpoints. It does not delete records from the source provider or manual hydration history.'**
+  /// **'This removes Hydrion\'s encrypted imported copy, checkpoints and derived wearable context. It does not delete records from the source provider or manual hydration history.'**
   String get healthDataDeleteExplanation;
 
   /// No description provided for @healthDataImportedCount.

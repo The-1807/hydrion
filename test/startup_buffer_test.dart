@@ -110,6 +110,34 @@ void main() {
     expect(find.byKey(const Key('dummy-home')), findsOneWidget);
   });
 
+  testWidgets('slow successful warmup continues after advisory timeout',
+      (tester) async {
+    final warmUp = Completer<void>();
+    String? selectedRoute;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StartupScreen(
+          warmUp: () => warmUp.future,
+          isOnboardingCompleted: () => true,
+          timeout: const Duration(milliseconds: 100),
+          onRouteSelected: (route) => selectedRoute = route,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(selectedRoute, isNull);
+    expect(find.text(StartupScreen.preparingText), findsOneWidget);
+
+    warmUp.complete();
+    await tester.pump();
+    await tester.pump();
+
+    expect(selectedRoute, '/home');
+  });
+
   testWidgets('fresh install bootstrap shows buffer before language choice',
       (tester) async {
     final services = await HydrionServices.fromStore(MemoryHydrionStore());

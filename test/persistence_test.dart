@@ -426,6 +426,42 @@ void main() {
     expect(store.snapshot[WeatherForecastCacheRepository.storageKey], isNull);
   });
 
+  for (final failWearableReset in [false, true]) {
+    test(
+        'profile reset gates remaining cleanup on wearable deletion: $failWearableReset',
+        () async {
+      final store = MemoryHydrionStore();
+      final services = await HydrionServices.fromStore(store,
+          notificationAdapter: FakeHydrionNotificationAdapter());
+      await services.hydrationRepository.addLog(
+          volumeMl: 150, timestamp: DateTime.utc(2026, 9, 13), source: 'test');
+      var wearableResetCalled = false;
+      final reset = LocalProfileResetService(
+          settingsRepository: services.settingsRepository,
+          hydrationRepository: services.hydrationRepository,
+          challengeRepository: services.challengeRepository,
+          reminderRepository: services.reminderRepository,
+          notificationService: services.notificationService,
+          weatherForecastService: services.weatherForecastService,
+          resetWearableData: () async {
+            wearableResetCalled = true;
+            if (failWearableReset) {
+              throw StateError('synthetic encrypted deletion failure');
+            }
+          });
+      final result = await reset.resetLocalProfile();
+      expect(wearableResetCalled, isTrue);
+      expect(result.isCompleted, !failWearableReset);
+      expect(
+          result.wearableDeletion,
+          failWearableReset
+              ? LocalProfileSubsystemStatus.failed
+              : LocalProfileSubsystemStatus.completed);
+      expect((await HydrationRepository.load(store)).logs,
+          hasLength(failWearableReset ? 1 : 0));
+    });
+  }
+
   test('profile deletion continues if Android reminder cancellation fails',
       () async {
     final store = MemoryHydrionStore();

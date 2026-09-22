@@ -33,6 +33,7 @@ class LocalProfileResetResult {
   final LocalProfileSubsystemStatus dailyContextDeletion;
   final LocalProfileSubsystemStatus personalizationStateDeletion;
   final LocalProfileSubsystemStatus settingsReset;
+  final LocalProfileSubsystemStatus wearableDeletion;
   final LocalProfileSubsystemStatus providerInvalidation;
   final LocalProfileSubsystemStatus navigationReset;
 
@@ -47,6 +48,7 @@ class LocalProfileResetResult {
     this.dailyContextDeletion = LocalProfileSubsystemStatus.notRequired,
     this.personalizationStateDeletion = LocalProfileSubsystemStatus.notRequired,
     required this.settingsReset,
+    this.wearableDeletion = LocalProfileSubsystemStatus.notRequired,
     required this.providerInvalidation,
     required this.navigationReset,
   });
@@ -70,6 +72,7 @@ class LocalProfileResetService {
   final DailyHydrationContextRepository? _dailyContextRepository;
   final PersonalizationStateRepository? _personalizationStateRepository;
   final TimedSessionNotificationService? _timedSessionNotifications;
+  final Future<void> Function()? _resetWearableData;
 
   const LocalProfileResetService({
     required UserSettingsRepository settingsRepository,
@@ -82,6 +85,7 @@ class LocalProfileResetService {
     DailyHydrationContextRepository? dailyHydrationContextRepository,
     PersonalizationStateRepository? personalizationStateRepository,
     TimedSessionNotificationService? timedSessionNotificationService,
+    Future<void> Function()? resetWearableData,
   })  : _settingsRepository = settingsRepository,
         _hydrationRepository = hydrationRepository,
         _challengeRepository = challengeRepository,
@@ -91,9 +95,28 @@ class LocalProfileResetService {
         _bodyMetricsRepository = bodyMetricsRepository,
         _dailyContextRepository = dailyHydrationContextRepository,
         _personalizationStateRepository = personalizationStateRepository,
-        _timedSessionNotifications = timedSessionNotificationService;
+        _timedSessionNotifications = timedSessionNotificationService,
+        _resetWearableData = resetWearableData;
 
   Future<LocalProfileResetResult> resetLocalProfile() async {
+    final wearableDeletion = _resetWearableData == null
+        ? LocalProfileSubsystemStatus.notRequired
+        : await _run(_resetWearableData);
+    // Abort before resetting the profile if its private wearable copy remains.
+    if (wearableDeletion == LocalProfileSubsystemStatus.failed) {
+      return const LocalProfileResetResult(
+        status: LocalProfileResetStatus.failed,
+        wearableDeletion: LocalProfileSubsystemStatus.failed,
+        notificationCancellation: LocalProfileSubsystemStatus.notRequired,
+        reminderDeletion: LocalProfileSubsystemStatus.notRequired,
+        challengeDeletion: LocalProfileSubsystemStatus.notRequired,
+        hydrationDeletion: LocalProfileSubsystemStatus.notRequired,
+        weatherDeletion: LocalProfileSubsystemStatus.notRequired,
+        settingsReset: LocalProfileSubsystemStatus.notRequired,
+        providerInvalidation: LocalProfileSubsystemStatus.notRequired,
+        navigationReset: LocalProfileSubsystemStatus.notRequired,
+      );
+    }
     await _timedSessionNotifications?.cancelAll();
     final notificationsCancelled =
         await _notificationService.cancelAllReminders();
@@ -131,6 +154,7 @@ class LocalProfileResetService {
             : LocalProfileResetStatus.completedWithPendingNotificationCleanup;
     return LocalProfileResetResult(
       status: status,
+      wearableDeletion: wearableDeletion,
       notificationCancellation: notificationStatus,
       reminderDeletion: reminderDeletion,
       challengeDeletion: challengeDeletion,

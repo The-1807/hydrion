@@ -73,11 +73,16 @@ separate work and is not silently folded into this migration.
   identifiers.
 - **Rollback and replay:** a checkpoint advances only in the successful record
   transaction. A retry replays the provider identity as an upsert.
-- **Deletion:** provider deletion removes imported records and its checkpoints but
-  not external provider data or manual hydration. No derived wearable context is
-  persisted or used by production hydration targets in this sprint. A future
-  persisted derived-context feature must join this deletion transaction. Purge is
-  bounded by a caller-supplied time cutoff.
+- **Deletion:** provider deletion removes its imported rows, checkpoints and all
+  transitively dependent derived rows in one SQLCipher transaction, including
+  cross-provider derived rows referencing deleted inputs. Failure rolls back.
+  It never deletes external provider records or manual hydration. Full local
+  profile reset first clears all wearable rows/checkpoints and connection metadata;
+  failure aborts the remaining reset instead of claiming success. A successful
+  full-profile reset intentionally also clears manual history, unlike wearable-only
+  deletion. Production wearable-derived hydration targets remain disabled. Purge
+  remains bounded by a caller-supplied cutoff; retention dependency policy is a
+  separate unverified gate.
 - **Reinstall/application-data deletion:** normal uninstall removes sandbox data
   and Keystore/Keychain association according to platform behavior. Restore or
   anomalous survival of only one component is handled as missing-key/unreadable,

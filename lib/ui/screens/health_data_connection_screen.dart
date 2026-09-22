@@ -54,9 +54,10 @@ class _HealthDataConnectionScreenState extends State<HealthDataConnectionScreen>
         children: [
           _StatusPanel(controller: controller),
           const SizedBox(height: 20),
-          if (!controller.isConnected)
-            const _ConsentSection()
-          else
+          if (!controller.isConnected) const _ConsentSection(),
+          if (controller.isConnected ||
+              controller.hasRecordSummary ||
+              controller.summaryUnavailable)
             _ConnectedDetails(controller: controller),
           const SizedBox(height: 20),
           _Actions(controller: controller),
@@ -97,7 +98,9 @@ class _StatusPanel extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _stateTitle(l10n, controller.state),
+                      controller.isRetrying
+                          ? l10n.healthDataRetrying
+                          : _stateTitle(l10n, controller.state),
                       key: const Key('health-data-state-title'),
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: visual.color,
@@ -110,6 +113,18 @@ class _StatusPanel extends StatelessWidget {
               const SizedBox(height: 8),
               Text('${l10n.healthDataProvider}: '
                   '${_providerLabel(l10n, controller.providerId)}'),
+              if (controller.localDataIsStale &&
+                  controller.importedRecordCount > 0)
+                Text(l10n.healthDataLocalRecordsRetained),
+              if (controller.providerFailureReason != null)
+                Text(l10n.healthDataProviderRecovery),
+              if (controller.summaryUnavailable)
+                Text(l10n.healthDataSummaryUnavailable),
+              if (controller.metadataUnavailable)
+                Text(l10n.healthDataMetadataUnavailable),
+              if (controller.deletionFailed)
+                Text(l10n.healthDataDeletionFailed,
+                    key: const Key('health-data-delete-failed')),
               if (controller.state ==
                   HealthConnectionViewState.connectedNotSynchronized) ...[
                 const SizedBox(height: 8),
@@ -169,8 +184,7 @@ class _StatusPanel extends StatelessWidget {
                   ),
                 )),
               ],
-              if (controller.lastSynchronizationOutcome != null &&
-                  controller.lastSuccessfulSynchronization != null)
+              if (controller.lastSuccessfulSynchronization != null)
                 Text(l10n.healthDataLastSuccessful(
                   time: _dateTime(
                     context,
@@ -190,6 +204,7 @@ class _StatusPanel extends StatelessWidget {
   ) =>
       switch (state) {
         HealthConnectionViewState.synchronizedWithRecords ||
+        HealthConnectionViewState.synchronizedNoNewRecords ||
         HealthConnectionViewState.connectedNotSynchronized =>
           _StateVisual(Icons.check_circle_outline, colors.primary),
         HealthConnectionViewState.synchronizing ||
@@ -234,6 +249,8 @@ class _StatusPanel extends StatelessWidget {
         HealthConnectionViewState.synchronizing => l10n.healthDataSynchronizing,
         HealthConnectionViewState.synchronizedWithRecords =>
           l10n.healthDataSynchronizedWithRecords,
+        HealthConnectionViewState.synchronizedNoNewRecords =>
+          l10n.healthDataNoNewRecords,
         HealthConnectionViewState.synchronizedNoRecords =>
           l10n.healthDataSynchronizedNoRecords,
         HealthConnectionViewState.synchronizationPartiallySuccessful =>
@@ -302,14 +319,16 @@ class _ConnectedDetails extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          controller.readAuthorizationIsOpaque
-              ? l10n.healthDataAppleAccessRequested
-              : controller.grantedMetrics.isEmpty
-                  ? l10n.healthDataNoGrantedCategories
-                  : l10n.healthDataGrantedCategories(
-                      categories:
-                          _metricLabels(l10n, controller.grantedMetrics),
-                    ),
+          controller.permissionStatus == null
+              ? l10n.healthDataPermissionsUnknown
+              : controller.readAuthorizationIsOpaque
+                  ? l10n.healthDataAppleAccessRequested
+                  : controller.grantedMetrics.isEmpty
+                      ? l10n.healthDataNoGrantedCategories
+                      : l10n.healthDataGrantedCategories(
+                          categories:
+                              _metricLabels(l10n, controller.grantedMetrics),
+                        ),
         ),
         if (controller.lastSynchronizationOutcome != null) ...[
           const SizedBox(height: 8),
@@ -322,9 +341,10 @@ class _ConnectedDetails extends StatelessWidget {
           )),
         ],
         const SizedBox(height: 8),
-        Text(l10n.healthDataImportedCount(
-          count: controller.importedRecordCount,
-        )),
+        if (controller.hasRecordSummary)
+          Text(l10n.healthDataImportedCount(
+            count: controller.importedRecordCount,
+          )),
         if (controller.earliestRecordTime case final start?)
           Text(l10n.healthDataRecordPeriod(
             start: _date(context, start),
@@ -338,7 +358,7 @@ class _ConnectedDetails extends StatelessWidget {
               source: entry.key,
               count: entry.value,
             )),
-        ] else if (controller.lastSynchronizationOutcome != null) ...[
+        ] else if (controller.hasRecordSummary) ...[
           const SizedBox(height: 8),
           Text(l10n.healthDataNoContributors),
         ],
@@ -403,7 +423,8 @@ class _Actions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final busy = controller.state == HealthConnectionViewState.loading ||
+    final busy = controller.isBusy ||
+        controller.state == HealthConnectionViewState.loading ||
         controller.state == HealthConnectionViewState.permissionRequesting ||
         controller.state == HealthConnectionViewState.synchronizing;
     final retry =
@@ -420,7 +441,9 @@ class _Actions extends StatelessWidget {
             icon: const Icon(Icons.link),
             label: Text(l10n.healthDataTitle),
           ),
-        if (controller.isConnected && controller.missingMetrics.isNotEmpty)
+        if (controller.isConnected &&
+            controller.permissionStatus != null &&
+            controller.missingMetrics.isNotEmpty)
           FilledButton.icon(
             key: const Key('health-data-request-missing'),
             onPressed: busy ? null : controller.requestMissingPermissions,
@@ -437,13 +460,17 @@ class _Actions extends StatelessWidget {
             icon: const Icon(Icons.insights_outlined),
             label: Text(l10n.healthDataViewImportedData),
           ),
-        if (controller.isConnected && controller.grantedMetrics.isNotEmpty)
+        if (controller.isConnected)
           FilledButton.tonalIcon(
             key: const Key('health-data-sync'),
-            onPressed: busy ? null : () => controller.synchronize(),
+            onPressed: busy
+                ? null
+                : () => controller.synchronize(
+                    retry: retry || controller.providerFailureReason != null),
             icon: const Icon(Icons.sync),
-            label:
-                Text(retry ? l10n.healthDataTryAgain : l10n.healthDataSyncNow),
+            label: Text(retry || controller.providerFailureReason != null
+                ? l10n.healthDataTryAgain
+                : l10n.healthDataSyncNow),
           ),
         if (controller.isConnected && controller.failedMetrics.isNotEmpty)
           FilledButton.tonalIcon(
@@ -458,7 +485,7 @@ class _Actions extends StatelessWidget {
           icon: const Icon(Icons.settings_outlined),
           label: Text(l10n.healthDataManageAccess),
         ),
-        if (controller.importedRecordCount > 0)
+        if (controller.hasRecordSummary || controller.summaryUnavailable)
           TextButton.icon(
             key: const Key('health-data-delete'),
             onPressed: busy ? null : () => _confirmDelete(context),

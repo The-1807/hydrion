@@ -100,11 +100,20 @@ class _StartupScreenState extends State<StartupScreen> {
   }
 
   Future<_WarmUpResult> _runWarmUp() async {
+    final warmUp = widget.warmUp();
     try {
-      await widget.warmUp().timeout(widget.timeout);
+      await warmUp.timeout(widget.timeout);
       return const _WarmUpResult.succeeded();
     } on TimeoutException {
-      return const _WarmUpResult.failed('TimeoutException');
+      HydrionStartupTrace.log(
+        'StartupScreen.warmup exceeded advisory timeout',
+      );
+      try {
+        await warmUp;
+        return const _WarmUpResult.succeeded();
+      } catch (error) {
+        return _WarmUpResult.failed(error.runtimeType.toString());
+      }
     } catch (error) {
       return _WarmUpResult.failed(error.runtimeType.toString());
     }

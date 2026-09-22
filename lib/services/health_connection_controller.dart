@@ -21,6 +21,7 @@ enum HealthConnectionViewState {
   connectedNotSynchronized,
   synchronizing,
   synchronizedWithRecords,
+  synchronizedNoNewRecords,
   synchronizedNoRecords,
   synchronizationPartiallySuccessful,
   synchronizationFailed,
@@ -57,6 +58,21 @@ class HealthConnectionController extends ChangeNotifier {
   bool _permissionRequested = false;
   bool _operationInProgress = false;
   bool _initialized = false;
+  HealthProviderAvailabilityStatus? providerAvailability;
+  HealthPermissionStatus? permissionStatus;
+  String? providerFailureReason;
+  bool hasRecordSummary = false;
+  bool summaryUnavailable = false;
+  bool metadataUnavailable = false;
+  bool deletionFailed = false;
+  bool isRetrying = false;
+  bool get isBusy => _operationInProgress;
+  bool get localDataIsStale =>
+      hasRecordSummary &&
+      (providerFailureReason != null ||
+          summaryUnavailable ||
+          permissionStatus == null ||
+          lastSynchronizationOutcome != HealthSyncStatus.success);
 
   HealthConnectionController({
     required UserManagedHealthDataProvider provider,
@@ -93,15 +109,19 @@ class HealthConnectionController extends ChangeNotifier {
       await refresh();
       return;
     }
-    final encoded = await _store.readString(_storageKey);
-    if (encoded != null) {
-      try {
+    try {
+      final encoded = await _store.readString(_storageKey);
+      if (encoded != null) {
         final value = jsonDecode(encoded) as Map<String, Object?>;
         _locallyConnected = value['connected'] == true;
         _permissionRequested = value['permissionRequested'] == true;
         lastAttemptedSynchronization = _date(value['lastAttempted']);
         lastSuccessfulSynchronization = _date(value['lastSuccessful']);
         lastSynchronizationOutcome = _syncStatus(value['lastOutcome']);
+        if (lastSynchronizationOutcome == null) {
+          lastAttemptedSynchronization = null;
+          lastSuccessfulSynchronization = null;
+        }
         lastRecordsRead = _nonNegativeInt(value['recordsRead']);
         lastInsertedCount = _nonNegativeInt(value['inserted']);
         lastUpdatedCount = _nonNegativeInt(value['updated']);
@@ -109,9 +129,9 @@ class HealthConnectionController extends ChangeNotifier {
         lastRejectedCount = _nonNegativeInt(value['rejected']);
         failureReason = _safeCode(value['failureReason']);
         lastMetricResults = _metricResults(value['metricResults']);
-      } on Object {
-        _locallyConnected = false;
       }
+    } on Object {
+      metadataUnavailable = true;
     }
     _initialized = true;
     await refresh();
@@ -119,54 +139,65 @@ class HealthConnectionController extends ChangeNotifier {
 
   Future<void> refresh() async {
     if (_operationInProgress) return;
-    if (!_persistenceReady) {
-      state = HealthConnectionViewState.synchronizationFailed;
-      failureReason = 'protected_storage_unavailable';
-      notifyListeners();
-      return;
-    }
+    _operationInProgress = true;
+    providerFailureReason = null;
+    providerAvailability = null;
+    permissionStatus = null;
     try {
-      final availability = await _provider.availability();
-      if (!availability.canConnect) {
-        state = switch (availability.status) {
-          HealthProviderAvailabilityStatus.installationRequired =>
-            HealthConnectionViewState.installationRequired,
-          HealthProviderAvailabilityStatus.updateRequired =>
-            HealthConnectionViewState.updateRequired,
-          HealthProviderAvailabilityStatus.unsupported =>
-            HealthConnectionViewState.unsupported,
-          _ => HealthConnectionViewState.providerUnavailable,
-        };
-        failureReason = availability.reasonCode;
+      await _loadRecordSummary();
+      notifyListeners();
+      if (!_persistenceReady) {
+        state = HealthConnectionViewState.synchronizationFailed;
+        failureReason = 'protected_storage_unavailable';
         notifyListeners();
         return;
       }
-      final authorization = await _provider.authorizationState(metrics);
-      grantedMetrics = authorization.grantedMetrics;
-      await _refreshRecordSummary();
-      if (!_locallyConnected) {
-        state = grantedMetrics.isEmpty
-            ? _permissionRequested
-                ? HealthConnectionViewState.permissionDenied
-                : HealthConnectionViewState.consentRequired
-            : HealthConnectionViewState.disconnected;
-      } else if (grantedMetrics.isEmpty) {
-        state = HealthConnectionViewState.permissionsRevoked;
-      } else if (grantedMetrics.length < metrics.length) {
-        state = HealthConnectionViewState.permissionPartiallyGranted;
-      } else {
-        state = _restoredConnectedState();
+      try {
+        final availability = await _provider.availability();
+        providerAvailability = availability.status;
+        if (!availability.canConnect) {
+          state = switch (availability.status) {
+            HealthProviderAvailabilityStatus.installationRequired =>
+              HealthConnectionViewState.installationRequired,
+            HealthProviderAvailabilityStatus.updateRequired =>
+              HealthConnectionViewState.updateRequired,
+            HealthProviderAvailabilityStatus.unsupported =>
+              HealthConnectionViewState.unsupported,
+            _ => HealthConnectionViewState.providerUnavailable,
+          };
+          providerFailureReason =
+              availability.reasonCode ?? 'provider_refresh_failed';
+          notifyListeners();
+          return;
+        }
+        final authorization = await _provider.authorizationState(metrics);
+        permissionStatus = authorization.status;
+        grantedMetrics = authorization.grantedMetrics;
+        if (authorization.status == HealthPermissionStatus.unavailable) {
+          throw StateError('authorization_unavailable');
+        }
+        if (!_locallyConnected) {
+          state = grantedMetrics.isEmpty
+              ? _permissionRequested
+                  ? HealthConnectionViewState.permissionDenied
+                  : HealthConnectionViewState.consentRequired
+              : HealthConnectionViewState.disconnected;
+        } else if (grantedMetrics.isEmpty) {
+          state = HealthConnectionViewState.permissionsRevoked;
+        } else if (grantedMetrics.length < metrics.length) {
+          state = HealthConnectionViewState.permissionPartiallyGranted;
+        } else {
+          state = _restoredConnectedState();
+        }
+      } on Object {
+        state = HealthConnectionViewState.providerUnavailable;
+        providerFailureReason = 'provider_refresh_failed';
+        permissionStatus = null;
       }
-      if (state != HealthConnectionViewState.synchronizationFailed) {
-        failureReason = null;
-      }
-    } on Object {
-      state = _locallyConnected
-          ? HealthConnectionViewState.synchronizationFailed
-          : HealthConnectionViewState.providerUnavailable;
-      failureReason = 'provider_refresh_failed';
+    } finally {
+      _operationInProgress = false;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> connect() async {
@@ -212,14 +243,17 @@ class HealthConnectionController extends ChangeNotifier {
 
   Future<HealthSynchronizationResult> synchronize({
     Set<HealthMetric>? requestedMetrics,
+    bool retry = false,
   }) async {
-    if (!_locallyConnected || _operationInProgress) {
+    if (!_locallyConnected || _operationInProgress || !_persistenceReady) {
       return const HealthSynchronizationResult(
         status: HealthSyncStatus.cancelled,
         reasonCode: 'synchronization_not_started',
       );
     }
+    await refresh();
     _operationInProgress = true;
+    isRetrying = retry;
     state = HealthConnectionViewState.synchronizing;
     lastAttemptedSynchronization = _clock().toUtc();
     failureReason = null;
@@ -244,12 +278,10 @@ class HealthConnectionController extends ChangeNotifier {
     lastRejectedCount = result.rejectedCount;
     lastMetricResults = Map.unmodifiable(result.metricResults);
     if (result.status == HealthSyncStatus.success) {
+      providerFailureReason = null;
       lastSuccessfulSynchronization = _clock().toUtc();
       state = HealthConnectionViewState.synchronizedWithRecords;
     } else if (result.status == HealthSyncStatus.partial) {
-      if (successfulMetrics.isNotEmpty) {
-        lastSuccessfulSynchronization = _clock().toUtc();
-      }
       state = HealthConnectionViewState.synchronizationPartiallySuccessful;
       failureReason = result.reasonCode;
     } else if (result.status == HealthSyncStatus.permissionDenied ||
@@ -259,14 +291,18 @@ class HealthConnectionController extends ChangeNotifier {
       state = HealthConnectionViewState.synchronizationFailed;
       failureReason = result.reasonCode;
     }
-    await _refreshRecordSummary();
-    if (result.status == HealthSyncStatus.success && importedRecordCount == 0) {
-      state = HealthConnectionViewState.synchronizedNoRecords;
-    }
     try {
+      await _loadRecordSummary();
+      if (result.status == HealthSyncStatus.success) {
+        state = _restoredConnectedState();
+      }
       await _persist();
+      metadataUnavailable = false;
+    } on Object {
+      metadataUnavailable = true;
     } finally {
       _operationInProgress = false;
+      isRetrying = false;
     }
     notifyListeners();
     return result;
@@ -280,10 +316,11 @@ class HealthConnectionController extends ChangeNotifier {
         reasonCode: 'no_failed_metrics_to_retry',
       ));
     }
-    return synchronize(requestedMetrics: retryMetrics);
+    return synchronize(requestedMetrics: retryMetrics, retry: true);
   }
 
   Future<void> disconnect() async {
+    if (_operationInProgress) return;
     _locallyConnected = false;
     state = HealthConnectionViewState.disconnected;
     await _persist();
@@ -291,10 +328,50 @@ class HealthConnectionController extends ChangeNotifier {
   }
 
   Future<int> deleteImportedData() async {
-    final count =
-        await _repository.deleteImportedProvider(_provider.providerId);
-    await _refreshRecordSummary();
+    if (_operationInProgress || !_persistenceReady) return -1;
+    _operationInProgress = true;
+    deletionFailed = false;
+    notifyListeners();
+    try {
+      final count =
+          await _repository.deleteImportedProvider(_provider.providerId);
+      _clearSynchronizationHistory();
+      await _loadRecordSummary();
+      if (summaryUnavailable) throw StateError('summary_unavailable');
+      await _persist();
+      return count;
+    } on Object {
+      deletionFailed = true;
+      return -1;
+    } finally {
+      _operationInProgress = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> resetWearableData() async {
+    if (_operationInProgress || !_persistenceReady) {
+      throw StateError('wearable_reset_unavailable');
+    }
+    _operationInProgress = true;
+    try {
+      await _repository.deleteAllWearableData();
+      _locallyConnected = false;
+      _permissionRequested = false;
+      _clearSynchronizationHistory();
+      await _loadRecordSummary();
+      await _store.remove('health_connect_connection_v1');
+      await _store.remove('health_connection_apple.health_kit_v1');
+      await _persist();
+    } finally {
+      _operationInProgress = false;
+      notifyListeners();
+    }
+  }
+
+  void _clearSynchronizationHistory() {
     lastSynchronizationOutcome = null;
+    lastAttemptedSynchronization = null;
     lastSuccessfulSynchronization = null;
     lastRecordsRead = 0;
     lastInsertedCount = 0;
@@ -306,9 +383,6 @@ class HealthConnectionController extends ChangeNotifier {
     state = _locallyConnected
         ? HealthConnectionViewState.connectedNotSynchronized
         : HealthConnectionViewState.disconnected;
-    await _persist();
-    notifyListeners();
-    return count;
   }
 
   Future<void> openSettings() => _provider.openSettings();
@@ -325,8 +399,8 @@ class HealthConnectionController extends ChangeNotifier {
         limit: HealthDataRepository.maximumPageSize,
         offset: offset,
       );
-      records.addAll(
-          page.where((record) => record.providerId == _provider.providerId));
+      records.addAll(page.where((record) =>
+          record.providerId == _provider.providerId && !record.isDerived));
       if (page.length < HealthDataRepository.maximumPageSize) break;
       offset += page.length;
     }
@@ -338,6 +412,17 @@ class HealthConnectionController extends ChangeNotifier {
       ? 'health_connect_connection_v1'
       : 'health_connection_${_provider.providerId}_v1';
 
+  Future<void> _loadRecordSummary() async {
+    try {
+      if (!_persistenceReady) throw StateError('protected_storage_unavailable');
+      await _refreshRecordSummary();
+      hasRecordSummary = true;
+      summaryUnavailable = false;
+    } on Object {
+      summaryUnavailable = true;
+    }
+  }
+
   Future<void> _refreshRecordSummary() async {
     final records = <CanonicalHealthRecord>[];
     var offset = 0;
@@ -347,10 +432,13 @@ class HealthConnectionController extends ChangeNotifier {
         limit: HealthDataRepository.maximumPageSize,
         offset: offset,
       );
-      records.addAll(
-          page.where((record) => record.providerId == _provider.providerId));
+      records.addAll(page.where((record) =>
+          record.providerId == _provider.providerId && !record.isDerived));
       if (page.length < HealthDataRepository.maximumPageSize) break;
       offset += page.length;
+    }
+    for (final record in records) {
+      record.validate();
     }
     importedRecordCount = records.length;
     availableMetrics = records.map((record) => record.metric).toSet();
@@ -399,23 +487,26 @@ class HealthConnectionController extends ChangeNotifier {
         }),
       );
 
-  HealthConnectionViewState _restoredConnectedState() =>
-      switch (lastSynchronizationOutcome) {
-        HealthSyncStatus.success => importedRecordCount == 0
-            ? HealthConnectionViewState.synchronizedNoRecords
-            : HealthConnectionViewState.synchronizedWithRecords,
-        HealthSyncStatus.partial =>
-          HealthConnectionViewState.synchronizationPartiallySuccessful,
-        HealthSyncStatus.failed ||
-        HealthSyncStatus.unavailable ||
-        HealthSyncStatus.unsupported ||
-        HealthSyncStatus.cancelled =>
-          HealthConnectionViewState.synchronizationFailed,
-        HealthSyncStatus.permissionDenied ||
-        HealthSyncStatus.permissionRequired =>
-          HealthConnectionViewState.permissionsRevoked,
-        null => HealthConnectionViewState.connectedNotSynchronized,
-      };
+  HealthConnectionViewState _restoredConnectedState() => summaryUnavailable
+      ? HealthConnectionViewState.synchronizationFailed
+      : switch (lastSynchronizationOutcome) {
+          HealthSyncStatus.success => importedRecordCount == 0
+              ? HealthConnectionViewState.synchronizedNoRecords
+              : lastRecordsRead == 0
+                  ? HealthConnectionViewState.synchronizedNoNewRecords
+                  : HealthConnectionViewState.synchronizedWithRecords,
+          HealthSyncStatus.partial =>
+            HealthConnectionViewState.synchronizationPartiallySuccessful,
+          HealthSyncStatus.failed ||
+          HealthSyncStatus.unavailable ||
+          HealthSyncStatus.unsupported ||
+          HealthSyncStatus.cancelled =>
+            HealthConnectionViewState.synchronizationFailed,
+          HealthSyncStatus.permissionDenied ||
+          HealthSyncStatus.permissionRequired =>
+            HealthConnectionViewState.permissionsRevoked,
+          null => HealthConnectionViewState.connectedNotSynchronized,
+        };
 
   static DateTime? _date(Object? value) =>
       value is String ? DateTime.tryParse(value)?.toUtc() : null;

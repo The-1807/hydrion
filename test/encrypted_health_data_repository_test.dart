@@ -151,7 +151,7 @@ void main() {
     await repository.close();
   });
 
-  test('provider deletion preserves derived records and purge is bounded',
+  test('provider deletion cascades through derived records and is idempotent',
       () async {
     final repository = await EncryptedHealthDataRepository.open(
       path: path,
@@ -166,14 +166,64 @@ void main() {
           algorithmVersion: 'test-v1',
           contributingRecordIds: const ['imported'],
         ),
+        _record(
+            id: 'derived-next',
+            valueOrigin: HealthValueOrigin.hydrionDerived,
+            algorithmVersion: 'test-v1',
+            contributingRecordIds: const ['derived']),
       ],
       checkpoint: _checkpoint('delete'),
     );
-    expect(await repository.deleteImportedProvider('test-provider'), 1);
-    expect((await repository.records()).single.id, 'derived');
-    expect(await repository.purgeBefore(DateTime.utc(2026, 9, 12)), 1);
+    expect(await repository.deleteImportedProvider('test-provider'), 3);
+    expect(await repository.deleteImportedProvider('test-provider'), 0);
     expect(await repository.records(), isEmpty);
+    expect(
+        await repository.checkpointFor('test-provider', HealthMetric.workout),
+        isNull);
     await repository.close();
+    final reopened =
+        await EncryptedHealthDataRepository.open(path: path, key: key);
+    expect(await reopened.records(), isEmpty);
+    expect(await reopened.checkpointFor('test-provider', HealthMetric.workout),
+        isNull);
+    await reopened.close();
+  });
+
+  test('failed cascade rolls records and checkpoints back across reopen',
+      () async {
+    final repository = await EncryptedHealthDataRepository.open(
+        path: path,
+        key: key,
+        failureInjector: (stage) async {
+          if (stage == HealthRepositoryWriteStage.recordsDeleted) {
+            throw StateError('synthetic failure');
+          }
+        });
+    await repository.commitImport(records: [
+      _record(id: 'imported'),
+      _record(
+          id: 'derived',
+          valueOrigin: HealthValueOrigin.hydrionDerived,
+          algorithmVersion: 'v1',
+          contributingRecordIds: const ['imported']),
+    ], checkpoint: _checkpoint('retained'));
+    await expectLater(
+        repository.deleteImportedProvider('test-provider'), throwsStateError);
+    await expectLater(repository.deleteAllWearableData(), throwsStateError);
+    await repository.close();
+    final reopened =
+        await EncryptedHealthDataRepository.open(path: path, key: key);
+    expect(await reopened.records(), hasLength(2));
+    expect(
+        (await reopened.checkpointFor('test-provider', HealthMetric.workout))!
+            .cursor,
+        'retained');
+    await reopened.deleteAllWearableData();
+    await reopened.deleteAllWearableData();
+    expect(await reopened.records(), isEmpty);
+    expect(await reopened.checkpointFor('test-provider', HealthMetric.workout),
+        isNull);
+    await reopened.close();
   });
 
   test('serializes concurrent commits without losing records', () async {

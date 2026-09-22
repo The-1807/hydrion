@@ -1548,3 +1548,25 @@ and simulator Keychain/SQLCipher behavior. Neither establishes physical-iPhone
 or physical-Apple-Watch certification. Zero physical iPhones are available.
 See `docs/validation/apple-wearable-sprint-2026-09-19.md` for this run's results.
 Wear OS has no implementation; Apple evidence does not satisfy its test gates.
+
+## Wearable correctness regression (2026-09-22)
+
+Use only isolated QA with confirmed synthetic provider and manual records.
+Do not clear app data or source-provider records. Reproduce initial binding
+failure; verify local count/source summary persists and access is unknown, not
+denied. Retry once: latest failure must not replace last-success time. Open the
+provider, return and retry; zero changes with existing records must say no new
+data, not empty history. Revoke only QA read permissions with any provider-data
+deletion option unchecked; manual logging must work. Restore the same grants.
+Delete the local wearable copy twice, disconnect and restart: counts/sync history
+must stay cleared, and manual history must survive.
+
+Real encrypted derived-row cascade, injected rollback and reopen are automated
+tests; do not invent physical derived records when the product does not create
+them. Full-profile reset is a separate destructive operation and is tested with
+synthetic automated stores here, not run on the phone. Its wearable cleanup must
+fail closed before other profile data is reset.
+
+Evidence: [the sprint audit](edge_case.md#21-correctness-sprint-2026-09-22).
+Infinix debug observations are scoped L5; cold-start performance, OEM recovery,
+physical Apple, real wearable ingestion and release certification remain gates.

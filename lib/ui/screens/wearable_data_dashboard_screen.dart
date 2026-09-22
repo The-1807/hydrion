@@ -40,6 +40,21 @@ class _WearableDataDashboardScreenState
       body: FutureBuilder<List<CanonicalHealthRecord>>(
         future: _records,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(l10n.healthDataSummaryUnavailable),
+              TextButton.icon(
+                onPressed: () => setState(() {
+                  _records = context
+                      .read<HealthConnectionController>()
+                      .importedRecords();
+                }),
+                icon: const Icon(Icons.refresh),
+                label: Text(l10n.healthDataTryAgain),
+              ),
+            ]));
+          }
           if (!snapshot.hasData) {
             return const Center(
               child: Padding(
