@@ -1013,7 +1013,7 @@ jobs:
         run: pod install --deployment
 
       - name: Test Apple destination discovery
-        run: python3 -m unittest discover -s tool/tests -p 'test_apple_simulator.py'
+        run: python3 -W error::SyntaxWarning -m unittest discover -s tool/tests -p 'test_apple_simulator.py'
 
       - name: Ensure watchOS simulator runtime is installed
         timeout-minutes: 21
