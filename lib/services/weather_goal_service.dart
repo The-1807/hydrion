@@ -855,22 +855,14 @@ class DailyWeatherGoalCoordinator {
       ),
     );
 
-    if (settings.weatherGoalAutoApplyEnabled &&
-        !settings.weatherGoalDailyConfirmationEnabled) {
-      await _settingsRepository.applyWeatherGoal(
-        goalMl: decision.recommendedGoalMl,
-        decidedAt: currentTime,
-        explanation: decision.explanationCode.name,
-        localDateKey: localDateKey,
-        autoApplyEnabled: true,
-      );
-      return DailyWeatherGoalResult(
-        status: DailyWeatherGoalStatus.autoApplied,
-        decision: decision,
-        forecast: forecastResult.forecast,
-      );
-    }
-
+    // This coordinator is an eligibility/dedup gate only: it decides
+    // whether a recommendation cycle should run, not what the target
+    // should be, and it never commits a target itself. Whether and how to
+    // auto-apply is decided by the caller using the full
+    // PersonalizedHydrationEngine recommendation and its mayAutoApply
+    // policy, then committed through
+    // DailyHydrationRecommendationCoordinator.apply(). `decision` here is
+    // retained only as a lightweight, non-authoritative preview.
     return DailyWeatherGoalResult(
       status: DailyWeatherGoalStatus.promptReady,
       decision: decision,

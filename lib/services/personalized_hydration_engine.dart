@@ -163,6 +163,10 @@ class PersonalizedHydrationEngine {
     final restricted = metrics.fluidSafetyMode ==
             HydrionFluidSafetyMode.fluidRestrictionWithoutTarget ||
         metrics.fluidSafetyMode == HydrionFluidSafetyMode.unsure;
+    // A clinician-governed target must never be silently auto-applied,
+    // regardless of whether allowAdjustmentsAboveClinicianTarget is set.
+    final clinicianGoverned =
+        metrics.fluidSafetyMode == HydrionFluidSafetyMode.clinicianTarget;
     final confidence = clinicianOverride
         ? HydrationRecommendationConfidence.clinicianSet
         : weatherAdjustment != 0
@@ -192,7 +196,9 @@ class PersonalizedHydrationEngine {
       appliedFactors: List.unmodifiable(applied),
       skippedFactors: List.unmodifiable(skipped),
       safetyNotices: List.unmodifiable(safety),
-      mayAutoApply: !restricted && condition == HydrionTemporaryCondition.none,
+      mayAutoApply: !restricted &&
+          !clinicianGoverned &&
+          condition == HydrionTemporaryCondition.none,
       userConfirmationRequired: true,
       weatherUsed: weatherAdjustment != 0,
       cachedWeatherUsed: inputs.cachedWeatherUsed && weatherAdjustment != 0,

@@ -167,6 +167,28 @@ class _HydrionShellState extends State<HydrionShell>
       locationPermissionGranted: true,
     );
     if (!mounted) return;
+
+    // Auto-apply is only allowed when BOTH the user's own preference and
+    // Hydrion's domain safety policy (mayAutoApply) allow it. Domain
+    // safety wins: a clinician-governed, fluid-restricted, or
+    // temporary-condition target is never silently applied, regardless of
+    // the user's "don't ask each day" setting. The value committed here
+    // always comes from the full PersonalizedHydrationEngine recommendation
+    // computed above, never from an independent weather-only calculator.
+    if (settings.weatherGoalAutoApplyEnabled &&
+        !settings.weatherGoalDailyConfirmationEnabled &&
+        personalized.mayAutoApply) {
+      await context.read<UserSettingsRepository>().applyWeatherGoal(
+            goalMl: personalized.roundedRecommendedGoalMl,
+            decidedAt: DateTime.now(),
+            explanation:
+                WeatherGoalExplanationCode.personalizedSuggestionAccepted.name,
+            localDateKey: hydrionLocalDateKey(DateTime.now()),
+            autoApplyEnabled: true,
+          );
+      return;
+    }
+
     final unit = settings.volumeUnit;
     final l10n = AppLocalizations.of(context);
     final weatherAdjustment = HydrationVolumeFormatter.format(

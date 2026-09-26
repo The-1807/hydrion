@@ -937,17 +937,24 @@ class UserSettingsRepository extends ChangeNotifier {
     return true;
   }
 
+  /// Records that the user declined, dismissed, or acknowledged an
+  /// unchanged recommendation for [localDateKey].
+  ///
+  /// This must remain a true no-op on the active target: it never writes
+  /// `dailyGoalMl` or `weatherAdjustedGoalActive`, because declining a
+  /// recommendation must never modify whatever target is currently active
+  /// (which may be clinician-derived, a previously applied personalized
+  /// recommendation, or otherwise unrelated to today's baseline). Only
+  /// workflow bookkeeping is updated here.
   Future<void> keepPreviousWeatherGoal({
     required DateTime decidedAt,
     required String localDateKey,
     required String explanation,
   }) async {
     _settings = _settings.copyWith(
-      dailyGoalMl: _settings.baselineDailyGoalMl,
       lastWeatherGoalDecisionAt: decidedAt,
       lastWeatherGoalLocalDate: localDateKey,
       lastWeatherGoalExplanation: explanation,
-      weatherAdjustedGoalActive: false,
     );
     await _persist();
     notifyListeners();
