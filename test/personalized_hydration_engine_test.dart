@@ -447,6 +447,69 @@ void main() {
       expect(allowed.roundedRecommendedGoalMl, 2050);
     });
 
+    test(
+      'clinician-governed target is never auto-applicable, even without '
+      'fluid restriction or a temporary condition',
+      () {
+        final protectedNoStacking = engine.calculate(inputs(
+          metrics: const HydrionBodyMetrics(
+            personalizationEnabled: true,
+            weightKg: 70,
+            heightCm: 170,
+            fluidSafetyMode: HydrionFluidSafetyMode.clinicianTarget,
+            clinicianTargetMl: 1800,
+          ),
+        ));
+        expect(protectedNoStacking.mayAutoApply, isFalse);
+
+        // Domain safety must hold even when adjustments are explicitly
+        // allowed to stack above the clinician target — auto-apply is
+        // never solely the user's/UI's decision to make for this mode.
+        final protectedWithStacking = engine.calculate(inputs(
+          context: DailyHydrationContext(
+            localDateKey: '2026-07-28',
+            activityIntensity: HydrionActivityIntensity.moderate,
+            activityMinutes: 30,
+            updatedAt: now,
+          ),
+          metrics: const HydrionBodyMetrics(
+            personalizationEnabled: true,
+            weightKg: 70,
+            heightCm: 170,
+            fluidSafetyMode: HydrionFluidSafetyMode.clinicianTarget,
+            clinicianTargetMl: 1800,
+            allowAdjustmentsAboveClinicianTarget: true,
+          ),
+        ));
+        expect(protectedWithStacking.mayAutoApply, isFalse);
+      },
+    );
+
+    test('unsure fluid safety mode disables automatic application', () {
+      final result = engine.calculate(inputs(
+        metrics: const HydrionBodyMetrics(
+          personalizationEnabled: true,
+          weightKg: 70,
+          heightCm: 170,
+          fluidSafetyMode: HydrionFluidSafetyMode.unsure,
+        ),
+      ));
+      expect(result.mayAutoApply, isFalse);
+    });
+
+    test(
+      'a safe personalized recommendation with no clinician/fluid/illness '
+      'factors may auto-apply',
+      () {
+        final result = engine.calculate(inputs(
+          weatherEnabled: true,
+          weather: weather(apparent: 32),
+          context: context(HydrionEnvironmentExposure.mostlyOutdoors),
+        ));
+        expect(result.mayAutoApply, isTrue);
+      },
+    );
+
     test('fluid restriction disables automatic application', () {
       final result = engine.calculate(inputs(
         metrics: const HydrionBodyMetrics(

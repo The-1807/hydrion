@@ -44,50 +44,99 @@ void main() {
           WeatherGoalExplanationCode.boundedAdjustment.name);
     });
 
-    test('next-day auto apply can be restored to confirmation', () async {
-      final harness = await _GoalHarness.create();
-      await harness.settings.setWeatherGoalDailyConfirmationEnabled(false);
+    test(
+      'evaluate() never auto-applies itself, even when the user preference '
+      'requests it — it is an eligibility gate only, not a calculator or '
+      'committer (DailyWeatherGoalCoordinator must not remain an '
+      'independent authority)',
+      () async {
+        final harness = await _GoalHarness.create();
+        await harness.settings.setWeatherGoalDailyConfirmationEnabled(false);
+        expect(harness.settings.settings.weatherGoalAutoApplyEnabled, isTrue);
 
-      final autoApplied = await harness.coordinator.evaluate(
-        now: DateTime(2026, 7, 6, 8),
-      );
+        final result = await harness.coordinator.evaluate(
+          now: DateTime(2026, 7, 6, 8),
+        );
 
-      expect(autoApplied.status, DailyWeatherGoalStatus.autoApplied);
-      expect(harness.settings.settings.weatherGoalAutoApplyEnabled, isTrue);
+        // Always promptReady when eligible: the decision to auto-apply now
+        // belongs to the caller, which must compute through the full
+        // PersonalizedHydrationEngine and check mayAutoApply before
+        // committing anything — evaluate() itself commits nothing.
+        expect(result.status, DailyWeatherGoalStatus.promptReady);
+        expect(harness.settings.settings.dailyGoalMl, 2200);
+        expect(harness.settings.settings.weatherAdjustedGoalActive, isFalse);
+        expect(harness.settings.settings.lastWeatherGoalLocalDate, isNull);
 
-      await harness.settings.setWeatherGoalDailyConfirmationEnabled(true);
-      expect(
-        harness.settings.settings.weatherGoalDailyConfirmationEnabled,
-        isTrue,
-      );
-      expect(harness.settings.settings.weatherGoalAutoApplyEnabled, isFalse);
-    });
+        await harness.settings.setWeatherGoalDailyConfirmationEnabled(true);
+        expect(
+          harness.settings.settings.weatherGoalDailyConfirmationEnabled,
+          isTrue,
+        );
+        expect(harness.settings.settings.weatherGoalAutoApplyEnabled, isFalse);
+      },
+    );
 
-    test('keeping the standard goal restores the saved baseline next day',
-        () async {
-      final harness = await _GoalHarness.create();
-      final first = await harness.coordinator.evaluate(
-        now: DateTime(2026, 7, 5, 8),
-      );
-      await harness.coordinator.acceptRecommendation(
-        decision: first.decision!,
-        now: DateTime(2026, 7, 5, 8),
-      );
-      expect(harness.settings.settings.dailyGoalMl, 2450);
+    test(
+      'declining a weather recommendation is a true no-op on the active '
+      'target (does not fall back to baseline)',
+      () async {
+        final harness = await _GoalHarness.create();
+        final first = await harness.coordinator.evaluate(
+          now: DateTime(2026, 7, 5, 8),
+        );
+        await harness.coordinator.acceptRecommendation(
+          decision: first.decision!,
+          now: DateTime(2026, 7, 5, 8),
+        );
+        expect(harness.settings.settings.dailyGoalMl, 2450);
+        expect(harness.settings.settings.weatherAdjustedGoalActive, isTrue);
 
-      final nextDay = await harness.coordinator.evaluate(
-        now: DateTime(2026, 7, 6, 8),
-      );
-      await harness.coordinator.keepPreviousGoal(
-        explanationCode: WeatherGoalExplanationCode.standardGoalKept,
-        now: DateTime(2026, 7, 6, 8),
-      );
+        final nextDay = await harness.coordinator.evaluate(
+          now: DateTime(2026, 7, 6, 8),
+        );
+        await harness.coordinator.keepPreviousGoal(
+          explanationCode: WeatherGoalExplanationCode.standardGoalKept,
+          now: DateTime(2026, 7, 6, 8),
+        );
 
-      expect(nextDay.status, DailyWeatherGoalStatus.promptReady);
-      expect(harness.settings.settings.dailyGoalMl, 2200);
-      expect(harness.settings.settings.baselineDailyGoalMl, 2200);
-      expect(harness.settings.settings.weatherAdjustedGoalActive, isFalse);
-    });
+        expect(nextDay.status, DailyWeatherGoalStatus.promptReady);
+        // The locked invariant: declining/dismissing a recommendation must
+        // never modify the currently active target. The previously
+        // accepted weather-adjusted goal (2450) remains active, not the
+        // baseline (2200) — and its provenance flag is preserved too,
+        // since nothing about the active target actually changed.
+        expect(harness.settings.settings.dailyGoalMl, 2450);
+        expect(harness.settings.settings.baselineDailyGoalMl, 2200);
+        expect(harness.settings.settings.weatherAdjustedGoalActive, isTrue);
+      },
+    );
+
+    test(
+      'declining leaves a non-weather-derived active target (e.g. '
+      'clinician- or personalization-set) completely untouched',
+      () async {
+        final harness = await _GoalHarness.create();
+        // Simulate a target that was set by a different automated path
+        // (e.g. DailyHydrationRecommendationCoordinator.apply() honoring a
+        // clinician target) — baselineDailyGoalMl is deliberately left
+        // stale/unrelated, exactly as coordinator.apply() leaves it.
+        await harness.settings.setDailyGoalMl(
+          1800,
+          updateBaseline: false,
+          markManualEdit: false,
+        );
+        expect(harness.settings.settings.dailyGoalMl, 1800);
+        expect(harness.settings.settings.baselineDailyGoalMl, 2200);
+
+        await harness.coordinator.evaluate(now: DateTime(2026, 7, 5, 8));
+        await harness.coordinator.keepPreviousGoal(
+          explanationCode: WeatherGoalExplanationCode.standardGoalKept,
+          now: DateTime(2026, 7, 5, 8),
+        );
+
+        expect(harness.settings.settings.dailyGoalMl, 1800);
+      },
+    );
 
     test('denied and permanently denied permissions block without lookup',
         () async {
