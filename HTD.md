@@ -820,7 +820,12 @@ After 0A acceptance, **0B, 1, 2 and 4 may proceed independently**, subject to se
 
 ### Remediation governance
 
-All **46 findings remain OPEN**. Acceptance of the audit is not acceptance of a fix, and this checkpoint closes neither 0A nor any finding.
+Current implementation state: **43 findings remain OPEN**; HTD-DOC-001,
+HTD-TEST-002 and HTD-OBS-001 are **IMPLEMENTED_PENDING_ACCEPTANCE** for the
+Stage 0A foundation scope. No finding is ACCEPTED. Acceptance of the audit or
+a local implementation commit does not close a remediation stage. Sections
+1-12 retain the historical audited evidence; the status record below governs
+subsequent implementation progress without rewriting that evidence.
 
 - **OPEN:** recorded defect or hardening requirement, no implementation accepted.
 - **IN_PROGRESS:** separately authorized implementation task identifies scope, owner, branch/base and affected invariants.
@@ -840,6 +845,8 @@ This plan revision preserves audited runtime HEAD `ab984bf0b1ea2a5bf4c74c246fd91
 
 ### Stage 0A - Remediation control plane
 - **Findings:** HTD-DOC-001, HTD-TEST-002, HTD-OBS-001.
+- **STATE:** IMPLEMENTED_PENDING_ACCEPTANCE (2026-09-26); independent reviewer and acceptance evidence: NONE. Stages 1/2/4 remain gated on independent 0A acceptance and separate authorization.
+- **IMPLEMENTATION:** `21eebe8543fb214e8c014562aacfcc1b8211726e`, based on checkpoint `9ae695091711df47991417cee84ea5732601c90a`. Scope: status correction, test/diagnostic foundations and acceptance discipline only; no defect remediation outside 0A.
 - **OBJECTIVE:** Establish canonical architecture status, invariant/characterization framework, structured non-sensitive diagnostic/error taxonomy, truthful CI evidence handling and independent remediation validation discipline.
 - **BLOCKS:** architecture implementation stages until the minimum controls and relevant characterization harness are accepted.
 - **BLOCKED BY:** none.
@@ -848,6 +855,28 @@ This plan revision preserves audited runtime HEAD `ab984bf0b1ea2a5bf4c74c246fd91
 - **ENTRY CRITERIA:** fixed audit SHA and retained raw failure evidence; Apple repair already integrated, not uncommitted work.
 - **EXIT CRITERIA:** corrected architecture status, accepted test/diagnostic contracts and executable characterization harness for the next authorized tasks, raw-evidence precedence and independent acceptance procedure. No requirement to fix Web startup, isolate the full-suite hang or resolve unrelated format/literal failures. Finding ownership remains here; broader consumer adoption is verified at later stage acceptance without reassigning these findings.
 - **VALIDATION REQUIRED:** focused harness/diagnostic-redaction/boundary tests and document/evidence reconciliation; record known failed or unavailable validation separately. Independent review must verify the harness can detect the intended invariant violations, not just that it executes.
+
+**Implementation evidence:** [commands, results and acceptance format](docs/architecture/REMEDIATION_ACCEPTANCE.md#stage-0a-implementation-receipt).
+24 focused architecture/control/diagnostic tests and 11 existing secure-store/key
+tests passed; analyzer, formatting of the six changed Dart files, secret scan and
+Git whitespace checks passed. No full-suite/build/device/hosted run was attempted.
+Locked connector sections 2/3 were verified unchanged. Findings and stage
+ownership remain 46/12 with no duplicate assignment or dependency cycle.
+
+| Finding | Implementation state | Delivered foundation / remaining boundary |
+|---|---|---|
+| HTD-DOC-001 | IMPLEMENTED_PENDING_ACCEPTANCE | Gate 1 partial/not-accepted status corrected; Gate 0 locked, Gate 2+ unstarted, Muse final/paused |
+| HTD-TEST-002 | IMPLEMENTED_PENDING_ACCEPTANCE | Existing AI guards retained; labelled characterization/invariant helper with negative controls; domain-to-UI guard, four synthetic defect characterizations, explicit unsupported-result invariant and plan/status checks |
+| HTD-OBS-001 | IMPLEMENTED_PENDING_ACCEPTANCE | Closed-vocabulary local diagnostic/error interpretation contract with injected observation clock and generated correlation IDs; no free-text payload, telemetry or production caller rewrites |
+
+**Limits / acceptance work:** no implementation-side blocker observed in this
+foundation scope. Independent read-only acceptance is still required; the
+implementer has not approved it. Lexical guards are not complete call graphs;
+synthetic storage is not native failure certification. Diagnostic adoption and
+domain-specific outcome repairs remain with later owning stages. Known format,
+full-suite hang, literal-audit and CI-summary failures remain in section 12 and
+Stage 0B. No Stage 1/2/4, Stage 0B runtime or connector fix was implemented, and
+none of the four characterizations closes the defect it demonstrates.
 
 ### Stage 0B - Baseline, validation and platform debt
 - **Findings:** HTD-PLATFORM-003.
