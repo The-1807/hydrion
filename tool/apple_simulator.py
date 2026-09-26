@@ -3,7 +3,7 @@
 
 Requires installed iOS/watchOS runtimes. --create-pair creates a new watch only
 for an unpaired iPhone; it never unpairs, erases, or replaces an existing device.
-All subprocesses are bounded, including bootstatus and Flutter/Xcode discovery.
+All subprocesses are bounded, including bootstatus and Xcode discovery.
 """
 
 import argparse
@@ -42,7 +42,8 @@ def run(command, category, timeout=120):
     finally:
         event["duration_seconds"] = round(time.monotonic() - started, 3)
         trace(event)
-        print(f"Command result: {category} {event['status']} "
+        failure = f" ({category})" if event["status"] == "failed" else ""
+        print(f"Command result: {event['status']}{failure} "
               f"in {event['duration_seconds']}s", flush=True)
 
 
@@ -250,7 +251,7 @@ def create_pair(data, ios_min, watch_min):
     raise DestinationError("NOT_PAIRED: simctl rejected the bounded pairing attempts")
 
 
-def prepare(create=False, boot_timeout=900, pair_timeout=300):
+def prepare(create=False, boot_timeout=900, pair_timeout=300, destination=None):
     project = (ROOT / "ios/Runner.xcodeproj/project.pbxproj").read_text()
     ios_min = max(re.findall(r"IPHONEOS_DEPLOYMENT_TARGET = ([\d.]+);", project), key=version)
     watch_min = max(re.findall(r"WATCHOS_DEPLOYMENT_TARGET = ([\d.]+);", project), key=version)
@@ -263,6 +264,14 @@ def prepare(create=False, boot_timeout=900, pair_timeout=300):
         create_pair(data, ios_min, watch_min)
         data = inventory()
         phone, watch, pair_id = select_pair(data, ios_min, watch_min)
+    # Keep the selected devices even if activation, boot, or discovery fails.
+    result = destination if destination is not None else {}
+    result.update(pair_id=pair_id, pair_state=data["pairs"][pair_id].get("state"))
+    for key, device in (("iphone", phone), ("watch", watch)):
+        result[key] = {"name": device["name"], "udid": device["udid"],
+                       "model": device["deviceTypeIdentifier"].split(".")[-1],
+                       "os": device["runtime"]["version"], "state": device["state"]}
+    trace({"event": "pair_selected", **result})
     if "inactive" in data["pairs"][pair_id].get("state", ""):
         run(["xcrun", "simctl", "pair_activate", pair_id], "PAIR_ACTIVATION_FAILED", 60)
     for role, device in (("iPhone", phone), ("Apple Watch", watch)):
@@ -279,23 +288,19 @@ def prepare(create=False, boot_timeout=900, pair_timeout=300):
     states = {d["udid"]: d["state"] for devices in fresh["devices"].values() for d in devices}
     if any(states.get(d["udid"]) != "Booted" for d in (phone, watch)):
         raise DestinationError("PAIR_BOOT_FAILED: both devices must report Booted")
-    flutter = json.loads(run(["flutter", "devices", "--machine", "--device-timeout", "30"],
-                             "FLUTTER_DEVICE_DISCOVERY_FAILED", 90))
-    if not any(d["id"] == phone["udid"] for d in flutter):
-        raise DestinationError("FLUTTER_IPHONE_NOT_EXPOSED: booted iPhone is absent from flutter devices")
+    for key in ("iphone", "watch"):
+        result[key]["state"] = states[result[key]["udid"]]
+    result["pair_state"] = fresh["pairs"][pair_id].get("state")
+    wait_for_connection(result, pair_timeout)
+    # `flutter devices` scans unrelated device providers and can hang even
+    # after simctl boots successfully. The build uses the selected UDID
+    # directly; Xcode eligibility and real install/launch are the checks needed.
     for scheme, device in (("Runner", phone), ("HydrionWatch", watch)):
         destinations = run(["xcodebuild", "-workspace", "ios/Runner.xcworkspace", "-scheme", scheme,
                             "-showdestinations", "-destination-timeout", "30"], "XCODE_DESTINATION_REJECTED", 180)
         eligible = destinations.split("Ineligible destinations")[0]
         if device["udid"] not in eligible:
             raise DestinationError(f"XCODE_DESTINATION_REJECTED: {scheme}\n{destinations}")
-    result = {"pair_id": pair_id, "pair_state": fresh["pairs"][pair_id].get("state"),
-              "iphone": {}, "watch": {}}
-    for key, device in (("iphone", phone), ("watch", watch)):
-        result[key] = {"name": device["name"], "udid": device["udid"],
-                       "model": device["deviceTypeIdentifier"].split(".")[-1],
-                       "os": device["runtime"]["version"], "state": states[device["udid"]]}
-    wait_for_connection(result, pair_timeout)
     print(json.dumps(result, indent=2), flush=True)
     return result
 
@@ -333,7 +338,8 @@ def main():
         parser.error("--boot-timeout must be between 30 and 1200 seconds")
     if not 30 <= args.pair_timeout <= 600:
         parser.error("--pair-timeout must be between 30 and 600 seconds")
-    destination = None
+    destination = {}
+    exit_code = 0
     evidence = {"validation_status": "failed"}
     try:
         # Never leave stale successful destination evidence after a failed run.
@@ -342,7 +348,7 @@ def main():
         TRACE_PATH = args.output.with_suffix(".events.jsonl")
         TRACE_PATH.write_text("", encoding="utf-8")
         evidence["disk_before"] = disk_evidence()
-        destination = prepare(args.create_pair, args.boot_timeout, args.pair_timeout)
+        destination = prepare(args.create_pair, args.boot_timeout, args.pair_timeout, destination)
         evidence.update(destination)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         # Keep an explicitly incomplete snapshot if the outer CI deadline
@@ -358,7 +364,7 @@ def main():
         evidence["error"] = str(error)
         evidence["diagnostics"] = failure_diagnostics(destination)
         print(f"Apple simulator validation failed: {error}", file=sys.stderr)
-        return 1
+        exit_code = 1
     finally:
         if destination:
             evidence.update(destination)
@@ -368,10 +374,10 @@ def main():
             args.output.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
         except OSError as error:
             print(f"Could not write simulator evidence: {error}", file=sys.stderr)
-            return 1
+            exit_code = 1
         finally:
             TRACE_PATH = None
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":
