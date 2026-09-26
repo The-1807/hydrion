@@ -17,8 +17,12 @@ material. It is not authoritative once this document exists.
 **IMPLEMENTATION PREREQUISITE** are known, verified defects or gaps that
 must be resolved — starting at Gate 1 — before the connector surface that
 depends on them may ship. Items marked **DEFERRED / FUTURE** are
-intentionally excluded from V1. **Gate 1 has not started.** No application
-or runtime code has been modified to produce this document.
+intentionally excluded from V1. **Gate 1 is PARTIALLY IMPLEMENTED; NOT ACCEPTED.**
+Commit `50dc1dc579f4bed6c7e9e6e00aa70785f2077539` introduced partial safety
+changes; the integrated audit and root `HTD.md` govern remaining remediation.
+Gate 2+ has not started. **PAUSED UNTIL HYDRION FOUNDATION REMEDIATION COMPLETES.**
+Muse remains HTD's final stage. This status correction does not change the locked
+architecture or certify those partial implementations.
 
 Basis: `hydrion-connector-v1-proposal.pdf` (24 Sep 2026 review draft); the
 repository architecture audit; the verified target-derivation trace; the
@@ -455,24 +459,23 @@ of this connector without a separate, explicit architecture decision.
 
 ---
 
-## 4. Implementation prerequisites (Gate 1 — not started)
+## 4. Implementation prerequisites (Gate 1 — partial, not accepted)
 
-These are verified, current defects, unrelated to and unaffected by the
-Gate 0 topology decisions in §3. **None of these are fixed by this
+These prerequisites are unrelated to and unaffected by the Gate 0 topology
+decisions in §3. Partial implementation is recorded below; remaining defects
+and acceptance are governed by `HTD.md`. **None are fixed by this status-only
 documentation update.** No connector surface that depends on the affected
 behavior may ship until the corresponding item is resolved and covered by a
 regression test.
 
 ### 4.1 Decline-path correction — HIGH PRIORITY
 
-`UserSettingsRepository.keepPreviousWeatherGoal()`
-(`settings_repository.dart:940-954`) unconditionally sets
-`dailyGoalMl = baselineDailyGoalMl`, which is not kept in sync with the
-active target by any automated-write path. Both the "Keep standard goal"
-and "Done" buttons in `hydrion_shell.dart:229-243` route to this reset
-(`hydrion_shell.dart:256-259`), which can silently overwrite a
-clinician-derived target, a previously-applied personalized recommendation,
-or a reproductive/activity-adjusted target.
+**Status: implemented in part of Gate 1, not independently accepted as a gate.**
+`UserSettingsRepository.keepPreviousWeatherGoal()` now preserves the active
+`dailyGoalMl` and records workflow state (`settings_repository.dart:940+`).
+The original baseline-reset defect is historical; broader target authority
+and history defects remain open in HTD. Existing weather/location tests cover
+the corrected decline path; a focused pass is not whole-system acceptance.
 
 **Required invariant**: declining or dismissing a recommendation must not
 modify the current active target. Decline must become a true no-op on
@@ -481,11 +484,10 @@ modify the current active target. Decline must become a true no-op on
 
 ### 4.2 `mayAutoApply` clinician-target correction
 
-`personalized_hydration_engine.dart:163-165,195` blocks
-`fluidRestrictionWithoutTarget`, `unsure`, and any non-`none` temporary
-condition, but does **not** block `clinicianTarget` mode. A clinician-target
-user with no fluid-restriction flag and no temporary condition currently
-receives `mayAutoApply == true`.
+**Status: engine guard implemented, overall commit boundary not accepted.**
+`personalized_hydration_engine.dart:166-200` now includes `clinicianGoverned`
+in `mayAutoApply` eligibility. Current-policy enforcement at all committing
+callers remains open (HTD-ORCH-001); this engine correction alone cannot close it.
 
 **Required policy**: `mayAutoApply` must be `false` whenever
 `fluidSafetyMode == HydrionFluidSafetyMode.clinicianTarget`. Auto-apply
@@ -494,20 +496,21 @@ allow it; domain safety wins.
 
 ### 4.3 Target-ownership unification (implementation of §2.2–§2.5)
 
-`weather_goal_service.dart`'s auto-apply branch (`evaluate()`, lines
-858-871) must be changed to compute through
-`DailyHydrationRecommendationCoordinator` + `PersonalizedHydrationEngine`
-instead of `DeterministicWeatherGoalService`, gated on the corrected
-`mayAutoApply` (§4.2).
+**Status: partial, not accepted.** The shell now uses the full personalized
+engine and checks `mayAutoApply` on its automatic path. The weather preview
+calculator and alternate commit paths remain. The required single calculator
+and enforcing commit policy are still HTD-ARCH-001 and HTD-ORCH-001/002, not
+completed merely by the shell's improved ordering.
 
 ### 4.4 Local-storage security remediation (HYD-SEC-001)
 
-Sensitive body-metric, clinician, and reproductive values
+**Status: partial migration, not accepted.** Sensitive body-metric, clinician, and reproductive values
 (`HydrionBodyMetrics.weightKg`, `.heightCm`, `.reproductiveState`,
 `.pregnancyGestationalDays`, `.clinicianTargetMl`, `.fluidSafetyMode`) are
-currently persisted in **plaintext** via `BodyMetricsRepository` →
-`HydrionLocalStore` (`body_metrics_repository.dart:134-135`,
-`local_store.dart:11-35`) — distinct from, and not resolved by, the
+partially migrated to mobile secure storage by `BodyMetricsRepository`.
+Plaintext fallback and derived fingerprint copies remain, with stale-value and
+deletion failure semantics still open (HTD-DATA-007/008, HTD-SEC-003/001).
+These stores are distinct from, and not resolved by, the
 SQLCipher-backed `EncryptedHealthDataRepository`, which covers only imported
 wearable/HealthKit/Health-Connect fitness records.
 `REMEDIATION_LEDGER.md:8` records this (HYD-SEC-001) as still open.
@@ -628,8 +631,10 @@ both locked. The threat model produced during the topology decision package
 is recorded as part of the approved package; a living threat-model document
 may be split out separately during Gate 2/3 implementation.
 
-**Gate 1 — Pre-connector Hydrion safety remediation. NOT STARTED.**
-Requires, all verified and none yet fixed: §4.1–§4.5.
+**Gate 1 — Pre-connector Hydrion safety remediation. PARTIALLY IMPLEMENTED; NOT ACCEPTED.**
+See §4 and HTD for implemented portions, outstanding defects and independent
+acceptance requirements. General Hydrion remediation governs continuation;
+snapshot signing remains unstarted Gate 2/3 work, not Stage 0A implementation.
 
 **Gate 2 — Canonical connector-safe projections and primitives. NOT STARTED.**
 Units, dates/timezones, freshness fields (§3.11), public enums, the
