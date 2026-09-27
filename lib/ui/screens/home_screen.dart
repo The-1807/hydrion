@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     final profileAvatar = HydrionAvatarManifest.byId(settings.avatarId);
     final progress = (percent / 100).clamp(0.0, 1.0);
-    final bodyMetrics = context.watch<BodyMetricsRepository>().metrics;
+    final bodyMetrics = context.watch<BodyMetricsRepository>();
     final pacingStatus = const HydrationPacingEngine().calculate(
       wakeMinuteOfDay: bodyMetrics.wakeMinuteOfDay,
       sleepMinuteOfDay: bodyMetrics.sleepMinuteOfDay,

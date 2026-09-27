@@ -780,7 +780,8 @@ class HydrionServices {
         await DailyHydrationContextRepository.load(store);
     final personalizationStateRepository =
         await PersonalizationStateRepository.load(store);
-    if (settingsRepository.settings.sex != HydrionSex.female &&
+    if (bodyMetricsRepository.state.isKnown &&
+        settingsRepository.settings.sex != HydrionSex.female &&
         bodyMetricsRepository.metrics.reproductiveState !=
             HydrionReproductiveHydrationState.none) {
       await bodyMetricsRepository.update(

@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/domain/daily_hydration_context.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
@@ -12,6 +13,8 @@ import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   test('keeping current goal records review for date and fingerprint',
       () async {
     final settings = UserSettingsRepository.memory(const Locale('en'));

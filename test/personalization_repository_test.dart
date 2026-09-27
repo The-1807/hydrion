@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/domain/daily_hydration_context.dart';
 import 'package:hydrion/domain/challenge_recommendation.dart';
@@ -14,6 +15,8 @@ import 'package:hydrion/services/notifications.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   test('body metrics persist canonical units and schema', () async {
     final store = MemoryHydrionStore();
     final repository = await BodyMetricsRepository.load(store);
@@ -32,8 +35,8 @@ void main() {
     final json =
         jsonDecode(store.snapshot[BodyMetricsRepository.storageKey]!) as Map;
     expect(json['schemaVersion'], 3);
-    expect(json['weightKg'], 70);
-    expect(json['heightCm'], 175);
+    expect(json['weightKg'], isNull);
+    expect(json['heightCm'], isNull);
     expect(json['weightUpdatedAt'], '2026-07-28T00:00:00.000');
     expect(json['heightUpdatedAt'], '2026-07-28T00:00:00.000');
 
@@ -195,7 +198,8 @@ void main() {
         BodyMetricsRepository.storageKey: '{bad',
       });
       final malformedRepository = await BodyMetricsRepository.load(malformed);
-      expect(malformedRepository.metrics.weightKg, isNull);
+      expect(malformedRepository.state.status, BodyMetricsStatus.corrupt);
+      expect(malformedRepository.state.value, isNull);
       expect(malformedRepository.recoveryEvents, isNotEmpty);
 
       final invalid = MemoryHydrionStore({
@@ -204,8 +208,8 @@ void main() {
                 '"weightKg":"NaN","heightCm":20}',
       });
       final invalidRepository = await BodyMetricsRepository.load(invalid);
-      expect(invalidRepository.metrics.weightKg, isNull);
-      expect(invalidRepository.metrics.heightCm, isNull);
+      expect(invalidRepository.state.status, BodyMetricsStatus.corrupt);
+      expect(invalidRepository.state.value, isNull);
     },
   );
 

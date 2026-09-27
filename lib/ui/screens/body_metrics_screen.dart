@@ -63,9 +63,14 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _initializeFromKnownMetrics();
+  }
+
+  void _initializeFromKnownMetrics() {
     if (_initialized) return;
+    final metrics = context.read<BodyMetricsRepository>().state.value;
+    if (metrics == null) return;
     _initialized = true;
-    final metrics = context.read<BodyMetricsRepository>().metrics;
     final settings = context.read<UserSettingsRepository>().settings;
     final now = DateTime.now();
     final daily = context.read<DailyHydrationContextRepository>().forDate(
@@ -418,8 +423,10 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   Future<void> _refreshRecommendation() async {
     final recommendation = await context
         .read<DailyHydrationRecommendationCoordinator>()
-        .calculate(now: DateTime.now());
-    if (mounted) setState(() => _recommendation = recommendation);
+        .calculateResult(now: DateTime.now());
+    if (mounted) {
+      setState(() => _recommendation = recommendation.recommendation);
+    }
   }
 
   Future<void> _applyRecommendation() async {
@@ -477,7 +484,28 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final settings = context.watch<UserSettingsRepository>().settings;
-    final metrics = context.watch<BodyMetricsRepository>().metrics;
+    final repository = context.watch<BodyMetricsRepository>();
+    final metrics = repository.state.value;
+    if (metrics == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.bodyMetricsTitle)),
+        body: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(l10n.unavailable, key: const Key('body-metrics-unavailable')),
+          TextButton.icon(
+            icon: const Icon(Icons.refresh),
+            label: Text(l10n.retry),
+            onPressed: () async {
+              await repository.reload();
+              if (!mounted) return;
+              setState(() {
+                _initializeFromKnownMetrics();
+              });
+            },
+          ),
+        ])),
+      );
+    }
     final today = context.watch<DailyHydrationContextRepository>().forDate(
           hydrionLocalDateKey(DateTime.now()),
         );

@@ -3,6 +3,32 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+enum SensitiveBodyReadStatus {
+  found,
+  absent,
+  unavailable,
+  corrupt,
+  unsupported
+}
+
+final class SensitiveBodyRead {
+  final SensitiveBodyReadStatus status;
+  final Map<String, Object?>? fields;
+
+  const SensitiveBodyRead._(this.status, [this.fields]);
+  SensitiveBodyRead.found(Map<String, Object?> fields)
+      : this._(SensitiveBodyReadStatus.found, Map.unmodifiable(fields));
+  const SensitiveBodyRead.absent() : this._(SensitiveBodyReadStatus.absent);
+  const SensitiveBodyRead.unavailable()
+      : this._(SensitiveBodyReadStatus.unavailable);
+  const SensitiveBodyRead.corrupt() : this._(SensitiveBodyReadStatus.corrupt);
+  const SensitiveBodyRead.unsupported()
+      : this._(SensitiveBodyReadStatus.unsupported);
+
+  @override
+  String toString() => 'SensitiveBodyRead(${status.name})';
+}
+
 /// Secure storage for the subset of `HydrionBodyMetrics` fields that are
 /// high/medium-high sensitivity health, reproductive, or clinical data
 /// (HYD-SEC-001; see `HYD_SEC_001_STORAGE_DESIGN.md` Tier 1).
@@ -16,10 +42,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// `flutter_secure_storage` dependency rather than introducing a second
 /// encryption mechanism.
 abstract interface class SensitiveBodyMetricsStore {
-  /// Returns the stored field map, or null if nothing has been migrated or
-  /// written yet (including when secure storage is unsupported on this
-  /// platform).
-  Future<Map<String, Object?>?> read();
+  Future<SensitiveBodyRead> readResult();
 
   /// Overwrites the stored field map atomically as a single value.
   Future<void> write(Map<String, Object?> fields);
@@ -29,8 +52,8 @@ abstract interface class SensitiveBodyMetricsStore {
 
   /// False on platforms with no Keychain/Keystore-backed secure storage
   /// (matching `health_database_key_store.dart`'s own platform gate).
-  /// Callers must keep sensitive fields in the existing plaintext store as
-  /// a fail-safe fallback when this is false, never block on it.
+  /// Known plaintext state remains usable when false. A previously secured
+  /// record without a recoverable copy must still be reported unavailable.
   bool get isSupported;
 }
 
@@ -58,22 +81,23 @@ class PlatformSensitiveBodyMetricsStore implements SensitiveBodyMetricsStore {
           defaultTargetPlatform == TargetPlatform.iOS);
 
   @override
-  Future<Map<String, Object?>?> read() async {
-    if (!isSupported) return null;
+  Future<SensitiveBodyRead> readResult() async {
+    if (!isSupported) return const SensitiveBodyRead.unsupported();
     try {
       final raw = await _storage.read(
         key: _storageKey,
         aOptions: _androidOptions,
         iOptions: _iosOptions,
       );
-      if (raw == null) return null;
+      if (raw == null) return const SensitiveBodyRead.absent();
       final decoded = jsonDecode(raw);
-      return decoded is Map ? decoded.cast<String, Object?>() : null;
+      return decoded is Map<String, dynamic>
+          ? SensitiveBodyRead.found(decoded)
+          : const SensitiveBodyRead.corrupt();
+    } on FormatException {
+      return const SensitiveBodyRead.corrupt();
     } catch (_) {
-      // Corrupt or inaccessible secure storage must never crash the app or
-      // be mistaken for "no sensitive data exists" that would license
-      // deleting the plaintext fallback. Treat as unavailable this run.
-      return null;
+      return const SensitiveBodyRead.unavailable();
     }
   }
 
@@ -88,11 +112,7 @@ class PlatformSensitiveBodyMetricsStore implements SensitiveBodyMetricsStore {
         iOptions: _iosOptions,
       );
     } catch (_) {
-      // A failed write must never crash or corrupt caller state. Callers
-      // that require confirmation (BodyMetricsRepository) always verify by
-      // read-back before treating sensitive data as migrated, so a
-      // swallowed failure here safely degrades to "not yet migrated"
-      // rather than losing data.
+      throw StateError('secure_body_write_failed');
     }
   }
 
@@ -125,9 +145,17 @@ class MemorySensitiveBodyMetricsStore implements SensitiveBodyMetricsStore {
   @override
   bool get isSupported => supported;
 
-  @override
   Future<Map<String, Object?>?> read() async =>
       !supported || _value == null ? null : Map<String, Object?>.from(_value!);
+
+  @override
+  Future<SensitiveBodyRead> readResult() async {
+    if (!supported) return const SensitiveBodyRead.unsupported();
+    final fields = await read();
+    return fields == null
+        ? const SensitiveBodyRead.absent()
+        : SensitiveBodyRead.found(fields);
+  }
 
   @override
   Future<void> write(Map<String, Object?> fields) async {

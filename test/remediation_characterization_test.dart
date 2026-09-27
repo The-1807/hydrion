@@ -17,11 +17,9 @@ import 'support/architecture_test_support.dart';
 
 // Synthetic values only. These tests intentionally expose OPEN defects.
 void main() {
-  characterizationTest(
-    'HTD-DATA-007',
-    'a failed secure update is superseded by the old secure value on reload',
-    desiredInvariant: 'latest saved value survives restart or reports failure',
-    body: () async {
+  test(
+    'DATA-007 regression: newer accepted fallback survives restart',
+    () async {
       final store = MemoryHydrionStore();
       final secure = _ControlledSecureStore();
       final repository =
@@ -38,8 +36,8 @@ void main() {
           71);
       final restarted =
           await BodyMetricsRepository.load(store, secureStore: secure);
-      expect(restarted.metrics.weightKg, 70,
-          reason: 'OPEN defect evidence, not approved storage semantics');
+      expect(restarted.metrics.weightKg, 71,
+          reason: 'Newer accepted revision must outrank the old secure copy');
     },
   );
 

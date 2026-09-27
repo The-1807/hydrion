@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
 import 'package:hydrion/services/sensitive_body_metrics_store.dart';
@@ -13,6 +15,40 @@ import 'package:hydrion/storage/local_store.dart';
 /// idempotently, and without ever silently losing data — per
 /// `HYD_SEC_001_STORAGE_DESIGN.md` and the Gate 1 report.
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  tearDown(() => debugDefaultTargetPlatformOverride = null);
+  for (final sample in <String?, SensitiveBodyReadStatus>{
+    null: SensitiveBodyReadStatus.absent,
+    '{bad': SensitiveBodyReadStatus.corrupt,
+    '[]': SensitiveBodyReadStatus.corrupt,
+    '{"weightKg":70}': SensitiveBodyReadStatus.found,
+  }.entries) {
+    test('platform read distinguishes ${sample.key} as ${sample.value.name}',
+        () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      FlutterSecureStorage.setMockInitialValues({
+        if (sample.key != null)
+          'hydrion.body_metrics.sensitive.v1': sample.key!,
+      });
+      final result = await PlatformSensitiveBodyMetricsStore().readResult();
+      expect(result.status, sample.value);
+      expect(result.toString(), isNot(contains('70')));
+    });
+  }
+  test('unsupported platform is explicit, not absent', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    expect((await PlatformSensitiveBodyMetricsStore().readResult()).status,
+        SensitiveBodyReadStatus.unsupported);
+  });
+  test('platform read error is unavailable without exposing exception payload',
+      () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final result =
+        await PlatformSensitiveBodyMetricsStore(storage: _DeniedStorage())
+            .readResult();
+    expect(result.status, SensitiveBodyReadStatus.unavailable);
+    expect(result.toString(), isNot(contains('private')));
+  });
   const migrationMarkerKey = 'hydrion.body_metrics.secure_migration.v1';
 
   test('new install: sensitive fields go straight to secure storage', () async {
@@ -158,8 +194,9 @@ void main() {
       final json = jsonDecode(
         plaintext.snapshot[BodyMetricsRepository.storageKey]!,
       ) as Map;
-      expect(json['weightKg'], 70, reason: 'nothing may be stripped when '
-          'the secure copy could not be verified');
+      expect(json['weightKg'], 70,
+          reason: 'nothing may be stripped when '
+              'the secure copy could not be verified');
       expect(json['clinicianTargetMl'], 1900);
 
       // Subsequent saves must also keep falling back to full plaintext
@@ -179,8 +216,7 @@ void main() {
   );
 
   test(
-    'corrupted legacy data in a sensitive field is skipped, not crashed on '
-    'or invented',
+    'corrupted legacy sensitive data is preserved and blocks default writes',
     () async {
       final plaintext = MemoryHydrionStore({
         BodyMetricsRepository.storageKey:
@@ -193,9 +229,12 @@ void main() {
         plaintext,
         secureStore: secure,
       );
-      expect(repository.metrics.weightKg, isNull);
-      expect(repository.metrics.heightCm, 175);
-      expect(repository.metrics.clinicianTargetMl, isNull);
+      final before = Map.of(plaintext.snapshot);
+      expect(repository.state.status, BodyMetricsStatus.corrupt);
+      expect(repository.state.value, isNull);
+      expect(await repository.update(femaleProfile: false), isFalse);
+      expect(plaintext.snapshot, before);
+      expect(await secure.read(), isNull);
     },
   );
 
@@ -260,4 +299,18 @@ void main() {
       expect(json['weightKg'], isNull);
     },
   );
+}
+
+class _DeniedStorage extends FlutterSecureStorage {
+  @override
+  Future<String?> read(
+      {required String key,
+      AppleOptions? iOptions,
+      AndroidOptions? aOptions,
+      LinuxOptions? lOptions,
+      WebOptions? webOptions,
+      AppleOptions? mOptions,
+      WindowsOptions? wOptions}) async {
+    throw StateError('private synthetic payload');
+  }
 }

@@ -161,11 +161,13 @@ class _HydrionShellState extends State<HydrionShell>
     );
     final personalizedCoordinator =
         context.read<DailyHydrationRecommendationCoordinator>();
-    final personalized = await personalizedCoordinator.calculate(
+    final personalizedResult = await personalizedCoordinator.calculateResult(
       now: DateTime.now(),
       weather: forecast,
       locationPermissionGranted: true,
     );
+    final personalized = personalizedResult.recommendation;
+    if (personalized == null) return;
     if (!mounted) return;
 
     // Auto-apply is only allowed when BOTH the user's own preference and

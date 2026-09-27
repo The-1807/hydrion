@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -6,6 +7,41 @@ import '../domain/body_metrics.dart';
 import '../services/sensitive_body_metrics_store.dart';
 import '../storage/local_store.dart';
 import 'storage_recovery.dart';
+
+enum BodyMetricsStatus {
+  available,
+  absent,
+  pendingSecure,
+  unsupported,
+  unavailable,
+  corrupt,
+  ambiguous,
+}
+
+enum BodyMetricsWriteStatus {
+  notAttempted,
+  verified,
+  writeFailed,
+  verificationFailed,
+  localWriteFailed,
+}
+
+final class BodyMetricsState {
+  final BodyMetricsStatus status;
+  final HydrionBodyMetrics? value;
+  final int revision;
+  const BodyMetricsState._(this.status, this.value, this.revision);
+  bool get isKnown => value != null;
+  @override
+  String toString() => 'BodyMetricsState(${status.name})';
+}
+
+final class BodyMetricsUnavailable implements Exception {
+  final BodyMetricsStatus status;
+  const BodyMetricsUnavailable(this.status);
+  @override
+  String toString() => 'BodyMetricsUnavailable(${status.name})';
+}
 
 /// Fields covered by the HYD-SEC-001 secure-storage migration (Tier 1 of
 /// `HYD_SEC_001_STORAGE_DESIGN.md`), scoped to those that feed
@@ -17,8 +53,7 @@ import 'storage_recovery.dart';
 /// storage shape (a file, not a scalar) and is also out of scope here.
 class BodyMetricsRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.body_metrics.v1';
-  static const _migrationMarkerKey =
-      'hydrion.body_metrics.secure_migration.v1';
+  static const _migrationMarkerKey = 'hydrion.body_metrics.secure_migration.v1';
   static const _migrationCompleted = 'completed';
   static const _category = 'body_metrics';
 
@@ -26,6 +61,12 @@ class BodyMetricsRepository extends ChangeNotifier {
   final SensitiveBodyMetricsStore _secureStore;
   HydrionBodyMetrics _metrics;
   List<StorageRecoveryEvent> _recoveryEvents;
+  int _revision = 0;
+  BodyMetricsStatus _status = BodyMetricsStatus.available;
+  BodyMetricsWriteStatus lastWriteStatus = BodyMetricsWriteStatus.notAttempted;
+  Future<void> _tail = Future.value();
+  static const _authorityKey = '_bodyAuthority';
+  static const _secureRevisionKey = '_bodyRevision';
 
   BodyMetricsRepository._(
     this._store,
@@ -51,20 +92,46 @@ class BodyMetricsRepository extends ChangeNotifier {
         secureStore ?? PlatformSensitiveBodyMetricsStore();
     final raw = await store.readString(storageKey);
     final decoded = _decode(raw);
-    final merged = await _mergeWithSecureStore(
-      store: store,
-      secureStore: resolvedSecureStore,
-      plaintextMetrics: decoded.metrics,
-    );
-    return BodyMetricsRepository._(
+    final repository = BodyMetricsRepository._(
       store,
       resolvedSecureStore,
-      merged,
+      decoded.metrics,
       decoded.recoveryEvents,
     );
+    await repository._restore(raw);
+    return repository;
   }
 
-  HydrionBodyMetrics get metrics => _metrics;
+  BodyMetricsState get state => BodyMetricsState._(
+      _status,
+      switch (_status) {
+        BodyMetricsStatus.unavailable ||
+        BodyMetricsStatus.corrupt ||
+        BodyMetricsStatus.ambiguous =>
+          null,
+        _ => _metrics,
+      },
+      _revision);
+  HydrionBodyMetrics get metrics =>
+      state.value ?? (throw BodyMetricsUnavailable(_status));
+  int? get wakeMinuteOfDay => _metrics.wakeMinuteOfDay;
+  int? get sleepMinuteOfDay => _metrics.sleepMinuteOfDay;
+
+  Future<T> _serial<T>(Future<T> Function() operation) {
+    final result = _tail.then((_) => operation());
+    _tail = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return result;
+  }
+
+  Future<void> reload() => _serial(() async {
+        final loaded = await load(_store, secureStore: _secureStore);
+        _metrics = loaded._metrics;
+        _status = loaded._status;
+        _revision = loaded._revision;
+        _recoveryEvents = loaded._recoveryEvents;
+        lastWriteStatus = loaded.lastWriteStatus;
+        notifyListeners();
+      });
   List<StorageRecoveryEvent> get recoveryEvents =>
       List.unmodifiable(_recoveryEvents);
 
@@ -72,7 +139,15 @@ class BodyMetricsRepository extends ChangeNotifier {
     HydrionBodyMetrics value, {
     required bool femaleProfile,
     DateTime? now,
+  }) =>
+      _serial(() => _save(value, femaleProfile: femaleProfile, now: now));
+
+  Future<bool> _save(
+    HydrionBodyMetrics value, {
+    required bool femaleProfile,
+    DateTime? now,
   }) async {
+    if (!state.isKnown) return false;
     if (value.weightKg != null &&
         !HydrionBodyMetricsPolicy.validWeight(value.weightKg)) {
       return false;
@@ -91,7 +166,7 @@ class BodyMetricsRepository extends ChangeNotifier {
     final sanitized = value.sanitized(femaleProfile: femaleProfile);
     final weightChanged = sanitized.weightKg != _metrics.weightKg;
     final heightChanged = sanitized.heightCm != _metrics.heightCm;
-    _metrics = sanitized.copyWith(
+    final next = sanitized.copyWith(
       updatedAt: savedAt,
       weightUpdatedAt: weightChanged && sanitized.weightKg != null
           ? savedAt
@@ -102,9 +177,9 @@ class BodyMetricsRepository extends ChangeNotifier {
           : sanitized.heightUpdatedAt,
       clearHeightUpdatedAt: sanitized.heightCm == null,
     );
-    await _persist();
+    final accepted = await _persist(next);
     notifyListeners();
-    return true;
+    return accepted;
   }
 
   Future<bool> update({
@@ -130,36 +205,38 @@ class BodyMetricsRepository extends ChangeNotifier {
     required bool femaleProfile,
     DateTime? now,
   }) {
-    return save(
-      _metrics.copyWith(
-        personalizationEnabled: personalizationEnabled,
-        weightKg: weightKg,
-        clearWeight: clearWeight,
-        heightCm: heightCm,
-        clearHeight: clearHeight,
-        preferredWeightUnit: preferredWeightUnit,
-        preferredHeightUnit: preferredHeightUnit,
-        reproductiveState: reproductiveState,
-        pregnancyGestationalDays: pregnancyGestationalDays,
-        clearPregnancyDuration: clearPregnancyDuration,
-        preferredPregnancyDurationUnit: preferredPregnancyDurationUnit,
-        fluidSafetyMode: fluidSafetyMode,
-        clinicianTargetMl: clinicianTargetMl,
-        clearClinicianTarget: clearClinicianTarget,
-        allowAdjustmentsAboveClinicianTarget:
-            allowAdjustmentsAboveClinicianTarget,
-        wakeMinuteOfDay: wakeMinuteOfDay,
-        clearWakeTime: clearWakeTime,
-        sleepMinuteOfDay: sleepMinuteOfDay,
-        clearSleepTime: clearSleepTime,
-      ),
-      femaleProfile: femaleProfile,
-      now: now,
-    );
+    return _serial(() => _save(
+          _metrics.copyWith(
+            personalizationEnabled: personalizationEnabled,
+            weightKg: weightKg,
+            clearWeight: clearWeight,
+            heightCm: heightCm,
+            clearHeight: clearHeight,
+            preferredWeightUnit: preferredWeightUnit,
+            preferredHeightUnit: preferredHeightUnit,
+            reproductiveState: reproductiveState,
+            pregnancyGestationalDays: pregnancyGestationalDays,
+            clearPregnancyDuration: clearPregnancyDuration,
+            preferredPregnancyDurationUnit: preferredPregnancyDurationUnit,
+            fluidSafetyMode: fluidSafetyMode,
+            clinicianTargetMl: clinicianTargetMl,
+            clearClinicianTarget: clearClinicianTarget,
+            allowAdjustmentsAboveClinicianTarget:
+                allowAdjustmentsAboveClinicianTarget,
+            wakeMinuteOfDay: wakeMinuteOfDay,
+            clearWakeTime: clearWakeTime,
+            sleepMinuteOfDay: sleepMinuteOfDay,
+            clearSleepTime: clearSleepTime,
+          ),
+          femaleProfile: femaleProfile,
+          now: now,
+        ));
   }
 
   Future<void> clear() async {
     _metrics = const HydrionBodyMetrics();
+    _status = BodyMetricsStatus.absent;
+    _revision = 0;
     _recoveryEvents = const [];
     await _store.remove(storageKey);
     await _store.remove(_migrationMarkerKey);
@@ -167,107 +244,242 @@ class BodyMetricsRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Writes the current metrics. Never strips the sensitive fields from
-  /// the plaintext blob unless the secure copy is confirmed by read-back —
-  /// an unsupported platform, a transient Keystore/Keychain failure, or
-  /// any other write error all safely fall back to the pre-migration
-  /// plaintext-only write rather than risking data loss.
-  Future<void> _persist() async {
-    if (_secureStore.isSupported) {
-      final fields = _secureFields(_metrics);
-      final verified = await _writeAndVerify(fields);
-      if (verified) {
-        await _store.writeString(
-          storageKey,
-          jsonEncode(_plaintextJson(_metrics)),
-        );
-        await _store.writeString(_migrationMarkerKey, _migrationCompleted);
-        return;
-      }
-    }
-    await _store.writeString(storageKey, jsonEncode(_metrics.toJson()));
-  }
-
-  Future<bool> _writeAndVerify(Map<String, Object?> fields) async {
+  Future<bool> _writeRecord(HydrionBodyMetrics value, int revision,
+      {required bool pending}) async {
+    final record = pending ? value.toJson() : _plaintextJson(value);
+    record[_authorityKey] = {
+      'version': 1,
+      'revision': revision,
+      'pending': pending
+    };
+    final encoded = jsonEncode(record);
     try {
-      await _secureStore.write(fields);
-      final verified = await _secureStore.read();
-      return verified != null && _fieldsEqual(verified, fields);
+      await _store.writeString(storageKey, encoded);
+      if (await _store.readString(storageKey) != encoded) {
+        lastWriteStatus = BodyMetricsWriteStatus.localWriteFailed;
+        return false;
+      }
+      return true;
     } catch (_) {
+      lastWriteStatus = BodyMetricsWriteStatus.localWriteFailed;
       return false;
     }
   }
 
-  /// Merges the plaintext-decoded metrics with secure storage, performing
-  /// the HYD-SEC-001 migration when needed.
-  ///
-  /// Idempotent and safe to run on every app start:
-  /// - If secure storage already holds a value, it is authoritative for the
-  ///   Tier-1 fields; if the plaintext blob still also carries those field
-  ///   values (i.e. this is the first load after a previous run wrote the
-  ///   secure copy but had not yet stripped plaintext), the plaintext
-  ///   original is stripped now, on this separate, later app start — never
-  ///   on the same run that first wrote the secure copy.
-  /// - If secure storage holds nothing yet, the Tier-1 values already
-  ///   present in the plaintext blob are copied to secure storage and
-  ///   verified by read-back. Only once verified does the plaintext strip
-  ///   happen (on the next load, per above) — a failed or unverifiable
-  ///   write leaves the plaintext original untouched and is retried on the
-  ///   next load.
-  /// - On unsupported platforms, or when nothing has ever been saved, this
-  ///   is a no-op and the plaintext blob remains the sole source, exactly
-  ///   as before this migration existed.
-  static Future<HydrionBodyMetrics> _mergeWithSecureStore({
-    required HydrionLocalStore store,
-    required SensitiveBodyMetricsStore secureStore,
-    required HydrionBodyMetrics plaintextMetrics,
-  }) async {
-    if (!secureStore.isSupported) {
-      return plaintextMetrics;
+  Future<SensitiveBodyRead> _readSecure() async {
+    try {
+      return await _secureStore.readResult();
+    } catch (_) {
+      return const SensitiveBodyRead.unavailable();
     }
+  }
 
-    final existingSecure = await secureStore.read();
-    if (existingSecure != null) {
-      final merged = _applySecureFields(plaintextMetrics, existingSecure);
-      // Verified secure copy already exists (marker may be stale after an
-      // app reinstall/restore) — strip any lingering plaintext Tier-1
-      // values now, on this later app start.
-      if (_hasAnySensitiveField(plaintextMetrics)) {
-        await store.writeString(
-          BodyMetricsRepository.storageKey,
-          jsonEncode(_plaintextJson(plaintextMetrics)),
-        );
+  Future<bool> _writeAndVerify(HydrionBodyMetrics value, int revision) async {
+    if (!_secureStore.isSupported) return false;
+    final fields = {..._secureFields(value), _secureRevisionKey: revision};
+    try {
+      await _secureStore.write(fields);
+    } catch (_) {
+      lastWriteStatus = BodyMetricsWriteStatus.writeFailed;
+      return false;
+    }
+    final result = await _readSecure();
+    if (result.status != SensitiveBodyReadStatus.found ||
+        !_fieldsEqual(result.fields!, fields)) {
+      lastWriteStatus = BodyMetricsWriteStatus.verificationFailed;
+      return false;
+    }
+    lastWriteStatus = BodyMetricsWriteStatus.verified;
+    return true;
+  }
+
+  Future<void> _markMigrated() async {
+    // Compatibility hint only; authority is in the same record as the data.
+    try {
+      await _store.writeString(_migrationMarkerKey, _migrationCompleted);
+    } catch (_) {
+      // Losing this legacy hint cannot change revision ordering.
+    }
+  }
+
+  Future<bool> _persist(HydrionBodyMetrics next) async {
+    final revision = _revision + 1;
+    final verified = await _writeAndVerify(next, revision);
+    if (!await _writeRecord(next, revision, pending: !verified)) {
+      // A secure write may already exist. Do not reuse its revision or expose
+      // uncertain old memory as authoritative; reload reconciles both stores.
+      _status = BodyMetricsStatus.unavailable;
+      return false;
+    }
+    _revision = revision;
+    _metrics = next;
+    _status = verified
+        ? BodyMetricsStatus.available
+        : _secureStore.isSupported
+            ? BodyMetricsStatus.pendingSecure
+            : BodyMetricsStatus.unsupported;
+    if (verified) await _markMigrated();
+    return true;
+  }
+
+  Future<void> _restore(String? raw) async {
+    if (_recoveryEvents.isNotEmpty) {
+      _status = BodyMetricsStatus.corrupt;
+      return;
+    }
+    Map? local;
+    try {
+      final decoded = raw == null ? null : jsonDecode(raw);
+      if (decoded is Map) local = decoded;
+    } on FormatException {
+      // Existing malformed-record diagnostics are retained by _decode.
+    }
+    if (local != null &&
+        !_validSecureFields({
+          ..._secureFields(const HydrionBodyMetrics()),
+          ...Map<String, Object?>.from(local),
+        })) {
+      _status = BodyMetricsStatus.corrupt;
+      return;
+    }
+    final authority = local?[_authorityKey];
+    var pending = false;
+    if (authority != null) {
+      if (authority is! Map ||
+          authority['version'] != 1 ||
+          authority['revision'] is! int ||
+          authority['revision'] < 0 ||
+          authority['pending'] is! bool) {
+        _status = BodyMetricsStatus.corrupt;
+        return;
       }
-      await store.writeString(
-        BodyMetricsRepository._migrationMarkerKey,
-        BodyMetricsRepository._migrationCompleted,
-      );
-      return merged;
+      _revision = authority['revision'] as int;
+      pending = authority['pending'] as bool;
+      if (pending && !_validSecureFields(Map<String, Object?>.from(local!))) {
+        _status = BodyMetricsStatus.corrupt;
+        return;
+      }
+    }
+    final migrated =
+        await _store.readString(_migrationMarkerKey) == _migrationCompleted;
+    var secure = await _readSecure();
+    if (secure.status == SensitiveBodyReadStatus.found &&
+        !_validSecureFields(secure.fields!)) {
+      secure = const SensitiveBodyRead.corrupt();
+    }
+    if (secure.status == SensitiveBodyReadStatus.unsupported) {
+      _status = (authority != null && !pending) ||
+              (migrated && !_hasAnySensitiveField(_metrics) && !pending)
+          ? BodyMetricsStatus.unavailable
+          : BodyMetricsStatus.unsupported;
+      return;
+    }
+    if (secure.status == SensitiveBodyReadStatus.unavailable ||
+        secure.status == SensitiveBodyReadStatus.corrupt) {
+      _status = pending
+          ? BodyMetricsStatus.pendingSecure
+          : secure.status == SensitiveBodyReadStatus.corrupt
+              ? BodyMetricsStatus.corrupt
+              : BodyMetricsStatus.unavailable;
+      return;
+    }
+    if (secure.status == SensitiveBodyReadStatus.absent) {
+      if (authority != null && !pending ||
+          migrated && !pending && !_hasAnySensitiveField(_metrics)) {
+        _status = BodyMetricsStatus.unavailable;
+        return;
+      }
+      if (!pending && !_hasAnySensitiveField(_metrics)) {
+        _status = BodyMetricsStatus.absent;
+        return;
+      }
+      // Legacy plaintext starts revision 1 only after confirmed secure absence.
+      // Retain the original for this migration run even after verification.
+      final legacy = authority == null;
+      if (legacy) {
+        _revision = 1;
+        if (!await _writeRecord(_metrics, _revision, pending: true)) {
+          _status = BodyMetricsStatus.unavailable;
+          return;
+        }
+      }
+      await _recoverPending(keepPlaintext: legacy);
+      return;
     }
 
-    if (!_hasAnySensitiveField(plaintextMetrics)) {
-      // Nothing sensitive has ever been saved — nothing to migrate.
-      return plaintextMetrics;
+    final fields = secure.fields!;
+    final secureRevision = fields[_secureRevisionKey] as int? ?? 0;
+    final secureMetrics = _applySecureFields(_metrics, fields);
+    final equal =
+        _fieldsEqual(_secureFields(_metrics), _secureFields(secureMetrics));
+    if (authority == null &&
+        local != null &&
+        _secureFields(const HydrionBodyMetrics()).keys.any(local.containsKey) &&
+        !equal) {
+      _status = BodyMetricsStatus.ambiguous;
+      return;
     }
+    if (pending && _revision > secureRevision) {
+      await _recoverPending();
+      return;
+    }
+    if (pending && _revision == secureRevision && !equal) {
+      _status = BodyMetricsStatus.ambiguous;
+      return;
+    }
+    if (!pending && authority != null && secureRevision < _revision) {
+      _status = BodyMetricsStatus.unavailable;
+      return;
+    }
+    _metrics = secureMetrics;
+    _revision = secureRevision;
+    _status = BodyMetricsStatus.available;
+    // Strip only after a verified matching/newer secure revision, never simply
+    // because a secure entry exists.
+    if (!await _writeRecord(_metrics, _revision, pending: false)) {
+      _status = BodyMetricsStatus.unavailable;
+      return;
+    }
+    await _markMigrated();
+  }
 
-    // First migration attempt for this install: write, then verify by
-    // read-back before trusting the secure copy. Do NOT strip the
-    // plaintext original on this same run even if verification succeeds —
-    // that happens on the next load (see the branch above), so an
-    // interruption between this write and the next app start never loses
-    // data.
-    final candidate = _secureFields(plaintextMetrics);
-    await secureStore.write(candidate);
-    final verified = await secureStore.read();
-    if (verified != null && _fieldsEqual(verified, candidate)) {
-      await store.writeString(
-        BodyMetricsRepository._migrationMarkerKey,
-        BodyMetricsRepository._migrationCompleted,
-      );
+  Future<void> _recoverPending({bool keepPlaintext = false}) async {
+    _status = BodyMetricsStatus.pendingSecure;
+    if (!await _writeAndVerify(_metrics, _revision)) return;
+    if (!keepPlaintext &&
+        !await _writeRecord(_metrics, _revision, pending: false)) {
+      return;
     }
-    // Whether or not verification succeeded, the plaintext original (still
-    // fully intact) remains the safe fallback for this run.
-    return plaintextMetrics;
+    if (!keepPlaintext) _status = BodyMetricsStatus.available;
+    await _markMigrated();
+  }
+
+  static bool _validSecureFields(Map<String, Object?> fields) {
+    if (!_secureFields(const HydrionBodyMetrics())
+        .keys
+        .every(fields.containsKey)) {
+      return false;
+    }
+    final revision = fields[_secureRevisionKey];
+    if (revision != null && (revision is! int || revision < 0)) return false;
+    final weight = fields['weightKg'];
+    final height = fields['heightCm'];
+    final days = fields['pregnancyGestationalDays'];
+    final target = fields['clinicianTargetMl'];
+    return (weight == null ||
+            weight is num &&
+                HydrionBodyMetricsPolicy.validWeight(weight.toDouble())) &&
+        (height == null ||
+            height is num &&
+                HydrionBodyMetricsPolicy.validHeight(height.toDouble())) &&
+        (days == null ||
+            days is int && HydrionBodyMetricsPolicy.validPregnancyDays(days)) &&
+        (target == null || target is int && target >= 500 && target <= 5000) &&
+        HydrionReproductiveHydrationState.values
+            .any((v) => v.name == fields['reproductiveState']) &&
+        HydrionFluidSafetyMode.values
+            .any((v) => v.name == fields['fluidSafetyMode']) &&
+        fields['allowAdjustmentsAboveClinicianTarget'] is bool;
   }
 
   static bool _hasAnySensitiveField(HydrionBodyMetrics metrics) =>
@@ -326,10 +538,10 @@ class BodyMetricsRepository extends ChangeNotifier {
         weight is num && HydrionBodyMetricsPolicy.validWeight(weight.toDouble())
             ? weight.toDouble()
             : null;
-    final safeHeight = height is num &&
-            HydrionBodyMetricsPolicy.validHeight(height.toDouble())
-        ? height.toDouble()
-        : null;
+    final safeHeight =
+        height is num && HydrionBodyMetricsPolicy.validHeight(height.toDouble())
+            ? height.toDouble()
+            : null;
     final safePregnancyDays = pregnancyDays is num &&
             HydrionBodyMetricsPolicy.validPregnancyDays(pregnancyDays.toInt())
         ? pregnancyDays.toInt()
