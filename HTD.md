@@ -821,8 +821,9 @@ After 0A acceptance, **0B, 1, 2 and 4 may proceed independently**, subject to se
 ### Remediation governance
 
 Current implementation state: **43 findings remain OPEN**; HTD-DOC-001,
-HTD-TEST-002 and HTD-OBS-001 are **IMPLEMENTED_PENDING_ACCEPTANCE** for the
-Stage 0A foundation scope. No finding is ACCEPTED. Acceptance of the audit or
+HTD-TEST-002 and HTD-OBS-001 are **ACCEPTED** for the
+Stage 0A foundation scope, following the owner-reported independent approval
+recorded below. No other finding is accepted. Acceptance of the audit or
 a local implementation commit does not close a remediation stage. Sections
 1-12 retain the historical audited evidence; the status record below governs
 subsequent implementation progress without rewriting that evidence.
@@ -845,8 +846,9 @@ This plan revision preserves audited runtime HEAD `ab984bf0b1ea2a5bf4c74c246fd91
 
 ### Stage 0A - Remediation control plane
 - **Findings:** HTD-DOC-001, HTD-TEST-002, HTD-OBS-001.
-- **STATE:** IMPLEMENTED_PENDING_ACCEPTANCE (2026-09-26); independent reviewer and acceptance evidence: NONE. Stages 1/2/4 remain gated on independent 0A acceptance and separate authorization.
-- **IMPLEMENTATION:** `21eebe8543fb214e8c014562aacfcc1b8211726e`, based on checkpoint `9ae695091711df47991417cee84ea5732601c90a`. Scope: status correction, test/diagnostic foundations and acceptance discipline only; no defect remediation outside 0A.
+- **STATE:** ACCEPTED (administrative closure 2026-09-27). The existing Stage 0A prerequisite for Stages 0B/1/2/4 is satisfied; each still requires separate authorization and its own entry criteria. No subsequent stage is started or completed by this closure.
+- **IMPLEMENTATION COMMITS:** `21eebe8543fb214e8c014562aacfcc1b8211726e` (foundation), `f3827e74fda2b0cd55961d235e0c6338b7196981` (status/evidence), `4845f623cbf52357f6a218c532b5a27f09a35e99` (scanner correction), based on checkpoint `9ae695091711df47991417cee84ea5732601c90a`. Scope: status correction, test/diagnostic foundations and acceptance discipline only; no defect remediation outside 0A.
+- **INDEPENDENT ACCEPTANCE:** `STAGE 0A ACCEPTANCE: APPROVED`; reviewed SHA `4845f623cbf52357f6a218c532b5a27f09a35e99`. Acceptance reference: owner's 2026-09-27 instruction, "Administratively close Hydrion Stage 0A", reporting completed independent acceptance. Reviewer identity and a separate report URL were not supplied. This entry records that owner-supplied verdict, not implementer self-approval.
 - **OBJECTIVE:** Establish canonical architecture status, invariant/characterization framework, structured non-sensitive diagnostic/error taxonomy, truthful CI evidence handling and independent remediation validation discipline.
 - **BLOCKS:** architecture implementation stages until the minimum controls and relevant characterization harness are accepted.
 - **BLOCKED BY:** none.
@@ -857,21 +859,24 @@ This plan revision preserves audited runtime HEAD `ab984bf0b1ea2a5bf4c74c246fd91
 - **VALIDATION REQUIRED:** focused harness/diagnostic-redaction/boundary tests and document/evidence reconciliation; record known failed or unavailable validation separately. Independent review must verify the harness can detect the intended invariant violations, not just that it executes.
 
 **Implementation evidence:** [commands, results and acceptance format](docs/architecture/REMEDIATION_ACCEPTANCE.md#stage-0a-implementation-receipt).
-24 focused architecture/control/diagnostic tests and 11 existing secure-store/key
-tests passed; analyzer, formatting of the six changed Dart files, secret scan and
-Git whitespace checks passed. No full-suite/build/device/hosted run was attempted.
+Acceptance validation against the reviewed SHA: **49 tests passed** (38 focused
+architecture/control/diagnostic/characterization tests and 11 secure-store/key
+tests); `flutter analyze --no-pub`, scoped Dart formatting, secret scan and
+whitespace checks passed. The full Flutter suite, builds and physical-device
+validation were **NOT RUN**; those remain separate Stage 0B/later evidence.
+No new hosted validation is claimed.
 Locked connector sections 2/3 were verified unchanged. Findings and stage
 ownership remain 46/12 with no duplicate assignment or dependency cycle.
 
 | Finding | Implementation state | Delivered foundation / remaining boundary |
 |---|---|---|
-| HTD-DOC-001 | IMPLEMENTED_PENDING_ACCEPTANCE | Gate 1 partial/not-accepted status corrected; Gate 0 locked, Gate 2+ unstarted, Muse final/paused |
-| HTD-TEST-002 | IMPLEMENTED_PENDING_ACCEPTANCE | Existing AI guards retained; labelled characterization/invariant helper with negative controls; domain-to-UI guard, four synthetic defect characterizations, explicit unsupported-result invariant and plan/status checks |
-| HTD-OBS-001 | IMPLEMENTED_PENDING_ACCEPTANCE | Closed-vocabulary local diagnostic/error interpretation contract with injected observation clock and generated correlation IDs; no free-text payload, telemetry or production caller rewrites |
+| HTD-DOC-001 | ACCEPTED | Gate 1 partial/not-accepted status corrected; Gate 0 locked, Gate 2+ unstarted, Muse final/paused |
+| HTD-TEST-002 | ACCEPTED | Existing AI guards retained; labelled characterization/invariant helper; parser-based domain-to-UI guard with source-to-assertion negative controls, four synthetic defect characterizations, explicit unsupported-result invariant and plan/status checks |
+| HTD-OBS-001 | ACCEPTED | Closed-vocabulary local diagnostic/error interpretation contract with injected observation clock and generated correlation IDs; no free-text payload, telemetry or production caller rewrites |
 
-**Limits / acceptance work:** no implementation-side blocker observed in this
-foundation scope. Independent read-only acceptance is still required; the
-implementer has not approved it. Lexical guards are not complete call graphs;
+**Limits / remaining work:** acceptance is limited to the Stage 0A foundation
+scope under the owner-reported independent verdict above. Dependency guards are
+not complete call graphs;
 synthetic storage is not native failure certification. Diagnostic adoption and
 domain-specific outcome repairs remain with later owning stages. Known format,
 full-suite hang, literal-audit and CI-summary failures remain in section 12 and
