@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,6 +66,37 @@ void main() {
     await recovered.reload();
     expect(recovered.metrics.weightKg, 71);
     expect(local.snapshot, snapshot);
+  });
+
+  test(
+      'calculation rechecks availability after paused recommendation persistence',
+      () async {
+    final (_, secure, repo) = await fixture();
+    await repo.update(
+        fluidSafetyMode: HydrionFluidSafetyMode.none,
+        clearClinicianTarget: true,
+        femaleProfile: false);
+    final settings = UserSettingsRepository.memory(const Locale('en'));
+    final local = _PausedRecommendationStore();
+    final state = await PersonalizationStateRepository.load(local);
+    final coordinator = DailyHydrationRecommendationCoordinator(
+      settingsRepository: settings,
+      bodyMetricsRepository: repo,
+      dailyContextRepository: DailyHydrationContextRepository.memory(),
+      stateRepository: state,
+    );
+    final goal = settings.settings.dailyGoalMl;
+    final calculation = coordinator.calculateResult(now: now);
+    await local.entered.future;
+    expect(state.latestRecommendation!.mayAutoApply, isTrue);
+    secure.readUnavailable = true;
+    await repo.reload();
+    local.resume.complete();
+    final result = await calculation;
+    expect(result.bodyStatus, BodyMetricsStatus.unavailable);
+    expect(result.recommendation, isNull);
+    expect(result.mayAutoApply, isFalse);
+    expect(settings.settings.dailyGoalMl, goal);
   });
 
   for (final field in [
@@ -424,6 +456,17 @@ class _FailingLocalStore extends MemoryHydrionStore {
   @override
   Future<void> writeString(String key, String value) async {
     if (failWrites) throw StateError('synthetic local write failure');
+    await super.writeString(key, value);
+  }
+}
+
+class _PausedRecommendationStore extends MemoryHydrionStore {
+  final entered = Completer<void>();
+  final resume = Completer<void>();
+  @override
+  Future<void> writeString(String key, String value) async {
+    entered.complete();
+    await resume.future;
     await super.writeString(key, value);
   }
 }

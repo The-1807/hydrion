@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../repositories/settings_repository.dart';
+import '../../repositories/body_metrics_repository.dart';
 import '../../repositories/app_locale_repository.dart';
 import '../../domain/daily_hydration_context.dart';
 import '../../l10n/app_localizations.dart';
@@ -180,6 +181,7 @@ class _HydrionShellState extends State<HydrionShell>
     if (settings.weatherGoalAutoApplyEnabled &&
         !settings.weatherGoalDailyConfirmationEnabled &&
         personalized.mayAutoApply) {
+      if (!context.read<BodyMetricsRepository>().state.isKnown) return;
       await context.read<UserSettingsRepository>().applyWeatherGoal(
             goalMl: personalized.roundedRecommendedGoalMl,
             decidedAt: DateTime.now(),
@@ -269,6 +271,7 @@ class _HydrionShellState extends State<HydrionShell>
       ),
     );
     if (!mounted || useSuggestion == null) return;
+    if (!context.read<BodyMetricsRepository>().state.isKnown) return;
     if (useSuggestion) {
       await context.read<UserSettingsRepository>().applyWeatherGoal(
             goalMl: personalized.roundedRecommendedGoalMl,

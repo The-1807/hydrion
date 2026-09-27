@@ -44,7 +44,8 @@ class DailyHydrationRecommendationCoordinator {
           locationPermissionGranted: locationPermissionGranted,
           cachedWeatherUsed: cachedWeatherUsed);
       return BodyMetricsRecommendationResult(
-          recommendation, bodyMetricsRepository.state.status);
+          bodyMetricsRepository.state.isKnown ? recommendation : null,
+          bodyMetricsRepository.state.status);
     } on BodyMetricsUnavailable catch (failure) {
       return BodyMetricsRecommendationResult(null, failure.status);
     }
@@ -98,6 +99,9 @@ class DailyHydrationRecommendationCoordinator {
       inputFingerprint: fingerprint,
       recommendation: recommendation,
     );
+    if (!bodyMetricsRepository.state.isKnown) {
+      throw BodyMetricsUnavailable(bodyMetricsRepository.state.status);
+    }
     return recommendation;
   }
 
@@ -124,6 +128,7 @@ class DailyHydrationRecommendationCoordinator {
       weatherModifierEnabled:
           settingsRepository.settings.weatherModifierEnabled,
     );
+    if (!bodyMetricsRepository.state.isKnown) return false;
     return settingsRepository.setDailyGoalMl(
       recommendation.baselineGoalMl,
       updateBaseline: true,
