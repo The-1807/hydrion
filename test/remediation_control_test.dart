@@ -5,6 +5,82 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/architecture_test_support.dart';
 
 void main() {
+  test('dependency scanner detects an import after a block comment', () {
+    final targets = dependencyTargets(
+      "/* comment */ import '../ui/example.dart';",
+      Uri.parse('file:///repo/lib/domain/example.dart'),
+    );
+    expect(targets.where(isHydrionUiDependency), hasLength(1));
+  });
+
+  test('dependency scanner ignores comments and string contents', () {
+    final targets = dependencyTargets(r"""
+// import '../ui/line.dart';
+/* import '../ui/block.dart'; */
+/*
+import '../ui/multiline_comment.dart';
+/* nested comment */
+*/
+final text = "import '../ui/string.dart';";
+final single = 'export "../ui/single.dart";';
+final multiline = '''
+import '../ui/multiline_string.dart';
+''';
+final raw = r'''export '../ui/raw.dart';''';
+""", Uri.parse('file:///repo/lib/domain/example.dart'));
+    expect(targets, isEmpty);
+    expectNoDomainUiDependencies(domainUiViolations(r'''
+final multiline = """
+import '../ui/double_multiline.dart';
+""";
+final escaped = "a quote: \"; import '../ui/escaped.dart';";
+''', Uri.parse('file:///repo/lib/domain/example.dart')));
+  });
+
+  final sourceFile = Uri.parse('file:///repo/lib/domain/example.dart');
+  final forbiddenDirectives = <String, String>{
+    'import': "import '../ui/example.dart';",
+    'export': "export 'package:hydrion/ui/example.dart';",
+    'conditional import':
+        "import 'dart:async' if (dart.library.io) '../ui/example.dart';",
+    'conditional export':
+        "export '../domain/example.dart' if (dart.library.io) '../ui/example.dart';",
+    'part': "part '../ui/example.dart';",
+    'URI part of': "part of '../ui/example.dart';",
+    'normalized relative path': "import '../domain/../ui/example.dart';",
+    'escaped URI': r"import '../\u0075i/example.dart';",
+    'interleaved comments': "import /* comment */ '../ui/example.dart';",
+    'same-line directives': "import 'dart:async'; import '../ui/example.dart';",
+  };
+  for (final entry in forbiddenDirectives.entries) {
+    test('boundary assertion rejects parsed ${entry.key}', () {
+      expect(
+        () => expectNoDomainUiDependencies(
+            domainUiViolations(entry.value, sourceFile)),
+        throwsA(isA<TestFailure>()),
+      );
+    });
+  }
+
+  test('allowed dependencies pass the same boundary assertion', () {
+    const source = """
+import 'dart:async';
+import '../domain/body_metrics.dart';
+export 'package:hydrion/domain/body_metrics.dart';
+part 'example.g.dart';
+""";
+    expect(dependencyTargets(source, sourceFile), hasLength(4));
+    expectNoDomainUiDependencies(domainUiViolations(source, sourceFile));
+    expect(dependencyTargets('part of domain_library;', sourceFile), isEmpty);
+  });
+
+  test('malformed Dart fails closed instead of passing the boundary', () {
+    expect(
+      () => domainUiViolations("import '../ui/example.dart'", sourceFile),
+      throwsArgumentError,
+    );
+  });
+
   test('dependency guard resolves relative, package and conditional targets',
       () {
     final sourceFile = Uri.parse('file:///repo/lib/domain/example.dart');

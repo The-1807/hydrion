@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A passing characterization preserves evidence, not the desired final policy.
@@ -34,20 +36,41 @@ void architectureInvariantTest<T>(
   });
 }
 
-/// Literal dependency guard, not a Dart compiler or a runtime call graph.
-/// Includes alternate URIs in conditional directives and multiline imports.
+/// Parses directive URIs only; this is not a transitive dependency graph.
+/// Syntax errors fail closed rather than returning an incomplete dependency set.
 List<Uri> dependencyTargets(String source, Uri sourceFile) {
-  final directives = RegExp(
-    r'^\s*(?:import|export|part)\s+([^;]+);',
-    multiLine: true,
-  );
-  final quoted = RegExp(r'''['"]([^'"]+)['"]''');
-  return [
-    for (final directive in directives.allMatches(source))
-      for (final target in quoted.allMatches(directive.group(1)!))
-        sourceFile.resolve(target.group(1)!),
-  ];
+  final unit = parseString(content: source, path: sourceFile.toString()).unit;
+  final targets = <Uri>[];
+  void add(StringLiteral literal) {
+    final value = literal.stringValue;
+    if (value == null) {
+      throw ArgumentError('Dependency URI must be literal: $sourceFile');
+    }
+    targets.add(sourceFile.resolve(value));
+  }
+
+  for (final directive in unit.directives) {
+    if (directive is UriBasedDirective) {
+      add(directive.uri);
+      if (directive is NamespaceDirective) {
+        for (final configuration in directive.configurations) {
+          add(configuration.uri);
+        }
+      }
+    } else if (directive is PartOfDirective && directive.uri != null) {
+      add(directive.uri!);
+    }
+  }
+  return targets;
 }
+
+List<String> domainUiViolations(String source, Uri sourceFile) => [
+      for (final target in dependencyTargets(source, sourceFile))
+        if (isHydrionUiDependency(target)) '$sourceFile -> $target',
+    ];
+
+void expectNoDomainUiDependencies(Iterable<String> violations) =>
+    expect(violations, isEmpty, reason: 'Domain must not depend on UI');
 
 bool isHydrionUiDependency(Uri target) =>
     (target.scheme == 'package' && target.path.startsWith('hydrion/ui/')) ||

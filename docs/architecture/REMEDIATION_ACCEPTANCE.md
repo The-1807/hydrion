@@ -17,10 +17,12 @@ contracts/harnesses only; it does not certify the existing application.
   matcher. A positive-only happy-path check is insufficient evidence.
 
 Existing `boundary_architecture_test.dart` continues to guard AI/UI/provider
-boundaries. The new literal dependency guard adds only domain-to-UI isolation; it
-is not a full Dart parser or runtime reachability proof. It resolves relative,
-package and conditional directive URIs. Future robust call-graph guards must not
-be inferred from a passing lexical check. Do not ban currently open domain-to-
+boundaries. The domain-to-UI guard uses the test-only Dart analyzer parser for
+import/export (including conditional alternatives), part and URI-form part-of
+directives. Named part-of declarations have no URI. Comments and strings are not
+directives; syntax errors fail closed. Its negative control feeds source through
+the same parser, classifier and violation assertion as repository files. This is
+not a transitive dependency or runtime reachability proof. Do not ban open domain-to-
 repository dependencies and then claim their remediation is complete.
 
 The initial behavioral characterizations cover DATA-007, DATA-008, DATA-003 and

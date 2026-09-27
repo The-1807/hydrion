@@ -5,18 +5,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/architecture_test_support.dart';
 
 void main() {
-  architectureInvariantTest<List<String>>(
-    'domain does not depend on UI',
-    observe: () => [
+  test('INVARIANT domain does not depend on UI', () {
+    expectNoDomainUiDependencies([
       for (final file in Directory('lib/domain').listSync(recursive: true))
         if (file is File && file.path.endsWith('.dart'))
-          for (final target
-              in dependencyTargets(file.readAsStringSync(), file.absolute.uri))
-            if (isHydrionUiDependency(target)) '${file.path} -> $target',
-    ],
-    invariant: isEmpty,
-    counterexample: ['lib/domain/example.dart -> lib/ui/example.dart'],
-  );
+          ...domainUiViolations(file.readAsStringSync(), file.absolute.uri),
+    ]);
+  });
+
+  test('INVARIANT NEGATIVE CONTROL domain does not depend on UI', () {
+    expect(
+      () => expectNoDomainUiDependencies(domainUiViolations(
+        "/* comment */ import '../ui/example.dart';",
+        Uri.parse('file:///repo/lib/domain/example.dart'),
+      )),
+      throwsA(isA<TestFailure>()),
+    );
+  });
 
   final uiFiles = Directory('lib/ui')
       .listSync(recursive: true)
