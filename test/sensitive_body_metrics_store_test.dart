@@ -239,8 +239,7 @@ void main() {
   );
 
   test(
-    'clear() removes the plaintext record, the migration marker, and the '
-    'secure copy together',
+    'clear() verifies secure absence and replaces local payload with empty records',
     () async {
       final plaintext = MemoryHydrionStore();
       final secure = MemorySensitiveBodyMetricsStore();
@@ -257,11 +256,8 @@ void main() {
       await repository.clear();
 
       expect(await secure.read(), isNull);
-      expect(
-        plaintext.snapshot.containsKey(BodyMetricsRepository.storageKey),
-        isFalse,
-      );
-      expect(plaintext.snapshot.containsKey(migrationMarkerKey), isFalse);
+      expect(plaintext.snapshot[BodyMetricsRepository.storageKey], '{}');
+      expect(plaintext.snapshot[migrationMarkerKey], '');
       expect(repository.metrics.weightKg, isNull);
     },
   );

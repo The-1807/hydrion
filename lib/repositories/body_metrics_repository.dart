@@ -16,6 +16,13 @@ enum BodyMetricsStatus {
   unavailable,
   corrupt,
   ambiguous,
+  deletionPending,
+}
+
+final class BodyMetricsDeletionIncomplete implements Exception {
+  const BodyMetricsDeletionIncomplete();
+  @override
+  String toString() => 'BodyMetricsDeletionIncomplete';
 }
 
 enum BodyMetricsWriteStatus {
@@ -67,6 +74,10 @@ class BodyMetricsRepository extends ChangeNotifier {
   Future<void> _tail = Future.value();
   static const _authorityKey = '_bodyAuthority';
   static const _secureRevisionKey = '_bodyRevision';
+  static const _deletionKey = '_bodyDeletion';
+  static const _deletionRecord =
+      '{"_bodyDeletion":{"version":1,"pending":true}}';
+  SensitiveBodyDeleteStatus? lastDeleteStatus;
 
   BodyMetricsRepository._(
     this._store,
@@ -107,7 +118,8 @@ class BodyMetricsRepository extends ChangeNotifier {
       switch (_status) {
         BodyMetricsStatus.unavailable ||
         BodyMetricsStatus.corrupt ||
-        BodyMetricsStatus.ambiguous =>
+        BodyMetricsStatus.ambiguous ||
+        BodyMetricsStatus.deletionPending =>
           null,
         _ => _metrics,
       },
@@ -124,6 +136,10 @@ class BodyMetricsRepository extends ChangeNotifier {
   }
 
   Future<void> reload() => _serial(() async {
+        if (_status == BodyMetricsStatus.deletionPending) {
+          await _clear();
+          return;
+        }
         final loaded = await load(_store, secureStore: _secureStore);
         _metrics = loaded._metrics;
         _status = loaded._status;
@@ -233,15 +249,49 @@ class BodyMetricsRepository extends ChangeNotifier {
         ));
   }
 
-  Future<void> clear() async {
+  Future<void> clear() => _serial(_clear);
+
+  Future<void> _clear() async {
     _metrics = const HydrionBodyMetrics();
-    _status = BodyMetricsStatus.absent;
-    _revision = 0;
+    _status = BodyMetricsStatus.deletionPending;
     _recoveryEvents = const [];
-    await _store.remove(storageKey);
-    await _store.remove(_migrationMarkerKey);
-    await _secureStore.delete();
+    lastDeleteStatus = null;
     notifyListeners();
+    // Replaces plaintext and authority atomically with payload-free intent.
+    // No secure mutation is allowed before native acknowledgement of intent.
+    if (!await _writeDeletionRecord(storageKey, _deletionRecord)) {
+      throw const BodyMetricsDeletionIncomplete();
+    }
+    try {
+      lastDeleteStatus = await _secureStore.delete();
+    } catch (_) {
+      lastDeleteStatus = SensitiveBodyDeleteStatus.failed;
+    }
+    if (lastDeleteStatus != SensitiveBodyDeleteStatus.verifiedAbsent) {
+      throw const BodyMetricsDeletionIncomplete();
+    }
+    // Blank acknowledged values avoid optimistic remove-cache readback being
+    // mistaken for native deletion. Neither value contains profile data.
+    if (!await _writeDeletionRecord(_migrationMarkerKey, '') ||
+        !await _writeDeletionRecord(storageKey, '{}')) {
+      throw const BodyMetricsDeletionIncomplete();
+    }
+    _revision = 0;
+    _status = BodyMetricsStatus.absent;
+    notifyListeners();
+  }
+
+  Future<bool> _writeDeletionRecord(String key, String value) async {
+    try {
+      if (await _store.writeString(key, value) &&
+          await _store.readString(key) == value) {
+        return true;
+      }
+    } catch (_) {
+      // Only the typed state is exposed, never native exception payloads.
+    }
+    lastWriteStatus = BodyMetricsWriteStatus.localWriteFailed;
+    return false;
   }
 
   Future<bool> _writeRecord(HydrionBodyMetrics value, int revision,
@@ -336,6 +386,13 @@ class BodyMetricsRepository extends ChangeNotifier {
       if (decoded is Map) local = decoded;
     } on FormatException {
       // Existing malformed-record diagnostics are retained by _decode.
+    }
+    if (local != null && local.containsKey(_deletionKey)) {
+      // Any deletion envelope fails closed, including unknown/corrupt versions.
+      // It is never a metrics revision and never imports surviving secure data.
+      _metrics = const HydrionBodyMetrics();
+      _status = BodyMetricsStatus.deletionPending;
+      return;
     }
     if (local != null &&
         !_validSecureFields({

@@ -8,6 +8,8 @@ import 'package:hydrion/repositories/daily_hydration_context_repository.dart';
 import 'package:hydrion/repositories/personalization_state_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/daily_hydration_recommendation_coordinator.dart';
+import 'package:hydrion/services/sensitive_body_metrics_store.dart';
+import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/ui/screens/body_metrics_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -68,6 +70,41 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('failed body deletion never shows success and retry completes',
+      (tester) async {
+    final secure = _RetryDeleteStore();
+    final body = await BodyMetricsRepository.load(MemoryHydrionStore(),
+        secureStore: secure);
+    await body.save(const HydrionBodyMetrics(weightKg: 70),
+        femaleProfile: false);
+    await pumpScreen(tester,
+        locale: const Locale('en'),
+        sex: HydrionSex.male,
+        bodyMetricsRepository: body);
+    final button = find.byKey(const Key('delete-body-metrics'));
+    await tester.scrollUntilVisible(button, 400,
+        scrollable: find.descendant(
+            of: find.byKey(const Key('body-metrics-scroll')),
+            matching: find.byType(Scrollable)));
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete body metrics'));
+    await tester.pumpAndSettle();
+    expect(find.text('Body metrics deleted.'), findsNothing);
+    expect(find.byKey(const Key('body-metrics-unavailable')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('body-metrics-unavailable')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    secure.reject = false;
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('body-metrics-unavailable')), findsNothing);
+    expect(body.state.status, BodyMetricsStatus.absent);
+    expect((await secure.readResult()).status, SensitiveBodyReadStatus.absent);
+  });
 
   testWidgets('optional controls support narrow Android and large text', (
     tester,
@@ -438,4 +475,11 @@ void main() {
       expect(repository.metrics.heightCm, 170);
     },
   );
+}
+
+class _RetryDeleteStore extends MemorySensitiveBodyMetricsStore {
+  bool reject = true;
+  @override
+  Future<SensitiveBodyDeleteStatus> delete() async =>
+      reject ? SensitiveBodyDeleteStatus.failed : await super.delete();
 }

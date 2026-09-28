@@ -41,11 +41,9 @@ void main() {
     },
   );
 
-  characterizationTest(
-    'HTD-DATA-008',
-    'a silently unsuccessful secure delete lets data reappear',
-    desiredInvariant: 'unverified deletion is pending, never successful',
-    body: () async {
+  test(
+    'DATA-008 regression: unsuccessful secure delete remains pending without resurrection',
+    () async {
       final store = MemoryHydrionStore();
       final secure = _ControlledSecureStore();
       final repository =
@@ -53,12 +51,15 @@ void main() {
       await repository.save(const HydrionBodyMetrics(weightKg: 70),
           femaleProfile: false);
       secure.ignoreDeletes = true;
-      await repository.clear();
-      expect(repository.metrics.weightKg, isNull);
-      expect(store.snapshot[BodyMetricsRepository.storageKey], isNull);
+      await expectLater(
+          repository.clear(), throwsA(isA<BodyMetricsDeletionIncomplete>()));
+      expect(repository.state.value, isNull);
+      expect(store.snapshot[BodyMetricsRepository.storageKey],
+          contains('_bodyDeletion'));
       final restarted =
           await BodyMetricsRepository.load(store, secureStore: secure);
-      expect(restarted.metrics.weightKg, 70);
+      expect(restarted.state.value, isNull);
+      expect(restarted.state.status, BodyMetricsStatus.deletionPending);
     },
   );
 
@@ -130,8 +131,9 @@ class _ControlledSecureStore extends MemorySensitiveBodyMetricsStore {
   }
 
   @override
-  Future<void> delete() async {
+  Future<SensitiveBodyDeleteStatus> delete() async {
     // Models the native wrapper's swallowed failure, not a successful delete.
-    if (!ignoreDeletes) await super.delete();
+    if (ignoreDeletes) return SensitiveBodyDeleteStatus.verificationFailed;
+    return super.delete();
   }
 }

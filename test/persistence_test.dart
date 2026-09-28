@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/domain/hydration_contracts.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/main.dart';
@@ -24,6 +25,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    FlutterSecureStorage.setMockInitialValues({});
   });
 
   test('hydration logs persist across repository reloads', () async {

@@ -378,7 +378,15 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     final bodyRepository = context.read<BodyMetricsRepository>();
     final settingsRepository = context.read<UserSettingsRepository>();
     final settings = settingsRepository.settings;
-    await bodyRepository.clear();
+    try {
+      await bodyRepository.clear();
+    } on BodyMetricsDeletionIncomplete {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.unavailable)),
+      );
+      return;
+    }
     await settingsRepository.setPersonalizedGoalOptions(
       baselineSource: HydrionBaselineSource.manual,
       weatherModifierEnabled: settings.weatherModifierEnabled,
@@ -496,7 +504,12 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
             icon: const Icon(Icons.refresh),
             label: Text(l10n.retry),
             onPressed: () async {
-              await repository.reload();
+              try {
+                await repository.reload();
+              } on BodyMetricsDeletionIncomplete {
+                // Pending deletion stays unavailable and remains retryable.
+                return;
+              }
               if (!mounted) return;
               setState(() {
                 _initializeFromKnownMetrics();

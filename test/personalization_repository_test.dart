@@ -362,8 +362,8 @@ void main() {
       final result =
           await services.localProfileResetService.resetLocalProfile();
       expect(result.isCompleted, isTrue);
+      expect(store.snapshot[BodyMetricsRepository.storageKey], '{}');
       for (final key in [
-        BodyMetricsRepository.storageKey,
         DailyHydrationContextRepository.storageKey,
         PersonalizationStateRepository.storageKey,
       ]) {

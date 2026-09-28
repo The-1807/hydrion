@@ -11,6 +11,14 @@ enum SensitiveBodyReadStatus {
   unsupported
 }
 
+enum SensitiveBodyDeleteStatus {
+  verifiedAbsent,
+  unavailable,
+  failed,
+  verificationFailed,
+  unsupported,
+}
+
 final class SensitiveBodyRead {
   final SensitiveBodyReadStatus status;
   final Map<String, Object?>? fields;
@@ -47,8 +55,8 @@ abstract interface class SensitiveBodyMetricsStore {
   /// Overwrites the stored field map atomically as a single value.
   Future<void> write(Map<String, Object?> fields);
 
-  /// Deletes the stored field map, if any.
-  Future<void> delete();
+  /// Deletes the stored field map and verifies logical absence, not erasure.
+  Future<SensitiveBodyDeleteStatus> delete();
 
   /// False on platforms with no Keychain/Keystore-backed secure storage
   /// (matching `health_database_key_store.dart`'s own platform gate).
@@ -117,8 +125,8 @@ class PlatformSensitiveBodyMetricsStore implements SensitiveBodyMetricsStore {
   }
 
   @override
-  Future<void> delete() async {
-    if (!isSupported) return;
+  Future<SensitiveBodyDeleteStatus> delete() async {
+    if (!isSupported) return SensitiveBodyDeleteStatus.unsupported;
     try {
       await _storage.delete(
         key: _storageKey,
@@ -126,8 +134,17 @@ class PlatformSensitiveBodyMetricsStore implements SensitiveBodyMetricsStore {
         iOptions: _iosOptions,
       );
     } catch (_) {
-      // Best-effort: nothing else to fall back to for a delete.
+      return SensitiveBodyDeleteStatus.failed;
     }
+    return switch ((await readResult()).status) {
+      SensitiveBodyReadStatus.absent =>
+        SensitiveBodyDeleteStatus.verifiedAbsent,
+      SensitiveBodyReadStatus.unavailable =>
+        SensitiveBodyDeleteStatus.unavailable,
+      SensitiveBodyReadStatus.unsupported =>
+        SensitiveBodyDeleteStatus.unsupported,
+      _ => SensitiveBodyDeleteStatus.verificationFailed,
+    };
   }
 }
 
@@ -164,7 +181,9 @@ class MemorySensitiveBodyMetricsStore implements SensitiveBodyMetricsStore {
   }
 
   @override
-  Future<void> delete() async {
+  Future<SensitiveBodyDeleteStatus> delete() async {
+    if (!supported) return SensitiveBodyDeleteStatus.unsupported;
     _value = null;
+    return SensitiveBodyDeleteStatus.verifiedAbsent;
   }
 }
