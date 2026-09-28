@@ -254,7 +254,10 @@ class BodyMetricsRepository extends ChangeNotifier {
     };
     final encoded = jsonEncode(record);
     try {
-      await _store.writeString(storageKey, encoded);
+      if (!await _store.writeString(storageKey, encoded)) {
+        lastWriteStatus = BodyMetricsWriteStatus.localWriteFailed;
+        return false;
+      }
       if (await _store.readString(storageKey) != encoded) {
         lastWriteStatus = BodyMetricsWriteStatus.localWriteFailed;
         return false;

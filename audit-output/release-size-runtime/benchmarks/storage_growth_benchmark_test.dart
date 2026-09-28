@@ -270,12 +270,13 @@ class _RecordingStore implements HydrionLocalStore {
   }
 
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     final bytes = utf8.encode(value).length;
     if (maxWriteBytes != null && bytes > maxWriteBytes!) {
       throw const FileSystemException('Synthetic storage threshold exceeded');
     }
     lastWriteBytes = bytes;
     values[key] = value;
+    return true;
   }
 }

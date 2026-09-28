@@ -614,7 +614,7 @@ class FailingHydrionStore implements HydrionLocalStore {
   }
 
   @override
-  Future<void> writeString(String key, String value) {
+  Future<bool> writeString(String key, String value) {
     if (failWrites) throw StateError('persist failed');
     return _delegate.writeString(key, value);
   }

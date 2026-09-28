@@ -113,13 +113,13 @@ class _PausedStore extends MemoryHydrionStore {
   final entered = Completer<void>();
   final resume = Completer<void>();
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     if (pause && key == PersonalizationStateRepository.storageKey) {
       pause = false;
       entered.complete();
       await resume.future;
     }
-    await super.writeString(key, value);
+    return super.writeString(key, value);
   }
 }
 

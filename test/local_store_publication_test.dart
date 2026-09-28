@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +9,10 @@ import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
 import 'package:hydrion/services/sensitive_body_metrics_store.dart';
 import 'package:hydrion/storage/local_store.dart';
+import 'package:hydrion/repositories/app_locale_repository.dart';
+import 'package:hydrion/repositories/reminder_repository.dart';
+import 'package:hydrion/services/notifications.dart';
+import 'package:hydrion/services/policy_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -17,18 +23,31 @@ void main() {
   late bool throwWrite;
   String? cachedDuringRejection;
   late SharedPreferences preferences;
+  Completer<void>? reloadEntered;
+  Completer<void>? releaseReload;
+  var reads = 0;
   setUp(() async {
     native = {};
     reject = false;
     failReload = false;
     throwWrite = false;
     cachedDuringRejection = null;
+    reloadEntered = null;
+    releaseReload = null;
+    reads = 0;
     SharedPreferences.resetStatic();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       if (call.method == 'getAll') {
+        reads++;
         if (failReload) throw PlatformException(code: 'synthetic_read_failure');
-        return Map<String, Object>.of(native);
+        final captured = Map<String, Object>.of(native);
+        final entered = reloadEntered;
+        if (entered != null && !entered.isCompleted) {
+          entered.complete();
+          await releaseReload!.future;
+        }
+        return captured;
       }
       if (call.method == 'setString') {
         final args = call.arguments as Map;
@@ -86,13 +105,115 @@ void main() {
     expect(restarted.metrics.weightKg, 71);
   });
 
+  for (final twoAdapters in [false, true]) {
+    test('paused old reload cannot overwrite newer write: two=$twoAdapters',
+        () async {
+      final first = SharedPreferencesHydrionStore(preferences);
+      final second =
+          twoAdapters ? SharedPreferencesHydrionStore(preferences) : first;
+      await first.writeString('sample', 'A');
+      reject = true;
+      expect(await first.writeString('sample', 'rejected'), isFalse);
+      reject = false;
+      reloadEntered = Completer<void>();
+      releaseReload = Completer<void>();
+      final oldRead = first.readString('sample');
+      await reloadEntered!.future;
+      var writeCompleted = false;
+      final write = second.writeString('sample', 'B').then((ack) {
+        writeCompleted = true;
+        return ack;
+      });
+      final laterRead = second.readString('sample');
+      await pumpEventQueue();
+      expect(writeCompleted, isFalse,
+          reason: 'Write must wait for the old reload');
+      releaseReload!.complete();
+      await oldRead;
+      expect(await write, isTrue);
+      await laterRead;
+      expect(native['flutter.sample'], 'B');
+      expect(await first.readString('sample'), 'B');
+      expect(await second.readString('sample'), 'B');
+    });
+  }
+
+  test('native false does not interrupt reminder update notification',
+      () async {
+    final repo = await ReminderRepository.load(
+        SharedPreferencesHydrionStore(preferences));
+    final saved = await repo.save(
+        triggerTime: DateTime(2026, 9, 28, 12), message: 'Before', priority: 1);
+    var notifications = 0;
+    repo.addListener(() => notifications++);
+    final before = Map.of(native);
+    reject = true;
+    final updated = await repo.update(id: saved.id, message: 'After');
+    expect(updated!.message, 'After');
+    expect(notifications, 1);
+    expect(native, before,
+        reason: 'Legacy control flow, not persistence integrity');
+  });
+
+  test('native false does not freeze locale notification', () async {
+    final repo = await AppLocaleRepository.load(
+        SharedPreferencesHydrionStore(preferences),
+        deviceLocale: const Locale('en'));
+    var notifications = 0;
+    repo.addListener(() => notifications++);
+    reject = true;
+    await repo.selectLocale(const Locale('fr'));
+    expect(repo.locale, const Locale('fr'));
+    expect(repo.selectionCompleted, isTrue);
+    expect(notifications, 1);
+    expect(native, isEmpty,
+        reason: 'Legacy control flow, not persistence integrity');
+  });
+
+  test(
+      'native false preserves reminder cancellation then replacement scheduling',
+      () async {
+    final repo = await ReminderRepository.load(
+        SharedPreferencesHydrionStore(preferences));
+    final notifications = FakeHydrionNotificationAdapter();
+    final service = NotificationService(
+        reminderPolicy: ReminderPolicy(),
+        reminderRepository: repo,
+        adapter: notifications);
+    final initial = await service.createReminder(
+        triggerTime: DateTime.now().add(const Duration(hours: 1)),
+        message: 'Before',
+        priority: 1,
+        requestPermissionIfNeeded: true);
+    final id = initial.reminder!.id;
+    final nativeBefore = Map.of(native);
+    reject = true;
+    final replacement = await service.updateReminder(id: id, message: 'After');
+    expect(replacement.state, ReminderScheduleState.scheduledExactly);
+    expect(replacement.reminder!.message, 'After');
+    expect(notifications.scheduledIds,
+        contains(initial.reminder!.platformNotificationId));
+    expect(native, nativeBefore,
+        reason: 'Existing integrity debt is not repaired here');
+  });
+
+  test('clean acknowledged writes and reads do not force reloads', () async {
+    final first = SharedPreferencesHydrionStore(preferences);
+    final second = SharedPreferencesHydrionStore(preferences);
+    final initialReads = reads;
+    expect(await first.writeString('sample', 'A'), isTrue);
+    expect(await second.readString('sample'), 'A');
+    expect(await second.writeString('sample', 'B'), isTrue);
+    expect(await first.readString('sample'), 'B');
+    expect(reads, initialReads);
+  });
+
   test('adapter rejects native false and invalidates the optimistic cache',
       () async {
     final adapter = SharedPreferencesHydrionStore(preferences);
     await adapter.writeString('sample', 'A');
     reject = true;
-    await expectLater(adapter.writeString('sample', 'B'),
-        throwsA(isA<LocalStoreWriteFailure>()));
+    expect(await adapter.writeString('sample', 'B'), isFalse);
     expect(cachedDuringRejection, 'B');
     expect(await adapter.readString('sample'), 'A');
   });
@@ -103,8 +224,7 @@ void main() {
     final adapter = SharedPreferencesHydrionStore(preferences);
     await adapter.writeString('sample', 'A');
     reject = true;
-    await expectLater(adapter.writeString('sample', 'B'),
-        throwsA(isA<LocalStoreWriteFailure>()));
+    expect(await adapter.writeString('sample', 'B'), isFalse);
     final other = SharedPreferencesHydrionStore(preferences);
     failReload = true;
     await expectLater(
@@ -114,15 +234,13 @@ void main() {
     expect(await adapter.readString('sample'), 'A');
   });
 
-  test('native exception has the same payload-free failed-write contract',
+  test('native exception still propagates and invalidates cache trust',
       () async {
     final adapter = SharedPreferencesHydrionStore(preferences);
     await adapter.writeString('sample', 'A');
     throwWrite = true;
     await expectLater(
-        adapter.writeString('sample', 'B'),
-        throwsA(isA<LocalStoreWriteFailure>().having(
-            (e) => e.toString(), 'description', 'LocalStoreWriteFailure')));
+        adapter.writeString('sample', 'B'), throwsA(isA<PlatformException>()));
     expect(await adapter.readString('sample'), 'A');
   });
 

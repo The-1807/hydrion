@@ -274,9 +274,10 @@ class _CountingStore implements HydrionLocalStore {
   }
 
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     values[key] = value;
     writeCounts[key] = (writeCounts[key] ?? 0) + 1;
+    return true;
   }
 }
 
@@ -284,8 +285,8 @@ class _FailingWriteStore extends MemoryHydrionStore {
   bool failWrites = false;
 
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     if (failWrites) throw StateError('simulated persistence failure');
-    await super.writeString(key, value);
+    return super.writeString(key, value);
   }
 }

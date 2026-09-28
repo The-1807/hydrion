@@ -621,7 +621,7 @@ class _FailingStore implements HydrionLocalStore {
   Future<void> remove(String key) async {}
 
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     throw StateError('simulated persistence failure');
   }
 }

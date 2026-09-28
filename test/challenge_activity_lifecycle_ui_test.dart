@@ -231,9 +231,9 @@ class _HoldableWriteStore implements HydrionLocalStore {
   Future<String?> readString(String key) => _inner.readString(key);
 
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     await _awaitHold();
-    await _inner.writeString(key, value);
+    return _inner.writeString(key, value);
   }
 
   @override

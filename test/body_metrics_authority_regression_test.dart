@@ -454,9 +454,9 @@ void main() {
 class _FailingLocalStore extends MemoryHydrionStore {
   bool failWrites = false;
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     if (failWrites) throw StateError('synthetic local write failure');
-    await super.writeString(key, value);
+    return super.writeString(key, value);
   }
 }
 
@@ -464,10 +464,10 @@ class _PausedRecommendationStore extends MemoryHydrionStore {
   final entered = Completer<void>();
   final resume = Completer<void>();
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     entered.complete();
     await resume.future;
-    await super.writeString(key, value);
+    return super.writeString(key, value);
   }
 }
 
