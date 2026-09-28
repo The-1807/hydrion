@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +11,7 @@ import 'package:hydrion/repositories/personalization_state_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/daily_hydration_recommendation_coordinator.dart';
 import 'package:hydrion/services/sensitive_body_metrics_store.dart';
+import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/ui/screens/body_metrics_screen.dart';
 import 'package:provider/provider.dart';
@@ -20,10 +23,19 @@ void main() {
     required HydrionSex sex,
     ThemeMode themeMode = ThemeMode.light,
     double textScale = 1,
+    bool personalizedBaseline = false,
+    DailyHydrationRecommendationCoordinator Function(
+            DailyHydrationRecommendationCoordinator)?
+        wrapCoordinator,
     BodyMetricsRepository? bodyMetricsRepository,
   }) async {
     final settings = UserSettingsRepository.memory(locale);
     await settings.setProfile(nickname: 'River', age: 30, sex: sex);
+    if (personalizedBaseline) {
+      await settings.setPersonalizedGoalOptions(
+          baselineSource: HydrionBaselineSource.personalized,
+          weatherModifierEnabled: true);
+    }
     final bodyMetrics = bodyMetricsRepository ?? BodyMetricsRepository.memory();
     final dailyContext = DailyHydrationContextRepository.memory();
     final state = PersonalizationStateRepository.memory();
@@ -40,7 +52,8 @@ void main() {
           ChangeNotifierProvider.value(value: bodyMetrics),
           ChangeNotifierProvider.value(value: dailyContext),
           ChangeNotifierProvider.value(value: state),
-          Provider.value(value: coordinator),
+          Provider<DailyHydrationRecommendationCoordinator>.value(
+              value: wrapCoordinator?.call(coordinator) ?? coordinator),
         ],
         child: MaterialApp(
           locale: locale,
@@ -70,6 +83,216 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  for (final retry in [false, true]) {
+    testWidgets('H1 deletion completion clears sensitive drafts: retry=$retry',
+        (tester) async {
+      final secure = _RetryDeleteStore()..reject = retry;
+      final body = await BodyMetricsRepository.load(MemoryHydrionStore(),
+          secureStore: secure);
+      await body.save(
+          const HydrionBodyMetrics(
+            personalizationEnabled: true,
+            weightKg: 83,
+            heightCm: 183,
+            reproductiveState: HydrionReproductiveHydrationState.pregnant,
+            pregnancyGestationalDays: 140,
+            fluidSafetyMode: HydrionFluidSafetyMode.clinicianTarget,
+            clinicianTargetMl: 1850,
+            allowAdjustmentsAboveClinicianTarget: true,
+          ),
+          femaleProfile: true);
+      await pumpScreen(tester,
+          locale: const Locale('en'),
+          sex: HydrionSex.female,
+          bodyMetricsRepository: body,
+          personalizedBaseline: true);
+      final settings = tester
+          .element(find.byType(BodyMetricsScreen))
+          .read<UserSettingsRepository>();
+      final goal = settings.settings.dailyGoalMl;
+      Future<void> reveal(String key) async {
+        final scroll = find
+            .descendant(
+                of: find.byKey(const Key('body-metrics-scroll')),
+                matching: find.byType(Scrollable))
+            .first;
+        tester.state<ScrollableState>(scroll).position.jumpTo(0);
+        await tester.pump();
+        await tester.scrollUntilVisible(find.byKey(Key(key)), 350,
+            scrollable: scroll);
+        await tester.pumpAndSettle();
+      }
+
+      await reveal('review-suggestion');
+      await tester.tap(find.byKey(const Key('review-suggestion')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('apply-suggested-goal')), findsOneWidget);
+      await reveal('delete-body-metrics');
+      await tester.tap(find.byKey(const Key('delete-body-metrics')));
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.widgetWithText(FilledButton, 'Delete body metrics'));
+      await tester.pumpAndSettle();
+      if (retry) {
+        expect(find.text('Body metrics deleted.'), findsNothing);
+        expect(body.state.status, BodyMetricsStatus.deletionPending);
+        secure.reject = false;
+        await tester.tap(find.text('Retry'));
+        await tester.pumpAndSettle();
+      }
+      expect(body.state.status, BodyMetricsStatus.absent);
+      expect(settings.settings.baselineSource, HydrionBaselineSource.manual);
+      expect(settings.settings.dailyGoalMl, goal);
+      expect(settings.settings.weatherModifierEnabled, isTrue);
+      await reveal('review-suggestion');
+      expect(find.byKey(const Key('apply-suggested-goal')), findsNothing);
+      await reveal('edit-personalization');
+      await tester.tap(find.byKey(const Key('edit-personalization')));
+      await tester.pumpAndSettle();
+      await reveal('reproductive-state');
+      expect(
+          tester
+              .widget<
+                      DropdownButtonFormField<
+                          HydrionReproductiveHydrationState>>(
+                  find.byKey(const Key('reproductive-state')))
+              .initialValue,
+          HydrionReproductiveHydrationState.none);
+      expect(find.byKey(const Key('pregnancy-duration-input')), findsNothing);
+      await reveal('fluid-safety-mode');
+      expect(
+          tester
+              .widget<DropdownButtonFormField<HydrionFluidSafetyMode>>(
+                  find.byKey(const Key('fluid-safety-mode')))
+              .initialValue,
+          HydrionFluidSafetyMode.none);
+      expect(find.byKey(const Key('clinician-target')), findsNothing);
+      tester
+          .widget<DropdownButtonFormField<HydrionFluidSafetyMode>>(
+              find.byKey(const Key('fluid-safety-mode')))
+          .onChanged!(HydrionFluidSafetyMode.clinicianTarget);
+      await tester.pumpAndSettle();
+      await reveal('clinician-target');
+      expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('clinician-target')))
+              .controller!
+              .text,
+          isEmpty);
+      expect(
+          tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+          isFalse);
+      await reveal('fluid-safety-mode');
+      tester
+          .widget<DropdownButtonFormField<HydrionFluidSafetyMode>>(
+              find.byKey(const Key('fluid-safety-mode')))
+          .onChanged!(HydrionFluidSafetyMode.none);
+      await tester.pumpAndSettle();
+      await reveal('reproductive-state');
+      tester
+          .widget<DropdownButtonFormField<HydrionReproductiveHydrationState>>(
+              find.byKey(const Key('reproductive-state')))
+          .onChanged!(HydrionReproductiveHydrationState.pregnant);
+      await tester.pumpAndSettle();
+      await reveal('pregnancy-duration-input');
+      expect(
+          tester
+              .widget<TextField>(
+                  find.byKey(const Key('pregnancy-duration-input')))
+              .controller!
+              .text,
+          isEmpty);
+      await reveal('reproductive-state');
+      tester
+          .widget<DropdownButtonFormField<HydrionReproductiveHydrationState>>(
+              find.byKey(const Key('reproductive-state')))
+          .onChanged!(HydrionReproductiveHydrationState.none);
+      await tester.pumpAndSettle();
+      await reveal('save-body-metrics');
+      await tester.tap(find.byKey(const Key('save-body-metrics')));
+      await tester.pumpAndSettle();
+      void expectEmpty() {
+        expect(body.metrics.weightKg, isNull);
+        expect(body.metrics.heightCm, isNull);
+        expect(body.metrics.reproductiveState,
+            HydrionReproductiveHydrationState.none);
+        expect(body.metrics.pregnancyGestationalDays, isNull);
+        expect(body.metrics.clinicianTargetMl, isNull);
+        expect(body.metrics.fluidSafetyMode, HydrionFluidSafetyMode.none);
+        expect(body.metrics.allowAdjustmentsAboveClinicianTarget, isFalse);
+        expect(body.metrics.personalizationEnabled, isFalse);
+      }
+
+      expectEmpty();
+      await tester.pumpWidget(const SizedBox());
+      await pumpScreen(tester,
+          locale: const Locale('en'),
+          sex: HydrionSex.female,
+          bodyMetricsRepository: body);
+      expectEmpty();
+      await reveal('edit-personalization');
+      await tester.tap(find.byKey(const Key('edit-personalization')));
+      await tester.pumpAndSettle();
+      await reveal('reproductive-state');
+      expect(
+          tester
+              .widget<
+                      DropdownButtonFormField<
+                          HydrionReproductiveHydrationState>>(
+                  find.byKey(const Key('reproductive-state')))
+              .initialValue,
+          HydrionReproductiveHydrationState.none);
+      await reveal('fluid-safety-mode');
+      expect(
+          tester
+              .widget<DropdownButtonFormField<HydrionFluidSafetyMode>>(
+                  find.byKey(const Key('fluid-safety-mode')))
+              .initialValue,
+          HydrionFluidSafetyMode.none);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets(
+      'H1 deletion discards a recommendation delivered after completion',
+      (tester) async {
+    final body = BodyMetricsRepository.memory(const HydrionBodyMetrics(
+        personalizationEnabled: true, weightKg: 83, heightCm: 183));
+    late _DelayedCoordinator delayed;
+    await pumpScreen(tester,
+        locale: const Locale('en'),
+        sex: HydrionSex.female,
+        bodyMetricsRepository: body,
+        wrapCoordinator: (base) => delayed = _DelayedCoordinator(base));
+    Future<void> reveal(String key) async {
+      final scroll = find
+          .descendant(
+              of: find.byKey(const Key('body-metrics-scroll')),
+              matching: find.byType(Scrollable))
+          .first;
+      tester.state<ScrollableState>(scroll).position.jumpTo(0);
+      await tester.pump();
+      await tester.scrollUntilVisible(find.byKey(Key(key)), 350,
+          scrollable: scroll);
+      await tester.pumpAndSettle();
+    }
+
+    await reveal('review-suggestion');
+    await tester.tap(find.byKey(const Key('review-suggestion')));
+    await tester.pumpAndSettle();
+    expect(delayed.captured.isCompleted, isTrue);
+    await reveal('delete-body-metrics');
+    await tester.tap(find.byKey(const Key('delete-body-metrics')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete body metrics'));
+    await tester.pumpAndSettle();
+    expect(body.state.status, BodyMetricsStatus.absent);
+    delayed.release.complete();
+    await tester.pumpAndSettle();
+    await reveal('review-suggestion');
+    expect(find.byKey(const Key('apply-suggested-goal')), findsNothing);
+  });
 
   testWidgets('failed body deletion never shows success and retry completes',
       (tester) async {
@@ -482,4 +705,30 @@ class _RetryDeleteStore extends MemorySensitiveBodyMetricsStore {
   @override
   Future<SensitiveBodyDeleteStatus> delete() async =>
       reject ? SensitiveBodyDeleteStatus.failed : await super.delete();
+}
+
+class _DelayedCoordinator extends DailyHydrationRecommendationCoordinator {
+  final captured = Completer<void>();
+  final release = Completer<void>();
+  _DelayedCoordinator(DailyHydrationRecommendationCoordinator base)
+      : super(
+            settingsRepository: base.settingsRepository,
+            bodyMetricsRepository: base.bodyMetricsRepository,
+            dailyContextRepository: base.dailyContextRepository,
+            stateRepository: base.stateRepository);
+  @override
+  Future<BodyMetricsRecommendationResult> calculateResult(
+      {required DateTime now,
+      WeatherSnapshot? weather,
+      bool locationPermissionGranted = false,
+      bool cachedWeatherUsed = false}) async {
+    final result = await super.calculateResult(
+        now: now,
+        weather: weather,
+        locationPermissionGranted: locationPermissionGranted,
+        cachedWeatherUsed: cachedWeatherUsed);
+    captured.complete();
+    await release.future;
+    return result;
+  }
 }

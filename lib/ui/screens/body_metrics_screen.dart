@@ -52,6 +52,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   late HydrionTemporaryCondition _condition;
   final _activityMinutes = TextEditingController();
   HydrationRecommendation? _recommendation;
+  int _recommendationGeneration = 0;
   int? _wakeMinuteOfDay;
   int? _sleepMinuteOfDay;
   bool _editingWeight = false;
@@ -376,8 +377,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   Future<void> _deleteMetrics() async {
     final l10n = AppLocalizations.of(context);
     final bodyRepository = context.read<BodyMetricsRepository>();
-    final settingsRepository = context.read<UserSettingsRepository>();
-    final settings = settingsRepository.settings;
+    _recommendationGeneration++;
     try {
       await bodyRepository.clear();
     } on BodyMetricsDeletionIncomplete {
@@ -387,22 +387,37 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
       );
       return;
     }
-    await settingsRepository.setPersonalizedGoalOptions(
-      baselineSource: HydrionBaselineSource.manual,
-      weatherModifierEnabled: settings.weatherModifierEnabled,
-    );
+    await _completeMetricsDeletion();
+  }
+
+  Future<void> _completeMetricsDeletion() async {
     if (!mounted) return;
+    final settingsRepository = context.read<UserSettingsRepository>();
+    final weatherEnabled = settingsRepository.settings.weatherModifierEnabled;
     setState(() {
-      _enabled = false;
-      _reproductiveState = HydrionReproductiveHydrationState.none;
-      _pregnancyGestationalDays = null;
-      _pregnancyDuration.clear();
+      // Deletion invalidates every draft, even when this screen initialized
+      // before a failed attempt. Ordinary reload initialization is unchanged.
+      _initialized = false;
+      _initializeFromKnownMetrics();
+      _usePersonalizedBaseline = false;
+      _editingWeight = false;
+      _editingHeight = false;
+      _editingPersonalization = false;
+      _editingContext = false;
+      _savingHeight = false;
       _pregnancyDurationError = null;
+      _recommendationGeneration++;
       _recommendation = null;
     });
+    await settingsRepository.setPersonalizedGoalOptions(
+      baselineSource: HydrionBaselineSource.manual,
+      weatherModifierEnabled: weatherEnabled,
+    );
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(l10n.bodyMetricsDeleted)));
+    ).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context).bodyMetricsDeleted)));
   }
 
   Future<void> _saveContext() async {
@@ -429,10 +444,13 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   }
 
   Future<void> _refreshRecommendation() async {
+    final generation = _recommendationGeneration;
     final recommendation = await context
         .read<DailyHydrationRecommendationCoordinator>()
         .calculateResult(now: DateTime.now());
-    if (mounted) {
+    if (mounted &&
+        generation == _recommendationGeneration &&
+        context.read<BodyMetricsRepository>().state.isKnown) {
       setState(() => _recommendation = recommendation.recommendation);
     }
   }
@@ -504,6 +522,9 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
             icon: const Icon(Icons.refresh),
             label: Text(l10n.retry),
             onPressed: () async {
+              final retryingDeletion =
+                  repository.state.status == BodyMetricsStatus.deletionPending;
+              if (retryingDeletion) _recommendationGeneration++;
               try {
                 await repository.reload();
               } on BodyMetricsDeletionIncomplete {
@@ -511,6 +532,10 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
                 return;
               }
               if (!mounted) return;
+              if (retryingDeletion) {
+                await _completeMetricsDeletion();
+                return;
+              }
               setState(() {
                 _initializeFromKnownMetrics();
               });
