@@ -303,7 +303,7 @@ void main() {
     final stored =
         jsonDecode(store.snapshot[PersonalizationStateRepository.storageKey]!)
             as Map;
-    expect(stored['schemaVersion'], 2);
+    expect(stored['schemaVersion'], 3);
 
     final malformed = await PersonalizationStateRepository.load(
       MemoryHydrionStore({

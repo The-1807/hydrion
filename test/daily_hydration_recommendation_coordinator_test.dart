@@ -87,6 +87,35 @@ void main() {
     );
   }
 
+  test('SEC-003 synthetic recommendation inputs never persist as plaintext',
+      () async {
+    final store = MemoryHydrionStore();
+    final value = await fixture(store);
+    await value.metrics.update(
+      reproductiveState: HydrionReproductiveHydrationState.pregnant,
+      pregnancyGestationalDays: 168,
+      fluidSafetyMode: HydrionFluidSafetyMode.clinicianTarget,
+      clinicianTargetMl: 1850,
+      femaleProfile: true,
+    );
+    final now = DateTime(2026, 7, 28, 9);
+    await value.coordinator.calculate(now: now);
+    await value.coordinator.keepCurrentGoal(now: now);
+    final persisted =
+        store.snapshot[PersonalizationStateRepository.storageKey]!;
+    for (final source in [
+      'pregnant',
+      'clinicianTarget',
+      'clinicianTargetMl: 1850',
+      'weightKg',
+      'heightCm',
+      'pregnancyGestationalDays',
+      'activityIntensity',
+    ]) {
+      expect(persisted, isNot(contains(source)), reason: source);
+    }
+  });
+
   test('calculation does not apply until explicit user action', () async {
     final value = await fixture();
     final result =

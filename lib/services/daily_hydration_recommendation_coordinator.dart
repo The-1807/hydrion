@@ -5,6 +5,7 @@ import '../repositories/daily_hydration_context_repository.dart';
 import '../repositories/personalization_state_repository.dart';
 import '../repositories/settings_repository.dart';
 import 'personalized_hydration_engine.dart';
+import 'recommendation_input_token.dart';
 import 'weather_goal_service.dart';
 
 final class BodyMetricsRecommendationResult {
@@ -63,40 +64,26 @@ class DailyHydrationRecommendationCoordinator {
       femaleProfile: settings.sex == HydrionSex.female,
     );
     final context = dailyContextRepository.forDate(dateKey);
-    final fingerprint = [
-      dateKey,
-      settings.baselineDailyGoalMl,
-      settings.baselineSource.name,
-      settings.weatherModifierEnabled,
-      settings.age,
-      settings.sex?.name,
-      metrics.toJson(),
-      context?.toJson(),
-      weather?.toJson(),
-      locationPermissionGranted,
-      cachedWeatherUsed,
-    ].join('|');
-    final recommendation = engine.calculate(
-      PersonalizedHydrationInputs(
-        existingBaselineGoalMl: settings.baselineDailyGoalMl,
-        requestedBaselineSource:
-            settings.baselineSource == HydrionBaselineSource.personalized
-                ? HydrationBaselineSource.personalized
-                : HydrationBaselineSource.manual,
-        age: settings.age,
-        sex: settings.sex,
-        bodyMetrics: metrics,
-        dailyContext: context,
-        weather: weather,
-        weatherEnabled: settings.weatherModifierEnabled,
-        locationPermissionGranted: locationPermissionGranted,
-        cachedWeatherUsed: cachedWeatherUsed,
-        localDateKey: dateKey,
-        calculatedAt: now,
-      ),
+    final inputs = PersonalizedHydrationInputs(
+      existingBaselineGoalMl: settings.baselineDailyGoalMl,
+      requestedBaselineSource:
+          settings.baselineSource == HydrionBaselineSource.personalized
+              ? HydrationBaselineSource.personalized
+              : HydrationBaselineSource.manual,
+      age: settings.age,
+      sex: settings.sex,
+      bodyMetrics: metrics,
+      dailyContext: context,
+      weather: weather,
+      weatherEnabled: settings.weatherModifierEnabled,
+      locationPermissionGranted: locationPermissionGranted,
+      cachedWeatherUsed: cachedWeatherUsed,
+      localDateKey: dateKey,
+      calculatedAt: now,
     );
+    final recommendation = engine.calculate(inputs);
     await stateRepository.recordRecommendation(
-      inputFingerprint: fingerprint,
+      canonicalInput: canonicalRecommendationInput(inputs),
       recommendation: recommendation,
     );
     if (!bodyMetricsRepository.state.isKnown) {
