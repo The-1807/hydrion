@@ -37,18 +37,9 @@ final class SensitiveBodyRead {
   String toString() => 'SensitiveBodyRead(${status.name})';
 }
 
-/// Secure storage for the subset of `HydrionBodyMetrics` fields that are
-/// high/medium-high sensitivity health, reproductive, or clinical data
-/// (HYD-SEC-001; see `HYD_SEC_001_STORAGE_DESIGN.md` Tier 1).
-///
-/// This deliberately covers only the fields that feed
-/// `PersonalizedHydrationEngine`'s target derivation: weight, height,
-/// reproductive state, pregnancy duration, fluid-safety mode, clinician
-/// target, and the clinician-adjustment-allowance flag. It follows the same
-/// Keychain/Keystore-backed pattern already used for the wearable health
-/// database key in `health_database_key_store.dart`, reusing the existing
-/// `flutter_secure_storage` dependency rather than introducing a second
-/// encryption mechanism.
+/// Native secure aggregate for HTD SEC-001 body clinical values, routines and
+/// update history. The repository versions and verifies its payload; this
+/// adapter retains the accepted DATA-007/008 platform and deletion contracts.
 abstract interface class SensitiveBodyMetricsStore {
   Future<SensitiveBodyRead> readResult();
 
@@ -60,8 +51,8 @@ abstract interface class SensitiveBodyMetricsStore {
 
   /// False on platforms with no Keychain/Keystore-backed secure storage
   /// (matching `health_database_key_store.dart`'s own platform gate).
-  /// Known plaintext state remains usable when false. A previously secured
-  /// record without a recoverable copy must still be reported unavailable.
+  /// Legacy plaintext is preserved read-only when false, never newly written.
+  /// A secured record without a recoverable copy remains unavailable.
   bool get isSupported;
 }
 

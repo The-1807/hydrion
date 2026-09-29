@@ -233,7 +233,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(saved ? l10n.bodyMetricsSaved : l10n.bodyMetricsInvalid),
+        content: Text(saved ? l10n.bodyMetricsSaved : _saveFailureMessage()),
       ),
     );
     if (saved) {
@@ -266,7 +266,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
         content: Text(
           saved
               ? AppLocalizations.of(context).bodyMetricsSaved
-              : AppLocalizations.of(context).bodyMetricsInvalid,
+              : _saveFailureMessage(),
         ),
       ),
     );
@@ -298,7 +298,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
         content: Text(
           saved
               ? AppLocalizations.of(context).bodyMetricsSaved
-              : AppLocalizations.of(context).bodyMetricsInvalid,
+              : _saveFailureMessage(),
         ),
       ),
     );
@@ -333,7 +333,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
         content: Text(
           saved
               ? AppLocalizations.of(context).bodyMetricsSaved
-              : AppLocalizations.of(context).bodyMetricsInvalid,
+              : _saveFailureMessage(),
         ),
       ),
     );
@@ -368,7 +368,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
         content: Text(
           saved
               ? AppLocalizations.of(context).bodyMetricsSaved
-              : AppLocalizations.of(context).bodyMetricsInvalid,
+              : _saveFailureMessage(),
         ),
       ),
     );
@@ -443,6 +443,15 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     );
   }
 
+  String _saveFailureMessage() {
+    final l10n = AppLocalizations.of(context);
+    final repository = context.read<BodyMetricsRepository>();
+    return repository.lastWriteStatus != BodyMetricsWriteStatus.notAttempted ||
+            !repository.canSave
+        ? l10n.bodyMetricsNotSaved
+        : l10n.bodyMetricsInvalid;
+  }
+
   Future<void> _refreshRecommendation() async {
     final generation = _recommendationGeneration;
     final recommendation = await context
@@ -512,12 +521,21 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     final settings = context.watch<UserSettingsRepository>().settings;
     final repository = context.watch<BodyMetricsRepository>();
     final metrics = repository.state.value;
-    if (metrics == null) {
+    if (metrics == null || !repository.canSave) {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.bodyMetricsTitle)),
         body: Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(l10n.unavailable, key: const Key('body-metrics-unavailable')),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              repository.lastWriteStatus != BodyMetricsWriteStatus.notAttempted
+                  ? l10n.bodyMetricsNotSaved
+                  : l10n.bodyMetricsStorageUnavailable,
+              textAlign: TextAlign.center,
+            ),
+          ),
           TextButton.icon(
             icon: const Icon(Icons.refresh),
             label: Text(l10n.retry),
@@ -535,6 +553,9 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
               if (retryingDeletion) {
                 await _completeMetricsDeletion();
                 return;
+              }
+              if (repository.canSave) {
+                ScaffoldMessenger.of(this.context).clearSnackBars();
               }
               setState(() {
                 _initializeFromKnownMetrics();

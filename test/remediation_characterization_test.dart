@@ -27,8 +27,14 @@ void main() {
       await repository.save(const HydrionBodyMetrics(weightKg: 70),
           femaleProfile: false);
       secure.failWrites = true;
-      expect(
-          await repository.update(weightKg: 71, femaleProfile: false), isTrue);
+      // Seed historical acknowledged B; SEC-001 forbids new plaintext saves.
+      await store.writeString(
+          BodyMetricsRepository.storageKey,
+          jsonEncode({
+            ...repository.metrics.copyWith(weightKg: 71).toJson(),
+            '_bodyAuthority': {'version': 1, 'revision': 2, 'pending': true},
+          }));
+      await repository.reload();
       expect(repository.metrics.weightKg, 71);
       expect(
           (jsonDecode(store.snapshot[BodyMetricsRepository.storageKey]!)

@@ -183,7 +183,14 @@ void main() {
   test('pending newer plaintext write is removed before failed secure delete',
       () async {
     native.failWrite = true;
-    expect(await body.update(weightKg: 71, femaleProfile: false), isTrue);
+    // Reproduce an existing DATA-007 fallback without creating a new downgrade.
+    await local.writeString(
+        BodyMetricsRepository.storageKey,
+        jsonEncode({
+          ...body.metrics.copyWith(weightKg: 71).toJson(),
+          '_bodyAuthority': {'version': 1, 'revision': 2, 'pending': true},
+        }));
+    await body.reload();
     expect(body.state.status, BodyMetricsStatus.pendingSecure);
     await expectLater(
         body.clear(), throwsA(isA<BodyMetricsDeletionIncomplete>()));

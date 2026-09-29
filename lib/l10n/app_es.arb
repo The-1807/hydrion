@@ -402,6 +402,8 @@
   "deleteBodyMetrics": "Eliminar medidas",
   "bodyMetricsSaved": "Medidas guardadas localmente.",
   "bodyMetricsInvalid": "Elige medidas dentro del rango seguro mostrado.",
+  "bodyMetricsNotSaved": "No se pudo confirmar que los cambios se guardaran de forma segura. Reintenta el almacenamiento y vuelve a guardar. Los cambios sin guardar pueden perderse al salir de esta pantalla.",
+  "bodyMetricsStorageUnavailable": "El almacenamiento protegido de datos corporales no está disponible. Los datos existentes se conservan. Reintenta para restablecer el acceso seguro.",
   "bodyMetricsDeleted": "Medidas corporales eliminadas.",
   "profileDeletionPersonalizationDisclosure": "Esto borra de este dispositivo el perfil local, las medidas corporales, los contextos diarios, el historial de hidratación, los recordatorios, los desafíos, el estado de recomendaciones, la caché meteorológica, los registros importados de dispositivos y su contexto derivado. Los registros del proveedor de salud no cambian. Tus preferencias de idioma y apariencia permanecen guardadas.",
   "dailyContextTitle": "Contexto de hoy",

@@ -50,14 +50,9 @@ final class BodyMetricsUnavailable implements Exception {
   String toString() => 'BodyMetricsUnavailable(${status.name})';
 }
 
-/// Fields covered by the HYD-SEC-001 secure-storage migration (Tier 1 of
-/// `HYD_SEC_001_STORAGE_DESIGN.md`), scoped to those that feed
-/// `PersonalizedHydrationEngine`'s target derivation. `nickname`, `age`, and
-/// `sex` (also Tier 1 in the full design) live in `UserSettingsRepository`,
-/// a separate repository/store key with many non-sensitive fields, and are
-/// intentionally out of scope for this migration — see the Gate 1 report
-/// for that scoping decision. The profile photo (Tier 2) is a different
-/// storage shape (a file, not a scalar) and is also out of scope here.
+/// HTD SEC-001 body aggregate: clinical values, routines and update history.
+/// Units stay in preferences; profile/settings are a separately scoped store.
+/// DATA-007 revision authority and DATA-008 deletion intent remain authoritative.
 class BodyMetricsRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.body_metrics.v1';
   static const _migrationMarkerKey = 'hydrion.body_metrics.secure_migration.v1';
@@ -126,8 +121,12 @@ class BodyMetricsRepository extends ChangeNotifier {
       _revision);
   HydrionBodyMetrics get metrics =>
       state.value ?? (throw BodyMetricsUnavailable(_status));
-  int? get wakeMinuteOfDay => _metrics.wakeMinuteOfDay;
-  int? get sleepMinuteOfDay => _metrics.sleepMinuteOfDay;
+  int? get wakeMinuteOfDay => state.value?.wakeMinuteOfDay;
+  int? get sleepMinuteOfDay => state.value?.sleepMinuteOfDay;
+  bool get canSave =>
+      state.isKnown &&
+      _status != BodyMetricsStatus.pendingSecure &&
+      _status != BodyMetricsStatus.unsupported;
 
   Future<T> _serial<T>(Future<T> Function() operation) {
     final result = _tail.then((_) => operation());
@@ -163,7 +162,8 @@ class BodyMetricsRepository extends ChangeNotifier {
     required bool femaleProfile,
     DateTime? now,
   }) async {
-    if (!state.isKnown) return false;
+    lastWriteStatus = BodyMetricsWriteStatus.notAttempted;
+    if (!canSave) return false;
     if (value.weightKg != null &&
         !HydrionBodyMetricsPolicy.validWeight(value.weightKg)) {
       return false;
@@ -294,13 +294,12 @@ class BodyMetricsRepository extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> _writeRecord(HydrionBodyMetrics value, int revision,
-      {required bool pending}) async {
-    final record = pending ? value.toJson() : _plaintextJson(value);
+  Future<bool> _writeRecord(HydrionBodyMetrics value, int revision) async {
+    final record = _plaintextJson(value);
     record[_authorityKey] = {
-      'version': 1,
+      'version': 2,
       'revision': revision,
-      'pending': pending
+      'pending': false
     };
     final encoded = jsonEncode(record);
     try {
@@ -328,8 +327,15 @@ class BodyMetricsRepository extends ChangeNotifier {
   }
 
   Future<bool> _writeAndVerify(HydrionBodyMetrics value, int revision) async {
-    if (!_secureStore.isSupported) return false;
-    final fields = {..._secureFields(value), _secureRevisionKey: revision};
+    if (!_secureStore.isSupported) {
+      lastWriteStatus = BodyMetricsWriteStatus.writeFailed;
+      return false;
+    }
+    final fields = {
+      ..._secureFields(value),
+      '_bodySchema': 2,
+      _secureRevisionKey: revision,
+    };
     try {
       await _secureStore.write(fields);
     } catch (_) {
@@ -358,7 +364,14 @@ class BodyMetricsRepository extends ChangeNotifier {
   Future<bool> _persist(HydrionBodyMetrics next) async {
     final revision = _revision + 1;
     final verified = await _writeAndVerify(next, revision);
-    if (!await _writeRecord(next, revision, pending: !verified)) {
+    if (!verified) {
+      // A failed acknowledgement may still have changed the secure copy.
+      // Retain the editor's unsaved draft, but require reconciliation before
+      // another write. Never publish it as saved or write it to preferences.
+      _status = BodyMetricsStatus.unavailable;
+      return false;
+    }
+    if (!await _writeRecord(next, revision)) {
       // A secure write may already exist. Do not reuse its revision or expose
       // uncertain old memory as authoritative; reload reconciles both stores.
       _status = BodyMetricsStatus.unavailable;
@@ -366,12 +379,8 @@ class BodyMetricsRepository extends ChangeNotifier {
     }
     _revision = revision;
     _metrics = next;
-    _status = verified
-        ? BodyMetricsStatus.available
-        : _secureStore.isSupported
-            ? BodyMetricsStatus.pendingSecure
-            : BodyMetricsStatus.unsupported;
-    if (verified) await _markMigrated();
+    _status = BodyMetricsStatus.available;
+    await _markMigrated();
     return true;
   }
 
@@ -406,7 +415,7 @@ class BodyMetricsRepository extends ChangeNotifier {
     var pending = false;
     if (authority != null) {
       if (authority is! Map ||
-          authority['version'] != 1 ||
+          ![1, 2].contains(authority['version']) ||
           authority['revision'] is! int ||
           authority['revision'] < 0 ||
           authority['pending'] is! bool) {
@@ -415,6 +424,10 @@ class BodyMetricsRepository extends ChangeNotifier {
       }
       _revision = authority['revision'] as int;
       pending = authority['pending'] as bool;
+      if (authority['version'] == 2 && pending) {
+        _status = BodyMetricsStatus.corrupt;
+        return;
+      }
       if (pending && !_validSecureFields(Map<String, Object?>.from(local!))) {
         _status = BodyMetricsStatus.corrupt;
         return;
@@ -436,11 +449,12 @@ class BodyMetricsRepository extends ChangeNotifier {
     }
     if (secure.status == SensitiveBodyReadStatus.unavailable ||
         secure.status == SensitiveBodyReadStatus.corrupt) {
-      _status = pending
-          ? BodyMetricsStatus.pendingSecure
-          : secure.status == SensitiveBodyReadStatus.corrupt
-              ? BodyMetricsStatus.corrupt
-              : BodyMetricsStatus.unavailable;
+      _status =
+          pending || (authority == null && _hasAnySensitiveField(_metrics))
+              ? BodyMetricsStatus.pendingSecure
+              : secure.status == SensitiveBodyReadStatus.corrupt
+                  ? BodyMetricsStatus.corrupt
+                  : BodyMetricsStatus.unavailable;
       return;
     }
     if (secure.status == SensitiveBodyReadStatus.absent) {
@@ -454,20 +468,21 @@ class BodyMetricsRepository extends ChangeNotifier {
         return;
       }
       // Legacy plaintext starts revision 1 only after confirmed secure absence.
-      // Retain the original for this migration run even after verification.
       final legacy = authority == null;
       if (legacy) {
         _revision = 1;
-        if (!await _writeRecord(_metrics, _revision, pending: true)) {
-          _status = BodyMetricsStatus.unavailable;
-          return;
-        }
       }
-      await _recoverPending(keepPlaintext: legacy);
+      await _recoverPending();
       return;
     }
 
     final fields = secure.fields!;
+    if (authority is Map &&
+        authority['version'] == 2 &&
+        fields['_bodySchema'] != 2) {
+      _status = BodyMetricsStatus.unavailable;
+      return;
+    }
     final secureRevision = fields[_secureRevisionKey] as int? ?? 0;
     final secureMetrics = _applySecureFields(_metrics, fields);
     final equal =
@@ -493,35 +508,66 @@ class BodyMetricsRepository extends ChangeNotifier {
     }
     _metrics = secureMetrics;
     _revision = secureRevision;
+    // Old secure records did not own routines/timestamps. Merge their legacy
+    // local fields only once, verify the expanded aggregate, then strip them.
+    if (fields['_bodySchema'] != 2 &&
+        !await _writeAndVerify(_metrics, _revision)) {
+      _status = BodyMetricsStatus.pendingSecure;
+      return;
+    }
     _status = BodyMetricsStatus.available;
     // Strip only after a verified matching/newer secure revision, never simply
     // because a secure entry exists.
-    if (!await _writeRecord(_metrics, _revision, pending: false)) {
+    if (!await _writeRecord(_metrics, _revision)) {
       _status = BodyMetricsStatus.unavailable;
       return;
     }
     await _markMigrated();
   }
 
-  Future<void> _recoverPending({bool keepPlaintext = false}) async {
+  Future<void> _recoverPending() async {
     _status = BodyMetricsStatus.pendingSecure;
     if (!await _writeAndVerify(_metrics, _revision)) return;
-    if (!keepPlaintext &&
-        !await _writeRecord(_metrics, _revision, pending: false)) {
+    if (!await _writeRecord(_metrics, _revision)) {
       return;
     }
-    if (!keepPlaintext) _status = BodyMetricsStatus.available;
+    _status = BodyMetricsStatus.available;
     await _markMigrated();
   }
 
   static bool _validSecureFields(Map<String, Object?> fields) {
-    if (!_secureFields(const HydrionBodyMetrics())
+    if (!_clinicalFields(const HydrionBodyMetrics())
         .keys
         .every(fields.containsKey)) {
       return false;
     }
     final revision = fields[_secureRevisionKey];
     if (revision != null && (revision is! int || revision < 0)) return false;
+    final schema = fields['_bodySchema'];
+    if (schema != null && schema != 2) return false;
+    if (schema == 2 &&
+        !_secureFields(const HydrionBodyMetrics())
+            .keys
+            .every(fields.containsKey)) {
+      return false;
+    }
+    for (final key in ['wakeMinuteOfDay', 'sleepMinuteOfDay']) {
+      final value = fields[key];
+      if (value != null && (value is! int || value < 0 || value >= 1440)) {
+        return false;
+      }
+    }
+    for (final key in ['updatedAt', 'weightUpdatedAt', 'heightUpdatedAt']) {
+      final value = fields[key];
+      if (value != null &&
+          (value is! String || DateTime.tryParse(value) == null)) {
+        return false;
+      }
+    }
+    if (fields.containsKey('personalizationEnabled') &&
+        fields['personalizationEnabled'] is! bool) {
+      return false;
+    }
     final weight = fields['weightKg'];
     final height = fields['heightCm'];
     final days = fields['pregnancyGestationalDays'];
@@ -549,7 +595,13 @@ class BodyMetricsRepository extends ChangeNotifier {
       metrics.pregnancyGestationalDays != null ||
       metrics.fluidSafetyMode != HydrionFluidSafetyMode.none ||
       metrics.clinicianTargetMl != null ||
-      metrics.allowAdjustmentsAboveClinicianTarget;
+      metrics.allowAdjustmentsAboveClinicianTarget ||
+      metrics.personalizationEnabled ||
+      metrics.wakeMinuteOfDay != null ||
+      metrics.sleepMinuteOfDay != null ||
+      metrics.updatedAt != null ||
+      metrics.weightUpdatedAt != null ||
+      metrics.heightUpdatedAt != null;
 
   static bool _fieldsEqual(Map<String, Object?> a, Map<String, Object?> b) {
     if (a.length != b.length) return false;
@@ -559,7 +611,7 @@ class BodyMetricsRepository extends ChangeNotifier {
     return true;
   }
 
-  static Map<String, Object?> _secureFields(HydrionBodyMetrics metrics) => {
+  static Map<String, Object?> _clinicalFields(HydrionBodyMetrics metrics) => {
         'weightKg': metrics.weightKg,
         'heightCm': metrics.heightCm,
         'reproductiveState': metrics.reproductiveState.name,
@@ -570,26 +622,34 @@ class BodyMetricsRepository extends ChangeNotifier {
             metrics.allowAdjustmentsAboveClinicianTarget,
       };
 
-  /// The plaintext blob written once migration is active: everything
-  /// `HydrionBodyMetrics.toJson()` produces, minus the Tier-1 secure
-  /// fields, which are represented as absent/default rather than
-  /// duplicated in plaintext.
+  static Map<String, Object?> _secureFields(HydrionBodyMetrics metrics) => {
+        ..._clinicalFields(metrics),
+        'personalizationEnabled': metrics.personalizationEnabled,
+        'wakeMinuteOfDay': metrics.wakeMinuteOfDay,
+        'sleepMinuteOfDay': metrics.sleepMinuteOfDay,
+        'updatedAt': metrics.updatedAt?.toIso8601String(),
+        'weightUpdatedAt': metrics.weightUpdatedAt?.toIso8601String(),
+        'heightUpdatedAt': metrics.heightUpdatedAt?.toIso8601String(),
+      };
+
+  /// Explicit allowlist: no sensitive payload or ambiguous default sentinels.
   static Map<String, Object?> _plaintextJson(HydrionBodyMetrics metrics) {
-    final json = metrics.toJson();
-    json['weightKg'] = null;
-    json['heightCm'] = null;
-    json['reproductiveState'] = HydrionReproductiveHydrationState.none.name;
-    json['pregnancyGestationalDays'] = null;
-    json['fluidSafetyMode'] = HydrionFluidSafetyMode.none.name;
-    json['clinicianTargetMl'] = null;
-    json['allowAdjustmentsAboveClinicianTarget'] = false;
-    return json;
+    return {
+      'schemaVersion': metrics.schemaVersion,
+      'preferredWeightUnit': metrics.preferredWeightUnit.name,
+      'preferredHeightUnit': metrics.preferredHeightUnit.name,
+      'preferredPregnancyDurationUnit':
+          metrics.preferredPregnancyDurationUnit.name,
+    };
   }
 
   static HydrionBodyMetrics _applySecureFields(
     HydrionBodyMetrics base,
     Map<String, Object?> secure,
   ) {
+    if (secure['_bodySchema'] == 2) {
+      return HydrionBodyMetrics.fromJson({...base.toJson(), ...secure});
+    }
     final weight = secure['weightKg'];
     final height = secure['heightCm'];
     final pregnancyDays = secure['pregnancyGestationalDays'];

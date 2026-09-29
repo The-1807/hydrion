@@ -2298,6 +2298,18 @@ abstract class AppLocalizations {
   /// **'Choose measurements within the displayed safe input range.'**
   String get bodyMetricsInvalid;
 
+  /// No description provided for @bodyMetricsNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes could not be confirmed saved securely. Retry storage, then save again. Unsaved edits may be lost when you leave this screen.'**
+  String get bodyMetricsNotSaved;
+
+  /// No description provided for @bodyMetricsStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected body storage is unavailable. Existing data is preserved. Retry to restore secure access.'**
+  String get bodyMetricsStorageUnavailable;
+
   /// No description provided for @bodyMetricsDeleted.
   ///
   /// In en, this message translates to:

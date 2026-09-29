@@ -24,6 +24,14 @@ void main() {
     clinicianTargetMl: 1800,
   );
 
+  // Historical DATA-007 accepted fallback, not a newly authorized plaintext save.
+  Future<bool> seedLegacyPending(MemoryHydrionStore local) => local.writeString(
+      BodyMetricsRepository.storageKey,
+      jsonEncode({
+        ...initial.copyWith(weightKg: 71).toJson(),
+        '_bodyAuthority': {'version': 1, 'revision': 2, 'pending': true},
+      }));
+
   Future<(MemoryHydrionStore, _ControlledSecureStore, BodyMetricsRepository)>
       fixture() async {
     final local = MemoryHydrionStore();
@@ -38,9 +46,10 @@ void main() {
     final (local, secure, repo) = await fixture();
     secure.failWrites = true;
     expect(await repo.update(weightKg: 71, femaleProfile: false, now: now),
-        isTrue);
+        isFalse);
     expect(repo.lastWriteStatus, BodyMetricsWriteStatus.writeFailed);
-    expect(repo.state.revision, 2);
+    expect(repo.state.revision, 1);
+    await seedLegacyPending(local);
     for (var i = 0; i < 3; i++) {
       final loaded =
           await BodyMetricsRepository.load(local, secureStore: secure);
@@ -107,6 +116,7 @@ void main() {
       final (local, secure, repo) = await fixture();
       secure.failWrites = true;
       await repo.update(weightKg: 71, femaleProfile: false);
+      await seedLegacyPending(local);
       final record =
           jsonDecode(local.snapshot[BodyMetricsRepository.storageKey]!) as Map;
       record[field] = null;
@@ -229,6 +239,7 @@ void main() {
     final (local, secure, repo) = await fixture();
     secure.failWrites = true;
     await repo.update(weightKg: 71, femaleProfile: false);
+    await seedLegacyPending(local);
     secure.failWrites = false;
     await secure.write({'invalid': true});
     final before = local.snapshot;
@@ -286,16 +297,18 @@ void main() {
     expect(local.snapshot, before);
   });
 
-  test('verification failure retains pending revision even if write succeeded',
+  test('verification failure reports unsaved then reconciles secure revision',
       () async {
     final (local, secure, repo) = await fixture();
     secure.readUnavailable = true;
-    expect(await repo.update(weightKg: 71, femaleProfile: false), isTrue);
+    expect(await repo.update(weightKg: 71, femaleProfile: false), isFalse);
     expect(repo.lastWriteStatus, BodyMetricsWriteStatus.verificationFailed);
     final pending =
         await BodyMetricsRepository.load(local, secureStore: secure);
-    expect(pending.state.status, BodyMetricsStatus.pendingSecure);
-    expect(pending.metrics.weightKg, 71);
+    expect(pending.state.status, BodyMetricsStatus.unavailable);
+    expect(pending.state.value, isNull);
+    expect(local.snapshot[BodyMetricsRepository.storageKey],
+        isNot(contains('71')));
     secure.readUnavailable = false;
     await pending.reload();
     expect(pending.metrics.weightKg, 71);
@@ -331,7 +344,7 @@ void main() {
     secure.failWrites = true;
     expect(await repo.update(weightKg: 71, femaleProfile: false), isFalse);
     expect(repo.state.isKnown, isFalse);
-    expect(repo.lastWriteStatus, BodyMetricsWriteStatus.localWriteFailed);
+    expect(repo.lastWriteStatus, BodyMetricsWriteStatus.writeFailed);
     expect(local.snapshot, before);
     local.failWrites = false;
     secure.failWrites = false;
@@ -382,7 +395,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  test('DATA-007 accepted B survives failed secure write and restart',
+  test('DATA-007 legacy accepted B survives failed promotion and restart',
       () async {
     final store = MemoryHydrionStore();
     final secure = _ControlledSecureStore();
@@ -393,7 +406,8 @@ void main() {
     secure.failWrites = true;
     expect(
         await repository.update(weightKg: 71, femaleProfile: false, now: now),
-        isTrue);
+        isFalse);
+    await seedLegacyPending(store);
     final restarted =
         await BodyMetricsRepository.load(store, secureStore: secure);
     expect(restarted.metrics.weightKg, 71,

@@ -84,6 +84,46 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  for (final locale in ['en', 'fr', 'es']) {
+    testWidgets('secure save failure keeps editor draft and retries: $locale',
+        (tester) async {
+      final secure = _RetrySaveStore();
+      final local = MemoryHydrionStore();
+      final body = await BodyMetricsRepository.load(local, secureStore: secure);
+      await pumpScreen(tester,
+          locale: Locale(locale),
+          sex: HydrionSex.female,
+          bodyMetricsRepository: body);
+      final l10n =
+          AppLocalizations.of(tester.element(find.byType(BodyMetricsScreen)));
+      await tester.ensureVisible(find.text(l10n.addHeight));
+      await tester.tap(find.text(l10n.addHeight));
+      await tester.pump();
+      await tester.enterText(find.byKey(const Key('manual-height')), '183.5');
+      secure.reject = true;
+      await tester.tap(find.byKey(const Key('save-height')));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.bodyMetricsSaved), findsNothing);
+      expect(find.text(l10n.bodyMetricsNotSaved), findsWidgets);
+      expect(local.snapshot.toString(), isNot(contains('183.5')));
+      secure.reject = false;
+      await tester.tap(find.text(l10n.retry));
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('manual-height')))
+              .controller!
+              .text,
+          '183.5');
+      await tester.tap(find.byKey(const Key('save-height')));
+      await tester.pumpAndSettle();
+      expect(body.metrics.heightCm, 183.5);
+      expect(find.text(l10n.bodyMetricsSaved), findsOneWidget);
+      expect(local.snapshot.toString(), isNot(contains('183.5')));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   for (final retry in [false, true]) {
     testWidgets('H1 deletion completion clears sensitive drafts: retry=$retry',
         (tester) async {
@@ -698,6 +738,15 @@ void main() {
       expect(repository.metrics.heightCm, 170);
     },
   );
+}
+
+class _RetrySaveStore extends MemorySensitiveBodyMetricsStore {
+  bool reject = false;
+  @override
+  Future<void> write(Map<String, Object?> fields) async {
+    if (reject) throw StateError('synthetic secure write rejection');
+    await super.write(fields);
+  }
 }
 
 class _RetryDeleteStore extends MemorySensitiveBodyMetricsStore {

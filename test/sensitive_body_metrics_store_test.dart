@@ -80,13 +80,13 @@ void main() {
     ) as Map;
     expect(plaintextJson['weightKg'], isNull);
     expect(plaintextJson['clinicianTargetMl'], isNull);
-    expect(plaintextJson['fluidSafetyMode'], 'none');
+    expect(plaintextJson.containsKey('fluidSafetyMode'), isFalse);
     expect(plaintext.snapshot[migrationMarkerKey], 'completed');
   });
 
   test(
     'upgrade: existing plaintext sensitive values migrate on load and are '
-    'stripped from plaintext only on a subsequent, later load',
+    'stripped from plaintext only after verified secure readback',
     () async {
       final plaintext = MemoryHydrionStore({
         BodyMetricsRepository.storageKey: jsonEncode({
@@ -103,8 +103,7 @@ void main() {
       });
       final secure = MemorySensitiveBodyMetricsStore();
 
-      // First load: migrates and verifies, but must NOT strip plaintext on
-      // this same run (crash-safety — see BodyMetricsRepository docs).
+      // First load verifies the secure aggregate before stripping plaintext.
       final firstLoad = await BodyMetricsRepository.load(
         plaintext,
         secureStore: secure,
@@ -118,9 +117,8 @@ void main() {
       ) as Map;
       expect(
         afterFirstLoad['weightKg'],
-        68,
-        reason: 'plaintext original must survive the same run that first '
-            'wrote the secure copy',
+        isNull,
+        reason: 'only verified secure migration authorizes stripping',
       );
 
       // Second load (a later, separate app start): now safe to strip.
@@ -137,7 +135,7 @@ void main() {
       ) as Map;
       expect(afterSecondLoad['weightKg'], isNull);
       expect(afterSecondLoad['clinicianTargetMl'], isNull);
-      expect(afterSecondLoad['reproductiveState'], 'none');
+      expect(afterSecondLoad.containsKey('reproductiveState'), isFalse);
     },
   );
 
@@ -199,18 +197,17 @@ void main() {
               'the secure copy could not be verified');
       expect(json['clinicianTargetMl'], 1900);
 
-      // Subsequent saves must also keep falling back to full plaintext
-      // rather than silently dropping the sensitive fields.
+      // Legacy data is preserved read-only; new edits cannot downgrade.
       final saved = await repository.update(
         weightKg: 71,
         femaleProfile: false,
       );
-      expect(saved, isTrue);
+      expect(saved, isFalse);
       expect(repository.metrics.clinicianTargetMl, 1900);
       final resaved = jsonDecode(
         plaintext.snapshot[BodyMetricsRepository.storageKey]!,
       ) as Map;
-      expect(resaved['weightKg'], 71);
+      expect(resaved['weightKg'], 70);
       expect(resaved['clinicianTargetMl'], 1900);
     },
   );

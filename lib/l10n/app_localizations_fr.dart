@@ -1344,6 +1344,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Choisissez des mesures dans la plage sécuritaire affichée.';
 
   @override
+  String get bodyMetricsNotSaved =>
+      'L\'enregistrement sécurisé des modifications n\'a pas pu être confirmé. Réessayez le stockage, puis enregistrez à nouveau. Les modifications non enregistrées peuvent être perdues en quittant cet écran.';
+
+  @override
+  String get bodyMetricsStorageUnavailable =>
+      'Le stockage protégé des données corporelles est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l\'accès sécurisé.';
+
+  @override
   String get bodyMetricsDeleted => 'Mesures corporelles supprimées.';
 
   @override

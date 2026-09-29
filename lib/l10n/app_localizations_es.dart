@@ -1347,6 +1347,14 @@ class AppLocalizationsEs extends AppLocalizations {
       'Elige medidas dentro del rango seguro mostrado.';
 
   @override
+  String get bodyMetricsNotSaved =>
+      'No se pudo confirmar que los cambios se guardaran de forma segura. Reintenta el almacenamiento y vuelve a guardar. Los cambios sin guardar pueden perderse al salir de esta pantalla.';
+
+  @override
+  String get bodyMetricsStorageUnavailable =>
+      'El almacenamiento protegido de datos corporales no está disponible. Los datos existentes se conservan. Reintenta para restablecer el acceso seguro.';
+
+  @override
   String get bodyMetricsDeleted => 'Medidas corporales eliminadas.';
 
   @override

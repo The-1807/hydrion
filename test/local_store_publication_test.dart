@@ -255,7 +255,8 @@ void main() {
     secure.reject = true;
     reject = true;
     expect(await repo.update(weightKg: 71, femaleProfile: false), isFalse);
-    expect(jsonDecode(cachedDuringRejection!)['weightKg'], 71);
+    expect(cachedDuringRejection, isNull,
+        reason: 'Secure failure must not even attempt a plaintext fallback');
     expect(repo.state.isKnown, isFalse);
     SharedPreferences.resetStatic();
     reject = false;

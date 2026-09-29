@@ -37,11 +37,13 @@ void main() {
     expect(json['schemaVersion'], 3);
     expect(json['weightKg'], isNull);
     expect(json['heightCm'], isNull);
-    expect(json['weightUpdatedAt'], '2026-07-28T00:00:00.000');
-    expect(json['heightUpdatedAt'], '2026-07-28T00:00:00.000');
+    expect(json.containsKey('weightUpdatedAt'), isFalse);
+    expect(json.containsKey('heightUpdatedAt'), isFalse);
 
     final reloaded = await BodyMetricsRepository.load(store);
     expect(reloaded.metrics.weightKg, 70);
+    expect(reloaded.metrics.weightUpdatedAt, DateTime(2026, 7, 28));
+    expect(reloaded.metrics.heightUpdatedAt, DateTime(2026, 7, 28));
     expect(reloaded.metrics.preferredWeightUnit, HydrionWeightUnit.pounds);
   });
 
