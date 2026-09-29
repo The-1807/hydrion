@@ -424,7 +424,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     final minutes = int.tryParse(_activityMinutes.text.trim()) ?? -1;
     if (minutes < 0 || minutes > 1440) return;
     final now = DateTime.now();
-    await context.read<DailyHydrationContextRepository>().save(
+    final saved = await context.read<DailyHydrationContextRepository>().save(
           DailyHydrationContext(
             localDateKey: hydrionLocalDateKey(now),
             activityIntensity: _intensity,
@@ -435,9 +435,19 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
             updatedAt: now,
           ),
         );
+    if (!mounted) return;
+    if (!saved) {
+      setState(() => _recommendation = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(AppLocalizations.of(context).dailyContextNotSaved)),
+      );
+      return;
+    }
     await _refreshRecommendation();
     if (!mounted) return;
     setState(() => _editingContext = false);
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context).dailyContextSaved)),
     );
@@ -565,9 +575,10 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
         ])),
       );
     }
-    final today = context.watch<DailyHydrationContextRepository>().forDate(
-          hydrionLocalDateKey(DateTime.now()),
-        );
+    final dailyRepository = context.watch<DailyHydrationContextRepository>();
+    final today = dailyRepository.forDate(
+      hydrionLocalDateKey(DateTime.now()),
+    );
     final bmi = metrics.adultBmi;
     final category = adultBmiCategory(age: settings.age, bmi: bmi);
     return Scaffold(
@@ -1114,7 +1125,32 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
             ),
             Text(l10n.dailyContextOptional),
             const SizedBox(height: 12),
-            if (today == null && !_editingContext) ...[
+            if (!dailyRepository.isKnown ||
+                dailyRepository.status ==
+                    DailyContextStatus.cleanupPending) ...[
+              Text(dailyRepository.status == DailyContextStatus.unsupported
+                  ? l10n.dailyContextUnsupported
+                  : dailyRepository.status == DailyContextStatus.cleanupPending
+                      ? l10n.dailyContextCleanupPending
+                      : l10n.dailyContextUnavailable),
+              TextButton.icon(
+                key: const Key('retry-daily-context'),
+                onPressed: () async {
+                  await dailyRepository.retry();
+                  if (mounted) {
+                    if (dailyRepository.isKnown) {
+                      ScaffoldMessenger.of(this.context).clearSnackBars();
+                    }
+                    await _refreshRecommendation();
+                  }
+                },
+                icon: const Icon(Icons.refresh),
+                label: Text(l10n.retry),
+              ),
+            ],
+            if (dailyRepository.isKnown &&
+                today == null &&
+                !_editingContext) ...[
               Text(l10n.noDailyContext),
               OutlinedButton(
                 key: const Key('set-daily-context'),
@@ -1127,9 +1163,17 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
                 context: today,
                 onEdit: () => setState(() => _editingContext = true),
                 onClear: () async {
-                  await context.read<DailyHydrationContextRepository>().remove(
+                  final removed = await context
+                      .read<DailyHydrationContextRepository>()
+                      .remove(
                         today.localDateKey,
                       );
+                  if (!mounted) return;
+                  if (!removed) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text(l10n.dailyContextNotSaved)),
+                    );
+                  }
                   await _refreshRecommendation();
                 },
               ),
@@ -1149,7 +1193,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
               ),
             const Divider(height: 32),
             _RecommendationCard(
-              recommendation: _recommendation,
+              recommendation: dailyRepository.isKnown ? _recommendation : null,
               onReview: _refreshRecommendation,
               onApply: _applyRecommendation,
               onKeep: _keepCurrentGoal,

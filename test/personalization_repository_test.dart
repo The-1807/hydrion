@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'support/memory_protected_app_store.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/domain/daily_hydration_context.dart';
@@ -230,10 +231,12 @@ void main() {
   });
 
   test(
-    'daily contexts are bounded and clearing removes dedicated key',
+    'daily contexts are bounded in protected storage without a preference copy',
     () async {
       final store = MemoryHydrionStore();
-      final repository = await DailyHydrationContextRepository.load(store);
+      final protected = MemoryProtectedAppStore();
+      final repository = await DailyHydrationContextRepository.load(store,
+          protectedStore: protected);
       for (var i = 1; i <= 20; i++) {
         final date = DateTime(2026, 7, i);
         await repository.save(
@@ -243,10 +246,11 @@ void main() {
           ),
         );
       }
-      final json = jsonDecode(
-        store.snapshot[DailyHydrationContextRepository.storageKey]!,
-      ) as Map;
-      expect((json['contexts'] as List), hasLength(14));
+      expect(protected.record!.contexts, hasLength(14));
+      expect(
+          store.snapshot
+              .containsKey(DailyHydrationContextRepository.storageKey),
+          isFalse);
       await repository.clear();
       expect(
         store.snapshot.containsKey(DailyHydrationContextRepository.storageKey),
@@ -328,6 +332,7 @@ void main() {
       final store = MemoryHydrionStore();
       final services = await HydrionServices.fromStore(
         store,
+        protectedAppStore: MemoryProtectedAppStore(),
         locationService: FakeHydrionLocationService(),
         notificationAdapter: FakeHydrionNotificationAdapter(
           permission: HydrionNotificationPermissionState.granted,
@@ -356,7 +361,6 @@ void main() {
         store.snapshot.keys,
         containsAll([
           BodyMetricsRepository.storageKey,
-          DailyHydrationContextRepository.storageKey,
           PersonalizationStateRepository.storageKey,
         ]),
       );

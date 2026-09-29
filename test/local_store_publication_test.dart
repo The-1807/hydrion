@@ -21,6 +21,7 @@ void main() {
   late bool reject;
   late bool failReload;
   late bool throwWrite;
+  late bool dropRemoval;
   String? cachedDuringRejection;
   late SharedPreferences preferences;
   Completer<void>? reloadEntered;
@@ -31,6 +32,7 @@ void main() {
     reject = false;
     failReload = false;
     throwWrite = false;
+    dropRemoval = false;
     cachedDuringRejection = null;
     reloadEntered = null;
     releaseReload = null;
@@ -63,6 +65,11 @@ void main() {
         native[args['key'] as String] = args['value'] as String;
         return true;
       }
+      if (call.method == 'remove') {
+        if (reject) return false;
+        if (!dropRemoval) native.remove((call.arguments as Map)['key']);
+        return true;
+      }
       throw StateError('Unexpected preference operation');
     });
     preferences = await SharedPreferences.getInstance();
@@ -71,6 +78,32 @@ void main() {
     SharedPreferences.resetStatic();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
+  });
+
+  test('pilot cleanup rejects native false and reloads the lost cache value',
+      () async {
+    final store = SharedPreferencesHydrionStore(preferences);
+    expect(await store.writeString('pilot_synthetic', 'synthetic'), isTrue);
+    reject = true;
+    expect(await store.removeAcknowledged('pilot_synthetic'), isFalse);
+    expect(native['flutter.pilot_synthetic'], 'synthetic');
+    expect(await store.readString('pilot_synthetic'), 'synthetic');
+    reject = false;
+    expect(await store.removeAcknowledged('pilot_synthetic'), isTrue);
+    expect(await store.readString('pilot_synthetic'), isNull);
+    expect(native.containsKey('flutter.pilot_synthetic'), isFalse);
+  });
+
+  test('pilot cleanup verifies native absence even after true acknowledgement',
+      () async {
+    final store = SharedPreferencesHydrionStore(preferences);
+    await store.writeString('pilot_synthetic', 'synthetic');
+    dropRemoval = true;
+    expect(await store.removeAcknowledged('pilot_synthetic'), isFalse);
+    expect(await store.readString('pilot_synthetic'), 'synthetic');
+    dropRemoval = false;
+    expect(await store.removeAcknowledged('pilot_synthetic'), isTrue);
+    expect(await store.readString('pilot_synthetic'), isNull);
   });
 
   test('native rejection cannot publish cached body B over secure A', () async {

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'support/memory_protected_app_store.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/l10n/app_localizations.dart';
@@ -14,13 +15,15 @@ import 'package:hydrion/services/notifications.dart';
 import 'package:hydrion/services/timed_session_notification_service.dart';
 import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
+import 'package:hydrion/storage/protected_app_store.dart';
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   Future<HydrionServices> fixture(_PausedStore store,
-      {required bool auto}) async {
+      {required bool auto, MemoryProtectedAppStore? protected}) async {
     final services = await HydrionServices.fromStore(
+      protectedAppStore: protected ?? MemoryProtectedAppStore(),
       store,
       locationService: FakeHydrionLocationService(),
       notificationAdapter: FakeHydrionNotificationAdapter(),
@@ -78,6 +81,41 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
+
+  for (final auto in [false, true]) {
+    testWidgets('daily-context outage blocks shell commit: auto=$auto',
+        (tester) async {
+      final local = _PausedStore();
+      final protected = MemoryProtectedAppStore();
+      final services = await fixture(local, auto: auto, protected: protected);
+      final goal = services.settingsRepository.settings.dailyGoalMl;
+      local.pause = auto;
+      await tester
+          .pumpWidget(HydrionApp(services: services, initialRoute: '/home'));
+      await tester.pumpAndSettle();
+      expect(
+          auto
+              ? local.entered.isCompleted
+              : find.byType(AlertDialog).evaluate().isNotEmpty,
+          isTrue);
+      protected.readFailure = ProtectedReadStatus.unavailable;
+      await services.dailyHydrationContextRepository.retry();
+      expect(services.dailyHydrationContextRepository.isKnown, isFalse);
+      if (auto) {
+        local.resume.complete();
+      } else {
+        final label =
+            AppLocalizations.of(tester.element(find.byType(AlertDialog)))
+                .useSuggestion;
+        await tester.tap(find.text(label));
+      }
+      await tester.pumpAndSettle();
+      expect(services.settingsRepository.settings.dailyGoalMl, goal);
+      expect(services.settingsRepository.settings.lastWeatherGoalLocalDate,
+          isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 
   for (final loseSafety in [false, true]) {
     testWidgets('shell dialog commit respects current safety: lost=$loseSafety',

@@ -19,6 +19,7 @@ import 'repositories/challenge_repository.dart';
 import 'repositories/app_locale_repository.dart';
 import 'repositories/body_metrics_repository.dart';
 import 'repositories/daily_hydration_context_repository.dart';
+import 'storage/protected_app_store.dart';
 import 'repositories/guided_tour_repository.dart';
 import 'repositories/health_data_repository.dart';
 import 'repositories/hydration_repository.dart';
@@ -755,6 +756,7 @@ class HydrionServices {
 
   static Future<HydrionServices> fromStore(
     HydrionLocalStore store, {
+    ProtectedAppStore? protectedAppStore,
     HydrionAiRuntimeConfig aiRuntimeConfig = const HydrionAiRuntimeConfig(),
     HydrionLocationService? locationService,
     HydrionNotificationAdapter? notificationAdapter,
@@ -777,7 +779,8 @@ class HydrionServices {
     final challengeRepository = await ChallengeRepository.load(store);
     final bodyMetricsRepository = await BodyMetricsRepository.load(store);
     final dailyHydrationContextRepository =
-        await DailyHydrationContextRepository.load(store);
+        await DailyHydrationContextRepository.load(store,
+            protectedStore: protectedAppStore);
     final personalizationStateRepository =
         await PersonalizationStateRepository.load(store);
     if (bodyMetricsRepository.state.isKnown &&
@@ -1097,6 +1100,7 @@ class HydrionServices {
   }
 
   Future<void> dispose() async {
+    await dailyHydrationContextRepository.close();
     await healthDataRepository?.close();
   }
 

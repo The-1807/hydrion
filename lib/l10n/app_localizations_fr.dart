@@ -160,6 +160,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get retry => 'Réessayer';
 
   @override
+  String get dailyContextUnavailable =>
+      'Le contexte quotidien protégé est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l\'accès.';
+
+  @override
+  String get dailyContextUnsupported =>
+      'Le contexte quotidien protégé est disponible uniquement sur Android et iOS. Les données existantes sont conservées.';
+
+  @override
+  String get dailyContextNotSaved =>
+      'Le contexte quotidien n\'a pas été enregistré. Votre brouillon reste ici. Rétablissez le stockage protégé avant de réessayer.';
+
+  @override
+  String get dailyContextCleanupPending =>
+      'La copie protégée est enregistrée, mais l\'ancienne copie locale doit encore être supprimée. Réessayez pour terminer le nettoyage.';
+
+  @override
   String get osNotificationsAvailableSentence =>
       'Les notifications système sont disponibles.';
 

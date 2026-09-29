@@ -73,34 +73,35 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
         .toList(growable: false);
     final now = DateTime.now();
     final dateKey = hydrionLocalDateKey(now);
-    final eligibleRecommendations = bodyMetrics == null
-        ? <ChallengeRecommendation>[]
-        : context
-            .read<ChallengeRecommendationService>()
-            .rank(
-              ChallengeRecommendationInputs(
-                now: now,
-                localDateKey: dateKey,
-                settings: settings,
-                bodyMetrics: bodyMetrics,
-                dailyContext: dailyContextRepository.forDate(dateKey),
-                weather: weatherContext.eligibleSnapshot(
-                  now: now,
-                  weatherEnabled: settings.weatherModifierEnabled,
-                  locationPermissionGranted:
-                      permissions.snapshot.location.isGranted,
-                ),
-                activeChallenges: activeChallenges,
-                hydrationLogCountLastSevenDays: hydrationRepository
-                    .fetch(now.subtract(const Duration(days: 7)), now)
-                    .length,
-                dismissedChallengeIds:
-                    personalizationState.dismissedForDate(dateKey),
-                preferences: personalizationState.challengePreferences,
-              ),
-            )
-            .where((item) => item.eligible)
-            .toList(growable: false);
+    final eligibleRecommendations =
+        bodyMetrics == null || !dailyContextRepository.isKnown
+            ? <ChallengeRecommendation>[]
+            : context
+                .read<ChallengeRecommendationService>()
+                .rank(
+                  ChallengeRecommendationInputs(
+                    now: now,
+                    localDateKey: dateKey,
+                    settings: settings,
+                    bodyMetrics: bodyMetrics,
+                    dailyContext: dailyContextRepository.forDate(dateKey),
+                    weather: weatherContext.eligibleSnapshot(
+                      now: now,
+                      weatherEnabled: settings.weatherModifierEnabled,
+                      locationPermissionGranted:
+                          permissions.snapshot.location.isGranted,
+                    ),
+                    activeChallenges: activeChallenges,
+                    hydrationLogCountLastSevenDays: hydrationRepository
+                        .fetch(now.subtract(const Duration(days: 7)), now)
+                        .length,
+                    dismissedChallengeIds:
+                        personalizationState.dismissedForDate(dateKey),
+                    preferences: personalizationState.challengePreferences,
+                  ),
+                )
+                .where((item) => item.eligible)
+                .toList(growable: false);
     final recommendation =
         eligibleRecommendations.isEmpty ? null : eligibleRecommendations.first;
 

@@ -15,6 +15,8 @@ import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/ui/screens/body_metrics_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:hydrion/storage/protected_app_store.dart';
+import 'support/memory_protected_app_store.dart';
 
 void main() {
   Future<void> pumpScreen(
@@ -28,6 +30,7 @@ void main() {
             DailyHydrationRecommendationCoordinator)?
         wrapCoordinator,
     BodyMetricsRepository? bodyMetricsRepository,
+    DailyHydrationContextRepository? dailyContextRepository,
   }) async {
     final settings = UserSettingsRepository.memory(locale);
     await settings.setProfile(nickname: 'River', age: 30, sex: sex);
@@ -37,7 +40,8 @@ void main() {
           weatherModifierEnabled: true);
     }
     final bodyMetrics = bodyMetricsRepository ?? BodyMetricsRepository.memory();
-    final dailyContext = DailyHydrationContextRepository.memory();
+    final dailyContext =
+        dailyContextRepository ?? DailyHydrationContextRepository.memory();
     final state = PersonalizationStateRepository.memory();
     final coordinator = DailyHydrationRecommendationCoordinator(
       settingsRepository: settings,
@@ -82,6 +86,61 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+  }
+
+  for (final locale in ['en', 'fr', 'es']) {
+    testWidgets('protected context draft survives failure and retry: $locale',
+        (tester) async {
+      final protected = MemoryProtectedAppStore();
+      final local = MemoryHydrionStore();
+      final daily = await DailyHydrationContextRepository.load(local,
+          protectedStore: protected);
+      await pumpScreen(tester,
+          locale: Locale(locale),
+          sex: HydrionSex.female,
+          dailyContextRepository: daily);
+      final l10n =
+          AppLocalizations.of(tester.element(find.byType(BodyMetricsScreen)));
+      final scroll = find
+          .descendant(
+              of: find.byKey(const Key('body-metrics-scroll')),
+              matching: find.byType(Scrollable))
+          .first;
+      await tester.scrollUntilVisible(
+          find.byKey(const Key('set-daily-context')), 300,
+          scrollable: scroll);
+      await tester.tap(find.byKey(const Key('set-daily-context')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('activity-minutes')));
+      await tester.enterText(find.byKey(const Key('activity-minutes')), '47');
+      protected.writeFailure = ProtectedWriteStatus.failed;
+      await tester.ensureVisible(find.text(l10n.saveDailyContext));
+      await tester.tap(find.text(l10n.saveDailyContext));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.dailyContextSaved), findsNothing);
+      expect(find.text(l10n.dailyContextNotSaved), findsOneWidget);
+      expect(local.snapshot, isEmpty);
+      protected.writeFailure = null;
+      tester.state<ScrollableState>(scroll).position.jumpTo(0);
+      await tester.pump();
+      await tester.scrollUntilVisible(
+          find.byKey(const Key('retry-daily-context')), 250,
+          scrollable: scroll);
+      await tester.tap(find.byKey(const Key('retry-daily-context')));
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('activity-minutes')))
+              .controller!
+              .text,
+          '47');
+      await tester.ensureVisible(find.text(l10n.saveDailyContext));
+      await tester.tap(find.text(l10n.saveDailyContext));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.dailyContextSaved), findsOneWidget);
+      expect(protected.record!.contexts.single.activityMinutes, 47);
+      expect(tester.takeException(), isNull);
+    });
   }
 
   for (final locale in ['en', 'fr', 'es']) {

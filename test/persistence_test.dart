@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'support/memory_protected_app_store.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/domain/hydration_contracts.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
@@ -349,8 +350,10 @@ void main() {
   test('local profile reset clears profile-owned data and survives reload',
       () async {
     final store = MemoryHydrionStore();
+    final protected = MemoryProtectedAppStore();
     final services = await HydrionServices.fromStore(
       store,
+      protectedAppStore: protected,
       notificationAdapter: FakeHydrionNotificationAdapter(),
     );
     final now = DateTime(2026, 7, 23, 9);
@@ -403,6 +406,7 @@ void main() {
     final result = await services.localProfileResetService.resetLocalProfile();
     final reloaded = await HydrionServices.fromStore(
       store,
+      protectedAppStore: protected,
       notificationAdapter: FakeHydrionNotificationAdapter(),
     );
 
@@ -467,8 +471,10 @@ void main() {
   test('profile deletion continues if Android reminder cancellation fails',
       () async {
     final store = MemoryHydrionStore();
+    final protected = MemoryProtectedAppStore();
     final services = await HydrionServices.fromStore(
       store,
+      protectedAppStore: protected,
       notificationAdapter: FakeHydrionNotificationAdapter(
         failCancelAll: true,
       ),
@@ -509,6 +515,7 @@ void main() {
     final reloaded = await HydrionServices.fromStore(
       store,
       notificationAdapter: FakeHydrionNotificationAdapter(),
+      protectedAppStore: protected,
     );
     await reloaded.notificationService.initialize();
     expect(reloaded.reminderRepository.orphanNotificationIds, isEmpty);

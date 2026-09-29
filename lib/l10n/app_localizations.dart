@@ -353,6 +353,30 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get retry;
 
+  /// No description provided for @dailyContextUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected daily context is unavailable. Existing data is preserved. Retry to restore access.'**
+  String get dailyContextUnavailable;
+
+  /// No description provided for @dailyContextUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected daily context is supported on Android and iOS only. Existing data is preserved.'**
+  String get dailyContextUnsupported;
+
+  /// No description provided for @dailyContextNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily context was not saved. Your draft remains here. Retry protected storage before saving again.'**
+  String get dailyContextNotSaved;
+
+  /// No description provided for @dailyContextCleanupPending.
+  ///
+  /// In en, this message translates to:
+  /// **'The protected copy is saved, but the old local copy still needs removal. Retry to finish cleanup.'**
+  String get dailyContextCleanupPending;
+
   /// No description provided for @osNotificationsAvailableSentence.
   ///
   /// In en, this message translates to:

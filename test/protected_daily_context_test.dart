@@ -1,0 +1,263 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrion/domain/daily_hydration_context.dart';
+import 'package:hydrion/repositories/daily_hydration_context_repository.dart';
+import 'package:hydrion/storage/encrypted_app_store.dart';
+import 'package:hydrion/storage/local_store.dart';
+import 'package:hydrion/storage/protected_app_store.dart';
+
+import 'support/memory_protected_app_store.dart';
+
+void main() {
+  const sourceKey = DailyHydrationContextRepository.storageKey;
+  const intentKey = DailyHydrationContextRepository.deletionKey;
+  String legacy([int count = 1]) => jsonEncode({
+        'schemaVersion': 1,
+        'contexts': List.generate(count, (i) => _context(i + 1).toJson())
+      });
+
+  test(
+      'real SQLCipher migration verifies then strips source and survives restart',
+      () async {
+    final directory = await Directory.systemTemp.createTemp('hydrion-context-');
+    final path = '${directory.path}/app.db';
+    final key = Uint8List.fromList(List.filled(32, 70));
+    final local = MemoryHydrionStore({sourceKey: legacy(20)});
+    var store = await EncryptedAppStore.open(path: path, key: key);
+    var repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: store);
+    expect(repo.status, DailyContextStatus.ready);
+    expect(local.snapshot, isEmpty);
+    expect((await store.readDailyContext()).record!.contexts, hasLength(14));
+    expect(repo.forDate('2026-09-06'), isNull);
+    expect(repo.forDate('2026-09-07'), isNotNull);
+    await repo.close();
+    store = await EncryptedAppStore.open(path: path, key: key);
+    repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: store);
+    expect(repo.forDate('2026-09-20')!.temporaryCondition,
+        HydrionTemporaryCondition.fever);
+    await repo.clear();
+    expect(repo.forDate('2026-09-20'), isNull);
+    expect(local.snapshot, isEmpty);
+    await repo.close();
+    await directory.delete(recursive: true);
+  });
+
+  for (final failure in [
+    ProtectedWriteStatus.failed,
+    ProtectedWriteStatus.verificationFailed
+  ]) {
+    test('migration $failure preserves source and reports unavailable',
+        () async {
+      final raw = legacy();
+      final local = MemoryHydrionStore({sourceKey: raw});
+      final protected = MemoryProtectedAppStore()..writeFailure = failure;
+      final repo = await DailyHydrationContextRepository.load(local,
+          protectedStore: protected);
+      expect(repo.isKnown, isFalse);
+      expect(repo.forDate('2026-09-01'), isNull);
+      expect(local.snapshot[sourceKey], raw);
+      protected.writeFailure = null;
+      await repo.retry();
+      expect(repo.status, DailyContextStatus.ready);
+      expect(local.snapshot.containsKey(sourceKey), isFalse);
+    });
+  }
+
+  test('cutover failure retains source and provisional state for retry',
+      () async {
+    final local = MemoryHydrionStore({sourceKey: legacy()});
+    final protected = _RejectActivation();
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    expect(repo.isKnown, isFalse);
+    expect(protected.record!.phase, ContextRecordPhase.provisional);
+    expect(local.snapshot[sourceKey], isNotNull);
+    protected.reject = false;
+    await repo.retry();
+    expect(repo.status, DailyContextStatus.ready);
+    expect(protected.record!.phase, ContextRecordPhase.active);
+    expect(local.snapshot, isEmpty);
+  });
+
+  test(
+      'failed legacy cleanup is explicit and retry never restores stale source',
+      () async {
+    final local = _Local({sourceKey: legacy()})..rejectRemoval = true;
+    final protected = MemoryProtectedAppStore();
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    expect(repo.status, DailyContextStatus.cleanupPending);
+    expect(await repo.remove('2026-09-01'), isFalse);
+    expect(await repo.save(_context(2)), isTrue);
+    expect(repo.status, DailyContextStatus.cleanupPending);
+    local.rejectRemoval = false;
+    final restarted = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    expect(restarted.status, DailyContextStatus.ready);
+    expect(restarted.forDate('2026-09-02'), isNotNull);
+    expect(local.snapshot, isEmpty);
+  });
+
+  test('failed save never publishes new fields or creates plaintext', () async {
+    final local = MemoryHydrionStore();
+    final protected = MemoryProtectedAppStore();
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    expect(await repo.save(_context(1)), isTrue);
+    protected.writeFailure = ProtectedWriteStatus.failed;
+    expect(await repo.save(_context(2)), isFalse);
+    expect(repo.isKnown, isFalse);
+    expect(local.snapshot, isEmpty);
+    protected.writeFailure = null;
+    await repo.retry();
+    expect(repo.forDate('2026-09-01'), isNotNull);
+    expect(repo.forDate('2026-09-02'), isNull);
+  });
+
+  test('acknowledged deletion intent hides both copies across restart',
+      () async {
+    final local = _Local({sourceKey: legacy()})..rejectRemoval = true;
+    final protected = MemoryProtectedAppStore();
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    protected.deleteFailure = ProtectedDeleteStatus.failed;
+    await expectLater(repo.clear(), throwsA(isA<DailyContextUnavailable>()));
+    expect(repo.status, DailyContextStatus.deletionPending);
+    expect(local.snapshot[intentKey], isNotNull);
+    expect(repo.forDate('2026-09-01'), isNull);
+    final restarted = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    expect(restarted.status, DailyContextStatus.deletionPending);
+    expect(await restarted.save(_context(2)), isFalse);
+    protected.deleteFailure = null;
+    local.rejectRemoval = false;
+    await restarted.retry();
+    expect(restarted.status, DailyContextStatus.ready);
+    expect(restarted.forDate('2026-09-01'), isNull);
+    expect(local.snapshot, isEmpty);
+  });
+
+  test('rejected deletion intent does not destroy protected data', () async {
+    final local = _Local();
+    final protected = MemoryProtectedAppStore();
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    await repo.save(_context(1));
+    local.rejectWrite = true;
+    await expectLater(repo.clear(), throwsA(isA<DailyContextUnavailable>()));
+    expect(protected.record!.contexts, hasLength(1));
+    expect(local.snapshot.containsKey(intentKey), isFalse);
+    expect(repo.isKnown, isFalse);
+  });
+
+  test('deletion verification failure retains intent until verified retry',
+      () async {
+    final local = MemoryHydrionStore();
+    final protected = MemoryProtectedAppStore();
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    await repo.save(_context(1));
+    protected.deleteFailure = ProtectedDeleteStatus.verificationFailed;
+    await expectLater(repo.clear(), throwsA(isA<DailyContextUnavailable>()));
+    expect(local.snapshot[intentKey], isNotNull);
+    expect(repo.isKnown, isFalse);
+    protected.deleteFailure = null;
+    await repo.retry();
+    expect(repo.isKnown, isTrue);
+    expect(local.snapshot, isEmpty);
+    expect(repo.forDate('2026-09-01'), isNull);
+  });
+
+  test('conflicting provisional history is preserved instead of guessed',
+      () async {
+    final local = MemoryHydrionStore({sourceKey: legacy()});
+    final protected = MemoryProtectedAppStore()
+      ..record = ProtectedContextRecord(
+          revision: 1,
+          phase: ContextRecordPhase.provisional,
+          contexts: [_context(2)]);
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    expect(repo.status, DailyContextStatus.corrupt);
+    expect(protected.writes, 0);
+    expect(protected.record!.contexts.single.localDateKey, '2026-09-02');
+    expect(local.snapshot[sourceKey], legacy());
+  });
+
+  for (final raw in [
+    '{',
+    '{"schemaVersion":99,"contexts":[]}',
+    '{"contexts":[]}',
+    '{"schemaVersion":1,"contexts":[{}]}'
+  ]) {
+    test('invalid or unversioned source is quarantined: $raw', () async {
+      final local = MemoryHydrionStore({sourceKey: raw});
+      final protected = MemoryProtectedAppStore();
+      final repo = await DailyHydrationContextRepository.load(local,
+          protectedStore: protected);
+      expect(
+          repo.status,
+          raw.contains('99')
+              ? DailyContextStatus.unsupported
+              : DailyContextStatus.corrupt);
+      expect(protected.writes, 0);
+      expect(local.snapshot[sourceKey], raw);
+    });
+  }
+
+  test('unsupported storage preserves source and cannot persist edits',
+      () async {
+    final local = MemoryHydrionStore({sourceKey: legacy()});
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: const UnavailableProtectedAppStore());
+    expect(repo.status, DailyContextStatus.unsupported);
+    expect(await repo.save(_context(2)), isFalse);
+    expect(local.snapshot[sourceKey], legacy());
+    await expectLater(repo.clear(), throwsA(isA<DailyContextUnavailable>()));
+    expect(local.snapshot[sourceKey], legacy());
+  });
+
+  test('concurrent facade writes serialize and retain all days', () async {
+    final protected = MemoryProtectedAppStore();
+    final repo = await DailyHydrationContextRepository.load(
+        MemoryHydrionStore(),
+        protectedStore: protected);
+    expect(
+        await Future.wait(List.generate(20, (i) => repo.save(_context(i + 1)))),
+        everyElement(isTrue));
+    expect(protected.record!.contexts, hasLength(14));
+    expect(protected.record!.revision, 21);
+  });
+}
+
+DailyHydrationContext _context(int day) => DailyHydrationContext(
+    localDateKey: '2026-09-${day.toString().padLeft(2, '0')}',
+    temporaryCondition: HydrionTemporaryCondition.fever,
+    activityMinutes: 30,
+    updatedAt: DateTime.utc(2026, 9, day));
+
+class _Local extends MemoryHydrionStore {
+  _Local([super.values]);
+  bool rejectRemoval = false, rejectWrite = false;
+  @override
+  Future<bool> removeAcknowledged(String key) async =>
+      rejectRemoval ? false : super.removeAcknowledged(key);
+  @override
+  Future<bool> writeString(String key, String value) async =>
+      rejectWrite ? false : super.writeString(key, value);
+}
+
+class _RejectActivation extends MemoryProtectedAppStore {
+  bool reject = true;
+  @override
+  Future<ProtectedWriteStatus> writeDailyContext(
+          ProtectedContextRecord value) =>
+      reject && value.phase == ContextRecordPhase.active
+          ? Future.value(ProtectedWriteStatus.failed)
+          : super.writeDailyContext(value);
+}

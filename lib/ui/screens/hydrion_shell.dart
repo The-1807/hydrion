@@ -181,7 +181,10 @@ class _HydrionShellState extends State<HydrionShell>
     if (settings.weatherGoalAutoApplyEnabled &&
         !settings.weatherGoalDailyConfirmationEnabled &&
         personalized.mayAutoApply) {
-      if (!context.read<BodyMetricsRepository>().state.isKnown) return;
+      if (!context.read<BodyMetricsRepository>().state.isKnown ||
+          !personalizedCoordinator.dailyContextRepository.isKnown) {
+        return;
+      }
       await context.read<UserSettingsRepository>().applyWeatherGoal(
             goalMl: personalized.roundedRecommendedGoalMl,
             decidedAt: DateTime.now(),
@@ -271,7 +274,10 @@ class _HydrionShellState extends State<HydrionShell>
       ),
     );
     if (!mounted || useSuggestion == null) return;
-    if (!context.read<BodyMetricsRepository>().state.isKnown) return;
+    if (!context.read<BodyMetricsRepository>().state.isKnown ||
+        !personalizedCoordinator.dailyContextRepository.isKnown) {
+      return;
+    }
     if (useSuggestion) {
       await context.read<UserSettingsRepository>().applyWeatherGoal(
             goalMl: personalized.roundedRecommendedGoalMl,

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'support/memory_protected_app_store.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
@@ -48,6 +49,7 @@ void main() {
 
   test('profile reset reports body failure and success after retry', () async {
     final services = await HydrionServices.fromStore(MemoryHydrionStore(),
+        protectedAppStore: MemoryProtectedAppStore(),
         notificationAdapter: FakeHydrionNotificationAdapter());
     final reset = LocalProfileResetService(
       settingsRepository: services.settingsRepository,

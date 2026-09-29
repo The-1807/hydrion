@@ -11,6 +11,7 @@ import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/daily_hydration_recommendation_coordinator.dart';
 import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
+import 'support/memory_protected_app_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -71,7 +72,8 @@ void main() {
       femaleProfile: true,
       now: DateTime(2026, 7, 28),
     );
-    final contexts = await DailyHydrationContextRepository.load(localStore);
+    final contexts = await DailyHydrationContextRepository.load(localStore,
+        protectedStore: MemoryProtectedAppStore());
     final state = await PersonalizationStateRepository.load(localStore);
     return _Fixture(
       settings,

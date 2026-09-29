@@ -157,6 +157,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Retry';
 
   @override
+  String get dailyContextUnavailable =>
+      'Protected daily context is unavailable. Existing data is preserved. Retry to restore access.';
+
+  @override
+  String get dailyContextUnsupported =>
+      'Protected daily context is supported on Android and iOS only. Existing data is preserved.';
+
+  @override
+  String get dailyContextNotSaved =>
+      'Daily context was not saved. Your draft remains here. Retry protected storage before saving again.';
+
+  @override
+  String get dailyContextCleanupPending =>
+      'The protected copy is saved, but the old local copy still needs removal. Retry to finish cleanup.';
+
+  @override
   String get osNotificationsAvailableSentence =>
       'OS notifications are available.';
 

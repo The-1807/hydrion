@@ -52,6 +52,23 @@ class SharedPreferencesHydrionStore implements HydrionLocalStore {
         // Ordering only: deletion acknowledgement policy remains unchanged.
         await _preferences.remove(key);
       });
+
+  /// SEC-001 pilot cleanup only; legacy remove callers retain their contract.
+  Future<bool> removeAcknowledged(String key) => _coordination.run(() async {
+        try {
+          final acknowledged = await _preferences.remove(key);
+          if (!acknowledged) {
+            _coordination.needsReload = true;
+            return false;
+          }
+          await _preferences.reload();
+          _coordination.needsReload = false;
+          return !_preferences.containsKey(key);
+        } catch (_) {
+          _coordination.needsReload = true;
+          rethrow;
+        }
+      });
 }
 
 class _PreferenceOperations {
@@ -88,5 +105,10 @@ class MemoryHydrionStore implements HydrionLocalStore {
   @override
   Future<void> remove(String key) async {
     _values.remove(key);
+  }
+
+  Future<bool> removeAcknowledged(String key) async {
+    await remove(key);
+    return true;
   }
 }

@@ -49,6 +49,9 @@ class DailyHydrationRecommendationCoordinator {
           bodyMetricsRepository.state.status);
     } on BodyMetricsUnavailable catch (failure) {
       return BodyMetricsRecommendationResult(null, failure.status);
+    } on DailyContextUnavailable {
+      return BodyMetricsRecommendationResult(
+          null, bodyMetricsRepository.state.status);
     }
   }
 
@@ -58,6 +61,7 @@ class DailyHydrationRecommendationCoordinator {
     bool locationPermissionGranted = false,
     bool cachedWeatherUsed = false,
   }) async {
+    if (!dailyContextRepository.isKnown) throw const DailyContextUnavailable();
     final settings = settingsRepository.settings;
     final dateKey = hydrionLocalDateKey(now);
     final metrics = bodyMetricsRepository.metrics.sanitized(
@@ -89,6 +93,7 @@ class DailyHydrationRecommendationCoordinator {
     if (!bodyMetricsRepository.state.isKnown) {
       throw BodyMetricsUnavailable(bodyMetricsRepository.state.status);
     }
+    if (!dailyContextRepository.isKnown) throw const DailyContextUnavailable();
     return recommendation;
   }
 
@@ -96,7 +101,10 @@ class DailyHydrationRecommendationCoordinator {
     HydrationRecommendation recommendation, {
     required DateTime now,
   }) {
-    if (!bodyMetricsRepository.state.isKnown) return Future.value(false);
+    if (!bodyMetricsRepository.state.isKnown ||
+        !dailyContextRepository.isKnown) {
+      return Future.value(false);
+    }
     return settingsRepository.setDailyGoalMl(
       recommendation.roundedRecommendedGoalMl,
       updateBaseline: false,
@@ -109,13 +117,19 @@ class DailyHydrationRecommendationCoordinator {
     HydrationRecommendation recommendation, {
     required DateTime now,
   }) async {
-    if (!bodyMetricsRepository.state.isKnown) return false;
+    if (!bodyMetricsRepository.state.isKnown ||
+        !dailyContextRepository.isKnown) {
+      return false;
+    }
     await settingsRepository.setPersonalizedGoalOptions(
       baselineSource: HydrionBaselineSource.personalized,
       weatherModifierEnabled:
           settingsRepository.settings.weatherModifierEnabled,
     );
-    if (!bodyMetricsRepository.state.isKnown) return false;
+    if (!bodyMetricsRepository.state.isKnown ||
+        !dailyContextRepository.isKnown) {
+      return false;
+    }
     return settingsRepository.setDailyGoalMl(
       recommendation.baselineGoalMl,
       updateBaseline: true,
