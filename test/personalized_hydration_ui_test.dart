@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/body_metrics.dart';
+import 'package:hydrion/domain/daily_hydration_context.dart';
+import 'package:hydrion/domain/hydration_recommendation.dart';
 import 'package:hydrion/l10n/app_localizations.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
 import 'package:hydrion/repositories/daily_hydration_context_repository.dart';
@@ -89,6 +91,123 @@ void main() {
   }
 
   for (final locale in ['en', 'fr', 'es']) {
+    testWidgets(
+        'H2 recovered context initializes editor rather than defaults: $locale',
+        (tester) async {
+      final saved = DailyHydrationContext(
+        localDateKey: hydrionLocalDateKey(DateTime.now()),
+        activityIntensity: HydrionActivityIntensity.vigorous,
+        activityMinutes: 85,
+        environment: HydrionEnvironmentExposure.mostlyOutdoors,
+        sweatLevel: HydrionSweatLevel.high,
+        temporaryCondition: HydrionTemporaryCondition.recovering,
+        userAdjustmentMl: 175,
+        updatedAt: DateTime.now(),
+      );
+      final protected = MemoryProtectedAppStore()
+        ..record = ProtectedContextRecord(
+            revision: 7, phase: ContextRecordPhase.active, contexts: [saved])
+        ..readFailure = ProtectedReadStatus.unavailable;
+      final daily = await DailyHydrationContextRepository.load(
+          MemoryHydrionStore(),
+          protectedStore: protected);
+      await pumpScreen(tester,
+          locale: Locale(locale),
+          sex: HydrionSex.female,
+          dailyContextRepository: daily);
+      final l10n =
+          AppLocalizations.of(tester.element(find.byType(BodyMetricsScreen)));
+      final coordinator = tester
+          .element(find.byType(BodyMetricsScreen))
+          .read<DailyHydrationRecommendationCoordinator>();
+      expect(
+          (await coordinator.calculateResult(now: DateTime.now()))
+              .recommendation,
+          isNull);
+      final scroll = find
+          .descendant(
+              of: find.byKey(const Key('body-metrics-scroll')),
+              matching: find.byType(Scrollable))
+          .first;
+      await tester.scrollUntilVisible(
+          find.byKey(const Key('retry-daily-context')), 300,
+          scrollable: scroll);
+      await tester.ensureVisible(find.byKey(const Key('retry-daily-context')));
+      await tester.pumpAndSettle();
+      protected.readFailure = null;
+      await tester.tap(find.byKey(const Key('retry-daily-context')));
+      await tester.pumpAndSettle();
+      expect(daily.forDate(saved.localDateKey)!.activityMinutes, 85);
+      final recommendation = coordinator.stateRepository.latestRecommendation!;
+      expect(recommendation.userAdjustmentMl, 175);
+      expect(recommendation.activityAdjustmentMl, greaterThan(0));
+      expect(recommendation.safetyNotices,
+          contains(HydrationFactorCode.illnessGuidance));
+      expect(find.text(l10n.dailyContextUnavailable), findsNothing);
+      final edit = find.descendant(
+          of: find.byKey(const Key('daily-context-summary')),
+          matching: find.widgetWithText(OutlinedButton, l10n.edit));
+      await tester.ensureVisible(edit);
+      await tester.tap(edit);
+      await tester.pumpAndSettle();
+      void expectRecoveredEditor() {
+        expect(
+            tester
+                .state<FormFieldState<HydrionActivityIntensity>>(find
+                    .byType(DropdownButtonFormField<HydrionActivityIntensity>))
+                .value,
+            saved.activityIntensity);
+        expect(
+            tester
+                .state<FormFieldState<HydrionEnvironmentExposure>>(find.byType(
+                    DropdownButtonFormField<HydrionEnvironmentExposure>))
+                .value,
+            saved.environment);
+        expect(
+            tester
+                .state<FormFieldState<HydrionSweatLevel>>(
+                    find.byType(DropdownButtonFormField<HydrionSweatLevel>))
+                .value,
+            saved.sweatLevel);
+        expect(
+            tester
+                .state<FormFieldState<HydrionTemporaryCondition>>(find
+                    .byType(DropdownButtonFormField<HydrionTemporaryCondition>))
+                .value,
+            saved.temporaryCondition);
+        expect(
+            tester
+                .widget<TextField>(find.byKey(const Key('activity-minutes')))
+                .controller!
+                .text,
+            '85');
+      }
+
+      expectRecoveredEditor();
+      await tester.ensureVisible(find.text(l10n.saveDailyContext));
+      await tester.tap(find.text(l10n.saveDailyContext));
+      await tester.pumpAndSettle();
+      final actual = daily.forDate(saved.localDateKey)!.toJson()
+        ..remove('updatedAt');
+      expect(actual, saved.toJson()..remove('updatedAt'));
+      expect(coordinator.stateRepository.latestRecommendation!.userAdjustmentMl,
+          175);
+      await tester.pumpWidget(const SizedBox());
+      await pumpScreen(tester,
+          locale: Locale(locale),
+          sex: HydrionSex.female,
+          dailyContextRepository: daily);
+      await tester.scrollUntilVisible(edit, 300, scrollable: scroll);
+      await tester.ensureVisible(edit);
+      await tester.pumpAndSettle();
+      await tester.tap(edit);
+      await tester.pumpAndSettle();
+      expectRecoveredEditor();
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final locale in ['en', 'fr', 'es']) {
     testWidgets('protected context draft survives failure and retry: $locale',
         (tester) async {
       final protected = MemoryProtectedAppStore();
@@ -113,6 +232,23 @@ void main() {
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const Key('activity-minutes')));
       await tester.enterText(find.byKey(const Key('activity-minutes')), '47');
+      tester
+          .widget<DropdownButtonFormField<HydrionActivityIntensity>>(
+              find.byType(DropdownButtonFormField<HydrionActivityIntensity>))
+          .onChanged!(HydrionActivityIntensity.moderate);
+      tester
+          .widget<DropdownButtonFormField<HydrionEnvironmentExposure>>(
+              find.byType(DropdownButtonFormField<HydrionEnvironmentExposure>))
+          .onChanged!(HydrionEnvironmentExposure.mixed);
+      tester
+          .widget<DropdownButtonFormField<HydrionSweatLevel>>(
+              find.byType(DropdownButtonFormField<HydrionSweatLevel>))
+          .onChanged!(HydrionSweatLevel.high);
+      tester
+          .widget<DropdownButtonFormField<HydrionTemporaryCondition>>(
+              find.byType(DropdownButtonFormField<HydrionTemporaryCondition>))
+          .onChanged!(HydrionTemporaryCondition.fever);
+      await tester.pump();
       protected.writeFailure = ProtectedWriteStatus.failed;
       await tester.ensureVisible(find.text(l10n.saveDailyContext));
       await tester.tap(find.text(l10n.saveDailyContext));
@@ -139,6 +275,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(l10n.dailyContextSaved), findsOneWidget);
       expect(protected.record!.contexts.single.activityMinutes, 47);
+      expect(protected.record!.contexts.single.activityIntensity,
+          HydrionActivityIntensity.moderate);
+      expect(protected.record!.contexts.single.environment,
+          HydrionEnvironmentExposure.mixed);
+      expect(
+          protected.record!.contexts.single.sweatLevel, HydrionSweatLevel.high);
+      expect(protected.record!.contexts.single.temporaryCondition,
+          HydrionTemporaryCondition.fever);
       expect(tester.takeException(), isNull);
     });
   }

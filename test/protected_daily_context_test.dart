@@ -155,6 +155,31 @@ void main() {
     expect(repo.isKnown, isFalse);
   });
 
+  for (final restart in [false, true]) {
+    test('H1 unavailable clear cannot resurrect context: restart=$restart',
+        () async {
+      final local = MemoryHydrionStore();
+      final protected = MemoryProtectedAppStore();
+      var repo = await DailyHydrationContextRepository.load(local,
+          protectedStore: protected);
+      await repo.save(_context(1));
+      protected.readFailure = ProtectedReadStatus.unavailable;
+      await expectLater(repo.clear(), throwsA(isA<DailyContextUnavailable>()));
+      expect(repo.isKnown, isFalse);
+      protected.readFailure = null;
+      if (restart) {
+        repo = await DailyHydrationContextRepository.load(local,
+            protectedStore: protected);
+      } else {
+        await repo.retry();
+      }
+      expect(repo.forDate('2026-09-01'), isNull);
+      expect(repo.isKnown, isTrue);
+      expect(protected.record!.phase, ContextRecordPhase.deleted);
+      expect(local.snapshot, isEmpty);
+    });
+  }
+
   test('deletion verification failure retains intent until verified retry',
       () async {
     final local = MemoryHydrionStore();
@@ -171,6 +196,128 @@ void main() {
     expect(repo.isKnown, isTrue);
     expect(local.snapshot, isEmpty);
     expect(repo.forDate('2026-09-01'), isNull);
+  });
+
+  for (final throwsRead in [false, true]) {
+    test(
+        'H1 intent precedes unreadable storage and survives restart: throw=$throwsRead',
+        () async {
+      final local = MemoryHydrionStore();
+      final protected = _ObservedProtected(local)
+        ..record = ProtectedContextRecord(
+            revision: 41,
+            phase: ContextRecordPhase.active,
+            contexts: [_context(1)]);
+      final repo = await DailyHydrationContextRepository.load(local,
+          protectedStore: protected);
+      protected.observing = true;
+      protected.throwRead = throwsRead;
+      protected.readFailure = ProtectedReadStatus.unavailable;
+      await expectLater(
+          repo.clear(),
+          throwsA(predicate<Object>(
+              (error) => error.toString() == 'DailyContextUnavailable')));
+      expect(protected.readIntents, [true]);
+      expect(protected.deletedRevisions, isEmpty);
+      expect(jsonDecode(local.snapshot[intentKey]!),
+          {'schemaVersion': 2, 'pending': true});
+      expect(repo.recoveryEvents, isEmpty);
+      final restarted = await DailyHydrationContextRepository.load(local,
+          protectedStore: protected);
+      expect(restarted.status, DailyContextStatus.deletionPending);
+      expect(restarted.forDate('2026-09-01'), isNull);
+      expect(await restarted.save(_context(2)), isFalse);
+      await restarted.retry();
+      expect(restarted.isKnown, isFalse);
+      expect(local.snapshot[intentKey], isNotNull);
+      protected.throwRead = false;
+      protected.readFailure = null;
+      await restarted.retry();
+      expect(protected.deletedRevisions, [42]);
+      expect(protected.record!.contexts, isEmpty);
+      expect(restarted.isKnown, isTrue);
+      expect(local.snapshot, isEmpty);
+      await restarted.retry();
+      expect(protected.deletedRevisions, [42]);
+      expect(restarted.forDate('2026-09-01'), isNull);
+    });
+  }
+
+  test(
+      'H1 rejected intent never attempts protected IO or promises restart deletion',
+      () async {
+    final local = _Local();
+    final protected = _ObservedProtected(local)
+      ..record = ProtectedContextRecord(
+          revision: 8,
+          phase: ContextRecordPhase.active,
+          contexts: [_context(1)]);
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    protected.observing = true;
+    local.rejectWrite = true;
+    await expectLater(repo.clear(), throwsA(isA<DailyContextUnavailable>()));
+    expect(protected.readIntents, isEmpty);
+    expect(protected.deletedRevisions, isEmpty);
+    expect(local.snapshot[intentKey], isNull);
+    final restarted = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    // No acknowledged intent means restart protection cannot be promised.
+    expect(restarted.forDate('2026-09-01'), isNotNull);
+  });
+
+  test(
+      'H1 cleanup retries reuse tombstone until legacy removal is acknowledged',
+      () async {
+    final local = _Local({sourceKey: legacy()})..rejectRemoval = true;
+    final protected = _ObservedProtected(local);
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    await expectLater(repo.clear(), throwsA(isA<DailyContextUnavailable>()));
+    expect(protected.deletedRevisions, [2]);
+    expect(local.snapshot[sourceKey], isNotNull);
+    expect(local.snapshot[intentKey], isNotNull);
+    await repo.retry();
+    expect(protected.deletedRevisions, [2, 2]);
+    expect(repo.isKnown, isFalse);
+    local.rejectRemoval = false;
+    await repo.retry();
+    expect(protected.deletedRevisions, [2, 2, 2]);
+    expect(local.snapshot, isEmpty);
+    expect(repo.forDate('2026-09-01'), isNull);
+  });
+
+  test('H1 already absent storage and repeated clear are idempotent', () async {
+    final local = MemoryHydrionStore();
+    final protected = _ObservedProtected(local)
+      ..readFailure = ProtectedReadStatus.unavailable;
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    await expectLater(repo.clear(), throwsA(isA<DailyContextUnavailable>()));
+    protected.readFailure = null;
+    await repo.retry();
+    await repo.clear();
+    expect(protected.deletedRevisions, [1, 1]);
+    expect(repo.isKnown, isTrue);
+    expect(local.snapshot, isEmpty);
+  });
+
+  test('H1 legacy revision-bearing intent still suppresses active truth',
+      () async {
+    final local = MemoryHydrionStore({
+      intentKey: jsonEncode({'schemaVersion': 1, 'revision': 9})
+    });
+    final protected = _ObservedProtected(local)
+      ..record = ProtectedContextRecord(
+          revision: 8,
+          phase: ContextRecordPhase.active,
+          contexts: [_context(1)]);
+    final repo = await DailyHydrationContextRepository.load(local,
+        protectedStore: protected);
+    expect(protected.deletedRevisions, [9]);
+    expect(repo.forDate('2026-09-01'), isNull);
+    expect(repo.isKnown, isTrue);
+    expect(local.snapshot, isEmpty);
   });
 
   test('conflicting provisional history is preserved instead of guessed',
@@ -260,4 +407,29 @@ class _RejectActivation extends MemoryProtectedAppStore {
       reject && value.phase == ContextRecordPhase.active
           ? Future.value(ProtectedWriteStatus.failed)
           : super.writeDailyContext(value);
+}
+
+class _ObservedProtected extends MemoryProtectedAppStore {
+  _ObservedProtected(this.local);
+  final MemoryHydrionStore local;
+  bool observing = false, throwRead = false;
+  final readIntents = <bool>[];
+  final deletedRevisions = <int>[];
+  @override
+  Future<ProtectedContextRead> readDailyContext() async {
+    if (observing) {
+      readIntents.add(local.snapshot
+          .containsKey(DailyHydrationContextRepository.deletionKey));
+    }
+    if (throwRead) {
+      throw StateError('SYNTHETIC sensitive context must not escape');
+    }
+    return super.readDailyContext();
+  }
+
+  @override
+  Future<ProtectedDeleteStatus> deleteDailyContext(int revision) {
+    deletedRevisions.add(revision);
+    return super.deleteDailyContext(revision);
+  }
 }

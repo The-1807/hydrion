@@ -98,14 +98,15 @@ class DailyHydrationContextRepository extends ChangeNotifier {
       final intent = await _legacy.readString(deletionKey);
       if (intent != null) {
         final decoded = jsonDecode(intent);
-        if (decoded is! Map ||
-            decoded['schemaVersion'] != 1 ||
-            decoded['revision'] is! int ||
-            (decoded['revision'] as int) < 1) {
+        final validIntent = decoded is Map &&
+            ((decoded['schemaVersion'] == 2 && decoded['pending'] == true) ||
+                (decoded['schemaVersion'] == 1 &&
+                    decoded['revision'] is int &&
+                    (decoded['revision'] as int) > 0));
+        if (!validIntent) {
           _status = DailyContextStatus.corrupt;
           return;
         }
-        _revision = decoded['revision'] as int;
         _status = DailyContextStatus.deletionPending;
         await _finishDeletion();
         return;
@@ -231,14 +232,10 @@ class DailyHydrationContextRepository extends ChangeNotifier {
           return;
         }
         try {
-          final read = await _protected.readDailyContext();
-          if (read.status != ProtectedReadStatus.found &&
-              read.status != ProtectedReadStatus.absent) {
-            throw const DailyContextUnavailable();
-          }
-          _revision = (read.record?.revision ?? _revision) + 1;
-          final acknowledged = await _legacy.writeString(deletionKey,
-              jsonEncode({'schemaVersion': 1, 'revision': _revision}));
+          // Intent must survive restart even when the protected revision
+          // cannot yet be read. It contains no context or guessed revision.
+          final acknowledged = await _legacy.writeString(
+              deletionKey, jsonEncode({'schemaVersion': 2, 'pending': true}));
           if (!acknowledged || !await _finishDeletion()) {
             throw const DailyContextUnavailable();
           }
@@ -250,10 +247,26 @@ class DailyHydrationContextRepository extends ChangeNotifier {
       });
 
   Future<bool> _finishDeletion() async {
-    if (await _protected.deleteDailyContext(_revision) !=
-            ProtectedDeleteStatus.verifiedAbsent ||
-        !await _removeAcknowledged(storageKey) ||
-        !await _removeAcknowledged(deletionKey)) {
+    try {
+      final read = await _protected.readDailyContext();
+      if (read.status != ProtectedReadStatus.found &&
+          read.status != ProtectedReadStatus.absent) {
+        return false;
+      }
+      final record = read.record;
+      // Reuse a verified tombstone on cleanup retries; otherwise advance
+      // from protected truth, not a possibly stale facade revision.
+      final revision = record?.phase == ContextRecordPhase.deleted
+          ? record!.revision
+          : (record?.revision ?? 0) + 1;
+      if (await _protected.deleteDailyContext(revision) !=
+              ProtectedDeleteStatus.verifiedAbsent ||
+          !await _removeAcknowledged(storageKey) ||
+          !await _removeAcknowledged(deletionKey)) {
+        return false;
+      }
+      _revision = revision;
+    } catch (_) {
       return false;
     }
     _contexts = {};

@@ -25,6 +25,8 @@ class BodyMetricsScreen extends StatefulWidget {
   State<BodyMetricsScreen> createState() => _BodyMetricsScreenState();
 }
 
+enum _ContextDraftState { provisional, known, modified }
+
 class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   bool _initialized = false;
   late bool _enabled;
@@ -51,6 +53,9 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   late HydrionSweatLevel _sweat;
   late HydrionTemporaryCondition _condition;
   final _activityMinutes = TextEditingController();
+  _ContextDraftState _contextDraftState = _ContextDraftState.provisional;
+  int _contextEditorGeneration = 0;
+  int _contextUserAdjustmentMl = 0;
   HydrationRecommendation? _recommendation;
   int _recommendationGeneration = 0;
   int? _wakeMinuteOfDay;
@@ -73,10 +78,6 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     if (metrics == null) return;
     _initialized = true;
     final settings = context.read<UserSettingsRepository>().settings;
-    final now = DateTime.now();
-    final daily = context.read<DailyHydrationContextRepository>().forDate(
-          hydrionLocalDateKey(now),
-        );
     _enabled = metrics.personalizationEnabled;
     _usePersonalizedBaseline =
         settings.baselineSource == HydrionBaselineSource.personalized;
@@ -95,13 +96,36 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     _wakeMinuteOfDay = metrics.wakeMinuteOfDay;
     _sleepMinuteOfDay = metrics.sleepMinuteOfDay;
     _syncManualFields();
+    _contextDraftState = _ContextDraftState.provisional;
+    _syncContextControls();
+  }
+
+  void _syncContextControls() {
+    if (_contextDraftState == _ContextDraftState.modified) return;
+    final repository = context.read<DailyHydrationContextRepository>();
+    final daily = repository.forDate(hydrionLocalDateKey(DateTime.now()));
     _intensity = daily?.activityIntensity ?? HydrionActivityIntensity.rest;
     _environment =
         daily?.environment ?? HydrionEnvironmentExposure.mostlyIndoors;
     _sweat = daily?.sweatLevel ?? HydrionSweatLevel.unknown;
     _condition = daily?.temporaryCondition ?? HydrionTemporaryCondition.none;
     _activityMinutes.text = (daily?.activityMinutes ?? 0).toString();
+    _contextUserAdjustmentMl = daily?.userAdjustmentMl ?? 0;
+    _contextDraftState = repository.isKnown
+        ? _ContextDraftState.known
+        : _ContextDraftState.provisional;
+    _contextEditorGeneration++;
   }
+
+  void _editContext() => setState(() {
+        _syncContextControls();
+        _editingContext = true;
+      });
+
+  void _changeContextDraft(VoidCallback change) => setState(() {
+        change();
+        _contextDraftState = _ContextDraftState.modified;
+      });
 
   @override
   void dispose() {
@@ -432,6 +456,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
             environment: _environment,
             sweatLevel: _sweat,
             temporaryCondition: _condition,
+            userAdjustmentMl: _contextUserAdjustmentMl,
             updatedAt: now,
           ),
         );
@@ -446,7 +471,10 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     }
     await _refreshRecommendation();
     if (!mounted) return;
-    setState(() => _editingContext = false);
+    setState(() {
+      _editingContext = false;
+      _contextDraftState = _ContextDraftState.known;
+    });
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context).dailyContextSaved)),
@@ -1139,6 +1167,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
                   await dailyRepository.retry();
                   if (mounted) {
                     if (dailyRepository.isKnown) {
+                      setState(_syncContextControls);
                       ScaffoldMessenger.of(this.context).clearSnackBars();
                     }
                     await _refreshRecommendation();
@@ -1154,14 +1183,14 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
               Text(l10n.noDailyContext),
               OutlinedButton(
                 key: const Key('set-daily-context'),
-                onPressed: () => setState(() => _editingContext = true),
+                onPressed: _editContext,
                 child: Text(l10n.setDailyContext),
               ),
             ],
             if (today != null && !_editingContext)
               _DailyContextSummary(
                 context: today,
-                onEdit: () => setState(() => _editingContext = true),
+                onEdit: _editContext,
                 onClear: () async {
                   final removed = await context
                       .read<DailyHydrationContextRepository>()
@@ -1179,15 +1208,20 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
               ),
             if (_editingContext)
               _DailyContextEditor(
+                key: ValueKey(_contextEditorGeneration),
                 intensity: _intensity,
                 environment: _environment,
                 sweat: _sweat,
                 condition: _condition,
                 minutesController: _activityMinutes,
-                onIntensity: (value) => setState(() => _intensity = value),
-                onEnvironment: (value) => setState(() => _environment = value),
-                onSweat: (value) => setState(() => _sweat = value),
-                onCondition: (value) => setState(() => _condition = value),
+                onIntensity: (value) =>
+                    _changeContextDraft(() => _intensity = value),
+                onEnvironment: (value) =>
+                    _changeContextDraft(() => _environment = value),
+                onSweat: (value) => _changeContextDraft(() => _sweat = value),
+                onCondition: (value) =>
+                    _changeContextDraft(() => _condition = value),
+                onMinutes: (_) => _changeContextDraft(() {}),
                 onSave: _saveContext,
                 onClear: () => setState(() => _editingContext = false),
               ),
@@ -1567,10 +1601,12 @@ class _DailyContextEditor extends StatelessWidget {
   final ValueChanged<HydrionEnvironmentExposure> onEnvironment;
   final ValueChanged<HydrionSweatLevel> onSweat;
   final ValueChanged<HydrionTemporaryCondition> onCondition;
+  final ValueChanged<String> onMinutes;
   final VoidCallback onSave;
   final VoidCallback onClear;
 
   const _DailyContextEditor({
+    super.key,
     required this.intensity,
     required this.environment,
     required this.sweat,
@@ -1580,6 +1616,7 @@ class _DailyContextEditor extends StatelessWidget {
     required this.onEnvironment,
     required this.onSweat,
     required this.onCondition,
+    required this.onMinutes,
     required this.onSave,
     required this.onClear,
   });
@@ -1606,6 +1643,7 @@ class _DailyContextEditor extends StatelessWidget {
         TextField(
           key: const Key('activity-minutes'),
           controller: minutesController,
+          onChanged: onMinutes,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(labelText: l10n.activityMinutesLabel),
         ),
