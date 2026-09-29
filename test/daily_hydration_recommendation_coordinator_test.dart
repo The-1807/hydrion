@@ -8,12 +8,15 @@ import 'package:hydrion/repositories/daily_hydration_context_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/personalization_state_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
+import 'package:hydrion/repositories/settings_protection.dart';
 import 'package:hydrion/services/daily_hydration_recommendation_coordinator.dart';
 import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 import 'support/memory_protected_app_store.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   test('keeping current goal records review for date and fingerprint',
@@ -51,7 +54,8 @@ void main() {
 
   Future<_Fixture> fixture([HydrionLocalStore? store]) async {
     final localStore = store ?? MemoryHydrionStore();
-    final settings = await UserSettingsRepository.load(localStore);
+    final settings = await UserSettingsRepository.load(localStore,
+        protectedStore: protectedSettings);
     await settings.setProfile(
       nickname: 'River',
       age: 30,
@@ -150,7 +154,9 @@ void main() {
         DateTime(2026, 7, 28, 11));
   });
 
-  test('failed selected-goal persistence restores the prior state', () async {
+  test(
+      'failed ordinary publication cannot roll back a committed protected goal',
+      () async {
     final store = _FailingWriteStore();
     final value = await fixture(store);
     store.failWrites = true;
@@ -161,7 +167,9 @@ void main() {
     );
 
     expect(saved, isFalse);
-    expect(value.settings.settings.dailyGoalMl, 2200);
+    expect(value.settings.settings.dailyGoalMl, 2450);
+    expect(value.settings.protectionStatus,
+        SettingsProtectionStatus.partialFailure);
     expect(value.settings.settings.baselineDailyGoalMl, 2200);
   });
 

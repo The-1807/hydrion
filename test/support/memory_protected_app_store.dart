@@ -1,7 +1,31 @@
 import 'package:hydrion/storage/protected_app_store.dart';
+import 'package:hydrion/storage/protected_settings_record.dart';
 
 /// Explicit test adapter, never a production platform fallback.
-class MemoryProtectedAppStore implements ProtectedAppStore {
+class MemoryProtectedAppStore
+    implements ProtectedAppStore, ProtectedSettingsStore {
+  ProtectedSettingsRecord? settingsRecord;
+  ProtectedWriteStatus? settingsWriteFailure;
+  ProtectedReadStatus? settingsReadFailure;
+
+  @override
+  Future<ProtectedSettingsRead> readSettings() async =>
+      settingsReadFailure != null
+          ? ProtectedSettingsRead(settingsReadFailure!)
+          : ProtectedSettingsRead(
+              settingsRecord == null
+                  ? ProtectedReadStatus.absent
+                  : ProtectedReadStatus.found,
+              settingsRecord);
+
+  @override
+  Future<ProtectedWriteStatus> writeSettings(
+      ProtectedSettingsRecord value) async {
+    if (settingsWriteFailure != null) return settingsWriteFailure!;
+    settingsRecord = value;
+    return ProtectedWriteStatus.committed;
+  }
+
   ProtectedContextRecord? record;
   ProtectedWriteStatus? writeFailure;
   ProtectedDeleteStatus? deleteFailure;

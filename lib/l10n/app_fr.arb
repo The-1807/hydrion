@@ -1,5 +1,9 @@
 {
   "@@locale": "fr",
+  "profileStorageUnavailable": "Le stockage protégé du profil est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l’accès.",
+  "profilePhotoMigrationBlocked": "Votre photo existante n’a pas pu être transférée en toute sécurité. Elle est conservée. Réessayez ou choisissez une photo de remplacement.",
+  "profilePhotoNotSaved": "L’enregistrement complet de la photo n’a pas pu être confirmé. Utilisez une image valide de 720 × 720 pixels et 1 200 000 octets maximum, ou réessayez le stockage protégé.",
+  "profileStorageIncomplete": "Certaines modifications du profil ou opérations de nettoyage sont incomplètes. Réessayez avant de considérer cette action comme entièrement enregistrée.",
   "healthDataRetrying": "Nouvelle tentative de synchronisation des données de santé...",
   "healthDataNoNewRecords": "Synchronisé : aucune nouvelle donnée de santé",
   "healthDataLocalRecordsRetained": "Les données déjà importées restent disponibles sur cet appareil. Elles peuvent ne plus être à jour.",

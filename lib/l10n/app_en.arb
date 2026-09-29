@@ -1,5 +1,9 @@
 {
   "@@locale": "en",
+  "profileStorageUnavailable": "Protected profile storage is unavailable. Existing data is preserved. Retry to restore access.",
+  "profilePhotoMigrationBlocked": "Your existing photo could not be moved safely. It remains preserved. Retry, or choose a replacement photo.",
+  "profilePhotoNotSaved": "The photo could not be confirmed as fully saved. Use a valid image of at most 720 by 720 pixels and 1,200,000 bytes, or retry protected storage.",
+  "profileStorageIncomplete": "Some profile changes or cleanup remain incomplete. Retry before treating this action as fully saved.",
   "healthDataRetrying": "Retrying health-data synchronization...",
   "healthDataNoNewRecords": "Synchronized: no new health data",
   "healthDataLocalRecordsRetained": "Previously imported data is still available on this device. It may be out of date.",

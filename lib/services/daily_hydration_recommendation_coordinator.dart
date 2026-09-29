@@ -61,7 +61,9 @@ class DailyHydrationRecommendationCoordinator {
     bool locationPermissionGranted = false,
     bool cachedWeatherUsed = false,
   }) async {
-    if (!dailyContextRepository.isKnown) throw const DailyContextUnavailable();
+    if (!dailyContextRepository.isKnown || !settingsRepository.isKnown) {
+      throw const DailyContextUnavailable();
+    }
     final settings = settingsRepository.settings;
     final dateKey = hydrionLocalDateKey(now);
     final metrics = bodyMetricsRepository.metrics.sanitized(

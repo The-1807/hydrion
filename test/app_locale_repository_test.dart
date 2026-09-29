@@ -1,3 +1,4 @@
+import 'support/memory_protected_app_store.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +11,8 @@ import 'package:hydrion/ui/screens/language_selection_screen.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('fresh install requires a choice and unsupported device falls back',
@@ -167,9 +170,12 @@ void main() {
   testWidgets('language screen persists a Spanish first-run choice',
       (tester) async {
     final localeStore = MemoryHydrionStore();
-    final localeRepository = await AppLocaleRepository.load(localeStore);
+    final localeRepository =
+        (await tester.runAsync(() => AppLocaleRepository.load(localeStore)))!;
     final settingsStore = MemoryHydrionStore();
-    final settingsRepository = await UserSettingsRepository.load(settingsStore);
+    final settingsRepository = (await tester.runAsync(() =>
+        UserSettingsRepository.load(settingsStore,
+            protectedStore: protectedSettings)))!;
 
     await tester.pumpWidget(
       MultiProvider(

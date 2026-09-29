@@ -1,16 +1,13 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:image_picker/image_picker.dart';
 
 class HydrionPickedProfilePhoto {
-  final String base64Data;
-  final int byteLength;
+  final Uint8List bytes;
+  int get byteLength => bytes.length;
 
-  const HydrionPickedProfilePhoto({
-    required this.base64Data,
-    required this.byteLength,
-  });
+  HydrionPickedProfilePhoto(Uint8List source)
+      : bytes = Uint8List.fromList(source);
 }
 
 abstract class HydrionProfilePhotoPicker {
@@ -39,10 +36,7 @@ class ImagePickerHydrionProfilePhotoPicker
     if (bytes.isEmpty) {
       return null;
     }
-    return HydrionPickedProfilePhoto(
-      base64Data: base64Encode(bytes),
-      byteLength: bytes.length,
-    );
+    return HydrionPickedProfilePhoto(bytes);
   }
 }
 
@@ -50,12 +44,7 @@ class FakeHydrionProfilePhotoPicker implements HydrionProfilePhotoPicker {
   HydrionPickedProfilePhoto? nextPhoto;
 
   FakeHydrionProfilePhotoPicker([Uint8List? bytes])
-      : nextPhoto = bytes == null
-            ? null
-            : HydrionPickedProfilePhoto(
-                base64Data: base64Encode(bytes),
-                byteLength: bytes.length,
-              );
+      : nextPhoto = bytes == null ? null : HydrionPickedProfilePhoto(bytes);
 
   @override
   Future<HydrionPickedProfilePhoto?> pickProfilePhoto() async {

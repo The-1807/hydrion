@@ -478,17 +478,30 @@ class _ProfileEditorState extends State<_ProfileEditor> {
     if (!mounted || photo == null) {
       return;
     }
-    final saved = await repository.setProfilePhotoBase64(photo.base64Data);
+    final saved = await repository.setProfilePhotoBytes(photo.bytes);
     if (!mounted) {
       return;
     }
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          saved ? l10n.profilePhotoSaved : l10n.profilePhotoTooLarge,
+          saved ? l10n.profilePhotoSaved : l10n.profilePhotoNotSaved,
         ),
       ),
     );
+  }
+
+  Future<void> _removePhoto() async {
+    final repository = context.read<UserSettingsRepository>();
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    try {
+      await repository.clearProfilePhoto();
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+          .showSnackBar(SnackBar(content: Text(l10n.profileStorageIncomplete)));
+    }
   }
 
   @override
@@ -545,9 +558,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                           key: const Key('profile-remove-photo'),
                           onPressed: settings.profilePhotoBase64 == null
                               ? null
-                              : () => context
-                                  .read<UserSettingsRepository>()
-                                  .clearProfilePhoto(),
+                              : _removePhoto,
                           icon: const Icon(Icons.person_outline),
                           label: Text(l10n.useDefaultAvatar),
                         ),

@@ -1,3 +1,4 @@
+import 'support/memory_protected_app_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/l10n/app_localizations.dart';
@@ -7,11 +8,15 @@ import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/utils/i18n_resolver.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   test('selected locale persists after service reload', () async {
     final store = MemoryHydrionStore();
-    final first = await HydrionServices.fromStore(store);
+    final first = await HydrionServices.fromStore(store,
+        protectedAppStore: protectedSettings);
     await first.i18n.setLocale(const Locale('fr'));
-    final second = await HydrionServices.fromStore(store);
+    final second = await HydrionServices.fromStore(store,
+        protectedAppStore: protectedSettings);
     expect(second.i18n.locale, const Locale('fr'));
   });
 

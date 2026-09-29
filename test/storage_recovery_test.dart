@@ -1,3 +1,4 @@
+import 'support/memory_protected_app_store.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,8 @@ import 'package:hydrion/repositories/storage_recovery.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   test('malformed hydration log JSON falls back without crashing', () async {
     const raw = '[{"volumeMl":250,"timestamp":';
     final store = MemoryHydrionStore({
@@ -208,7 +211,8 @@ void main() {
       UserSettingsRepository.storageKey: raw,
     });
 
-    final repository = await UserSettingsRepository.load(store);
+    final repository = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
 
     expect(repository.settings.locale, UserSettings.fallbackLocale);
     expect(UserSettings.supportedLanguageCodes,
@@ -227,7 +231,8 @@ void main() {
       }),
     });
 
-    final repository = await UserSettingsRepository.load(store);
+    final repository = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
 
     expect(repository.settings.locale, UserSettings.fallbackLocale);
     expect(repository.settings.nonLocalProviderConsentGranted, isTrue);
@@ -248,9 +253,11 @@ void main() {
       }),
     });
 
-    final wrongTypeRepository =
-        await UserSettingsRepository.load(wrongTypeStore);
-    final missingRepository = await UserSettingsRepository.load(missingStore);
+    final wrongTypeRepository = await UserSettingsRepository.load(
+        wrongTypeStore,
+        protectedStore: protectedSettings);
+    final missingRepository = await UserSettingsRepository.load(missingStore,
+        protectedStore: protectedSettings);
 
     expect(wrongTypeRepository.settings.locale, UserSettings.fallbackLocale);
     expect(missingRepository.settings.locale, UserSettings.fallbackLocale);
@@ -270,7 +277,8 @@ void main() {
       }),
     });
 
-    final repository = await UserSettingsRepository.load(store);
+    final repository = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
 
     expect(repository.settings.dailyGoalMl, UserSettings.defaultDailyGoalMl);
     expect(repository.settings.reusableContainerEnabled, isTrue);
@@ -289,7 +297,8 @@ void main() {
       UserSettingsRepository.storageKey: '{bad settings json',
     });
 
-    final settingsRepository = await UserSettingsRepository.load(store);
+    final settingsRepository = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
     final hydrationRepository = await HydrationRepository.load(store);
 
     expect(settingsRepository.settings.locale, UserSettings.fallbackLocale);
@@ -317,7 +326,8 @@ void main() {
 
     final hydrationRepository = await HydrationRepository.load(store);
     final challengeRepository = await ChallengeRepository.load(store);
-    final settingsRepository = await UserSettingsRepository.load(store);
+    final settingsRepository = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
 
     expect(hydrationRepository.logs, isEmpty);
     expect(challengeRepository.activeChallenge, isNull);
@@ -344,7 +354,8 @@ void main() {
       UserSettingsRepository.storageKey: jsonEncode({'languageCode': 42}),
     });
 
-    final services = await HydrionServices.fromStore(store);
+    final services = await HydrionServices.fromStore(store,
+        protectedAppStore: protectedSettings);
 
     expect(services.hydrationRepository.logs, isEmpty);
     expect(services.reminderRepository.reminders, isEmpty);
@@ -371,7 +382,8 @@ void main() {
     final hydrationRepository = await HydrationRepository.load(store);
     final reminderRepository = await ReminderRepository.load(store);
     final challengeRepository = await ChallengeRepository.load(store);
-    final settingsRepository = await UserSettingsRepository.load(store);
+    final settingsRepository = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
 
     expect(hydrationRepository.logs.single.id, 'valid-log');
     expect(reminderRepository.reminders.single.id, 'valid-reminder');

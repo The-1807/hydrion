@@ -50,7 +50,7 @@ void main() {
     expect((await store.readDailyContext()).status, ProtectedReadStatus.absent);
     await store.close();
     final db = native();
-    expect(db.select('PRAGMA user_version').single['user_version'], 1);
+    expect(db.select('PRAGMA user_version').single['user_version'], 2);
     db.close();
   });
 

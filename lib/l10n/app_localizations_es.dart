@@ -9,6 +9,22 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get profileStorageUnavailable =>
+      'El almacenamiento protegido del perfil no está disponible. Los datos existentes se conservan. Reintenta para recuperar el acceso.';
+
+  @override
+  String get profilePhotoMigrationBlocked =>
+      'Tu foto existente no se pudo transferir de forma segura. Se conserva. Reintenta o elige una foto de reemplazo.';
+
+  @override
+  String get profilePhotoNotSaved =>
+      'No se pudo confirmar que la foto se guardara por completo. Usa una imagen válida de hasta 720 × 720 píxeles y 1.200.000 bytes, o reintenta el almacenamiento protegido.';
+
+  @override
+  String get profileStorageIncomplete =>
+      'Algunos cambios del perfil o tareas de limpieza siguen incompletos. Reintenta antes de considerar esta acción completamente guardada.';
+
+  @override
   String get healthDataRetrying =>
       'Reintentando la sincronización de datos de salud...';
 

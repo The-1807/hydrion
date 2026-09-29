@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../domain/daily_hydration_context.dart';
+import 'protected_settings_record.dart';
 
 enum ProtectedReadStatus { found, absent, unavailable, corrupt, unsupported }
 
@@ -147,10 +148,21 @@ abstract interface class ProtectedAppStore {
   Future<void> close();
 }
 
-final class UnavailableProtectedAppStore implements ProtectedAppStore {
+final class UnavailableProtectedAppStore
+    implements ProtectedAppStore, ProtectedSettingsStore {
   final ProtectedReadStatus status;
   const UnavailableProtectedAppStore(
       [this.status = ProtectedReadStatus.unsupported]);
+
+  @override
+  Future<ProtectedSettingsRead> readSettings() async =>
+      ProtectedSettingsRead(status);
+  @override
+  Future<ProtectedWriteStatus> writeSettings(
+          ProtectedSettingsRecord record) async =>
+      status == ProtectedReadStatus.unsupported
+          ? ProtectedWriteStatus.unsupported
+          : ProtectedWriteStatus.unavailable;
 
   @override
   Future<ProtectedContextRead> readDailyContext() async =>

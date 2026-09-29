@@ -1,3 +1,4 @@
+import 'support/memory_protected_app_store.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -30,6 +31,8 @@ Permissions _permissions({
 }
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   test('Android permission model reports real states and optional fallback',
       () async {
     final notificationAdapter = FakeHydrionNotificationAdapter(
@@ -169,7 +172,9 @@ void main() {
       UserSettingsRepository.storageKey,
       jsonEncode(settings.toJson()),
     );
-    final services = await HydrionServices.fromStore(store);
+    final services = (await tester.runAsync(() => HydrionServices.fromStore(
+        store,
+        protectedAppStore: protectedSettings)))!;
     await tester.pumpWidget(
       HydrionApp(services: services, initialRoute: '/onboarding'),
     );

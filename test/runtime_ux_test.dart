@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
@@ -9,6 +7,7 @@ import 'package:hydrion/repositories/settings_repository.dart';
 import 'package:hydrion/services/profile_photo_service.dart';
 import 'package:hydrion/services/timed_session_notification_service.dart';
 import 'package:hydrion/ui/screens/onboarding_screen.dart';
+import 'support/profile_photo_fixture.dart';
 
 void main() {
   Future<void> openLogHistory(WidgetTester tester) async {
@@ -597,11 +596,10 @@ void main() {
       'profile editor saves a local photo without restarting onboarding',
       (tester) async {
     final picker = FakeHydrionProfilePhotoPicker(
-      base64Decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
-      ),
+      await tester.runAsync(() => syntheticPng(20, 20)),
     );
-    final services = HydrionServices.memory(profilePhotoPicker: picker);
+    final services = (await tester.runAsync(
+        () async => HydrionServices.memory(profilePhotoPicker: picker)))!;
 
     await tester.pumpWidget(HydrionApp(services: services));
     await tester.pumpAndSettle();
@@ -619,7 +617,10 @@ void main() {
     expect(find.byKey(const Key('profile-edit-age')), findsNothing);
     expect(find.text('Sex selection'), findsNothing);
     expect(find.byKey(const Key('profile-restart-guided-setup')), findsNothing);
-    await tester.tap(find.byKey(const Key('profile-pick-photo')));
+    final pickPhoto = tester
+        .widget<OutlinedButton>(find.byKey(const Key('profile-pick-photo')))
+        .onPressed!;
+    await tester.runAsync(() => (pickPhoto as Future<void> Function())());
     await tester.pumpAndSettle();
 
     expect(services.settingsRepository.settings.profilePhotoBase64, isNotNull);

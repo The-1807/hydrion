@@ -13,9 +13,17 @@ class MissionScreen extends StatelessWidget {
   const MissionScreen({super.key, this.fromOnboarding = false});
 
   Future<void> _finish(BuildContext context) async {
-    await context
-        .read<UserSettingsRepository>()
-        .setMissionIntroductionHandled(true);
+    try {
+      await context
+          .read<UserSettingsRepository>()
+          .setMissionIntroductionHandled(true);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text(AppLocalizations.of(context).profileStorageIncomplete)));
+      return;
+    }
     if (!context.mounted) return;
     if (fromOnboarding) {
       context.read<GuidedTourRepository>().replayCoreTour();
@@ -65,7 +73,7 @@ class MissionScreen extends StatelessWidget {
             const SizedBox(height: 10),
             FilledButton.icon(
               key: const Key('mission-continue'),
-              onPressed: () => _finish(context),
+              onPressed: () async => _finish(context),
               icon: Icon(fromOnboarding ? Icons.arrow_forward : Icons.check),
               label: Text(
                 fromOnboarding ? l10n.continueToTutorial : l10n.done,

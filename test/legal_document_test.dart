@@ -1,3 +1,4 @@
+import 'support/memory_protected_app_store.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -16,6 +17,8 @@ import 'package:hydrion/ui/screens/legal_about_screen.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   test('registered legal documents have unique metadata and real files', () {
     final ids = <String>{};
     final routes = <String>{};
@@ -382,11 +385,11 @@ void main() {
     final notificationAdapter = FakeHydrionNotificationAdapter(
       permission: HydrionNotificationPermissionState.denied,
     );
-    final services = await HydrionServices.fromStore(
-      store,
-      locationService: locationService,
-      notificationAdapter: notificationAdapter,
-    );
+    final services = (await tester.runAsync(() => HydrionServices.fromStore(
+        store,
+        locationService: locationService,
+        notificationAdapter: notificationAdapter,
+        protectedAppStore: protectedSettings)))!;
 
     await tester.pumpWidget(HydrionApp(services: services));
     await _pumpUntilFound(

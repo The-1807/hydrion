@@ -1,10 +1,13 @@
 import 'dart:typed_data';
+import 'dart:convert';
 
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 import 'package:sqlite_async/native.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
 import 'protected_app_store.dart';
+import 'protected_settings_record.dart';
+import '../services/validated_profile_photo.dart';
 
 enum AppStoreStage { schemaCreated, recordWritten, beforeVerification }
 
@@ -36,10 +39,12 @@ final class _AppDatabaseFactory extends NativeSqliteOpenFactory {
 }
 
 /// Separate app-data database. Health schemas, keys and deletion are not used.
-/// Operations serialize per instance; application ownership is one writer per
-/// path/isolate. Native commit/readback is not physical-durability evidence.
-final class EncryptedAppStore implements ProtectedAppStore {
-  static const schemaVersion = 1;
+/// Operations serialize per instance, with one repository writer per dataset
+/// in an isolate. SQLite transactions coordinate connections to the same app
+/// database. Native commit/readback is not physical-durability evidence.
+final class EncryptedAppStore
+    implements ProtectedAppStore, ProtectedSettingsStore {
+  static const schemaVersion = 2;
   final SqliteDatabase _db;
   final Future<void> Function(AppStoreStage)? _failureInjector;
   Future<void> _tail = Future.value();
@@ -62,7 +67,7 @@ final class EncryptedAppStore implements ProtectedAppStore {
       await db.initialize();
       await db.writeTransaction((tx) async {
         final version = (await tx.get('PRAGMA user_version'))['user_version'];
-        if (version != 0 && version != schemaVersion) {
+        if (version != 0 && version != 1 && version != schemaVersion) {
           throw const AppStoreOpenFailure(ProtectedReadStatus.unsupported);
         }
         if (version == 0) {
@@ -84,6 +89,24 @@ final class EncryptedAppStore implements ProtectedAppStore {
         }
         await tx.getAll(
             'SELECT singleton, revision, phase, payload FROM daily_context');
+        if (version == 0 || version == 1) {
+          await tx.execute('''CREATE TABLE settings_profile (
+            singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+            schema_version INTEGER NOT NULL,
+            revision INTEGER NOT NULL CHECK(revision > 0),
+            phase TEXT NOT NULL CHECK(phase IN ('provisional', 'active', 'deleted')),
+            profile TEXT NOT NULL,
+            photo BLOB,
+            width INTEGER,
+            height INTEGER,
+            CHECK((photo IS NULL AND width IS NULL AND height IS NULL) OR
+              (photo IS NOT NULL AND length(photo) <= 1200000 AND
+               width BETWEEN 1 AND 720 AND height BETWEEN 1 AND 720))
+          ) STRICT''');
+          await tx.execute('PRAGMA user_version = 2');
+        }
+        await tx.getAll(
+            'SELECT singleton, schema_version, revision, phase, profile, photo, width, height FROM settings_profile');
       });
       return store;
     } catch (error) {
@@ -218,5 +241,113 @@ final class EncryptedAppStore implements ProtectedAppStore {
         if (_closed) return;
         _closed = true;
         await _db.close();
+      });
+
+  Future<ProtectedSettingsRecord> _settingsFromRow(
+      Map<String, dynamic> row) async {
+    if (row['schema_version'] != ProtectedSettingsRecord.schemaVersion) {
+      throw const ProtectedContextSchemaUnsupported();
+    }
+    final data = jsonDecode(row['profile'] as String);
+    if (data is! Map<String, dynamic>) {
+      throw const FormatException('Invalid protected profile');
+    }
+    final photo = row['photo'] == null
+        ? null
+        : await ValidatedProfilePhoto.fromBytes(
+            Uint8List.fromList((row['photo'] as List).cast<int>()));
+    if (photo?.width != row['width'] || photo?.height != row['height']) {
+      throw const FormatException('Invalid protected photo dimensions');
+    }
+    return ProtectedSettingsRecord(
+        revision: row['revision'] as int,
+        phase: ContextRecordPhase.values.byName(row['phase'] as String),
+        profile: ProtectedProfileFields.fromJson(data),
+        photo: photo);
+  }
+
+  Future<ProtectedSettingsRead> _readSettings() async {
+    if (_closed) {
+      return const ProtectedSettingsRead(ProtectedReadStatus.unavailable);
+    }
+    try {
+      final rows = await _db
+          .getAll('SELECT * FROM settings_profile WHERE singleton = 1');
+      if (rows.isEmpty) {
+        return const ProtectedSettingsRead(ProtectedReadStatus.absent);
+      }
+      return ProtectedSettingsRead(
+          ProtectedReadStatus.found, await _settingsFromRow(rows.single));
+    } on ProtectedContextSchemaUnsupported {
+      return const ProtectedSettingsRead(ProtectedReadStatus.unsupported);
+    } on FormatException {
+      return const ProtectedSettingsRead(ProtectedReadStatus.corrupt);
+    } on InvalidProfilePhoto {
+      return const ProtectedSettingsRead(ProtectedReadStatus.corrupt);
+    } on ArgumentError {
+      return const ProtectedSettingsRead(ProtectedReadStatus.corrupt);
+    } on TypeError {
+      return const ProtectedSettingsRead(ProtectedReadStatus.corrupt);
+    } catch (_) {
+      return const ProtectedSettingsRead(ProtectedReadStatus.unavailable);
+    }
+  }
+
+  @override
+  Future<ProtectedSettingsRead> readSettings() => _run(_readSettings);
+
+  @override
+  Future<ProtectedWriteStatus> writeSettings(ProtectedSettingsRecord record) =>
+      _run(() async {
+        if (_closed) return ProtectedWriteStatus.unavailable;
+        try {
+          await _db.writeTransaction((tx) async {
+            final rows = await tx
+                .getAll('SELECT * FROM settings_profile WHERE singleton = 1');
+            if (rows.isNotEmpty) {
+              final old = await _settingsFromRow(rows.single);
+              final activation = old.phase == ContextRecordPhase.provisional &&
+                  record.phase == ContextRecordPhase.active &&
+                  ProtectedSettingsRecord(
+                          revision: old.revision,
+                          phase: record.phase,
+                          profile: old.profile,
+                          photo: old.photo)
+                      .equivalentTo(record);
+              if (old.revision > record.revision ||
+                  (old.revision == record.revision &&
+                      !old.equivalentTo(record) &&
+                      !activation)) {
+                throw const FormatException('Conflicting settings revision');
+              }
+            }
+            await tx.execute('''INSERT INTO settings_profile
+          (singleton, schema_version, revision, phase, profile, photo, width, height)
+          VALUES(1, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(singleton) DO UPDATE SET
+          schema_version=excluded.schema_version, revision=excluded.revision,
+          phase=excluded.phase, profile=excluded.profile, photo=excluded.photo,
+          width=excluded.width, height=excluded.height''', [
+              ProtectedSettingsRecord.schemaVersion,
+              record.revision,
+              record.phase.name,
+              record.profile.encode(),
+              record.photo?.bytes,
+              record.photo?.width,
+              record.photo?.height
+            ]);
+            await _failureInjector?.call(AppStoreStage.recordWritten);
+          });
+        } catch (_) {
+          return ProtectedWriteStatus.failed;
+        }
+        try {
+          await _failureInjector?.call(AppStoreStage.beforeVerification);
+          final read = await _readSettings();
+          return read.record?.equivalentTo(record) == true
+              ? ProtectedWriteStatus.committed
+              : ProtectedWriteStatus.verificationFailed;
+        } catch (_) {
+          return ProtectedWriteStatus.verificationFailed;
+        }
       });
 }

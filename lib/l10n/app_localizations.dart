@@ -100,6 +100,30 @@ abstract class AppLocalizations {
     Locale('fr')
   ];
 
+  /// No description provided for @profileStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected profile storage is unavailable. Existing data is preserved. Retry to restore access.'**
+  String get profileStorageUnavailable;
+
+  /// No description provided for @profilePhotoMigrationBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Your existing photo could not be moved safely. It remains preserved. Retry, or choose a replacement photo.'**
+  String get profilePhotoMigrationBlocked;
+
+  /// No description provided for @profilePhotoNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo could not be confirmed as fully saved. Use a valid image of at most 720 by 720 pixels and 1,200,000 bytes, or retry protected storage.'**
+  String get profilePhotoNotSaved;
+
+  /// No description provided for @profileStorageIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Some profile changes or cleanup remain incomplete. Retry before treating this action as fully saved.'**
+  String get profileStorageIncomplete;
+
   /// No description provided for @healthDataRetrying.
   ///
   /// In en, this message translates to:
