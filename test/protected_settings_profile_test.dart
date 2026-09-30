@@ -19,6 +19,7 @@ import 'support/profile_photo_fixture.dart';
 class RejectingPreferences extends MemoryHydrionStore {
   bool reject = false;
   bool mismatch = false;
+  String? rejectRemoval;
   RejectingPreferences(super.values);
   @override
   Future<bool> writeString(String key, String value) async {
@@ -26,6 +27,10 @@ class RejectingPreferences extends MemoryHydrionStore {
     if (mismatch) return true;
     return super.writeString(key, value);
   }
+
+  @override
+  Future<bool> removeAcknowledged(String key) async =>
+      key == rejectRemoval ? false : super.removeAcknowledged(key);
 }
 
 void main() {
@@ -84,6 +89,237 @@ void main() {
         await UserSettingsRepository.load(prefs, protectedStore: db);
     expect(reloaded.settings.toJson(), repo.settings.toJson());
     expect((await db.readSettings()).record!.revision, 1);
+  });
+
+  for (final reconstruct in [false, true]) {
+    test('H1 provisional photo deletion recovers: reconstruct=$reconstruct',
+        () async {
+      final original = source(base64Encode(await syntheticPng(20, 20)));
+      final prefs = MemoryHydrionStore(
+          {SettingsProtection.storageKey: jsonEncode(original)});
+      failure = AppStoreStage.beforeVerification;
+      var repo = await UserSettingsRepository.load(prefs, protectedStore: db);
+      expect((await db.readSettings()).record!.phase,
+          ContextRecordPhase.provisional);
+      failure = AppStoreStage.recordWritten;
+      await expectLater(
+          repo.clearProfilePhoto(), throwsA(isA<SettingsProtectionFailure>()));
+      expect(prefs.snapshot[SettingsProtection.photoDeletionKey], 'pending');
+      await repo.retryProtection();
+      expect(repo.isKnown, isFalse);
+      expect(repo.settings.profilePhotoBase64, isNull);
+      expect((await db.readSettings()).record!.phase,
+          ContextRecordPhase.provisional);
+      failure = null;
+      if (reconstruct) {
+        repo = await UserSettingsRepository.load(prefs, protectedStore: db);
+      } else {
+        await repo.retryProtection();
+      }
+      expect(repo.protectionStatus, SettingsProtectionStatus.ready);
+      expect(repo.settings.nickname, 'SYNTHETIC-PROFILE');
+      expect((await db.readSettings()).record!.photo, isNull);
+      expect(prefs.snapshot.containsKey(SettingsProtection.photoDeletionKey),
+          isFalse);
+      final revision = (await db.readSettings()).record!.revision;
+      await repo.retryProtection();
+      expect((await db.readSettings()).record!.revision, revision);
+    });
+  }
+
+  test('H2 reset retires old photo deletion before accepting a new photo',
+      () async {
+    final prefs = MemoryHydrionStore();
+    var repo = await UserSettingsRepository.load(prefs, protectedStore: db);
+    await repo.setProfilePhotoBytes(await syntheticPng(10, 10));
+    failure = AppStoreStage.recordWritten;
+    await expectLater(
+        repo.clearProfilePhoto(), throwsA(isA<SettingsProtectionFailure>()));
+    failure = null;
+    await repo.resetLocalProfile();
+    final newPhoto = await syntheticPng(30, 30);
+    expect(await repo.setProfilePhotoBytes(newPhoto), isTrue);
+    await repo.retryProtection();
+    repo = await UserSettingsRepository.load(prefs, protectedStore: db);
+    expect((await db.readSettings()).record!.photo?.bytes, newPhoto);
+    expect(prefs.snapshot.containsKey(SettingsProtection.photoDeletionKey),
+        isFalse);
+    expect(
+        prefs.snapshot.values.join(), isNot(contains(base64Encode(newPhoto))));
+  });
+
+  test('M1 migrated ordinary edit survives protected unavailability', () async {
+    final prefs = MemoryHydrionStore();
+    await UserSettingsRepository.load(prefs, protectedStore: db);
+    final before = (await db.readSettings()).record!;
+    final repo = await UserSettingsRepository.load(prefs,
+        protectedStore: const UnavailableProtectedAppStore(
+            ProtectedReadStatus.unavailable));
+    await repo.setThemePreference(HydrionThemePreference.dark);
+    expect(repo.settings.themePreference, HydrionThemePreference.dark);
+    expect(repo.isKnown, isFalse);
+    expect((await db.readSettings()).record!.equivalentTo(before), isTrue);
+    expect(
+        jsonDecode(prefs.snapshot[SettingsProtection.storageKey]!)[
+            '_protectedRevision'],
+        before.revision);
+  });
+
+  for (final phase in [
+    'legacy',
+    'provisional',
+    'cleanup',
+    'protected',
+    'absent'
+  ]) {
+    test('H1 deletion precedence from $phase', () async {
+      final original = source(base64Encode(await syntheticPng(20, 20)));
+      final prefs = RejectingPreferences(
+          {SettingsProtection.storageKey: jsonEncode(original)});
+      if (phase == 'legacy') failure = AppStoreStage.recordWritten;
+      if (phase == 'provisional') failure = AppStoreStage.beforeVerification;
+      if (phase == 'cleanup') prefs.reject = true;
+      final repo = await UserSettingsRepository.load(prefs, protectedStore: db);
+      failure = null;
+      prefs.reject = false;
+      if (phase == 'absent') await repo.clearProfilePhoto();
+      await repo.clearProfilePhoto();
+      expect(repo.protectionStatus, SettingsProtectionStatus.ready);
+      final record = (await db.readSettings()).record!;
+      expect(record.phase, ContextRecordPhase.active);
+      expect(record.photo, isNull);
+      expect(record.profile.encode(),
+          SettingsProtection.profileFrom(original).encode());
+      expect(prefs.snapshot.containsKey(SettingsProtection.photoDeletionKey),
+          isFalse);
+      expect(
+          prefs.snapshot.values.join(), isNot(contains('profilePhotoBase64')));
+      final restarted =
+          await UserSettingsRepository.load(prefs, protectedStore: db);
+      expect(restarted.settings.profilePhotoBase64, isNull);
+      expect(restarted.settings.nickname, 'SYNTHETIC-PROFILE');
+    });
+  }
+
+  test('H1 authorized photo deletion still quarantines non-photo conflict',
+      () async {
+    final original = source(base64Encode(await syntheticPng(20, 20)));
+    final prefs = MemoryHydrionStore(
+        {SettingsProtection.storageKey: jsonEncode(original)});
+    failure = AppStoreStage.beforeVerification;
+    final repo = await UserSettingsRepository.load(prefs, protectedStore: db);
+    final before = (await db.readSettings()).record!;
+    failure = null;
+    original['nickname'] = 'CONFLICT';
+    final raw = jsonEncode(original);
+    await prefs.writeString(SettingsProtection.storageKey, raw);
+    await expectLater(
+        repo.clearProfilePhoto(), throwsA(isA<SettingsProtectionFailure>()));
+    await repo.retryProtection();
+    expect(repo.protectionStatus, SettingsProtectionStatus.corrupt);
+    expect((await db.readSettings()).record!.equivalentTo(before), isTrue);
+    expect(prefs.snapshot[SettingsProtection.storageKey], raw);
+    expect(prefs.snapshot[SettingsProtection.photoDeletionKey], 'pending');
+  });
+
+  for (final keyToReject in [
+    SettingsProtection.photoDeletionKey,
+    SettingsProtection.resetKey
+  ]) {
+    test(
+        'H2 reset cannot complete with unacknowledged intent removal: $keyToReject',
+        () async {
+      final prefs = RejectingPreferences({});
+      var repo = await UserSettingsRepository.load(prefs, protectedStore: db);
+      await repo.setProfilePhotoBytes(await syntheticPng(10, 10));
+      failure = AppStoreStage.recordWritten;
+      await expectLater(
+          repo.clearProfilePhoto(), throwsA(isA<SettingsProtectionFailure>()));
+      failure = null;
+      prefs.rejectRemoval = keyToReject;
+      await expectLater(
+          repo.resetLocalProfile(), throwsA(isA<SettingsProtectionFailure>()));
+      expect(repo.protectionStatus, SettingsProtectionStatus.deletionPending);
+      expect(prefs.snapshot[SettingsProtection.resetKey], 'keepLegal');
+      final replacement = await syntheticPng(30, 30);
+      expect(await repo.setProfilePhotoBytes(replacement), isFalse);
+      prefs.rejectRemoval = null;
+      repo = await UserSettingsRepository.load(prefs, protectedStore: db);
+      expect(repo.protectionStatus, SettingsProtectionStatus.ready);
+      expect(prefs.snapshot.containsKey(SettingsProtection.resetKey), isFalse);
+      expect(prefs.snapshot.containsKey(SettingsProtection.photoDeletionKey),
+          isFalse);
+      expect(await repo.setProfilePhotoBytes(replacement), isTrue);
+      await repo.retryProtection();
+      expect((await db.readSettings()).record!.photo!.bytes, replacement);
+    });
+  }
+
+  test('M1 all ordinary setters preserve unavailable protected generation',
+      () async {
+    final prefs = MemoryHydrionStore();
+    await UserSettingsRepository.load(prefs, protectedStore: db);
+    final before = (await db.readSettings()).record!;
+    final repo = await UserSettingsRepository.load(prefs,
+        protectedStore: const UnavailableProtectedAppStore(
+            ProtectedReadStatus.unavailable));
+    await repo.setLocale(const ui.Locale('fr', 'CA'));
+    expect(await repo.setAvatarId('superhappy_shark'), isTrue);
+    await repo.setVolumeUnit(HydrionVolumeUnit.ounces);
+    expect(await repo.setContainerSizeMl(650), isTrue);
+    await repo.clearContainerSize();
+    await repo.setReusableContainerEnabled(true);
+    await repo.setThemePreference(HydrionThemePreference.dark);
+    expect(await repo.setProfile(nickname: 'BLOCKED'), isFalse);
+    expect(await repo.setDailyGoalMl(2900), isFalse);
+    await expectLater(repo.setNonLocalProviderConsentGranted(true),
+        throwsA(isA<SettingsProtectionFailure>()));
+    final facade = SettingsProtection(
+        prefs,
+        const UnavailableProtectedAppStore(ProtectedReadStatus.unavailable),
+        (value) => UserSettings.fromJson(value).toJson());
+    await facade.reload();
+    await expectLater(
+        facade.save({
+          ...repo.settings.toJson(),
+          'nickname': 'BLOCKED',
+          'themePreference': 'light'
+        }),
+        throwsA(isA<SettingsProtectionFailure>()));
+    await expectLater(
+        facade.save({...repo.settings.toJson(), 'nickname': 'BLOCKED'},
+            ordinaryOnly: true),
+        throwsA(isA<SettingsProtectionFailure>()));
+    final restarted =
+        await UserSettingsRepository.load(prefs, protectedStore: db);
+    expect(restarted.settings.locale, const ui.Locale('fr', 'CA'));
+    expect(restarted.settings.avatarId, 'superhappy_shark');
+    expect(restarted.settings.volumeUnit, HydrionVolumeUnit.ounces);
+    expect(restarted.settings.containerSizeMl, 650);
+    expect(restarted.settings.reusableContainerEnabled, isTrue);
+    expect(restarted.settings.themePreference, HydrionThemePreference.dark);
+    expect((await db.readSettings()).record!.equivalentTo(before), isTrue);
+    expect(
+        jsonDecode(prefs.snapshot[SettingsProtection.storageKey]!)[
+            '_protectedRevision'],
+        before.revision);
+  });
+
+  test('M1 ordinary rejection preserves both stores and recovers', () async {
+    final prefs = RejectingPreferences({});
+    await UserSettingsRepository.load(prefs, protectedStore: db);
+    final before = Map.of(prefs.snapshot);
+    final repo = await UserSettingsRepository.load(prefs,
+        protectedStore: const UnavailableProtectedAppStore(
+            ProtectedReadStatus.unavailable));
+    prefs.reject = true;
+    await expectLater(repo.setThemePreference(HydrionThemePreference.dark),
+        throwsA(isA<SettingsProtectionFailure>()));
+    expect(await repo.setAvatarId('superhappy_shark'), isFalse);
+    expect(prefs.snapshot, before);
+    prefs.reject = false;
+    await repo.setThemePreference(HydrionThemePreference.dark);
+    expect(repo.settings.themePreference, HydrionThemePreference.dark);
   });
 
   for (final stage in [

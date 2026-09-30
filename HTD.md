@@ -1164,6 +1164,27 @@ The M5 writer-contract prerequisite is a design/interface review, NOT a new depe
 - **Focused validation:** 430 tests passed across 34 files, including 39 new settings/photo/recovery tests and Body Containment, Protected-Store Pilot/key, DATA-007, DATA-008, SEC-003, Stage 0A, reset/persistence, target and UI regressions. `flutter analyze --no-pub`, formatting verification for all 40 changed Dart files, EN/FR/ES parity (972 Flutter and 24 Android messages per locale), four new messages' zero-placeholder parity, secret scan and whitespace checks passed. No full-suite, platform build, hosted-CI, simulator or physical-device validation was performed.
 - **Limits / preservation:** one repository writer per dataset/isolate; SQLite connection coordination is not cross-process certification. No cross-store ACID claim, no stale private rollback on public-write failure, no physical-durability/backup/forensic-erasure claim. Existing native widget/watch snapshots are not migrated by this slice; only new unknown-default publication is suppressed. Older-binary downgrade remains a release decision. DATA-007/DATA-008/SEC-003 stay ACCEPTED; DATA-005/PRIV-002/SEC-002 stay OPEN. `edge_case.md` remains unchanged and separately staged (SHA-256 `ac65c576d20c7d63175f1053b61a0fc99d06648659f841f9e088f0eda0733538`, blob `0384da11c265db4f4bb4b6ad376d491f6bbd38fc`). No push.
 
+##### SEC-001C H1/H2/M1/M2 correction (2026-09-29)
+
+First independent acceptance of `92a9cd5ff29be97440fdbaf66033c6656073a787` was
+BLOCKED by HIGH H1 (provisional photo deletion conflict), HIGH H2 (reset leaving
+an obsolete photo deletion command), MEDIUM M1 (migrated ordinary edits blocked
+by unavailable protected revision) and MEDIUM M2 (Profile Save ignoring
+sub-operation failure). The owner authorized these four corrections only.
+Real repository/widget reproductions failed before production correction.
+Reconciliation now permits only the photo difference authorized by deletion;
+reset retires photo intent before reset intent; explicit ordinary-only setters
+preserve protected authority metadata without accessing unavailable payload;
+Profile Save retains all false and thrown results and reports incomplete without
+stale rollback. The SEC-001C receipt records exact scope and regression evidence.
+Correction validation: 568 tests passed across 43 files, including 22 new cases;
+five-file formatting, localization parity, secret and whitespace checks passed.
+Final analyzer rerun passed after a test-only braces correction. SEC-001C remains
+IMPLEMENTED_PENDING_SLICE_ACCEPTANCE, awaiting independent re-acceptance, and
+SEC-001 remains IN_PROGRESS. Body Containment, Protected-Store Pilot, DATA-007,
+DATA-008 and SEC-003 remain ACCEPTED; DATA-005, PRIV-002 and SEC-002 remain OPEN.
+No later slice is started.
+
 ##### Authorized-next-task candidates (not implementation authorization)
 
 | Slice | Scope / prerequisites / likely files | Risk, required tests and independent acceptance boundary |

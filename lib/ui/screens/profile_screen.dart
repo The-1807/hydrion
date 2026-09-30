@@ -441,31 +441,53 @@ class _ProfileEditorState extends State<_ProfileEditor> {
       return;
     }
     if (!mounted) return;
-    final profileSaved = await repository.setProfile(
-      nickname: _nicknameController.text,
-      age: repository.settings.age,
-      sex: repository.settings.sex,
-    );
-    if (!profileSaved) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.editProfileInvalid)),
-      );
+    final nickname = _nicknameController.text;
+    final age = repository.settings.age;
+    final sex = repository.settings.sex;
+    final avatarId = _avatarId;
+    final unit = _unit;
+    final baselineSource = _baselineSource;
+    final weatherModifierEnabled = repository.settings.weatherModifierEnabled;
+    var allSucceeded = true;
+    // Each store retains its acknowledged truth. This action accumulates its
+    // own result so a later success cannot erase an earlier partial failure.
+    final operations = <Future<bool> Function()>[
+      () => repository.setProfile(nickname: nickname, age: age, sex: sex),
+      () => repository.setAvatarId(avatarId),
+      () async {
+        await repository.setVolumeUnit(unit);
+        return true;
+      },
+      () async {
+        await repository.setPersonalizedGoalOptions(
+          baselineSource: baselineSource,
+          weatherModifierEnabled: weatherModifierEnabled,
+        );
+        return true;
+      },
+      () => repository.setDailyGoalMl(
+            goal,
+            updateBaseline:
+                baselineSource != HydrionBaselineSource.personalized,
+          ),
+      () => repository.setContainerSizeMl(container),
+    ];
+    for (final operation in operations) {
+      try {
+        if (!await operation()) allSucceeded = false;
+      } catch (_) {
+        allSucceeded = false;
+      }
+    }
+    if (!allSucceeded) {
+      if (messenger.mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.profileStorageIncomplete)),
+        );
+      }
       return;
     }
-    await repository.setAvatarId(_avatarId);
-    await repository.setVolumeUnit(_unit);
-    await repository.setPersonalizedGoalOptions(
-      baselineSource: _baselineSource,
-      weatherModifierEnabled: repository.settings.weatherModifierEnabled,
-    );
-    await repository.setDailyGoalMl(
-      goal,
-      updateBaseline: _baselineSource != HydrionBaselineSource.personalized,
-    );
-    await repository.setContainerSizeMl(container);
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 

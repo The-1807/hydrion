@@ -19,7 +19,112 @@ import 'package:hydrion/ui/screens/profile_screen.dart';
 import 'support/memory_protected_app_store.dart';
 import 'support/profile_photo_fixture.dart';
 
+class ProfileSaveFaultStore extends MemoryHydrionStore {
+  int? failAt;
+  int writes = 0;
+  bool throwFailure = false;
+  @override
+  Future<bool> writeString(String key, String value) async {
+    if (key == SettingsProtection.storageKey && ++writes == failAt) {
+      if (throwFailure) throw StateError('synthetic persistence failure');
+      return false;
+    }
+    return super.writeString(key, value);
+  }
+}
+
 void main() {
+  for (final fault in [0, 1, 2, 3, 4, 5, 6, 7]) {
+    testWidgets('M2 compound profile save retains failure at operation $fault',
+        (tester) async {
+      tester.view.physicalSize = const Size(1000, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final prefs = ProfileSaveFaultStore();
+      final db = MemoryProtectedAppStore();
+      final repo = (await tester.runAsync(() async {
+        final result =
+            await UserSettingsRepository.load(prefs, protectedStore: db);
+        await result.setProfile(nickname: 'SYNTHETIC');
+        return result;
+      }))!;
+      await tester.pumpWidget(MultiProvider(
+        providers: [
+          ChangeNotifierProvider<UserSettingsRepository>.value(value: repo),
+          ChangeNotifierProvider(create: (_) => ReminderRepository.memory()),
+          Provider<AppCapabilityReporter>(
+              create: (_) => LocalAppCapabilityReporter()),
+        ],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ProfileScreen(),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('profile-edit-action')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byKey(const Key('profile-edit-nickname')), 'NEW-SYNTHETIC');
+      tester
+          .widget<DropdownButtonFormField<String>>(
+              find.byType(DropdownButtonFormField<String>))
+          .onChanged!('superhappy_shark');
+      final fields = find.descendant(
+          of: find.byKey(const Key('profile-editor-list')),
+          matching: find.byType(TextField));
+      await tester.enterText(fields.at(1), '2800');
+      await tester.enterText(fields.at(2), '650');
+      await tester.pump();
+      prefs
+        ..writes = 0
+        ..failAt = fault
+        ..throwFailure = fault == 3;
+      if (fault == 7) {
+        db.settingsWriteFailure = ProtectedWriteStatus.unavailable;
+      }
+      final save = tester
+          .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Save profile'))
+          .onPressed!;
+      await tester.runAsync(() async {
+        await (save as Future<void> Function())();
+      });
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      if (fault == 0) {
+        expect(find.byKey(const Key('profile-editor-list')), findsNothing);
+        expect(repo.settings.dailyGoalMl, 2800);
+        return;
+      }
+      expect(find.byKey(const Key('profile-editor-list')), findsOneWidget);
+      expect(find.textContaining('Some profile changes'), findsOneWidget);
+      final feedback = tester
+          .widget<Text>(find.textContaining('Some profile changes'))
+          .data!;
+      expect(feedback, isNot(contains('NEW-SYNTHETIC')));
+      if (fault < 7) expect(prefs.writes, 6);
+      if (fault == 2) {
+        expect(repo.settings.avatarId, isNot('superhappy_shark'));
+        expect(repo.settings.dailyGoalMl, 2800);
+        expect(repo.settings.containerSizeMl, 650);
+      }
+      prefs.failAt = null;
+      await tester.runAsync(() async {
+        db.settingsWriteFailure = null;
+        await repo.retryProtection();
+        await (save as Future<void> Function())();
+      });
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('profile-editor-list')), findsNothing);
+      expect(repo.settings.nickname, 'NEW-SYNTHETIC');
+      expect(repo.settings.avatarId, 'superhappy_shark');
+      expect(repo.settings.dailyGoalMl, 2800);
+      expect(repo.settings.containerSizeMl, 650);
+    });
+  }
+
   Future<void> pumpGate(WidgetTester tester, UserSettingsRepository repo,
       HydrionProfilePhotoPicker picker) async {
     await tester.pumpWidget(MultiProvider(

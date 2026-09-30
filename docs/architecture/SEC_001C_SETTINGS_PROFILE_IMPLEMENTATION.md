@@ -4,7 +4,8 @@ Date: 2026-09-29
 Branch: `audit/full-hydrion-integration`
 Base: `ac65254e36c4a7827b444e7a30647b5c8b869fdc`
 Authority: current HTD M3 / I03-I05 and owner approval.
-Status: IMPLEMENTED_PENDING_SLICE_ACCEPTANCE; independent acceptance not performed.
+Status: IMPLEMENTED_PENDING_SLICE_ACCEPTANCE; first independent acceptance BLOCKED;
+H1/H2/M1/M2 correction awaits independent re-acceptance.
 This receipt is included in the implementation commit, not a separate acceptance.
 
 ## Owner Decision and Scope
@@ -265,3 +266,82 @@ test/support/profile_photo_fixture.dart
 SHA-256 `ac65c576d20c7d63175f1053b61a0fc99d06648659f841f9e088f0eda0733538`;
 staged blob `0384da11c265db4f4bb4b6ad376d491f6bbd38fc`.
 No push is authorized or performed.
+
+## H1/H2/M1/M2 Correction (2026-09-29)
+
+The first independent acceptance of `92a9cd5ff29be97440fdbaf66033c6656073a787`
+was BLOCKED by HIGH H1/H2 and MEDIUM M1/M2. The original implementation and
+validation above are historical evidence, not first-pass acceptance. The owner
+authorized only these four corrections and one local correction commit; no push.
+
+### Reproductions and corrections
+
+- H1: real SQLCipher provisional-photo migration followed by acknowledged photo
+  deletion failed recovery with `corrupt` instead of `ready`, both on Retry and
+  reconstruction. With deletion intent, reconciliation now compares all non-photo
+  provisional fields exactly and permits only the authorized photo difference.
+  It activates a photo-free record at the next revision and requires verified
+  storage and acknowledged cleanup before retiring intent. Genuine profile
+  conflicts still quarantine both copies.
+- H2: failed old photo deletion followed by successful reset and a new photo save
+  lost the new photo on reload. Reset now retires existing photo deletion intent
+  after verified photo absence and legacy cleanup, before retiring reset intent.
+  Failure to acknowledge either removal keeps reset incomplete and blocks new
+  protected writes. No global DATA-005 reset journal is introduced.
+- M1: a migrated positive generation marker plus unavailable protected storage
+  caused an ordinary theme save to throw. The seven ordinary fields now have an
+  explicitly ordinary-only repository path. It preserves the source and marker,
+  requires preference acknowledgement/readback, and neither reads nor writes
+  protected payload. Protected/mixed mutations still require known authority;
+  revision fencing for those writes remains intact. The facade rejects protected
+  changes even if a caller incorrectly marks the request ordinary-only.
+- M2: Profile Save ignored false avatar/goal/container results and allowed void
+  setter exceptions to escape. All six operations now contribute to one action
+  result. False or thrown failures remain incomplete even if later saves succeed;
+  fixed localized feedback reports the outcome without sensitive interpolation.
+  The editor closes only when all requested operations succeed. Committed data
+  is never rolled back through an old whole-settings snapshot.
+
+Profile Save operation audit: profile, avatar, daily goal and container setters
+return bool; volume-unit and personalized-goal-option setters return void and may
+throw. Profile/goal/options are protected writes with ordinary publication;
+avatar/unit/container are ordinary. The action retains the existing six-call
+order and does not add an unchanged-value optimization that could skip existing
+manual-goal bookkeeping.
+
+### Correction regression evidence
+
+There are 22 new cases: 14 repository/SQLCipher cases and eight Profile Save widget
+cases. They cover provisional deletion retry/reconstruction, all migration/photo
+phases, retained non-photo conflict quarantine, reset intent-removal rejection,
+new-photo survival, all seven ordinary fields under protected unavailability,
+protected/mixed rejection, ordinary failure/recovery, success and each of six
+compound-save failure positions, thrown failure, unavailable protected writes,
+and successful retry. Existing exact photo limits and foundation tests remain.
+
+Pre-fix production reproduced all four findings. Initial widget harness attempts
+required viewport and async-zone corrections before producing the intended M2
+failures; those harness failures are not defect evidence. Corrected fixtures
+showed the missing failure message, premature editor closure and escaped
+SettingsProtectionFailure against unchanged Profile Save production code.
+
+Final correction tests: **568 passed across 43 files**, exit 0. This is the
+34-file selection above plus app_persistence, personalized_hydration_ui,
+personalized_hydration_engine, personalized_goal_override_confirmation,
+hydration_pacing_engine, challenge_personalization_correction,
+health_database_key_store, encrypted_health_data_repository and
+notification_service tests (all under `test/`, with `_test.dart` suffix).
+The two focused settings/photo suites contain 61 tests including the 22 new cases.
+Scoped formatting checks five Dart files with no changes; localization remains
+972/972 Flutter and 24/24 Android messages for EN/FR/ES; secret and whitespace
+checks passed. No strings changed. One test-only braces lint was corrected;
+the final `flutter analyze --no-pub` rerun passed with no issues.
+
+Correction scope is exactly seven paths: `lib/repositories/settings_protection.dart`,
+`lib/repositories/settings_repository.dart`, `lib/ui/screens/profile_screen.dart`,
+`test/protected_settings_profile_test.dart`, `test/settings_protection_gate_test.dart`,
+this receipt and `HTD.md`. Database schema/key, 29/7 classification, photo policy,
+target/consent semantics and later slices are unchanged. SEC-001 remains
+IN_PROGRESS; SEC-001C remains IMPLEMENTED_PENDING_SLICE_ACCEPTANCE. This is
+implementation evidence, not independent acceptance. All original platform,
+backup, forensic and full-suite limitations remain.

@@ -164,6 +164,9 @@ final class SettingsProtection {
         record = candidate;
         final resetOrdinary = ordinaryFrom(normalize(retained));
         if (!await cleanup(ordinaryOverride: resetOrdinary) ||
+            // Reset verified photo absence too. Retire the older command before
+            // retiring reset intent or permitting any future photo save.
+            (intent != null && !await _removeIntent(photoDeletionKey)) ||
             !await _removeIntent(resetKey)) {
           status = SettingsProtectionStatus.deletionPending;
           return;
@@ -213,7 +216,13 @@ final class SettingsProtection {
           phase: ContextRecordPhase.provisional,
           profile: profile,
           photo: photo);
-      if (old != null && !old.equivalentTo(candidate)) {
+      final comparable = old == null || intent == null
+          ? old
+          : ProtectedSettingsRecord(
+              revision: old.revision, phase: old.phase, profile: old.profile);
+      // Only the photo difference is authorized by deletion intent. All other
+      // provisional fields must still match the migration source exactly.
+      if (comparable != null && !comparable.equivalentTo(candidate)) {
         status = SettingsProtectionStatus.corrupt;
         return;
       }
@@ -223,7 +232,8 @@ final class SettingsProtection {
         return;
       }
       final active = ProtectedSettingsRecord(
-          revision: candidate.revision,
+          revision:
+              candidate.revision + (old != null && intent != null ? 1 : 0),
           phase: ContextRecordPhase.active,
           profile: profile,
           photo: photo);
@@ -271,13 +281,13 @@ final class SettingsProtection {
     }
   }
 
-  Future<void> save(Map<String, dynamic> next) async {
+  Future<void> save(Map<String, dynamic> next,
+      {bool ordinaryOnly = false}) async {
     // Recheck the mixed source before any destructive stripping. Unknown
     // fields introduced since load cannot silently become disposable data.
     final currentSource = await _legacy();
     final reference = currentSource['_protectedRevision'];
-    if (reference != null &&
-        (reference is! int || reference > (record?.revision ?? 0))) {
+    if (reference != null && (reference is! int || reference < 1)) {
       throw const SettingsProtectionFailure();
     }
     final nextOrdinary = ordinaryFrom(next);
@@ -287,7 +297,7 @@ final class SettingsProtection {
     }
     if (!isKnown) {
       final deniedDefaults = profileFrom(normalize(ordinary));
-      if (nextProfile.encode() != deniedDefaults.encode()) {
+      if (!ordinaryOnly || nextProfile.encode() != deniedDefaults.encode()) {
         throw const SettingsProtectionFailure();
       }
       // Ordinary changes may not strip or reinterpret an unverified legacy
@@ -302,6 +312,10 @@ final class SettingsProtection {
       return;
     }
     final current = record!;
+    if ((reference != null && (reference as int) > current.revision) ||
+        (ordinaryOnly && nextProfile.encode() != current.profile.encode())) {
+      throw const SettingsProtectionFailure();
+    }
     if (nextProfile.encode() != current.profile.encode()) {
       final candidate = ProtectedSettingsRecord(
           revision: current.revision + 1,

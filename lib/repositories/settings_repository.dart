@@ -828,7 +828,7 @@ class UserSettingsRepository extends ChangeNotifier {
 
   Future<void> setLocale(Locale locale) => _runWithoutKnownProfile(() async {
         _settings = _settings.copyWith(locale: locale);
-        await _persist();
+        await _persist(ordinaryOnly: true);
         notifyListeners();
       });
 
@@ -873,7 +873,7 @@ class UserSettingsRepository extends ChangeNotifier {
   Future<void> setReusableContainerEnabled(bool value) =>
       _runWithoutKnownProfile(() async {
         _settings = _settings.copyWith(reusableContainerEnabled: value);
-        await _persist();
+        await _persist(ordinaryOnly: true);
         notifyListeners();
       });
 
@@ -906,7 +906,7 @@ class UserSettingsRepository extends ChangeNotifier {
           return false;
         }
         _settings = _settings.copyWith(avatarId: safeAvatarId);
-        await _persist();
+        await _persist(ordinaryOnly: true);
         notifyListeners();
         return true;
       });
@@ -981,14 +981,14 @@ class UserSettingsRepository extends ChangeNotifier {
   Future<void> setVolumeUnit(HydrionVolumeUnit unit) =>
       _runWithoutKnownProfile(() async {
         _settings = _settings.copyWith(volumeUnit: unit);
-        await _persist();
+        await _persist(ordinaryOnly: true);
         notifyListeners();
       });
 
   Future<void> setThemePreference(HydrionThemePreference preference) =>
       _runWithoutKnownProfile(() async {
         _settings = _settings.copyWith(themePreference: preference);
-        await _persist();
+        await _persist(ordinaryOnly: true);
         notifyListeners();
       });
 
@@ -1002,14 +1002,14 @@ class UserSettingsRepository extends ChangeNotifier {
           containerSizeMl: value,
           reusableContainerEnabled: true,
         );
-        await _persist();
+        await _persist(ordinaryOnly: true);
         notifyListeners();
         return true;
       });
 
   Future<void> clearContainerSize() => _runWithoutKnownProfile(() async {
         _settings = _settings.copyWith(reusableContainerEnabled: false);
-        await _persist();
+        await _persist(ordinaryOnly: true);
         notifyListeners();
       });
 
@@ -1276,10 +1276,10 @@ class UserSettingsRepository extends ChangeNotifier {
         notifyListeners();
       });
 
-  Future<void> _persist() async {
+  Future<void> _persist({bool ordinaryOnly = false}) async {
     final protection = _protection;
     if (protection != null) {
-      await protection.save(_settings.toJson());
+      await protection.save(_settings.toJson(), ordinaryOnly: ordinaryOnly);
       _publishProtected();
     } else {
       if (!await _store.writeString(
