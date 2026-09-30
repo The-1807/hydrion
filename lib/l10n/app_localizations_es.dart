@@ -9,6 +9,14 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get challengeStorageUnavailable =>
+      'El almacenamiento protegido de retos no está disponible. Los datos existentes se conservan. Reintenta para recuperar el acceso.';
+
+  @override
+  String get challengeDeletionPending =>
+      'La eliminación de retos está incompleta. Reintenta para completar la limpieza local.';
+
+  @override
   String get profileStorageUnavailable =>
       'El almacenamiento protegido del perfil no está disponible. Los datos existentes se conservan. Reintenta para recuperar el acceso.';
 

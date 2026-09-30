@@ -1,3 +1,4 @@
+import 'support/protected_challenge_fixture.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/challenge_activity.dart';
 import 'package:hydrion/domain/bottle_bingo.dart';
@@ -48,7 +49,7 @@ void main() {
     };
     final repository = store == null
         ? ChallengeRepository.memory()
-        : await ChallengeRepository.load(store);
+        : await loadTestChallengeRepository(store);
     final joined = await repository.join(
       id: id,
       name: id,
@@ -149,7 +150,7 @@ void main() {
     final first = await joinActivity('lunch-break-refill', store: store);
     expect(first.activeChallenge!.completedActionIds, isEmpty);
 
-    final reloaded = await ChallengeRepository.load(store);
+    final reloaded = await loadTestChallengeRepository(store);
     expect(reloaded.activeChallenge!.completedActionIds, isEmpty);
   });
 
@@ -181,7 +182,7 @@ void main() {
       isTrue,
     );
 
-    final reloaded = await ChallengeRepository.load(store);
+    final reloaded = await loadTestChallengeRepository(store);
     expect(
       reloaded.activitySessionElapsed('homework-hydration'),
       const Duration(minutes: 8),

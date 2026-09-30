@@ -1,3 +1,4 @@
+import 'support/protected_challenge_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -191,7 +192,7 @@ void main() {
 
   test('history survives challenge repository restart', () async {
     final store = MemoryHydrionStore();
-    final first = await ChallengeRepository.load(store);
+    final first = await loadTestChallengeRepository(store);
     await first.join(
       id: 'eat-your-water-day',
       name: 'Eat Your Water Day',
@@ -202,7 +203,7 @@ void main() {
       parameters: const {'meal': 'snack', 'food': 'watermelon'},
     );
     await first.completeCheckIn('2026-07-02:day-2-eat-your-water-day');
-    final reloaded = await ChallengeRepository.load(store);
+    final reloaded = await loadTestChallengeRepository(store);
     expect(
       present(reloaded.activeChallenge!).single.description,
       'Added watermelon to snack',

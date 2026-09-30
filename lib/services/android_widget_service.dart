@@ -278,7 +278,7 @@ class AndroidWidgetService {
       RegExp(r'^[a-z0-9-]+$').hasMatch(value);
 
   Future<void> sync() async {
-    if (!settingsRepository.isKnown) return;
+    if (!settingsRepository.isKnown || !challengeRepository.isKnown) return;
     if ((!Platform.isAndroid && !Platform.isIOS) || _syncing) return;
     _syncing = true;
     try {

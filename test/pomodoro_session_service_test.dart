@@ -1,3 +1,4 @@
+import 'support/protected_challenge_fixture.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/pomodoro_session.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
@@ -417,19 +418,23 @@ void main() {
       expect(state.history.single.completedAt, DateTime(2026, 7, 18));
     });
 
-    test('corrupt nested state falls back to safe legacy migration', () async {
+    test('corrupt nested state cannot replace protected session state',
+        () async {
       final fixture = await PomodoroFixture.create();
       final challenge = fixture.challenges.activeChallenge!;
-      await fixture.challenges.updateParameters({
-        ...challenge.parameters,
-        'timerStatus': 'paused',
-        'timerPausedSeconds': 300,
-        'pomodoroSession': {'unsupported': true},
-      }, challengeId: PomodoroSessionService.challengeId);
-
-      final state = await fixture.sessions.reconcile();
-      expect(state!.lifecycle, PomodoroSessionLifecycle.paused);
-      expect(state.pausedRemaining, const Duration(minutes: 5));
+      await expectLater(
+          fixture.challenges.updateParameters({
+            ...challenge.parameters,
+            'timerStatus': 'paused',
+            'timerPausedSeconds': 300,
+            'pomodoroSession': {'unsupported': true},
+          }, challengeId: PomodoroSessionService.challengeId),
+          throwsA(isA<ChallengeStorageUnavailable>()));
+      expect(fixture.challenges.isKnown, isFalse);
+      await fixture.challenges.refreshFromStore();
+      expect(fixture.challenges.isKnown, isTrue);
+      expect(
+          fixture.challenges.activeChallenge!.parameters, challenge.parameters);
     });
 
     test('UTC serialization preserves the absolute completion instant', () {
@@ -517,7 +522,7 @@ class PomodoroFixture {
   }) async {
     final actualStore = store ?? MemoryHydrionStore();
     final clock = MutableClock(DateTime(2030, 7, 23, 9, 17, 42));
-    final challenges = await ChallengeRepository.load(actualStore);
+    final challenges = await loadTestChallengeRepository(actualStore);
     final hydration = await HydrationRepository.load(actualStore);
     final reminders = await ReminderRepository.load(actualStore);
     final actualAdapter = adapter ??
@@ -572,7 +577,7 @@ class PomodoroFixture {
     required HydrionLocalStore store,
     required MutableClock clock,
   }) async {
-    final challenges = await ChallengeRepository.load(store);
+    final challenges = await loadTestChallengeRepository(store);
     final hydration = await HydrationRepository.load(store);
     final reminders = await ReminderRepository.load(store);
     final adapter = FakeHydrionNotificationAdapter(

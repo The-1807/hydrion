@@ -1,3 +1,4 @@
+import 'support/protected_challenge_fixture.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/bottle_bingo.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
@@ -7,7 +8,7 @@ void main() {
   Future<ChallengeRepository> activePomodoro([HydrionLocalStore? store]) async {
     final repository = store == null
         ? ChallengeRepository.memory()
-        : await ChallengeRepository.load(store);
+        : await loadTestChallengeRepository(store);
     await repository.join(
       id: 'pomodoro-sip',
       name: 'Pomodoro Sip',
@@ -61,7 +62,7 @@ void main() {
       final instance = first.activeChallenge!.instanceId;
       await first.pauseChallenge('pomodoro-sip');
 
-      final second = await ChallengeRepository.load(store);
+      final second = await loadTestChallengeRepository(store);
       expect(second.pausedChallenges.single.instanceId, instance);
       final resumed = await second.resumeChallenge(instance);
 

@@ -102,14 +102,27 @@ class LocalHydrationAiActionExecutor
     }
 
     if (safeAction is SuggestChallengeAction) {
-      await _challengeRepository.join(
-        id: safeAction.challengeId,
-        name: safeAction.name,
-        description: safeAction.description,
-        targetMl: safeAction.targetMl,
-        durationDays: safeAction.durationDays,
-        joinedAt: current,
-      );
+      var joined = false;
+      try {
+        joined = await _challengeRepository.join(
+          id: safeAction.challengeId,
+          name: safeAction.name,
+          description: safeAction.description,
+          targetMl: safeAction.targetMl,
+          durationDays: safeAction.durationDays,
+          joinedAt: current,
+        );
+      } on ChallengeStorageUnavailable {
+        joined = false;
+      }
+      if (!joined) {
+        return HydrationAiActionExecutionResult(
+          originalAction: action,
+          validationResult: validation,
+          status: HydrationAiActionExecutionStatus.rejected,
+          messageCode: HydrationAiExecutionMessageCode.validationRejected,
+        );
+      }
       return HydrationAiActionExecutionResult(
         originalAction: action,
         validationResult: validation,

@@ -1,3 +1,4 @@
+import 'support/protected_challenge_fixture.dart';
 import 'support/memory_protected_app_store.dart';
 import 'dart:convert';
 
@@ -163,7 +164,8 @@ void main() {
     expect(reminderRepository.reminders, isEmpty);
   });
 
-  test('malformed active challenge JSON clears only challenge state', () async {
+  test('malformed active challenge JSON is quarantined without touching logs',
+      () async {
     final hydration = _hydrationJson(
       id: 'challenge-safe-log',
       volumeMl: 450,
@@ -174,13 +176,12 @@ void main() {
       ChallengeRepository.storageKey: '{"id":',
     });
 
-    final challengeRepository = await ChallengeRepository.load(store);
+    final challengeRepository = await loadTestChallengeRepository(store);
     final hydrationRepository = await HydrationRepository.load(store);
 
     expect(challengeRepository.activeChallenge, isNull);
-    expect(challengeRepository.recoveryEvents.single.action,
-        StorageRecoveryActions.clearCategory);
-    expect(store.snapshot.containsKey(ChallengeRepository.storageKey), isFalse);
+    expect(challengeRepository.storageStatus, ChallengeStorageStatus.corrupt);
+    expect(store.snapshot[ChallengeRepository.storageKey], '{"id":');
     expect(hydrationRepository.logs.single.id, 'challenge-safe-log');
   });
 
@@ -197,12 +198,11 @@ void main() {
       }),
     });
 
-    final repository = await ChallengeRepository.load(store);
+    final repository = await loadTestChallengeRepository(store);
 
     expect(repository.activeChallenge, isNull);
-    expect(repository.recoveryEvents.single.code,
-        StorageRecoveryCodes.invalidValue);
-    expect(store.snapshot.containsKey(ChallengeRepository.storageKey), isFalse);
+    expect(repository.storageStatus, ChallengeStorageStatus.corrupt);
+    expect(store.snapshot.containsKey(ChallengeRepository.storageKey), isTrue);
   });
 
   test('malformed settings JSON falls back to a supported locale', () async {
@@ -325,7 +325,7 @@ void main() {
     });
 
     final hydrationRepository = await HydrationRepository.load(store);
-    final challengeRepository = await ChallengeRepository.load(store);
+    final challengeRepository = await loadTestChallengeRepository(store);
     final settingsRepository = await UserSettingsRepository.load(store,
         protectedStore: protectedSettings);
 
@@ -381,7 +381,7 @@ void main() {
 
     final hydrationRepository = await HydrationRepository.load(store);
     final reminderRepository = await ReminderRepository.load(store);
-    final challengeRepository = await ChallengeRepository.load(store);
+    final challengeRepository = await loadTestChallengeRepository(store);
     final settingsRepository = await UserSettingsRepository.load(store,
         protectedStore: protectedSettings);
 

@@ -7,6 +7,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 
 import 'protected_app_store.dart';
 import 'protected_settings_record.dart';
+import 'protected_challenge_record.dart';
 import '../services/validated_profile_photo.dart';
 
 enum AppStoreStage { schemaCreated, recordWritten, beforeVerification }
@@ -43,8 +44,11 @@ final class _AppDatabaseFactory extends NativeSqliteOpenFactory {
 /// in an isolate. SQLite transactions coordinate connections to the same app
 /// database. Native commit/readback is not physical-durability evidence.
 final class EncryptedAppStore
-    implements ProtectedAppStore, ProtectedSettingsStore {
-  static const schemaVersion = 2;
+    implements
+        ProtectedAppStore,
+        ProtectedSettingsStore,
+        ProtectedChallengeStore {
+  static const schemaVersion = 3;
   final SqliteDatabase _db;
   final Future<void> Function(AppStoreStage)? _failureInjector;
   Future<void> _tail = Future.value();
@@ -67,7 +71,10 @@ final class EncryptedAppStore
       await db.initialize();
       await db.writeTransaction((tx) async {
         final version = (await tx.get('PRAGMA user_version'))['user_version'];
-        if (version != 0 && version != 1 && version != schemaVersion) {
+        if (version != 0 &&
+            version != 1 &&
+            version != 2 &&
+            version != schemaVersion) {
           throw const AppStoreOpenFailure(ProtectedReadStatus.unsupported);
         }
         if (version == 0) {
@@ -107,6 +114,18 @@ final class EncryptedAppStore
         }
         await tx.getAll(
             'SELECT singleton, schema_version, revision, phase, profile, photo, width, height FROM settings_profile');
+        if (version != schemaVersion) {
+          await tx.execute('''CREATE TABLE challenge_state (
+            singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+            schema_version INTEGER NOT NULL,
+            revision INTEGER NOT NULL CHECK(revision > 0),
+            phase TEXT NOT NULL CHECK(phase IN ('provisional', 'active', 'deleted')),
+            payload TEXT NOT NULL
+          ) STRICT''');
+          await tx.execute('PRAGMA user_version = 3');
+        }
+        await tx.getAll(
+            'SELECT singleton, schema_version, revision, phase, payload FROM challenge_state');
       });
       return store;
     } catch (error) {
@@ -125,6 +144,97 @@ final class EncryptedAppStore
     _tail = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
     return result;
   }
+
+  ProtectedChallengeRecord _challengeFromRow(Map<String, dynamic> row) {
+    if (row['schema_version'] != ProtectedChallengeRecord.schemaVersion) {
+      throw const ProtectedContextSchemaUnsupported();
+    }
+    return ProtectedChallengeRecord(
+      revision: row['revision'] as int,
+      phase: ContextRecordPhase.values.byName(row['phase'] as String),
+      state:
+          (jsonDecode(row['payload'] as String) as Map).cast<String, Object?>(),
+    );
+  }
+
+  Future<ProtectedChallengeRead> _readChallenges() async {
+    if (_closed) {
+      return const ProtectedChallengeRead(ProtectedReadStatus.unavailable);
+    }
+    try {
+      final rows =
+          await _db.getAll('SELECT * FROM challenge_state WHERE singleton = 1');
+      if (rows.isEmpty) {
+        return const ProtectedChallengeRead(ProtectedReadStatus.absent);
+      }
+      final record = _challengeFromRow(rows.single);
+      return ProtectedChallengeRead(
+          record.phase == ContextRecordPhase.deleted
+              ? ProtectedReadStatus.absent
+              : ProtectedReadStatus.found,
+          record);
+    } on ProtectedContextSchemaUnsupported {
+      return const ProtectedChallengeRead(ProtectedReadStatus.unsupported);
+    } on FormatException {
+      return const ProtectedChallengeRead(ProtectedReadStatus.corrupt);
+    } on ArgumentError {
+      return const ProtectedChallengeRead(ProtectedReadStatus.corrupt);
+    } on TypeError {
+      return const ProtectedChallengeRead(ProtectedReadStatus.corrupt);
+    } catch (_) {
+      return const ProtectedChallengeRead(ProtectedReadStatus.unavailable);
+    }
+  }
+
+  @override
+  Future<ProtectedChallengeRead> readChallenges() => _run(_readChallenges);
+
+  @override
+  Future<ProtectedWriteStatus> writeChallenges(
+          ProtectedChallengeRecord record) =>
+      _run(() async {
+        if (_closed) return ProtectedWriteStatus.unavailable;
+        try {
+          await _db.writeTransaction((tx) async {
+            final rows = await tx
+                .getAll('SELECT * FROM challenge_state WHERE singleton = 1');
+            if (rows.isNotEmpty) {
+              final old = _challengeFromRow(rows.single);
+              final activation = old.phase == ContextRecordPhase.provisional &&
+                  record.phase == ContextRecordPhase.active &&
+                  old.encodePayload() == record.encodePayload();
+              if (old.revision > record.revision ||
+                  (old.revision == record.revision &&
+                      !old.equivalentTo(record) &&
+                      !activation)) {
+                throw const FormatException('Conflicting challenge revision');
+              }
+            }
+            await tx.execute(
+                '''INSERT INTO challenge_state
+          (singleton, schema_version, revision, phase, payload) VALUES(1, ?, ?, ?, ?)
+          ON CONFLICT(singleton) DO UPDATE SET schema_version = excluded.schema_version,
+          revision = excluded.revision, phase = excluded.phase, payload = excluded.payload''',
+                [
+                  ProtectedChallengeRecord.schemaVersion,
+                  record.revision,
+                  record.phase.name,
+                  record.encodePayload()
+                ]);
+            await _failureInjector?.call(AppStoreStage.recordWritten);
+          });
+        } catch (_) {
+          return ProtectedWriteStatus.failed;
+        }
+        try {
+          await _failureInjector?.call(AppStoreStage.beforeVerification);
+          return (await _readChallenges()).record?.equivalentTo(record) == true
+              ? ProtectedWriteStatus.committed
+              : ProtectedWriteStatus.verificationFailed;
+        } catch (_) {
+          return ProtectedWriteStatus.verificationFailed;
+        }
+      });
 
   Future<ProtectedContextRead> _read() async {
     if (_closed) {

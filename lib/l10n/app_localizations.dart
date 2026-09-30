@@ -100,6 +100,18 @@ abstract class AppLocalizations {
     Locale('fr')
   ];
 
+  /// No description provided for @challengeStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected challenge storage is unavailable. Existing data is preserved. Retry to restore access.'**
+  String get challengeStorageUnavailable;
+
+  /// No description provided for @challengeDeletionPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge deletion is incomplete. Retry to finish local cleanup.'**
+  String get challengeDeletionPending;
+
   /// No description provided for @profileStorageUnavailable.
   ///
   /// In en, this message translates to:

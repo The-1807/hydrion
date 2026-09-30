@@ -9,6 +9,14 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get challengeStorageUnavailable =>
+      'Le stockage protégé des défis est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l\'accès.';
+
+  @override
+  String get challengeDeletionPending =>
+      'La suppression des défis est incomplète. Réessayez pour terminer le nettoyage local.';
+
+  @override
   String get profileStorageUnavailable =>
       'Le stockage protégé du profil est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l’accès.';
 

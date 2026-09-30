@@ -1,3 +1,4 @@
+import 'support/protected_challenge_fixture.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -65,7 +66,7 @@ void main() {
         '{"schemaVersion":3,"id":"temperature-roulette","name":"Temperature Roulette","description":"Legacy","targetMl":2200,"durationDays":5,"joinedAt":"2026-07-18T08:00:00.000","parameters":{"amountMl":250,"weatherOrdering":"disabled"}}',
       );
 
-      final challenges = await ChallengeRepository.load(store);
+      final challenges = await loadTestChallengeRepository(store);
 
       expect(challenges.activeChallenges, hasLength(1));
       expect(challenges.activeChallenge?.id, 'temperature-roulette');
@@ -94,7 +95,7 @@ void main() {
         }),
       );
 
-      final challenges = await ChallengeRepository.load(store);
+      final challenges = await loadTestChallengeRepository(store);
 
       expect(challenges.activeChallenges, hasLength(2));
       expect(challenges.pausedChallenges, hasLength(1));

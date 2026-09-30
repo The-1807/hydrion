@@ -1,9 +1,9 @@
+import 'support/protected_challenge_fixture.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
-import 'package:hydrion/repositories/challenge_repository.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 // Regression coverage for HYD-CORR-001: `_ChallengeActivityPanelState`
@@ -134,7 +134,7 @@ Future<_Harness> _pumpHomeworkHydration(WidgetTester tester) async {
   addTearDown(tester.view.resetDevicePixelRatio);
   final store = _HoldableWriteStore(MemoryHydrionStore());
   final services = HydrionServices.memory(
-    challengeRepository: await ChallengeRepository.load(store),
+    challengeRepository: await loadTestChallengeRepository(store),
   );
   await services.challengeRepository.join(
     id: 'homework-hydration',

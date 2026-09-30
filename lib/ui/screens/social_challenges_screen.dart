@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../components/challenge_storage_notice.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/bottle_bingo.dart';
@@ -48,6 +49,9 @@ class _SocialChallengesScreenState extends State<SocialChallengesScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final challengeRepository = context.watch<ChallengeRepository>();
+    if (challengeRepository.storageStatus != ChallengeStorageStatus.ready) {
+      return const ChallengeStorageNotice();
+    }
     final hydrationRepository = context.watch<HydrationRepository>();
     final settings = context.watch<UserSettingsRepository>().settings;
     final bodyMetrics = context.watch<BodyMetricsRepository>().state.value;

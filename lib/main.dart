@@ -779,7 +779,8 @@ class HydrionServices {
           hydrationRepository.eventCount > 0,
     );
     final reminderRepository = await ReminderRepository.load(store);
-    final challengeRepository = await ChallengeRepository.load(store);
+    final challengeRepository = await ChallengeRepository.load(store,
+        protectedStore: protectedAppStore);
     final bodyMetricsRepository = await BodyMetricsRepository.load(store);
     final dailyHydrationContextRepository =
         await DailyHydrationContextRepository.load(store,
@@ -1105,6 +1106,7 @@ class HydrionServices {
 
   Future<void> dispose() async {
     await dailyHydrationContextRepository.close();
+    await challengeRepository.close();
     await settingsRepository.close();
     await healthDataRepository?.close();
   }

@@ -1,3 +1,4 @@
+import 'support/protected_challenge_fixture.dart';
 import 'support/memory_protected_app_store.dart';
 import 'dart:io';
 import 'dart:convert';
@@ -439,7 +440,7 @@ void main() {
       '{"schemaVersion":2,"id":"temperature-roulette","name":"Temperature Roulette","description":"Legacy","targetMl":2200,"durationDays":5,"joinedAt":"2026-07-16T08:00:00.000"}',
     );
 
-    final repository = await ChallengeRepository.load(store);
+    final repository = await loadTestChallengeRepository(store);
     expect(repository.activeChallenge?.id, 'temperature-roulette');
     expect(repository.activeChallenge?.needsSetup, isTrue);
     expect(
@@ -485,7 +486,7 @@ void main() {
   test('Bottle Bingo manual tiles persist with active challenge state',
       () async {
     final store = MemoryHydrionStore();
-    final first = await ChallengeRepository.load(store);
+    final first = await loadTestChallengeRepository(store);
     final bottleBingo = HydrionChallengeCatalog.byId('bottle-bingo');
 
     await first.join(
@@ -502,11 +503,11 @@ void main() {
     expect(await first.toggleBottleBingoTile(1), isFalse);
     expect(await first.toggleBottleBingoTile(0), isTrue);
 
-    final second = await ChallengeRepository.load(store);
+    final second = await loadTestChallengeRepository(store);
     expect(second.activeChallenge?.bottleBingoCompletedTiles, {0, 2, 5});
 
     expect(await second.resetBottleBingoTiles(), isTrue);
-    final third = await ChallengeRepository.load(store);
+    final third = await loadTestChallengeRepository(store);
     expect(third.activeChallenge?.bottleBingoCompletedTiles, isEmpty);
   });
 

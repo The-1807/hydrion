@@ -1209,6 +1209,18 @@ No later slice is started.
 
 ##### Authorized-next-task candidates (not implementation authorization)
 
+**SEC-001D sequencing authorization (2026-09-30):** SEC-001D is IN_PROGRESS;
+overall SEC-001 remains IN_PROGRESS. Implement one repository checkpoint at a
+time in this order: M4/I08 challenge state/history, M4/I09 reminders/orphan
+notification IDs, M4/I13 provider connection history, then M4/I05 private tour
+history (version/what's-new configuration remains ordinary). Each requires one
+focused local implementation commit, independent read-only acceptance and
+administrative acceptance recording before the next repository may start.
+I08 is IMPLEMENTED_PENDING_ACCEPTANCE, not accepted. I09, I13 and private I05 remain
+unstarted. The pre-implementation inventory and current evidence are in
+`docs/architecture/SEC_001D_I08_CHALLENGE_IMPLEMENTATION.md`. Hydration/projection
+slices and DATA-005/PRIV-002/SEC-002 remain untouched; no push is authorized.
+
 | Slice | Scope / prerequisites / likely files | Risk, required tests and independent acceptance boundary |
 |---|---|---|
 | SEC-001A: body containment and capability truth | M1/I01-I02; accepted DATA-007/008/003; body repository/store/domain, body editor and capability consumers | Existing pending plaintext must not be lost. Native read/write failure, old-schema/revision conflicts, unsupported platform, draft/retry and deletion restart tests. Can be independently accepted for body only; no all-storage closure. |

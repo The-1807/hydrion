@@ -1,3 +1,4 @@
+import 'support/protected_challenge_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/bottle_bingo.dart';
@@ -176,7 +177,7 @@ void main() {
     test('qualification and metadata survive repository restart', () async {
       final store = MemoryHydrionStore();
       final hydration = await HydrationRepository.load(store);
-      final challenges = await ChallengeRepository.load(store);
+      final challenges = await loadTestChallengeRepository(store);
       challenges.bindHydrationRepository(hydration);
       await joinPair(challenges);
       final log = (await hydration.addLog(
@@ -191,7 +192,7 @@ void main() {
       ))!;
 
       final reloadedHydration = await HydrationRepository.load(store);
-      final reloadedChallenges = await ChallengeRepository.load(store);
+      final reloadedChallenges = await loadTestChallengeRepository(store);
       reloadedChallenges.bindHydrationRepository(reloadedHydration);
 
       expect(reloadedHydration.logs.single.id, log.id);

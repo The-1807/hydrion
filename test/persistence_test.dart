@@ -1,3 +1,4 @@
+import 'support/protected_challenge_fixture.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -252,7 +253,8 @@ void main() {
 
   test('challenge join state persists as app data', () async {
     final firstStore = await SharedPreferencesHydrionStore.create();
-    final firstRepository = await ChallengeRepository.load(firstStore);
+    final firstRepository = await loadTestChallengeRepository(firstStore,
+        protectedStore: protectedSettings);
 
     await firstRepository.join(
       id: 'bottle-bingo',
@@ -264,7 +266,8 @@ void main() {
     );
 
     final secondStore = await SharedPreferencesHydrionStore.create();
-    final secondRepository = await ChallengeRepository.load(secondStore);
+    final secondRepository = await loadTestChallengeRepository(secondStore,
+        protectedStore: protectedSettings);
 
     expect(secondRepository.activeChallenge?.id, 'bottle-bingo');
     expect(secondRepository.activeChallenge?.targetMl, 2000);
@@ -306,7 +309,7 @@ void main() {
         }),
       );
 
-      final repository = await ChallengeRepository.load(store);
+      final repository = await loadTestChallengeRepository(store);
       final challenge = repository.activeChallenge!;
       expect(challenge.id, 'lunch-break-refill');
       expect(challenge.targetMl, 2100);
