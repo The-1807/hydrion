@@ -1185,6 +1185,14 @@ SEC-001 remains IN_PROGRESS. Body Containment, Protected-Store Pilot, DATA-007,
 DATA-008 and SEC-003 remain ACCEPTED; DATA-005, PRIV-002 and SEC-002 remain OPEN.
 No later slice is started.
 
+##### SEC-001C L1/L2 follow-up (2026-09-30)
+
+- **Scope / lineage:** two LOW findings only, based on H1/H2/M1/M2 correction `f1bd7ad2011c372aa45b29c68d712db46364d22f`; original implementation `92a9cd5ff29be97440fdbaf66033c6656073a787` and first BLOCKED review remain historical evidence.
+- **L1:** reproduced stale incomplete-save feedback after successful full retry with a failing ProfileScreen widget assertion. The complete-success branch now clears queued snackbar feedback and removes the current message before closing the editor. Failure aggregation and all six persistence operations are unchanged. Extended tests cover repeated failures, later-operation successes, full retry cleanup, subsequent failure and no sensitive interpolation.
+- **L2:** the implementation receipt now explicitly records the full canonical H1/H2/M1/M2 correction SHA. Its prior findings, validation and limitations are preserved.
+- **Validation:** 111 focused tests passed across six files, including H1/H2/M1/M2, Profile Save, localization and governance/boundaries. Final analyzer passed; scoped two-file formatting, localization parity, secret scan and whitespace checks passed. An intermediate animated-dismissal lifecycle failure was corrected before the final passing run; the receipt retains that evidence.
+- **State / boundaries:** SEC-001 IN_PROGRESS; SEC-001C IMPLEMENTED_PENDING_SLICE_ACCEPTANCE, not ACCEPTED. Accepted foundations and OPEN DATA-005/PRIV-002/SEC-002 remain unchanged. No later SEC-001 slice, repository redesign, full-suite/build/hosted/device certification or push. Staged `edge_case.md` is preserved and excluded from this local correction.
+
 ##### Authorized-next-task candidates (not implementation authorization)
 
 | Slice | Scope / prerequisites / likely files | Risk, required tests and independent acceptance boundary |

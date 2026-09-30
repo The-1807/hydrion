@@ -269,6 +269,8 @@ No push is authorized or performed.
 
 ## H1/H2/M1/M2 Correction (2026-09-29)
 
+Full correction SHA: `f1bd7ad2011c372aa45b29c68d712db46364d22f`.
+
 The first independent acceptance of `92a9cd5ff29be97440fdbaf66033c6656073a787`
 was BLOCKED by HIGH H1/H2 and MEDIUM M1/M2. The original implementation and
 validation above are historical evidence, not first-pass acceptance. The owner
@@ -345,3 +347,40 @@ target/consent semantics and later slices are unchanged. SEC-001 remains
 IN_PROGRESS; SEC-001C remains IMPLEMENTED_PENDING_SLICE_ACCEPTANCE. This is
 implementation evidence, not independent acceptance. All original platform,
 backup, forensic and full-suite limitations remain.
+
+## L1/L2 Follow-up (2026-09-30)
+
+Base/canonical H1/H2/M1/M2 correction:
+`f1bd7ad2011c372aa45b29c68d712db46364d22f`.
+Original implementation remains `92a9cd5ff29be97440fdbaf66033c6656073a787`.
+This follow-up addresses only the two LOW findings; it is not acceptance.
+
+- L1 reproduced before the production edit: the operation-2 Profile Save widget
+  regression failed with one incomplete-save message still present after a
+  successful full retry, where zero were expected (exit 1).
+- Root cause: the successful action popped the editor without retiring feedback
+  previously registered with the enclosing ScaffoldMessenger. Repeated failures
+  could also queue more than one message.
+- Correction: only after the complete six-operation result succeeds, clear the
+  screen's snackbar queue and immediately remove its current snackbar before
+  closing the editor. No feedback cleanup occurs on a merely successful later
+  sub-operation within a failed compound attempt. Immediate removal avoids a
+  pending animated-dismissal callback after UI teardown.
+- Widget assertions now cover message absence after every successful failure
+  retry, repeated failed attempts followed by success, a subsequent failure
+  showing feedback again, later-operation successes not masking failure, and
+  absence of synthetic profile values in feedback. Existing test cases were
+  extended; no tests were removed or skipped.
+- L2 records the full correction SHA above and in its original correction
+  section. The first BLOCKED review, H1/H2/M1/M2 and original evidence remain.
+- Validation: 111 tests passed across protected_settings_profile,
+  settings_protection_gate, localization, boundary_architecture,
+  remediation_control and runtime_ux test files. The initial animated-only fix
+  produced six widget lifecycle failures; the final immediate cleanup passed
+  the identical six-file selection. Analyzer passed; two-file formatting,
+  EN/FR/ES localization parity, secret scan and whitespace checks passed.
+- Only ProfileScreen, its widget test, this receipt and HTD changed. Repository,
+  reconciliation, 29/7 classification, photo limits and target/consent semantics
+  are unchanged. No later slice started; SEC-001 remains IN_PROGRESS and SEC-001C
+  remains IMPLEMENTED_PENDING_SLICE_ACCEPTANCE. No new full-suite, build, hosted,
+  physical-device, backup or forensic certification. No push.

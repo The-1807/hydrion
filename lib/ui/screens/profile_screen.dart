@@ -488,6 +488,9 @@ class _ProfileEditorState extends State<_ProfileEditor> {
       return;
     }
     if (!mounted) return;
+    // Failed attempts may have queued feedback; retire it only after full success.
+    messenger.clearSnackBars();
+    messenger.removeCurrentSnackBar();
     Navigator.of(context).pop();
   }
 

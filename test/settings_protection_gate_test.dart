@@ -109,6 +109,14 @@ void main() {
         expect(repo.settings.avatarId, isNot('superhappy_shark'));
         expect(repo.settings.dailyGoalMl, 2800);
         expect(repo.settings.containerSizeMl, 650);
+        // Repeated failed attempts can queue more than one incomplete message.
+        prefs.writes = 0;
+        await tester.runAsync(() async {
+          await (save as Future<void> Function())();
+        });
+        await tester.pumpAndSettle();
+        expect(find.textContaining('Some profile changes'), findsOneWidget);
+        expect(prefs.writes, 6);
       }
       prefs.failAt = null;
       await tester.runAsync(() async {
@@ -118,10 +126,34 @@ void main() {
       });
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('profile-editor-list')), findsNothing);
+      expect(find.textContaining('Some profile changes'), findsNothing);
       expect(repo.settings.nickname, 'NEW-SYNTHETIC');
       expect(repo.settings.avatarId, 'superhappy_shark');
       expect(repo.settings.dailyGoalMl, 2800);
       expect(repo.settings.containerSizeMl, 650);
+      if (fault == 2) {
+        await tester.tap(find.byKey(const Key('profile-edit-action')));
+        await tester.pumpAndSettle();
+        prefs
+          ..writes = 0
+          ..failAt = 2;
+        final failAgain = tester
+            .widget<FilledButton>(
+                find.widgetWithText(FilledButton, 'Save profile'))
+            .onPressed!;
+        await tester.runAsync(() async {
+          await (failAgain as Future<void> Function())();
+        });
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('profile-editor-list')), findsOneWidget);
+        expect(find.textContaining('Some profile changes'), findsOneWidget);
+        expect(
+            tester
+                .widget<Text>(find.textContaining('Some profile changes'))
+                .data,
+            isNot(contains('NEW-SYNTHETIC')));
+        expect(tester.takeException(), isNull);
+      }
     });
   }
 
