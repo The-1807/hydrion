@@ -1,4 +1,5 @@
 import 'support/protected_challenge_fixture.dart';
+import 'package:hydrion/storage/protected_app_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/pomodoro_session.dart';
 import 'package:hydrion/repositories/challenge_repository.dart';
@@ -515,6 +516,7 @@ class PomodoroFixture {
 
   static Future<PomodoroFixture> create({
     HydrionLocalStore? store,
+    ProtectedAppStore? protectedStore,
     int sessionsPerDay = 1,
     int sessionMinutes = 25,
     FakeHydrionNotificationAdapter? adapter,
@@ -522,7 +524,10 @@ class PomodoroFixture {
   }) async {
     final actualStore = store ?? MemoryHydrionStore();
     final clock = MutableClock(DateTime(2030, 7, 23, 9, 17, 42));
-    final challenges = await loadTestChallengeRepository(actualStore);
+    final challenges = protectedStore == null
+        ? await loadTestChallengeRepository(actualStore)
+        : await ChallengeRepository.load(actualStore,
+            protectedStore: protectedStore);
     final hydration = await HydrationRepository.load(actualStore);
     final reminders = await ReminderRepository.load(actualStore);
     final actualAdapter = adapter ??

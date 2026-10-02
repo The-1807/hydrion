@@ -66,7 +66,7 @@ class _HydrionShellState extends State<HydrionShell>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _refreshLocalLifecycleState();
+      unawaited(_observeLifecycle(_refreshLocalLifecycleState()));
     }
   }
 
@@ -90,8 +90,7 @@ class _HydrionShellState extends State<HydrionShell>
       await weatherService.clearCache();
       currentWeatherContext.clear();
     }
-    await challengeRepository.reconcileLocalDay();
-    await pomodoroSessionService.reconcile();
+    await _reconcileChallenges(challengeRepository, pomodoroSessionService);
     await notificationService.reconcileSchedules();
     if (!mounted) {
       return;
@@ -114,9 +113,40 @@ class _HydrionShellState extends State<HydrionShell>
       if (!mounted) return;
       setState(() {});
       _scheduleDayRollover();
-      context.read<ChallengeRepository>().reconcileLocalDay();
-      _evaluateWeatherAssistance();
+      unawaited(_observeLifecycle(_refreshDayRollover()));
     });
+  }
+
+  Future<void> _reconcileChallenges(
+      ChallengeRepository challenges, PomodoroSessionService pomodoro) async {
+    try {
+      if (!challenges.isKnown) await challenges.refreshFromStore();
+      await challenges.reconcileLocalDay();
+      await pomodoro.reconcile();
+    } on ChallengeStorageUnavailable {
+      // The canonical repository retains its degraded status. Other work proceeds.
+    }
+  }
+
+  Future<void> _refreshDayRollover() async {
+    final challenges = context.read<ChallengeRepository>();
+    final pomodoro = context.read<PomodoroSessionService>();
+    final notifications = context.read<NotificationService>();
+    await _reconcileChallenges(challenges, pomodoro);
+    await notifications.reconcileSchedules();
+    if (mounted) await _evaluateWeatherAssistance();
+  }
+
+  Future<void> _observeLifecycle(Future<void> work) async {
+    try {
+      await work;
+    } catch (error, stack) {
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: StateError('Hydrion lifecycle reconciliation failed'),
+        stack: stack,
+        library: 'hydrion lifecycle',
+      ));
+    }
   }
 
   Future<void> _evaluateWeatherAssistance() async {

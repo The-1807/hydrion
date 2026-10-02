@@ -57,17 +57,19 @@ class LocalHydrationContextProvider implements HydrationContextProvider {
         nextReminderAt: reminders.isEmpty ? null : reminders.first.triggerTime,
         osNotificationsAvailable: capabilities.osNotifications,
       ),
-      challenge: activeChallenge == null
-          ? const ChallengeContext.none()
-          : ChallengeContext(
-              hasActiveChallenge: true,
-              activeChallengeId: activeChallenge.id,
-              activeChallengeName: activeChallenge.name,
-              targetMl: activeChallenge.targetMl,
-              durationDays: activeChallenge.durationDays,
-              completedDays: progress.completedDays,
-              todayMl: progress.todayMl,
-            ),
+      challenge: !_challengeRepository.isKnown
+          ? const ChallengeContext.unavailable()
+          : activeChallenge == null
+              ? const ChallengeContext.none()
+              : ChallengeContext(
+                  hasActiveChallenge: true,
+                  activeChallengeId: activeChallenge.id,
+                  activeChallengeName: activeChallenge.name,
+                  targetMl: activeChallenge.targetMl,
+                  durationDays: activeChallenge.durationDays,
+                  completedDays: progress.completedDays,
+                  todayMl: progress.todayMl,
+                ),
       capabilities: capabilities,
     );
   }

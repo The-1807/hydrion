@@ -215,13 +215,14 @@ class ReminderContext {
 }
 
 class ChallengeContext {
-  final bool hasActiveChallenge;
+  /// Null means unavailable authority, not an absent challenge.
+  final bool? hasActiveChallenge;
   final String? activeChallengeId;
   final String? activeChallengeName;
-  final int targetMl;
-  final int durationDays;
-  final int completedDays;
-  final int todayMl;
+  final int? targetMl;
+  final int? durationDays;
+  final int? completedDays;
+  final int? todayMl;
 
   const ChallengeContext({
     required this.hasActiveChallenge,
@@ -242,11 +243,23 @@ class ChallengeContext {
         completedDays = 0,
         todayMl = 0;
 
-  double get progressPercent {
-    if (durationDays <= 0) {
+  const ChallengeContext.unavailable()
+      : hasActiveChallenge = null,
+        activeChallengeId = null,
+        activeChallengeName = null,
+        targetMl = null,
+        durationDays = null,
+        completedDays = null,
+        todayMl = null;
+
+  double? get progressPercent {
+    final days = durationDays;
+    final completed = completedDays;
+    if (days == null || completed == null) return null;
+    if (days <= 0) {
       return 0;
     }
-    return (completedDays / durationDays * 100).clamp(0.0, 100.0);
+    return (completed / days * 100).clamp(0.0, 100.0);
   }
 }
 

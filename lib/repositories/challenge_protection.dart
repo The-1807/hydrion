@@ -12,7 +12,13 @@ enum ChallengeStorageStatus {
 }
 
 final class ChallengeStorageUnavailable implements Exception {
-  const ChallengeStorageUnavailable();
+  final ProtectedWriteStatus? writeStatus;
+  const ChallengeStorageUnavailable({this.writeStatus});
+
+  bool get definitelyNotCommitted =>
+      writeStatus == ProtectedWriteStatus.failed ||
+      writeStatus == ProtectedWriteStatus.unsupported ||
+      writeStatus == ProtectedWriteStatus.unavailable;
   @override
   String toString() => 'ChallengeStorageUnavailable';
 }
@@ -43,14 +49,25 @@ final class ChallengeProtection {
   }
 
   Future<bool> _write(ProtectedChallengeRecord candidate) async {
+    return await _writeVerified(candidate) == ProtectedWriteStatus.committed;
+  }
+
+  Future<ProtectedWriteStatus> _writeVerified(
+      ProtectedChallengeRecord candidate) async {
     final destination = store;
-    if (destination is! ProtectedChallengeStore ||
-        await (destination as ProtectedChallengeStore)
-                .writeChallenges(candidate) !=
-            ProtectedWriteStatus.committed) {
-      return false;
+    if (destination is! ProtectedChallengeStore) {
+      return ProtectedWriteStatus.unsupported;
     }
-    return (await _read()).record?.equivalentTo(candidate) == true;
+    final outcome = await (destination as ProtectedChallengeStore)
+        .writeChallenges(candidate);
+    if (outcome != ProtectedWriteStatus.committed) return outcome;
+    try {
+      return (await _read()).record?.equivalentTo(candidate) == true
+          ? ProtectedWriteStatus.committed
+          : ProtectedWriteStatus.verificationFailed;
+    } catch (_) {
+      return ProtectedWriteStatus.verificationFailed;
+    }
   }
 
   Future<bool> _remove(String key) async {
@@ -158,9 +175,15 @@ final class ChallengeProtection {
           revision: record!.revision + 1,
           phase: ContextRecordPhase.active,
           state: state);
-      if (!await _write(candidate)) throw const ChallengeStorageUnavailable();
+      final outcome = await _writeVerified(candidate);
+      if (outcome != ProtectedWriteStatus.committed) {
+        throw ChallengeStorageUnavailable(writeStatus: outcome);
+      }
       record = candidate;
       await cleanup();
+    } on ChallengeStorageUnavailable {
+      status = ChallengeStorageStatus.unavailable;
+      rethrow;
     } catch (_) {
       status = ChallengeStorageStatus.unavailable;
       throw const ChallengeStorageUnavailable();

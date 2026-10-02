@@ -1210,15 +1210,22 @@ class ChallengeRepository extends ChangeNotifier {
     final actionId = '${challenge.instanceId}:$day:$actionKey';
     if (!_inFlightHydrationActions.add(actionId)) return null;
     try {
-      final log = await hydrationRepository.addLog(
-        volumeMl: volumeMl,
-        timestamp: time,
-        source: 'challenge:${challenge.id}:$actionKey',
-        actionId: actionId,
-        metadata: metadata.copyWith(
-          challengeActionSource: challenge.id,
-        ),
-      );
+      final existing = hydrationRepository.logs
+          .where((log) => log.actionId == actionId)
+          .firstOrNull;
+      if (existing != null && challenge.completedActionIds.contains(actionId)) {
+        return null;
+      }
+      final log = existing ??
+          await hydrationRepository.addLog(
+            volumeMl: volumeMl,
+            timestamp: time,
+            source: 'challenge:${challenge.id}:$actionKey',
+            actionId: actionId,
+            metadata: metadata.copyWith(
+              challengeActionSource: challenge.id,
+            ),
+          );
       if (log == null) return null;
       try {
         await _updateActiveChallenge(
@@ -1229,8 +1236,14 @@ class ChallengeRepository extends ChangeNotifier {
             }),
           ),
         );
-      } catch (_) {
-        await hydrationRepository.deleteLog(log.id);
+      } on ChallengeStorageUnavailable catch (error) {
+        if (await _reconcileHydrationEvidence(challenge.instanceId,
+            (value) => value.completedActionIds.contains(actionId))) {
+          return log;
+        }
+        if (existing == null && isKnown && error.definitelyNotCommitted) {
+          await hydrationRepository.deleteLog(log.id);
+        }
         rethrow;
       }
       return log;
@@ -1258,6 +1271,17 @@ class ChallengeRepository extends ChangeNotifier {
     return true;
   }
 
+  // An exception after commit is not proof that a paired hydration write is orphaned.
+  Future<bool> _reconcileHydrationEvidence(String instanceId,
+      bool Function(JoinedChallenge) containsEvidence) async {
+    await refreshFromStore();
+    if (!isKnown) return false;
+    return [
+      ...activeChallenges,
+      ...challengeHistory
+    ].any((value) => value.instanceId == instanceId && containsEvidence(value));
+  }
+
   Future<HydrationLog?> completeBottleBingoHydrationTile({
     required int index,
     required HydrationRepository hydrationRepository,
@@ -1280,16 +1304,24 @@ class ChallengeRepository extends ChangeNotifier {
     }
 
     try {
-      final log = await hydrationRepository.addLog(
-        volumeMl: volumeMl,
-        timestamp: actionTime,
-        source: 'challenge:${challenge.id}:tile-$index',
-        actionId: actionId,
-        metadata: HydrationMetadata(
-          challengeActionSource: challenge.id,
-          bingoTileSource: 'legacy-tile-$index',
-        ),
-      );
+      final existing = hydrationRepository.logs
+          .where((log) => log.actionId == actionId)
+          .firstOrNull;
+      if (existing != null &&
+          challenge.bottleBingoCompletedTiles.contains(index)) {
+        return null;
+      }
+      final log = existing ??
+          await hydrationRepository.addLog(
+            volumeMl: volumeMl,
+            timestamp: actionTime,
+            source: 'challenge:${challenge.id}:tile-$index',
+            actionId: actionId,
+            metadata: HydrationMetadata(
+              challengeActionSource: challenge.id,
+              bingoTileSource: 'legacy-tile-$index',
+            ),
+          );
       if (log == null) {
         return null;
       }
@@ -1303,8 +1335,14 @@ class ChallengeRepository extends ChangeNotifier {
             }),
           ),
         );
-      } catch (_) {
-        await hydrationRepository.deleteLog(log.id);
+      } on ChallengeStorageUnavailable catch (error) {
+        if (await _reconcileHydrationEvidence(challenge.instanceId,
+            (value) => value.bottleBingoCompletedTiles.contains(index))) {
+          return log;
+        }
+        if (existing == null && isKnown && error.definitelyNotCommitted) {
+          await hydrationRepository.deleteLog(log.id);
+        }
         rethrow;
       }
       return log;

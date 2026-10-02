@@ -1221,6 +1221,17 @@ unstarted. The pre-implementation inventory and current evidence are in
 `docs/architecture/SEC_001D_I08_CHALLENGE_IMPLEMENTATION.md`. Hydration/projection
 slices and DATA-005/PRIV-002/SEC-002 remain untouched; no push is authorized.
 
+**I08 independent acceptance and correction (2026-10-02):** The independent
+review of `bf2aa5b9a05bda5b863c5a807f364b382483751c` was BLOCKED by H1 (ambiguous
+post-commit failure could delete an acknowledged hydration log), M1 (Home and
+coaching treated unavailable challenges as absence), and M2 (challenge outage
+could escape shell lifecycle reconciliation and block independent work). The
+original implementation/evidence above remains historical, not accepted.
+This correction preserves protected schema/migration/deletion foundations and
+addresses only those three findings; detailed reproduction and fresh validation
+are appended to the I08 receipt. I08 remains IMPLEMENTED_PENDING_ACCEPTANCE;
+SEC-001 and SEC-001D remain IN_PROGRESS. I09, I13 and private I05 remain unstarted.
+
 | Slice | Scope / prerequisites / likely files | Risk, required tests and independent acceptance boundary |
 |---|---|---|
 | SEC-001A: body containment and capability truth | M1/I01-I02; accepted DATA-007/008/003; body repository/store/domain, body editor and capability consumers | Existing pending plaintext must not be lost. Native read/write failure, old-schema/revision conflicts, unsupported platform, draft/retry and deletion restart tests. Can be independently accepted for body only; no all-storage closure. |
