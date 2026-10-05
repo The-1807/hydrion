@@ -17,6 +17,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Challenge deletion is incomplete. Retry to finish local cleanup.';
 
   @override
+  String get reminderStorageUnavailable =>
+      'Protected reminder storage is unavailable. Existing reminders are preserved. Retry to restore access.';
+
+  @override
+  String get reminderDeletionPending =>
+      'Reminder deletion is incomplete. Retry to finish local cleanup.';
+
+  @override
   String get profileStorageUnavailable =>
       'Protected profile storage is unavailable. Existing data is preserved. Retry to restore access.';
 

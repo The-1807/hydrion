@@ -1,6 +1,8 @@
 {
   "challengeStorageUnavailable": "Protected challenge storage is unavailable. Existing data is preserved. Retry to restore access.",
   "challengeDeletionPending": "Challenge deletion is incomplete. Retry to finish local cleanup.",
+  "reminderStorageUnavailable": "Protected reminder storage is unavailable. Existing reminders are preserved. Retry to restore access.",
+  "reminderDeletionPending": "Reminder deletion is incomplete. Retry to finish local cleanup.",
   "@@locale": "en",
   "profileStorageUnavailable": "Protected profile storage is unavailable. Existing data is preserved. Retry to restore access.",
   "profilePhotoMigrationBlocked": "Your existing photo could not be moved safely. It remains preserved. Retry, or choose a replacement photo.",

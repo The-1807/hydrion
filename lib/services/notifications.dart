@@ -34,11 +34,21 @@ class NotificationScheduleResult {
   final ReminderScheduleState state;
   final bool duplicatePrevented;
 
+  /// Protected reminder storage was unknown or rejected the write. The
+  /// definition is not confirmed saved; no success may be reported.
+  final bool storageUnavailable;
+
   const NotificationScheduleResult({
     required this.reminder,
     required this.state,
     this.duplicatePrevented = false,
+    this.storageUnavailable = false,
   });
+
+  const NotificationScheduleResult.storageUnavailable({this.reminder})
+      : state = ReminderScheduleState.schedulingFailed,
+        duplicatePrevented = false,
+        storageUnavailable = true;
 
   bool get scheduled =>
       state == ReminderScheduleState.scheduledExactly ||
@@ -466,6 +476,9 @@ class NotificationService {
 
   bool get supportsOsNotifications => _adapter.supportsScheduling;
 
+  /// Reminder definitions and orphan IDs are readable and writable.
+  bool get reminderStorageKnown => _reminderRepository.isKnown;
+
   Future<void> initialize() async {
     await _adapter.initialize();
     await retryOrphanCleanup();
@@ -501,6 +514,9 @@ class NotificationService {
     int? sleepMinuteOfDay,
     DateTime? now,
   }) async {
+    if (!_reminderRepository.isKnown) {
+      throw const ReminderStorageUnavailable();
+    }
     if (!_policy.shouldSendReminder(remindersSentToday)) {
       return null;
     }
@@ -551,6 +567,9 @@ class NotificationService {
     bool requestPermissionIfNeeded = false,
     String? challengeId,
   }) async {
+    if (!_reminderRepository.isKnown) {
+      return const NotificationScheduleResult.storageUnavailable();
+    }
     final safeTriggerTime = _nextFutureTriggerTime(triggerTime);
     final safeMessage = ScheduledReminder.safeMessage(message);
     final safePriority = ScheduledReminder.safePriority(priority);
@@ -574,17 +593,27 @@ class NotificationService {
       );
     }
 
-    final reminder = await _reminderRepository.save(
-      triggerTime: safeTriggerTime,
-      message: safeMessage,
-      priority: safePriority,
-      enabled: enabled,
-      challengeId: challengeId,
-    );
-    return _schedulePersistedReminder(
-      reminder,
-      requestPermissionIfNeeded: requestPermissionIfNeeded,
-    );
+    // The definition is committed before any OS side effect is attempted.
+    final ScheduledReminder reminder;
+    try {
+      reminder = await _reminderRepository.save(
+        triggerTime: safeTriggerTime,
+        message: safeMessage,
+        priority: safePriority,
+        enabled: enabled,
+        challengeId: challengeId,
+      );
+    } on ReminderStorageUnavailable {
+      return const NotificationScheduleResult.storageUnavailable();
+    }
+    try {
+      return await _schedulePersistedReminder(
+        reminder,
+        requestPermissionIfNeeded: requestPermissionIfNeeded,
+      );
+    } on ReminderStorageUnavailable {
+      return NotificationScheduleResult.storageUnavailable(reminder: reminder);
+    }
   }
 
   Future<NotificationScheduleResult> updateReminder({
@@ -595,6 +624,9 @@ class NotificationService {
     bool? enabled,
     bool requestPermissionIfNeeded = false,
   }) async {
+    if (!_reminderRepository.isKnown) {
+      return const NotificationScheduleResult.storageUnavailable();
+    }
     final current = _reminderRepository.byId(id);
     if (current == null) {
       return const NotificationScheduleResult(
@@ -617,29 +649,45 @@ class NotificationService {
       );
     }
     await _adapter.cancel(current);
-    final updated = await _reminderRepository.update(
-      id: id,
-      triggerTime: safeTriggerTime,
-      message: safeMessage,
-      priority: safePriority,
-      enabled: enabled,
-      scheduleState: ReminderScheduleState.pending,
-      clearScheduleError: true,
-      clearLastScheduledAt: true,
-    );
+    final ScheduledReminder? updated;
+    try {
+      updated = await _reminderRepository.update(
+        id: id,
+        triggerTime: safeTriggerTime,
+        message: safeMessage,
+        priority: safePriority,
+        enabled: enabled,
+        scheduleState: ReminderScheduleState.pending,
+        clearScheduleError: true,
+        clearLastScheduledAt: true,
+      );
+    } on ReminderStorageUnavailable {
+      // The previous definition remains authoritative; the next known
+      // reconciliation restores its OS schedule.
+      return NotificationScheduleResult.storageUnavailable(reminder: current);
+    }
     if (updated == null) {
       return NotificationScheduleResult(
         reminder: current,
         state: ReminderScheduleState.schedulingFailed,
       );
     }
-    return _schedulePersistedReminder(
-      updated,
-      requestPermissionIfNeeded: requestPermissionIfNeeded,
-    );
+    try {
+      return await _schedulePersistedReminder(
+        updated,
+        requestPermissionIfNeeded: requestPermissionIfNeeded,
+      );
+    } on ReminderStorageUnavailable {
+      return NotificationScheduleResult.storageUnavailable(reminder: updated);
+    }
   }
 
+  /// Throws [ReminderStorageUnavailable] when the definition cannot be
+  /// confirmed deleted; an unknown store is never reported as "not found".
   Future<bool> deleteReminder(String id) async {
+    if (!_reminderRepository.isKnown) {
+      throw const ReminderStorageUnavailable();
+    }
     final reminder = _reminderRepository.byId(id);
     if (reminder != null) {
       try {
@@ -653,6 +701,20 @@ class NotificationService {
     return _reminderRepository.delete(id);
   }
 
+  /// Deletes definitions made obsolete by an already-committed challenge
+  /// transition. Returns false, without throwing, while reminder storage is
+  /// unknown; the definitions then remain visible for later deletion.
+  Future<bool> deleteRemindersIfKnown(Iterable<String> ids) async {
+    try {
+      for (final id in ids) {
+        await deleteReminder(id);
+      }
+      return true;
+    } on ReminderStorageUnavailable {
+      return false;
+    }
+  }
+
   Future<bool> cancelAllReminders() async {
     final ids = _reminderRepository.reminders
         .map((reminder) => reminder.platformNotificationId)
@@ -661,13 +723,31 @@ class NotificationService {
       await _adapter.cancelAll();
       return true;
     } catch (_) {
-      await _reminderRepository.recordOrphanNotificationIds(ids);
+      try {
+        await _reminderRepository.recordOrphanNotificationIds(ids);
+      } on ReminderStorageUnavailable {
+        // Cleanup remains reported as pending; no plaintext fallback.
+      }
       return false;
     }
   }
 
+  /// Unknown reminder storage is skipped, never reconciled as empty. A
+  /// storage failure mid-run stops this pass; the next pass retries.
   Future<void> reconcileSchedules({
     bool requestPermissionIfNeeded = false,
+  }) async {
+    if (!_reminderRepository.isKnown) return;
+    try {
+      await _reconcileKnownSchedules(
+          requestPermissionIfNeeded: requestPermissionIfNeeded);
+    } on ReminderStorageUnavailable {
+      // Repository status remains the observable authority.
+    }
+  }
+
+  Future<void> _reconcileKnownSchedules({
+    required bool requestPermissionIfNeeded,
   }) async {
     await retryOrphanCleanup();
     final pendingIds = await _adapter.pendingNotificationIds();
@@ -718,14 +798,23 @@ class NotificationService {
     }
   }
 
+  /// Orphan cleanup waits for known protected storage: an unknown store is
+  /// not an empty cleanup set, and no plaintext fallback is used to run it.
   Future<void> retryOrphanCleanup() async {
+    if (!_reminderRepository.isKnown) return;
     for (final id
         in _reminderRepository.orphanNotificationIds.toList(growable: false)) {
       try {
         await _adapter.cancelByPlatformId(id);
-        await _reminderRepository.resolveOrphanNotificationId(id);
       } catch (_) {
         // Retain the ID for a later safe retry.
+        continue;
+      }
+      try {
+        await _reminderRepository.resolveOrphanNotificationId(id);
+      } on ReminderStorageUnavailable {
+        // Cancellation is idempotent; the retained ID is retried later.
+        return;
       }
     }
   }

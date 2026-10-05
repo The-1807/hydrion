@@ -129,11 +129,13 @@ class ProfileScreen extends StatelessWidget {
                 _ProfileStat(
                   icon: Icons.notifications_none,
                   label: l10n.remindersTitle,
-                  value: reminderRepository.reminders.isEmpty
-                      ? l10n.noRemindersYet
-                      : l10n.savedCount(
-                          count: reminderRepository.reminders.length,
-                        ),
+                  value: !reminderRepository.isKnown
+                      ? l10n.unavailable
+                      : reminderRepository.reminders.isEmpty
+                          ? l10n.noRemindersYet
+                          : l10n.savedCount(
+                              count: reminderRepository.reminders.length,
+                            ),
                 ),
               ],
             ),

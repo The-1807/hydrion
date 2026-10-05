@@ -231,9 +231,11 @@ void main() {
     expect(secondRepository.settings.reusableContainerEnabled, isTrue);
   });
 
-  test('reminder definitions persist as app data', () async {
+  test('reminder definitions persist as protected app data', () async {
+    final destination = MemoryProtectedAppStore();
     final firstStore = await SharedPreferencesHydrionStore.create();
-    final firstRepository = await ReminderRepository.load(firstStore);
+    final firstRepository =
+        await ReminderRepository.load(firstStore, protectedStore: destination);
     final triggerTime = DateTime(2026, 5, 23, 14, 45);
 
     await firstRepository.save(
@@ -243,8 +245,10 @@ void main() {
     );
 
     final secondStore = await SharedPreferencesHydrionStore.create();
-    final secondRepository = await ReminderRepository.load(secondStore);
+    final secondRepository =
+        await ReminderRepository.load(secondStore, protectedStore: destination);
 
+    expect(await secondStore.readString(ReminderRepository.storageKey), isNull);
     expect(secondRepository.reminders, hasLength(1));
     expect(secondRepository.reminders.single.triggerTime, triggerTime);
     expect(secondRepository.reminders.single.message, 'Drink water');

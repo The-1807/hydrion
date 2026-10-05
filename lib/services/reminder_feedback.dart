@@ -31,6 +31,9 @@ class ReminderFeedback {
   }
 
   static ReminderFeedbackCode result(NotificationScheduleResult result) {
+    if (result.storageUnavailable) {
+      return ReminderFeedbackCode.storageUnavailable;
+    }
     if (result.scheduled) {
       return ReminderFeedbackCode.scheduled;
     }
@@ -60,4 +63,5 @@ enum ReminderFeedbackCode {
   schedulingFailed,
   duplicate,
   savedPaused,
+  storageUnavailable,
 }

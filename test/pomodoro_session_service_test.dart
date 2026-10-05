@@ -1,4 +1,5 @@
 import 'support/protected_challenge_fixture.dart';
+import 'support/protected_reminder_fixture.dart';
 import 'package:hydrion/storage/protected_app_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/pomodoro_session.dart';
@@ -529,7 +530,7 @@ class PomodoroFixture {
         : await ChallengeRepository.load(actualStore,
             protectedStore: protectedStore);
     final hydration = await HydrationRepository.load(actualStore);
-    final reminders = await ReminderRepository.load(actualStore);
+    final reminders = await loadTestReminderRepository(actualStore);
     final actualAdapter = adapter ??
         FakeHydrionNotificationAdapter(
           permission: HydrionNotificationPermissionState.granted,
@@ -584,7 +585,7 @@ class PomodoroFixture {
   }) async {
     final challenges = await loadTestChallengeRepository(store);
     final hydration = await HydrationRepository.load(store);
-    final reminders = await ReminderRepository.load(store);
+    final reminders = await loadTestReminderRepository(store);
     final adapter = FakeHydrionNotificationAdapter(
       permission: HydrionNotificationPermissionState.granted,
     );

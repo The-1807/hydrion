@@ -1,5 +1,6 @@
 import 'support/protected_challenge_fixture.dart';
 import 'support/memory_protected_app_store.dart';
+import 'support/protected_reminder_fixture.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -102,22 +103,26 @@ void main() {
     ]);
   });
 
-  test('malformed reminder JSON falls back without scheduling anything',
+  // HTD-SEC-001 I09: previously fell back to an empty, writable list that a
+  // later save overwrote. Malformed source is now quarantined and preserved.
+  test('malformed reminder JSON is quarantined without scheduling anything',
       () async {
     const raw = '[{"message":"Drink","triggerTime":';
     final store = MemoryHydrionStore({
       ReminderRepository.storageKey: raw,
     });
 
-    final repository = await ReminderRepository.load(store);
+    final repository = await loadTestReminderRepository(store);
 
+    expect(repository.isKnown, isFalse);
+    expect(repository.storageStatus, ReminderStorageStatus.corrupt);
     expect(repository.reminders, isEmpty);
-    expect(repository.recoveryEvents.single.code,
-        StorageRecoveryCodes.malformedJson);
     expect(store.snapshot[ReminderRepository.storageKey], raw);
   });
 
-  test('mixed reminder records preserve valid reminders where possible',
+  // HTD-SEC-001 I09: previously skipped invalid records and lost them on the
+  // next write. A partially invalid source is now quarantined whole.
+  test('mixed reminder records are quarantined rather than partially dropped',
       () async {
     final early = _reminderJson(
       id: 'early-valid',
@@ -137,13 +142,12 @@ void main() {
       ]),
     });
 
-    final repository = await ReminderRepository.load(store);
+    final raw = store.snapshot[ReminderRepository.storageKey];
+    final repository = await loadTestReminderRepository(store);
 
-    expect(repository.reminders.map((reminder) => reminder.id), [
-      'early-valid',
-      'late-valid',
-    ]);
-    expect(repository.recoveryEvents.single.skippedRecords, 3);
+    expect(repository.isKnown, isFalse);
+    expect(repository.storageStatus, ReminderStorageStatus.corrupt);
+    expect(store.snapshot[ReminderRepository.storageKey], raw);
   });
 
   test('invalid reminder data does not affect hydration logs', () async {
@@ -158,9 +162,10 @@ void main() {
     });
 
     final hydrationRepository = await HydrationRepository.load(store);
-    final reminderRepository = await ReminderRepository.load(store);
+    final reminderRepository = await loadTestReminderRepository(store);
 
     expect(hydrationRepository.logs.single.id, 'valid-log');
+    expect(reminderRepository.isKnown, isFalse);
     expect(reminderRepository.reminders, isEmpty);
   });
 
@@ -358,6 +363,7 @@ void main() {
         protectedAppStore: protectedSettings);
 
     expect(services.hydrationRepository.logs, isEmpty);
+    expect(services.reminderRepository.isKnown, isFalse);
     expect(services.reminderRepository.reminders, isEmpty);
     expect(services.challengeRepository.activeChallenge, isNull);
     expect(services.settingsRepository.settings.locale,
@@ -380,7 +386,7 @@ void main() {
     });
 
     final hydrationRepository = await HydrationRepository.load(store);
-    final reminderRepository = await ReminderRepository.load(store);
+    final reminderRepository = await loadTestReminderRepository(store);
     final challengeRepository = await loadTestChallengeRepository(store);
     final settingsRepository = await UserSettingsRepository.load(store,
         protectedStore: protectedSettings);

@@ -1,6 +1,8 @@
 {
   "challengeStorageUnavailable": "Le stockage protégé des défis est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l'accès.",
   "challengeDeletionPending": "La suppression des défis est incomplète. Réessayez pour terminer le nettoyage local.",
+  "reminderStorageUnavailable": "Le stockage protégé des rappels est indisponible. Les rappels existants sont conservés. Réessayez pour rétablir l'accès.",
+  "reminderDeletionPending": "La suppression des rappels est incomplète. Réessayez pour terminer le nettoyage local.",
   "@@locale": "fr",
   "profileStorageUnavailable": "Le stockage protégé du profil est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l’accès.",
   "profilePhotoMigrationBlocked": "Votre photo existante n’a pas pu être transférée en toute sécurité. Elle est conservée. Réessayez ou choisissez une photo de remplacement.",
