@@ -333,13 +333,18 @@ class _HydrionShellState extends State<HydrionShell>
       return;
     }
     if (useSuggestion) {
-      await context.read<UserSettingsRepository>().applyWeatherGoal(
-            goalMl: personalized.roundedRecommendedGoalMl,
-            decidedAt: DateTime.now(),
-            explanation:
-                WeatherGoalExplanationCode.personalizedSuggestionAccepted.name,
-            localDateKey: hydrionLocalDateKey(DateTime.now()),
-          );
+      final settingsRepository = context.read<UserSettingsRepository>();
+      // A user confirmation commits today's goal only; it must preserve,
+      // never silently reset, the user's current auto-apply preference.
+      await settingsRepository.applyWeatherGoal(
+        goalMl: personalized.roundedRecommendedGoalMl,
+        decidedAt: DateTime.now(),
+        explanation:
+            WeatherGoalExplanationCode.personalizedSuggestionAccepted.name,
+        localDateKey: hydrionLocalDateKey(DateTime.now()),
+        autoApplyEnabled:
+            settingsRepository.settings.weatherGoalAutoApplyEnabled,
+      );
     } else {
       await coordinator.keepPreviousGoal(
         explanationCode: WeatherGoalExplanationCode.standardGoalKept,
