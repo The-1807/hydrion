@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../repositories/settings_repository.dart';
+import '../repositories/settings_protection.dart';
 import '../storage/local_store.dart';
 import 'location_service.dart';
 import 'notifications.dart';
@@ -876,13 +877,14 @@ class DailyWeatherGoalCoordinator {
     bool doNotAskEachDay = false,
   }) async {
     final currentTime = now ?? DateTime.now();
-    await _settingsRepository.applyWeatherGoal(
+    final saved = await _settingsRepository.applyWeatherGoal(
       goalMl: decision.recommendedGoalMl,
       decidedAt: currentTime,
       explanation: decision.explanationCode.name,
       localDateKey: WeatherForecastService._localDateKey(currentTime),
       autoApplyEnabled: doNotAskEachDay,
     );
+    if (!saved) throw const SettingsProtectionFailure();
     if (doNotAskEachDay) {
       await _settingsRepository.setWeatherGoalDailyConfirmationEnabled(false);
     }

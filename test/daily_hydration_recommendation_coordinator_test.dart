@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/domain/daily_hydration_context.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
@@ -7,11 +8,17 @@ import 'package:hydrion/repositories/daily_hydration_context_repository.dart';
 import 'package:hydrion/repositories/hydration_repository.dart';
 import 'package:hydrion/repositories/personalization_state_repository.dart';
 import 'package:hydrion/repositories/settings_repository.dart';
+import 'package:hydrion/repositories/settings_protection.dart';
 import 'package:hydrion/services/daily_hydration_recommendation_coordinator.dart';
 import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
+import 'support/memory_protected_app_store.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   test('keeping current goal records review for date and fingerprint',
       () async {
     final settings = UserSettingsRepository.memory(const Locale('en'));
@@ -47,7 +54,8 @@ void main() {
 
   Future<_Fixture> fixture([HydrionLocalStore? store]) async {
     final localStore = store ?? MemoryHydrionStore();
-    final settings = await UserSettingsRepository.load(localStore);
+    final settings = await UserSettingsRepository.load(localStore,
+        protectedStore: protectedSettings);
     await settings.setProfile(
       nickname: 'River',
       age: 30,
@@ -68,7 +76,8 @@ void main() {
       femaleProfile: true,
       now: DateTime(2026, 7, 28),
     );
-    final contexts = await DailyHydrationContextRepository.load(localStore);
+    final contexts = await DailyHydrationContextRepository.load(localStore,
+        protectedStore: MemoryProtectedAppStore());
     final state = await PersonalizationStateRepository.load(localStore);
     return _Fixture(
       settings,
@@ -83,6 +92,35 @@ void main() {
       ),
     );
   }
+
+  test('SEC-003 synthetic recommendation inputs never persist as plaintext',
+      () async {
+    final store = MemoryHydrionStore();
+    final value = await fixture(store);
+    await value.metrics.update(
+      reproductiveState: HydrionReproductiveHydrationState.pregnant,
+      pregnancyGestationalDays: 168,
+      fluidSafetyMode: HydrionFluidSafetyMode.clinicianTarget,
+      clinicianTargetMl: 1850,
+      femaleProfile: true,
+    );
+    final now = DateTime(2026, 7, 28, 9);
+    await value.coordinator.calculate(now: now);
+    await value.coordinator.keepCurrentGoal(now: now);
+    final persisted =
+        store.snapshot[PersonalizationStateRepository.storageKey]!;
+    for (final source in [
+      'pregnant',
+      'clinicianTarget',
+      'clinicianTargetMl: 1850',
+      'weightKg',
+      'heightCm',
+      'pregnancyGestationalDays',
+      'activityIntensity',
+    ]) {
+      expect(persisted, isNot(contains(source)), reason: source);
+    }
+  });
 
   test('calculation does not apply until explicit user action', () async {
     final value = await fixture();
@@ -116,7 +154,9 @@ void main() {
         DateTime(2026, 7, 28, 11));
   });
 
-  test('failed selected-goal persistence restores the prior state', () async {
+  test(
+      'failed ordinary publication cannot roll back a committed protected goal',
+      () async {
     final store = _FailingWriteStore();
     final value = await fixture(store);
     store.failWrites = true;
@@ -127,7 +167,9 @@ void main() {
     );
 
     expect(saved, isFalse);
-    expect(value.settings.settings.dailyGoalMl, 2200);
+    expect(value.settings.settings.dailyGoalMl, 2450);
+    expect(value.settings.protectionStatus,
+        SettingsProtectionStatus.partialFailure);
     expect(value.settings.settings.baselineDailyGoalMl, 2200);
   });
 
@@ -271,9 +313,10 @@ class _CountingStore implements HydrionLocalStore {
   }
 
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     values[key] = value;
     writeCounts[key] = (writeCounts[key] ?? 0) + 1;
+    return true;
   }
 }
 
@@ -281,8 +324,8 @@ class _FailingWriteStore extends MemoryHydrionStore {
   bool failWrites = false;
 
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     if (failWrites) throw StateError('simulated persistence failure');
-    await super.writeString(key, value);
+    return super.writeString(key, value);
   }
 }

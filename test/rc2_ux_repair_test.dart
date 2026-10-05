@@ -1,3 +1,4 @@
+import 'support/memory_protected_app_store.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -21,6 +22,8 @@ String _assetName(ImageProvider provider) {
 }
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   group('RC2 profile artwork contract', () {
     test('normalizes supported and legacy values without a Male default', () {
       expect(
@@ -106,7 +109,8 @@ void main() {
         UserSettingsRepository.storageKey,
         jsonEncode({'languageCode': 'en', 'sex': 'retired-value'}),
       );
-      final repository = await UserSettingsRepository.load(store);
+      final repository = await UserSettingsRepository.load(store,
+          protectedStore: protectedSettings);
       expect(repository.settings.sex, isNull);
       expect(
         HydrionLifestyleArtResolver.sceneFor(

@@ -100,6 +100,42 @@ abstract class AppLocalizations {
     Locale('fr')
   ];
 
+  /// No description provided for @challengeStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected challenge storage is unavailable. Existing data is preserved. Retry to restore access.'**
+  String get challengeStorageUnavailable;
+
+  /// No description provided for @challengeDeletionPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge deletion is incomplete. Retry to finish local cleanup.'**
+  String get challengeDeletionPending;
+
+  /// No description provided for @profileStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected profile storage is unavailable. Existing data is preserved. Retry to restore access.'**
+  String get profileStorageUnavailable;
+
+  /// No description provided for @profilePhotoMigrationBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Your existing photo could not be moved safely. It remains preserved. Retry, or choose a replacement photo.'**
+  String get profilePhotoMigrationBlocked;
+
+  /// No description provided for @profilePhotoNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo could not be confirmed as fully saved. Use a valid image of at most 720 by 720 pixels and 1,200,000 bytes, or retry protected storage.'**
+  String get profilePhotoNotSaved;
+
+  /// No description provided for @profileStorageIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Some profile changes or cleanup remain incomplete. Retry before treating this action as fully saved.'**
+  String get profileStorageIncomplete;
+
   /// No description provided for @healthDataRetrying.
   ///
   /// In en, this message translates to:
@@ -352,6 +388,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get retry;
+
+  /// No description provided for @dailyContextUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected daily context is unavailable. Existing data is preserved. Retry to restore access.'**
+  String get dailyContextUnavailable;
+
+  /// No description provided for @dailyContextUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected daily context is supported on Android and iOS only. Existing data is preserved.'**
+  String get dailyContextUnsupported;
+
+  /// No description provided for @dailyContextNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily context was not saved. Your draft remains here. Retry protected storage before saving again.'**
+  String get dailyContextNotSaved;
+
+  /// No description provided for @dailyContextCleanupPending.
+  ///
+  /// In en, this message translates to:
+  /// **'The protected copy is saved, but the old local copy still needs removal. Retry to finish cleanup.'**
+  String get dailyContextCleanupPending;
 
   /// No description provided for @osNotificationsAvailableSentence.
   ///
@@ -2297,6 +2357,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose measurements within the displayed safe input range.'**
   String get bodyMetricsInvalid;
+
+  /// No description provided for @bodyMetricsNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes could not be confirmed saved securely. Retry storage, then save again. Unsaved edits may be lost when you leave this screen.'**
+  String get bodyMetricsNotSaved;
+
+  /// No description provided for @bodyMetricsStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected body storage is unavailable. Existing data is preserved. Retry to restore secure access.'**
+  String get bodyMetricsStorageUnavailable;
 
   /// No description provided for @bodyMetricsDeleted.
   ///

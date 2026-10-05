@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
 import 'package:hydrion/services/sensitive_body_metrics_store.dart';
@@ -13,6 +15,40 @@ import 'package:hydrion/storage/local_store.dart';
 /// idempotently, and without ever silently losing data — per
 /// `HYD_SEC_001_STORAGE_DESIGN.md` and the Gate 1 report.
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  tearDown(() => debugDefaultTargetPlatformOverride = null);
+  for (final sample in <String?, SensitiveBodyReadStatus>{
+    null: SensitiveBodyReadStatus.absent,
+    '{bad': SensitiveBodyReadStatus.corrupt,
+    '[]': SensitiveBodyReadStatus.corrupt,
+    '{"weightKg":70}': SensitiveBodyReadStatus.found,
+  }.entries) {
+    test('platform read distinguishes ${sample.key} as ${sample.value.name}',
+        () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      FlutterSecureStorage.setMockInitialValues({
+        if (sample.key != null)
+          'hydrion.body_metrics.sensitive.v1': sample.key!,
+      });
+      final result = await PlatformSensitiveBodyMetricsStore().readResult();
+      expect(result.status, sample.value);
+      expect(result.toString(), isNot(contains('70')));
+    });
+  }
+  test('unsupported platform is explicit, not absent', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    expect((await PlatformSensitiveBodyMetricsStore().readResult()).status,
+        SensitiveBodyReadStatus.unsupported);
+  });
+  test('platform read error is unavailable without exposing exception payload',
+      () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final result =
+        await PlatformSensitiveBodyMetricsStore(storage: _DeniedStorage())
+            .readResult();
+    expect(result.status, SensitiveBodyReadStatus.unavailable);
+    expect(result.toString(), isNot(contains('private')));
+  });
   const migrationMarkerKey = 'hydrion.body_metrics.secure_migration.v1';
 
   test('new install: sensitive fields go straight to secure storage', () async {
@@ -44,13 +80,13 @@ void main() {
     ) as Map;
     expect(plaintextJson['weightKg'], isNull);
     expect(plaintextJson['clinicianTargetMl'], isNull);
-    expect(plaintextJson['fluidSafetyMode'], 'none');
+    expect(plaintextJson.containsKey('fluidSafetyMode'), isFalse);
     expect(plaintext.snapshot[migrationMarkerKey], 'completed');
   });
 
   test(
     'upgrade: existing plaintext sensitive values migrate on load and are '
-    'stripped from plaintext only on a subsequent, later load',
+    'stripped from plaintext only after verified secure readback',
     () async {
       final plaintext = MemoryHydrionStore({
         BodyMetricsRepository.storageKey: jsonEncode({
@@ -67,8 +103,7 @@ void main() {
       });
       final secure = MemorySensitiveBodyMetricsStore();
 
-      // First load: migrates and verifies, but must NOT strip plaintext on
-      // this same run (crash-safety — see BodyMetricsRepository docs).
+      // First load verifies the secure aggregate before stripping plaintext.
       final firstLoad = await BodyMetricsRepository.load(
         plaintext,
         secureStore: secure,
@@ -82,9 +117,8 @@ void main() {
       ) as Map;
       expect(
         afterFirstLoad['weightKg'],
-        68,
-        reason: 'plaintext original must survive the same run that first '
-            'wrote the secure copy',
+        isNull,
+        reason: 'only verified secure migration authorizes stripping',
       );
 
       // Second load (a later, separate app start): now safe to strip.
@@ -101,7 +135,7 @@ void main() {
       ) as Map;
       expect(afterSecondLoad['weightKg'], isNull);
       expect(afterSecondLoad['clinicianTargetMl'], isNull);
-      expect(afterSecondLoad['reproductiveState'], 'none');
+      expect(afterSecondLoad.containsKey('reproductiveState'), isFalse);
     },
   );
 
@@ -158,29 +192,28 @@ void main() {
       final json = jsonDecode(
         plaintext.snapshot[BodyMetricsRepository.storageKey]!,
       ) as Map;
-      expect(json['weightKg'], 70, reason: 'nothing may be stripped when '
-          'the secure copy could not be verified');
+      expect(json['weightKg'], 70,
+          reason: 'nothing may be stripped when '
+              'the secure copy could not be verified');
       expect(json['clinicianTargetMl'], 1900);
 
-      // Subsequent saves must also keep falling back to full plaintext
-      // rather than silently dropping the sensitive fields.
+      // Legacy data is preserved read-only; new edits cannot downgrade.
       final saved = await repository.update(
         weightKg: 71,
         femaleProfile: false,
       );
-      expect(saved, isTrue);
+      expect(saved, isFalse);
       expect(repository.metrics.clinicianTargetMl, 1900);
       final resaved = jsonDecode(
         plaintext.snapshot[BodyMetricsRepository.storageKey]!,
       ) as Map;
-      expect(resaved['weightKg'], 71);
+      expect(resaved['weightKg'], 70);
       expect(resaved['clinicianTargetMl'], 1900);
     },
   );
 
   test(
-    'corrupted legacy data in a sensitive field is skipped, not crashed on '
-    'or invented',
+    'corrupted legacy sensitive data is preserved and blocks default writes',
     () async {
       final plaintext = MemoryHydrionStore({
         BodyMetricsRepository.storageKey:
@@ -193,15 +226,17 @@ void main() {
         plaintext,
         secureStore: secure,
       );
-      expect(repository.metrics.weightKg, isNull);
-      expect(repository.metrics.heightCm, 175);
-      expect(repository.metrics.clinicianTargetMl, isNull);
+      final before = Map.of(plaintext.snapshot);
+      expect(repository.state.status, BodyMetricsStatus.corrupt);
+      expect(repository.state.value, isNull);
+      expect(await repository.update(femaleProfile: false), isFalse);
+      expect(plaintext.snapshot, before);
+      expect(await secure.read(), isNull);
     },
   );
 
   test(
-    'clear() removes the plaintext record, the migration marker, and the '
-    'secure copy together',
+    'clear() verifies secure absence and replaces local payload with empty records',
     () async {
       final plaintext = MemoryHydrionStore();
       final secure = MemorySensitiveBodyMetricsStore();
@@ -218,11 +253,8 @@ void main() {
       await repository.clear();
 
       expect(await secure.read(), isNull);
-      expect(
-        plaintext.snapshot.containsKey(BodyMetricsRepository.storageKey),
-        isFalse,
-      );
-      expect(plaintext.snapshot.containsKey(migrationMarkerKey), isFalse);
+      expect(plaintext.snapshot[BodyMetricsRepository.storageKey], '{}');
+      expect(plaintext.snapshot[migrationMarkerKey], '');
       expect(repository.metrics.weightKg, isNull);
     },
   );
@@ -260,4 +292,18 @@ void main() {
       expect(json['weightKg'], isNull);
     },
   );
+}
+
+class _DeniedStorage extends FlutterSecureStorage {
+  @override
+  Future<String?> read(
+      {required String key,
+      AppleOptions? iOptions,
+      AndroidOptions? aOptions,
+      LinuxOptions? lOptions,
+      WebOptions? webOptions,
+      AppleOptions? mOptions,
+      WindowsOptions? wOptions}) async {
+    throw StateError('private synthetic payload');
+  }
 }

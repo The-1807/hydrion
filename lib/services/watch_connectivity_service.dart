@@ -48,6 +48,7 @@ class WatchConnectivityService {
   void _scheduleSync() => unawaited(sync());
 
   Future<void> sync() async {
+    if (!settingsRepository.isKnown) return;
     if (!Platform.isIOS || _syncing) return;
     _syncing = true;
     try {

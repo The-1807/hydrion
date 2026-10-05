@@ -25,6 +25,8 @@ class BodyMetricsScreen extends StatefulWidget {
   State<BodyMetricsScreen> createState() => _BodyMetricsScreenState();
 }
 
+enum _ContextDraftState { provisional, known, modified }
+
 class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   bool _initialized = false;
   late bool _enabled;
@@ -51,7 +53,11 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   late HydrionSweatLevel _sweat;
   late HydrionTemporaryCondition _condition;
   final _activityMinutes = TextEditingController();
+  _ContextDraftState _contextDraftState = _ContextDraftState.provisional;
+  int _contextEditorGeneration = 0;
+  int _contextUserAdjustmentMl = 0;
   HydrationRecommendation? _recommendation;
+  int _recommendationGeneration = 0;
   int? _wakeMinuteOfDay;
   int? _sleepMinuteOfDay;
   bool _editingWeight = false;
@@ -63,14 +69,15 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _initializeFromKnownMetrics();
+  }
+
+  void _initializeFromKnownMetrics() {
     if (_initialized) return;
+    final metrics = context.read<BodyMetricsRepository>().state.value;
+    if (metrics == null) return;
     _initialized = true;
-    final metrics = context.read<BodyMetricsRepository>().metrics;
     final settings = context.read<UserSettingsRepository>().settings;
-    final now = DateTime.now();
-    final daily = context.read<DailyHydrationContextRepository>().forDate(
-          hydrionLocalDateKey(now),
-        );
     _enabled = metrics.personalizationEnabled;
     _usePersonalizedBaseline =
         settings.baselineSource == HydrionBaselineSource.personalized;
@@ -89,13 +96,36 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     _wakeMinuteOfDay = metrics.wakeMinuteOfDay;
     _sleepMinuteOfDay = metrics.sleepMinuteOfDay;
     _syncManualFields();
+    _contextDraftState = _ContextDraftState.provisional;
+    _syncContextControls();
+  }
+
+  void _syncContextControls() {
+    if (_contextDraftState == _ContextDraftState.modified) return;
+    final repository = context.read<DailyHydrationContextRepository>();
+    final daily = repository.forDate(hydrionLocalDateKey(DateTime.now()));
     _intensity = daily?.activityIntensity ?? HydrionActivityIntensity.rest;
     _environment =
         daily?.environment ?? HydrionEnvironmentExposure.mostlyIndoors;
     _sweat = daily?.sweatLevel ?? HydrionSweatLevel.unknown;
     _condition = daily?.temporaryCondition ?? HydrionTemporaryCondition.none;
     _activityMinutes.text = (daily?.activityMinutes ?? 0).toString();
+    _contextUserAdjustmentMl = daily?.userAdjustmentMl ?? 0;
+    _contextDraftState = repository.isKnown
+        ? _ContextDraftState.known
+        : _ContextDraftState.provisional;
+    _contextEditorGeneration++;
   }
+
+  void _editContext() => setState(() {
+        _syncContextControls();
+        _editingContext = true;
+      });
+
+  void _changeContextDraft(VoidCallback change) => setState(() {
+        change();
+        _contextDraftState = _ContextDraftState.modified;
+      });
 
   @override
   void dispose() {
@@ -227,7 +257,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(saved ? l10n.bodyMetricsSaved : l10n.bodyMetricsInvalid),
+        content: Text(saved ? l10n.bodyMetricsSaved : _saveFailureMessage()),
       ),
     );
     if (saved) {
@@ -260,7 +290,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
         content: Text(
           saved
               ? AppLocalizations.of(context).bodyMetricsSaved
-              : AppLocalizations.of(context).bodyMetricsInvalid,
+              : _saveFailureMessage(),
         ),
       ),
     );
@@ -292,7 +322,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
         content: Text(
           saved
               ? AppLocalizations.of(context).bodyMetricsSaved
-              : AppLocalizations.of(context).bodyMetricsInvalid,
+              : _saveFailureMessage(),
         ),
       ),
     );
@@ -327,7 +357,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
         content: Text(
           saved
               ? AppLocalizations.of(context).bodyMetricsSaved
-              : AppLocalizations.of(context).bodyMetricsInvalid,
+              : _saveFailureMessage(),
         ),
       ),
     );
@@ -362,7 +392,7 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
         content: Text(
           saved
               ? AppLocalizations.of(context).bodyMetricsSaved
-              : AppLocalizations.of(context).bodyMetricsInvalid,
+              : _saveFailureMessage(),
         ),
       ),
     );
@@ -371,32 +401,54 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   Future<void> _deleteMetrics() async {
     final l10n = AppLocalizations.of(context);
     final bodyRepository = context.read<BodyMetricsRepository>();
-    final settingsRepository = context.read<UserSettingsRepository>();
-    final settings = settingsRepository.settings;
-    await bodyRepository.clear();
-    await settingsRepository.setPersonalizedGoalOptions(
-      baselineSource: HydrionBaselineSource.manual,
-      weatherModifierEnabled: settings.weatherModifierEnabled,
-    );
+    _recommendationGeneration++;
+    try {
+      await bodyRepository.clear();
+    } on BodyMetricsDeletionIncomplete {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.unavailable)),
+      );
+      return;
+    }
+    await _completeMetricsDeletion();
+  }
+
+  Future<void> _completeMetricsDeletion() async {
     if (!mounted) return;
+    final settingsRepository = context.read<UserSettingsRepository>();
+    final weatherEnabled = settingsRepository.settings.weatherModifierEnabled;
     setState(() {
-      _enabled = false;
-      _reproductiveState = HydrionReproductiveHydrationState.none;
-      _pregnancyGestationalDays = null;
-      _pregnancyDuration.clear();
+      // Deletion invalidates every draft, even when this screen initialized
+      // before a failed attempt. Ordinary reload initialization is unchanged.
+      _initialized = false;
+      _initializeFromKnownMetrics();
+      _usePersonalizedBaseline = false;
+      _editingWeight = false;
+      _editingHeight = false;
+      _editingPersonalization = false;
+      _editingContext = false;
+      _savingHeight = false;
       _pregnancyDurationError = null;
+      _recommendationGeneration++;
       _recommendation = null;
     });
+    await settingsRepository.setPersonalizedGoalOptions(
+      baselineSource: HydrionBaselineSource.manual,
+      weatherModifierEnabled: weatherEnabled,
+    );
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(l10n.bodyMetricsDeleted)));
+    ).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context).bodyMetricsDeleted)));
   }
 
   Future<void> _saveContext() async {
     final minutes = int.tryParse(_activityMinutes.text.trim()) ?? -1;
     if (minutes < 0 || minutes > 1440) return;
     final now = DateTime.now();
-    await context.read<DailyHydrationContextRepository>().save(
+    final saved = await context.read<DailyHydrationContextRepository>().save(
           DailyHydrationContext(
             localDateKey: hydrionLocalDateKey(now),
             activityIntensity: _intensity,
@@ -404,22 +456,50 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
             environment: _environment,
             sweatLevel: _sweat,
             temporaryCondition: _condition,
+            userAdjustmentMl: _contextUserAdjustmentMl,
             updatedAt: now,
           ),
         );
+    if (!mounted) return;
+    if (!saved) {
+      setState(() => _recommendation = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(AppLocalizations.of(context).dailyContextNotSaved)),
+      );
+      return;
+    }
     await _refreshRecommendation();
     if (!mounted) return;
-    setState(() => _editingContext = false);
+    setState(() {
+      _editingContext = false;
+      _contextDraftState = _ContextDraftState.known;
+    });
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context).dailyContextSaved)),
     );
   }
 
+  String _saveFailureMessage() {
+    final l10n = AppLocalizations.of(context);
+    final repository = context.read<BodyMetricsRepository>();
+    return repository.lastWriteStatus != BodyMetricsWriteStatus.notAttempted ||
+            !repository.canSave
+        ? l10n.bodyMetricsNotSaved
+        : l10n.bodyMetricsInvalid;
+  }
+
   Future<void> _refreshRecommendation() async {
+    final generation = _recommendationGeneration;
     final recommendation = await context
         .read<DailyHydrationRecommendationCoordinator>()
-        .calculate(now: DateTime.now());
-    if (mounted) setState(() => _recommendation = recommendation);
+        .calculateResult(now: DateTime.now());
+    if (mounted &&
+        generation == _recommendationGeneration &&
+        context.read<BodyMetricsRepository>().state.isKnown) {
+      setState(() => _recommendation = recommendation.recommendation);
+    }
   }
 
   Future<void> _applyRecommendation() async {
@@ -477,10 +557,56 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final settings = context.watch<UserSettingsRepository>().settings;
-    final metrics = context.watch<BodyMetricsRepository>().metrics;
-    final today = context.watch<DailyHydrationContextRepository>().forDate(
-          hydrionLocalDateKey(DateTime.now()),
-        );
+    final repository = context.watch<BodyMetricsRepository>();
+    final metrics = repository.state.value;
+    if (metrics == null || !repository.canSave) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.bodyMetricsTitle)),
+        body: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(l10n.unavailable, key: const Key('body-metrics-unavailable')),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              repository.lastWriteStatus != BodyMetricsWriteStatus.notAttempted
+                  ? l10n.bodyMetricsNotSaved
+                  : l10n.bodyMetricsStorageUnavailable,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.refresh),
+            label: Text(l10n.retry),
+            onPressed: () async {
+              final retryingDeletion =
+                  repository.state.status == BodyMetricsStatus.deletionPending;
+              if (retryingDeletion) _recommendationGeneration++;
+              try {
+                await repository.reload();
+              } on BodyMetricsDeletionIncomplete {
+                // Pending deletion stays unavailable and remains retryable.
+                return;
+              }
+              if (!mounted) return;
+              if (retryingDeletion) {
+                await _completeMetricsDeletion();
+                return;
+              }
+              if (repository.canSave) {
+                ScaffoldMessenger.of(this.context).clearSnackBars();
+              }
+              setState(() {
+                _initializeFromKnownMetrics();
+              });
+            },
+          ),
+        ])),
+      );
+    }
+    final dailyRepository = context.watch<DailyHydrationContextRepository>();
+    final today = dailyRepository.forDate(
+      hydrionLocalDateKey(DateTime.now()),
+    );
     final bmi = metrics.adultBmi;
     final category = adultBmiCategory(age: settings.age, bmi: bmi);
     return Scaffold(
@@ -1027,42 +1153,81 @@ class _BodyMetricsScreenState extends State<BodyMetricsScreen> {
             ),
             Text(l10n.dailyContextOptional),
             const SizedBox(height: 12),
-            if (today == null && !_editingContext) ...[
+            if (!dailyRepository.isKnown ||
+                dailyRepository.status ==
+                    DailyContextStatus.cleanupPending) ...[
+              Text(dailyRepository.status == DailyContextStatus.unsupported
+                  ? l10n.dailyContextUnsupported
+                  : dailyRepository.status == DailyContextStatus.cleanupPending
+                      ? l10n.dailyContextCleanupPending
+                      : l10n.dailyContextUnavailable),
+              TextButton.icon(
+                key: const Key('retry-daily-context'),
+                onPressed: () async {
+                  await dailyRepository.retry();
+                  if (mounted) {
+                    if (dailyRepository.isKnown) {
+                      setState(_syncContextControls);
+                      ScaffoldMessenger.of(this.context).clearSnackBars();
+                    }
+                    await _refreshRecommendation();
+                  }
+                },
+                icon: const Icon(Icons.refresh),
+                label: Text(l10n.retry),
+              ),
+            ],
+            if (dailyRepository.isKnown &&
+                today == null &&
+                !_editingContext) ...[
               Text(l10n.noDailyContext),
               OutlinedButton(
                 key: const Key('set-daily-context'),
-                onPressed: () => setState(() => _editingContext = true),
+                onPressed: _editContext,
                 child: Text(l10n.setDailyContext),
               ),
             ],
             if (today != null && !_editingContext)
               _DailyContextSummary(
                 context: today,
-                onEdit: () => setState(() => _editingContext = true),
+                onEdit: _editContext,
                 onClear: () async {
-                  await context.read<DailyHydrationContextRepository>().remove(
+                  final removed = await context
+                      .read<DailyHydrationContextRepository>()
+                      .remove(
                         today.localDateKey,
                       );
+                  if (!mounted) return;
+                  if (!removed) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text(l10n.dailyContextNotSaved)),
+                    );
+                  }
                   await _refreshRecommendation();
                 },
               ),
             if (_editingContext)
               _DailyContextEditor(
+                key: ValueKey(_contextEditorGeneration),
                 intensity: _intensity,
                 environment: _environment,
                 sweat: _sweat,
                 condition: _condition,
                 minutesController: _activityMinutes,
-                onIntensity: (value) => setState(() => _intensity = value),
-                onEnvironment: (value) => setState(() => _environment = value),
-                onSweat: (value) => setState(() => _sweat = value),
-                onCondition: (value) => setState(() => _condition = value),
+                onIntensity: (value) =>
+                    _changeContextDraft(() => _intensity = value),
+                onEnvironment: (value) =>
+                    _changeContextDraft(() => _environment = value),
+                onSweat: (value) => _changeContextDraft(() => _sweat = value),
+                onCondition: (value) =>
+                    _changeContextDraft(() => _condition = value),
+                onMinutes: (_) => _changeContextDraft(() {}),
                 onSave: _saveContext,
                 onClear: () => setState(() => _editingContext = false),
               ),
             const Divider(height: 32),
             _RecommendationCard(
-              recommendation: _recommendation,
+              recommendation: dailyRepository.isKnown ? _recommendation : null,
               onReview: _refreshRecommendation,
               onApply: _applyRecommendation,
               onKeep: _keepCurrentGoal,
@@ -1436,10 +1601,12 @@ class _DailyContextEditor extends StatelessWidget {
   final ValueChanged<HydrionEnvironmentExposure> onEnvironment;
   final ValueChanged<HydrionSweatLevel> onSweat;
   final ValueChanged<HydrionTemporaryCondition> onCondition;
+  final ValueChanged<String> onMinutes;
   final VoidCallback onSave;
   final VoidCallback onClear;
 
   const _DailyContextEditor({
+    super.key,
     required this.intensity,
     required this.environment,
     required this.sweat,
@@ -1449,6 +1616,7 @@ class _DailyContextEditor extends StatelessWidget {
     required this.onEnvironment,
     required this.onSweat,
     required this.onCondition,
+    required this.onMinutes,
     required this.onSave,
     required this.onClear,
   });
@@ -1475,6 +1643,7 @@ class _DailyContextEditor extends StatelessWidget {
         TextField(
           key: const Key('activity-minutes'),
           controller: minutesController,
+          onChanged: onMinutes,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(labelText: l10n.activityMinutesLabel),
         ),

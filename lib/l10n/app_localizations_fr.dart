@@ -9,6 +9,30 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get challengeStorageUnavailable =>
+      'Le stockage protégé des défis est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l\'accès.';
+
+  @override
+  String get challengeDeletionPending =>
+      'La suppression des défis est incomplète. Réessayez pour terminer le nettoyage local.';
+
+  @override
+  String get profileStorageUnavailable =>
+      'Le stockage protégé du profil est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l’accès.';
+
+  @override
+  String get profilePhotoMigrationBlocked =>
+      'Votre photo existante n’a pas pu être transférée en toute sécurité. Elle est conservée. Réessayez ou choisissez une photo de remplacement.';
+
+  @override
+  String get profilePhotoNotSaved =>
+      'L’enregistrement complet de la photo n’a pas pu être confirmé. Utilisez une image valide de 720 × 720 pixels et 1 200 000 octets maximum, ou réessayez le stockage protégé.';
+
+  @override
+  String get profileStorageIncomplete =>
+      'Certaines modifications du profil ou opérations de nettoyage sont incomplètes. Réessayez avant de considérer cette action comme entièrement enregistrée.';
+
+  @override
   String get healthDataRetrying =>
       'Nouvelle tentative de synchronisation des données de santé...';
 
@@ -158,6 +182,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get retry => 'Réessayer';
+
+  @override
+  String get dailyContextUnavailable =>
+      'Le contexte quotidien protégé est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l\'accès.';
+
+  @override
+  String get dailyContextUnsupported =>
+      'Le contexte quotidien protégé est disponible uniquement sur Android et iOS. Les données existantes sont conservées.';
+
+  @override
+  String get dailyContextNotSaved =>
+      'Le contexte quotidien n\'a pas été enregistré. Votre brouillon reste ici. Rétablissez le stockage protégé avant de réessayer.';
+
+  @override
+  String get dailyContextCleanupPending =>
+      'La copie protégée est enregistrée, mais l\'ancienne copie locale doit encore être supprimée. Réessayez pour terminer le nettoyage.';
 
   @override
   String get osNotificationsAvailableSentence =>
@@ -1342,6 +1382,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get bodyMetricsInvalid =>
       'Choisissez des mesures dans la plage sécuritaire affichée.';
+
+  @override
+  String get bodyMetricsNotSaved =>
+      'L\'enregistrement sécurisé des modifications n\'a pas pu être confirmé. Réessayez le stockage, puis enregistrez à nouveau. Les modifications non enregistrées peuvent être perdues en quittant cet écran.';
+
+  @override
+  String get bodyMetricsStorageUnavailable =>
+      'Le stockage protégé des données corporelles est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l\'accès sécurisé.';
 
   @override
   String get bodyMetricsDeleted => 'Mesures corporelles supprimées.';

@@ -10,6 +10,12 @@ import '../domain/bottle_bingo.dart';
 import '../domain/hydration_contracts.dart';
 import '../domain/pomodoro_session.dart';
 import '../storage/local_store.dart';
+import '../storage/app_persistence.dart';
+import '../storage/protected_app_store.dart';
+import '../storage/protected_challenge_record.dart';
+import 'challenge_protection.dart';
+export 'challenge_protection.dart'
+    show ChallengeStorageStatus, ChallengeStorageUnavailable;
 import 'hydration_repository.dart';
 import 'storage_recovery.dart';
 
@@ -313,6 +319,19 @@ class ChallengeRepository extends ChangeNotifier {
   static const _currentSchemaVersion = 6;
 
   final HydrionLocalStore _store;
+  ChallengeProtection? _protection;
+  Future<ProtectedAppStore> Function()? _opener;
+  bool _storageBusy = false;
+  bool _closed = false;
+  ChallengeStorageStatus get storageStatus =>
+      _protection?.status ?? ChallengeStorageStatus.ready;
+  bool get isKnown =>
+      !_closed && !_storageBusy && (_protection?.isKnown ?? true);
+
+  void _requireWritable() {
+    if (!isKnown || _storageBusy) throw const ChallengeStorageUnavailable();
+  }
+
   final List<StorageRecoveryEvent> _recoveryEvents;
   List<JoinedChallenge> _activeChallenges;
   List<JoinedChallenge> _challengeHistory;
@@ -337,68 +356,147 @@ class ChallengeRepository extends ChangeNotifier {
 
   ChallengeRepository.memory() : this._(MemoryHydrionStore(), const []);
 
-  static Future<ChallengeRepository> load(HydrionLocalStore store) async {
-    final raw = await store.readString(storageKey);
-    final result = _decodeChallenge(raw);
-    if (result.shouldClearStorage) {
-      await store.remove(storageKey);
-    }
-    final repository = ChallengeRepository._(
-      store,
-      result.challenges,
-      result.history,
-      result.recoveryEvents,
-    );
-    if (_containsLegacyDisplayCopy(raw) &&
-        (result.challenges.isNotEmpty || result.history.isNotEmpty)) {
-      await repository._persistActiveChallenges();
-    }
+  static Future<ChallengeRepository> load(
+    HydrionLocalStore store, {
+    ProtectedAppStore? protectedStore,
+    Future<ProtectedAppStore> Function()? opener,
+  }) async {
+    final repository = ChallengeRepository._(store, const []);
+    repository._protection = ChallengeProtection(
+        store, protectedStore ?? await (opener ?? openProtectedAppStore)());
+    await repository.refreshFromStore();
+    repository._opener =
+        protectedStore == null ? opener ?? openProtectedAppStore : null;
     return repository;
   }
 
-  static bool _containsLegacyDisplayCopy(String? raw) {
-    if (raw == null) return false;
-    try {
-      final value = jsonDecode(raw);
-      if (value is! Map) return false;
-      for (final key in const ['activeChallenges', 'challengeHistory']) {
-        final records = value[key];
-        if (records is List &&
-            records.any((record) =>
-                record is Map &&
-                (record.containsKey('name') ||
-                    record.containsKey('description')))) {
-          return true;
-        }
-      }
-    } catch (_) {
-      return false;
+  static Map<String, Object?> _protectedState(
+          List<JoinedChallenge> active, List<JoinedChallenge> history) =>
+      {
+        'schemaVersion': _currentSchemaVersion,
+        'activeChallenges': active.map((e) => e.toJson()).toList(),
+        'challengeHistory': history.map((e) => e.toJson()).toList(),
+      };
+
+  static Map<String, Object?> _migrationState(String? raw) {
+    if (raw == null) return _protectedState([], []);
+    final value = jsonDecode(raw);
+    if (value is! Map) throw const FormatException('Invalid challenge source');
+    final version = value['schemaVersion'];
+    if (version != null && version is! int) {
+      throw const FormatException('Invalid challenge source schema');
     }
-    return false;
+    if (version is num && version > _currentSchemaVersion) {
+      throw const ProtectedContextSchemaUnsupported();
+    }
+    final isCollection = value.containsKey('activeChallenges');
+    if (isCollection &&
+        value.keys.any((key) => !const {
+              'schemaVersion',
+              'activeChallenges',
+              'challengeHistory',
+            }.contains(key))) {
+      throw const FormatException('Unknown challenge source fields');
+    }
+    final active = isCollection ? value['activeChallenges'] : [value];
+    final history = isCollection ? value['challengeHistory'] ?? [] : [];
+    if (active is! List || history is! List) {
+      throw const FormatException('Invalid challenge source collection');
+    }
+    final decodedActive = <JoinedChallenge>[];
+    final decodedHistory = <JoinedChallenge>[];
+    for (final (records, target) in [
+      (active, decodedActive),
+      (history, decodedHistory)
+    ]) {
+      for (final entry in records) {
+        if (entry is! Map ||
+            entry.keys.any((key) => !const {
+                  'schemaVersion',
+                  'id',
+                  'name',
+                  'description',
+                  'targetMl',
+                  'durationDays',
+                  'joinedAt',
+                  'bottleBingoCompletedTiles',
+                  'parameters',
+                  'completedActionIds',
+                  'instanceId',
+                  'lifecycleStatus',
+                  'endedAt',
+                  'pendingParameters',
+                  'pendingParametersEffectiveDate',
+                }.contains(key))) {
+          throw const FormatException('Unknown challenge source fields');
+        }
+        if (entry['schemaVersion'] is num &&
+            (entry['schemaVersion'] as num) > _currentSchemaVersion) {
+          throw const ProtectedContextSchemaUnsupported();
+        }
+        if (entry['schemaVersion'] != null && entry['schemaVersion'] is! int) {
+          throw const FormatException('Invalid challenge source schema');
+        }
+        final decoded = JoinedChallenge.fromJson(entry);
+        if (decoded == null) {
+          throw const FormatException('Invalid challenge source record');
+        }
+        final normalized = decoded.toJson();
+        for (final key in entry.keys) {
+          if (const {'schemaVersion', 'name', 'description'}.contains(key)) {
+            continue;
+          }
+          if (jsonEncode(entry[key]) != jsonEncode(normalized[key])) {
+            throw const FormatException(
+                'Challenge source requires explicit recovery');
+          }
+        }
+        target.add(decoded);
+      }
+    }
+    if (decodedActive
+            .any((e) => e.lifecycleStatus != ChallengeLifecycleStatus.active) ||
+        decodedHistory
+            .any((e) => e.lifecycleStatus == ChallengeLifecycleStatus.active)) {
+      throw const FormatException('Conflicting challenge lifecycle');
+    }
+    final state =
+        _protectedState(decodedActive.take(maxActiveChallenges).toList(), [
+      ...decodedActive.skip(maxActiveChallenges).map((entry) => entry.copyWith(
+          lifecycleStatus: ChallengeLifecycleStatus.paused,
+          endedAt: entry.joinedAt)),
+      ...decodedHistory,
+    ]);
+    ProtectedChallengeRecord(
+        revision: 1, phase: ContextRecordPhase.provisional, state: state);
+    return state;
   }
 
   JoinedChallenge? get activeChallenge =>
-      _activeChallenges.isEmpty ? null : _activeChallenges.first;
+      !isKnown || _activeChallenges.isEmpty ? null : _activeChallenges.first;
 
-  List<JoinedChallenge> get activeChallenges => _activeChallenges;
+  List<JoinedChallenge> get activeChallenges =>
+      isKnown ? _activeChallenges : const [];
 
-  List<JoinedChallenge> get challengeHistory => _challengeHistory;
+  List<JoinedChallenge> get challengeHistory =>
+      isKnown ? _challengeHistory : const [];
 
-  List<JoinedChallenge> get pausedChallenges => _challengeHistory
+  List<JoinedChallenge> get pausedChallenges => challengeHistory
       .where((challenge) =>
           challenge.lifecycleStatus == ChallengeLifecycleStatus.paused)
       .toList(growable: false);
 
-  List<JoinedChallenge> get completedChallenges => _challengeHistory
+  List<JoinedChallenge> get completedChallenges => challengeHistory
       .where((challenge) =>
           challenge.lifecycleStatus == ChallengeLifecycleStatus.completed ||
           challenge.lifecycleStatus == ChallengeLifecycleStatus.archived)
       .toList(growable: false);
 
   bool get hasRoomForAnotherChallenge =>
-      _activeChallenges.length < maxActiveChallenges;
+      isKnown && _activeChallenges.length < maxActiveChallenges;
 
   JoinedChallenge? activeChallengeFor(String challengeId) {
+    if (!isKnown) return null;
     for (final challenge in _activeChallenges) {
       if (challenge.id == challengeId) return challenge;
     }
@@ -406,6 +504,7 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   JoinedChallenge? challengeInstanceFor(String instanceId) {
+    if (!isKnown) return null;
     for (final challenge in [..._activeChallenges, ..._challengeHistory]) {
       if (challenge.instanceId == instanceId) return challenge;
     }
@@ -416,8 +515,15 @@ class ChallengeRepository extends ChangeNotifier {
 
   @override
   void dispose() {
+    _closed = true;
     _boundHydrationRepository?.removeListener(_onHydrationChanged);
     super.dispose();
+  }
+
+  Future<void> close() async {
+    if (_storageBusy) throw const ChallengeStorageUnavailable();
+    _closed = true;
+    await _protection?.store.close();
   }
 
   void bindHydrationRepository(HydrationRepository repository) {
@@ -428,8 +534,9 @@ class ChallengeRepository extends ChangeNotifier {
     _recalculateHydrationQualifications(repository);
   }
 
-  Set<String> qualificationsForLogId(String logId) =>
-      _qualifiedChallengeInstancesByLogId[logId] ?? const <String>{};
+  Set<String> qualificationsForLogId(String logId) => isKnown
+      ? _qualifiedChallengeInstancesByLogId[logId] ?? const <String>{}
+      : const <String>{};
 
   void _onHydrationChanged() {
     final repository = _boundHydrationRepository;
@@ -449,10 +556,28 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<void> refreshFromStore() async {
-    final raw = await _store.readString(storageKey);
-    final result = _decodeChallenge(raw);
-    _activeChallenges = result.challenges;
-    _challengeHistory = result.history;
+    if (_storageBusy || _closed) throw const ChallengeStorageUnavailable();
+    var protection = _protection;
+    if (protection == null) return;
+    _storageBusy = true;
+    try {
+      if (_opener != null && !protection.isKnown) {
+        await protection.store.close();
+        protection = ChallengeProtection(_store, await _opener!());
+        _protection = protection;
+      }
+      await protection.load(_migrationState);
+      final raw = protection.isKnown && protection.record != null
+          ? jsonEncode(protection.record!.state)
+          : null;
+      final result = _decodeChallenge(raw);
+      _activeChallenges = result.challenges;
+      _challengeHistory = result.history;
+    } finally {
+      _storageBusy = false;
+    }
+    final hydration = _boundHydrationRepository;
+    if (hydration != null) _recalculateHydrationQualifications(hydration);
     notifyListeners();
   }
 
@@ -470,6 +595,7 @@ class ChallengeRepository extends ChangeNotifier {
     int? profileAge,
     Map<String, Object?> parameters = const <String, Object?>{},
   }) async {
+    _requireWritable();
     final eligibility = HydrionChallengeEligibilityPolicy.evaluate(
       challengeId: id,
       age: profileAge,
@@ -557,6 +683,7 @@ class ChallengeRepository extends ChangeNotifier {
     required ChallengeLifecycleStatus status,
     required DateTime endedAt,
   }) async {
+    _requireWritable();
     final challenge = activeChallengeFor(challengeId);
     if (challenge == null) {
       return const ChallengeLifecycleChange(changed: false);
@@ -598,6 +725,7 @@ class ChallengeRepository extends ChangeNotifier {
     String challengeOrInstanceId, {
     DateTime? resumedAt,
   }) async {
+    _requireWritable();
     if (!hasRoomForAnotherChallenge) {
       return const ChallengeLifecycleChange(changed: false);
     }
@@ -641,6 +769,7 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<bool> archiveChallenge(String instanceId) async {
+    _requireWritable();
     final index = _challengeHistory
         .indexWhere((challenge) => challenge.instanceId == instanceId);
     if (index == -1) return false;
@@ -669,6 +798,7 @@ class ChallengeRepository extends ChangeNotifier {
     String instanceId, {
     DateTime? leftAt,
   }) async {
+    _requireWritable();
     final index = _challengeHistory.indexWhere((challenge) =>
         challenge.instanceId == instanceId &&
         challenge.lifecycleStatus == ChallengeLifecycleStatus.paused);
@@ -695,6 +825,7 @@ class ChallengeRepository extends ChangeNotifier {
     DateTime? startedAt,
     Map<String, Object?>? parameterOverrides,
   }) async {
+    _requireWritable();
     JoinedChallenge? previous = activeChallengeFor(challengeOrInstanceId);
     if (previous == null) {
       for (final challenge in _activeChallenges) {
@@ -750,6 +881,7 @@ class ChallengeRepository extends ChangeNotifier {
     Map<String, Object?> parameters, {
     String? challengeId,
   }) async {
+    _requireWritable();
     final challenge =
         challengeId == null ? activeChallenge : activeChallengeFor(challengeId);
     if (challenge == null) return;
@@ -767,6 +899,7 @@ class ChallengeRepository extends ChangeNotifier {
     DateTime? now,
     bool confirmRestart = false,
   }) async {
+    _requireWritable();
     final challenge = activeChallengeFor(challengeId);
     final effect = ChallengeEditPolicy.effectFor(key);
     if (challenge == null || !_isValidParameterValue(key, value)) {
@@ -846,6 +979,7 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<void> reconcileLocalDay([DateTime? now]) async {
+    _requireWritable();
     final localNow = now ?? DateTime.now();
     var changed = false;
     final nextActive = <JoinedChallenge>[];
@@ -868,6 +1002,7 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<bool> completeCheckIn(String actionId, {String? challengeId}) async {
+    _requireWritable();
     final challenge =
         challengeId == null ? activeChallenge : activeChallengeFor(challengeId);
     if (challenge == null || actionId.trim().isEmpty) return false;
@@ -902,6 +1037,7 @@ class ChallengeRepository extends ChangeNotifier {
     DateTime? completedAt,
     String? outcome,
   }) async {
+    _requireWritable();
     final challenge = activeChallengeFor(challengeId);
     final definition = HydrionChallengeActivities.forId(challengeId);
     if (challenge == null ||
@@ -990,6 +1126,7 @@ class ChallengeRepository extends ChangeNotifier {
     String challengeId, {
     DateTime? startedAt,
   }) async {
+    _requireWritable();
     final challenge = activeChallengeFor(challengeId);
     final definition = HydrionChallengeActivities.forId(challengeId);
     if (challenge == null ||
@@ -1018,6 +1155,7 @@ class ChallengeRepository extends ChangeNotifier {
     String challengeId, {
     DateTime? pausedAt,
   }) async {
+    _requireWritable();
     final challenge = activeChallengeFor(challengeId);
     if (challenge == null ||
         challenge.parameters['activitySessionStatus'] != 'running') {
@@ -1039,6 +1177,7 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<bool> resetActivitySession(String challengeId) async {
+    _requireWritable();
     final challenge = activeChallengeFor(challengeId);
     if (challenge == null) return false;
     await _updateActiveChallenge(
@@ -1062,6 +1201,7 @@ class ChallengeRepository extends ChangeNotifier {
     String? challengeId,
     HydrationMetadata metadata = const HydrationMetadata(),
   }) async {
+    _requireWritable();
     final challenge =
         challengeId == null ? activeChallenge : activeChallengeFor(challengeId);
     if (challenge == null || challenge.needsSetup || volumeMl <= 0) return null;
@@ -1070,15 +1210,22 @@ class ChallengeRepository extends ChangeNotifier {
     final actionId = '${challenge.instanceId}:$day:$actionKey';
     if (!_inFlightHydrationActions.add(actionId)) return null;
     try {
-      final log = await hydrationRepository.addLog(
-        volumeMl: volumeMl,
-        timestamp: time,
-        source: 'challenge:${challenge.id}:$actionKey',
-        actionId: actionId,
-        metadata: metadata.copyWith(
-          challengeActionSource: challenge.id,
-        ),
-      );
+      final existing = hydrationRepository.logs
+          .where((log) => log.actionId == actionId)
+          .firstOrNull;
+      if (existing != null && challenge.completedActionIds.contains(actionId)) {
+        return null;
+      }
+      final log = existing ??
+          await hydrationRepository.addLog(
+            volumeMl: volumeMl,
+            timestamp: time,
+            source: 'challenge:${challenge.id}:$actionKey',
+            actionId: actionId,
+            metadata: metadata.copyWith(
+              challengeActionSource: challenge.id,
+            ),
+          );
       if (log == null) return null;
       try {
         await _updateActiveChallenge(
@@ -1089,8 +1236,14 @@ class ChallengeRepository extends ChangeNotifier {
             }),
           ),
         );
-      } catch (_) {
-        await hydrationRepository.deleteLog(log.id);
+      } on ChallengeStorageUnavailable catch (error) {
+        if (await _reconcileHydrationEvidence(challenge.instanceId,
+            (value) => value.completedActionIds.contains(actionId))) {
+          return log;
+        }
+        if (existing == null && isKnown && error.definitelyNotCommitted) {
+          await hydrationRepository.deleteLog(log.id);
+        }
         rethrow;
       }
       return log;
@@ -1100,6 +1253,7 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<bool> toggleBottleBingoTile(int index) async {
+    _requireWritable();
     if (!_canPersistBottleBingoTile(index) ||
         bottleBingoHydrationTileIndexes.contains(index)) {
       return false;
@@ -1117,12 +1271,24 @@ class ChallengeRepository extends ChangeNotifier {
     return true;
   }
 
+  // An exception after commit is not proof that a paired hydration write is orphaned.
+  Future<bool> _reconcileHydrationEvidence(String instanceId,
+      bool Function(JoinedChallenge) containsEvidence) async {
+    await refreshFromStore();
+    if (!isKnown) return false;
+    return [
+      ...activeChallenges,
+      ...challengeHistory
+    ].any((value) => value.instanceId == instanceId && containsEvidence(value));
+  }
+
   Future<HydrationLog?> completeBottleBingoHydrationTile({
     required int index,
     required HydrationRepository hydrationRepository,
     required int volumeMl,
     DateTime? timestamp,
   }) async {
+    _requireWritable();
     if (!_canPersistBottleBingoTile(index) || volumeMl <= 0) {
       return null;
     }
@@ -1138,16 +1304,24 @@ class ChallengeRepository extends ChangeNotifier {
     }
 
     try {
-      final log = await hydrationRepository.addLog(
-        volumeMl: volumeMl,
-        timestamp: actionTime,
-        source: 'challenge:${challenge.id}:tile-$index',
-        actionId: actionId,
-        metadata: HydrationMetadata(
-          challengeActionSource: challenge.id,
-          bingoTileSource: 'legacy-tile-$index',
-        ),
-      );
+      final existing = hydrationRepository.logs
+          .where((log) => log.actionId == actionId)
+          .firstOrNull;
+      if (existing != null &&
+          challenge.bottleBingoCompletedTiles.contains(index)) {
+        return null;
+      }
+      final log = existing ??
+          await hydrationRepository.addLog(
+            volumeMl: volumeMl,
+            timestamp: actionTime,
+            source: 'challenge:${challenge.id}:tile-$index',
+            actionId: actionId,
+            metadata: HydrationMetadata(
+              challengeActionSource: challenge.id,
+              bingoTileSource: 'legacy-tile-$index',
+            ),
+          );
       if (log == null) {
         return null;
       }
@@ -1161,8 +1335,14 @@ class ChallengeRepository extends ChangeNotifier {
             }),
           ),
         );
-      } catch (_) {
-        await hydrationRepository.deleteLog(log.id);
+      } on ChallengeStorageUnavailable catch (error) {
+        if (await _reconcileHydrationEvidence(challenge.instanceId,
+            (value) => value.bottleBingoCompletedTiles.contains(index))) {
+          return log;
+        }
+        if (existing == null && isKnown && error.definitelyNotCommitted) {
+          await hydrationRepository.deleteLog(log.id);
+        }
         rethrow;
       }
       return log;
@@ -1172,6 +1352,7 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<bool> resetBottleBingoTiles() async {
+    _requireWritable();
     final challenge = activeChallengeFor('bottle-bingo');
     if (challenge == null) {
       return false;
@@ -1226,6 +1407,7 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<void> _updateActiveChallenge(JoinedChallenge challenge) async {
+    _requireWritable();
     final previous = _activeChallenges;
     final index =
         _activeChallenges.indexWhere((item) => item.id == challenge.id);
@@ -1244,6 +1426,7 @@ class ChallengeRepository extends ChangeNotifier {
 
   Future<void> _replaceActiveChallenges(
       List<JoinedChallenge> challenges) async {
+    _requireWritable();
     final previous = _activeChallenges;
     _activeChallenges = List<JoinedChallenge>.unmodifiable(
       challenges.take(maxActiveChallenges),
@@ -1258,16 +1441,25 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<void> clear() async {
+    if (_storageBusy || _closed) throw const ChallengeStorageUnavailable();
+    _storageBusy = true;
     final previousActive = _activeChallenges;
     final previousHistory = _challengeHistory;
     _activeChallenges = const <JoinedChallenge>[];
     _challengeHistory = const <JoinedChallenge>[];
     try {
-      await _store.remove(storageKey);
+      if (_protection != null) {
+        await _protection!.clear();
+      } else {
+        await _store.remove(storageKey);
+      }
     } catch (_) {
       _activeChallenges = previousActive;
       _challengeHistory = previousHistory;
       rethrow;
+    } finally {
+      _storageBusy = false;
+      notifyListeners();
     }
     final hydration = _boundHydrationRepository;
     if (hydration != null) {
@@ -1277,6 +1469,21 @@ class ChallengeRepository extends ChangeNotifier {
   }
 
   Future<void> _persistActiveChallenges() async {
+    _requireWritable();
+    final protection = _protection;
+    if (protection != null) {
+      _storageBusy = true;
+      try {
+        await protection
+            .save(_protectedState(_activeChallenges, _challengeHistory));
+      } finally {
+        _storageBusy = false;
+        notifyListeners();
+      }
+      final hydration = _boundHydrationRepository;
+      if (hydration != null) _recalculateHydrationQualifications(hydration);
+      return;
+    }
     if (_activeChallenges.isEmpty && _challengeHistory.isEmpty) {
       await _store.remove(storageKey);
       final hydration = _boundHydrationRepository;
@@ -1585,7 +1792,7 @@ class ChallengeRepository extends ChangeNotifier {
 
   Set<String> qualifiedChallengeInstanceIdsForLog(HydrationLog log) {
     return {
-      for (final challenge in _activeChallenges)
+      for (final challenge in activeChallenges)
         if (hydrationLogQualifies(challenge, log)) challenge.instanceId,
     };
   }

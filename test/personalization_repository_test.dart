@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'support/memory_protected_app_store.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/domain/daily_hydration_context.dart';
 import 'package:hydrion/domain/challenge_recommendation.dart';
@@ -14,6 +16,8 @@ import 'package:hydrion/services/notifications.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   test('body metrics persist canonical units and schema', () async {
     final store = MemoryHydrionStore();
     final repository = await BodyMetricsRepository.load(store);
@@ -32,13 +36,15 @@ void main() {
     final json =
         jsonDecode(store.snapshot[BodyMetricsRepository.storageKey]!) as Map;
     expect(json['schemaVersion'], 3);
-    expect(json['weightKg'], 70);
-    expect(json['heightCm'], 175);
-    expect(json['weightUpdatedAt'], '2026-07-28T00:00:00.000');
-    expect(json['heightUpdatedAt'], '2026-07-28T00:00:00.000');
+    expect(json['weightKg'], isNull);
+    expect(json['heightCm'], isNull);
+    expect(json.containsKey('weightUpdatedAt'), isFalse);
+    expect(json.containsKey('heightUpdatedAt'), isFalse);
 
     final reloaded = await BodyMetricsRepository.load(store);
     expect(reloaded.metrics.weightKg, 70);
+    expect(reloaded.metrics.weightUpdatedAt, DateTime(2026, 7, 28));
+    expect(reloaded.metrics.heightUpdatedAt, DateTime(2026, 7, 28));
     expect(reloaded.metrics.preferredWeightUnit, HydrionWeightUnit.pounds);
   });
 
@@ -195,7 +201,8 @@ void main() {
         BodyMetricsRepository.storageKey: '{bad',
       });
       final malformedRepository = await BodyMetricsRepository.load(malformed);
-      expect(malformedRepository.metrics.weightKg, isNull);
+      expect(malformedRepository.state.status, BodyMetricsStatus.corrupt);
+      expect(malformedRepository.state.value, isNull);
       expect(malformedRepository.recoveryEvents, isNotEmpty);
 
       final invalid = MemoryHydrionStore({
@@ -204,8 +211,8 @@ void main() {
                 '"weightKg":"NaN","heightCm":20}',
       });
       final invalidRepository = await BodyMetricsRepository.load(invalid);
-      expect(invalidRepository.metrics.weightKg, isNull);
-      expect(invalidRepository.metrics.heightCm, isNull);
+      expect(invalidRepository.state.status, BodyMetricsStatus.corrupt);
+      expect(invalidRepository.state.value, isNull);
     },
   );
 
@@ -224,10 +231,12 @@ void main() {
   });
 
   test(
-    'daily contexts are bounded and clearing removes dedicated key',
+    'daily contexts are bounded in protected storage without a preference copy',
     () async {
       final store = MemoryHydrionStore();
-      final repository = await DailyHydrationContextRepository.load(store);
+      final protected = MemoryProtectedAppStore();
+      final repository = await DailyHydrationContextRepository.load(store,
+          protectedStore: protected);
       for (var i = 1; i <= 20; i++) {
         final date = DateTime(2026, 7, i);
         await repository.save(
@@ -237,10 +246,11 @@ void main() {
           ),
         );
       }
-      final json = jsonDecode(
-        store.snapshot[DailyHydrationContextRepository.storageKey]!,
-      ) as Map;
-      expect((json['contexts'] as List), hasLength(14));
+      expect(protected.record!.contexts, hasLength(14));
+      expect(
+          store.snapshot
+              .containsKey(DailyHydrationContextRepository.storageKey),
+          isFalse);
       await repository.clear();
       expect(
         store.snapshot.containsKey(DailyHydrationContextRepository.storageKey),
@@ -299,7 +309,7 @@ void main() {
     final stored =
         jsonDecode(store.snapshot[PersonalizationStateRepository.storageKey]!)
             as Map;
-    expect(stored['schemaVersion'], 2);
+    expect(stored['schemaVersion'], 3);
 
     final malformed = await PersonalizationStateRepository.load(
       MemoryHydrionStore({
@@ -322,6 +332,7 @@ void main() {
       final store = MemoryHydrionStore();
       final services = await HydrionServices.fromStore(
         store,
+        protectedAppStore: MemoryProtectedAppStore(),
         locationService: FakeHydrionLocationService(),
         notificationAdapter: FakeHydrionNotificationAdapter(
           permission: HydrionNotificationPermissionState.granted,
@@ -350,7 +361,6 @@ void main() {
         store.snapshot.keys,
         containsAll([
           BodyMetricsRepository.storageKey,
-          DailyHydrationContextRepository.storageKey,
           PersonalizationStateRepository.storageKey,
         ]),
       );
@@ -358,8 +368,8 @@ void main() {
       final result =
           await services.localProfileResetService.resetLocalProfile();
       expect(result.isCompleted, isTrue);
+      expect(store.snapshot[BodyMetricsRepository.storageKey], '{}');
       for (final key in [
-        BodyMetricsRepository.storageKey,
         DailyHydrationContextRepository.storageKey,
         PersonalizationStateRepository.storageKey,
       ]) {

@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     final profileAvatar = HydrionAvatarManifest.byId(settings.avatarId);
     final progress = (percent / 100).clamp(0.0, 1.0);
-    final bodyMetrics = context.watch<BodyMetricsRepository>().metrics;
+    final bodyMetrics = context.watch<BodyMetricsRepository>();
     final pacingStatus = const HydrationPacingEngine().calculate(
       wakeMinuteOfDay: bodyMetrics.wakeMinuteOfDay,
       sleepMinuteOfDay: bodyMetrics.sleepMinuteOfDay,
@@ -758,12 +758,19 @@ class _TodayMomentumGrid extends StatelessWidget {
           ),
           _MiniModule(
             icon: Icons.emoji_events_outlined,
-            title:
-                challenge == null ? l10n.challengePick : l10n.activeChallenge,
-            value: catalogChallenge.name,
-            body: challenge == null
-                ? l10n.bottleBingoReady
-                : l10n.activeChallengeGentle,
+            title: !challengeRepository.isKnown
+                ? l10n.challengesTitle
+                : challenge == null
+                    ? l10n.challengePick
+                    : l10n.activeChallenge,
+            value: !challengeRepository.isKnown
+                ? l10n.unavailable
+                : catalogChallenge.name,
+            body: !challengeRepository.isKnown
+                ? l10n.challengeStorageUnavailable
+                : challenge == null
+                    ? l10n.bottleBingoReady
+                    : l10n.activeChallengeGentle,
           ),
         ];
         if (!twoColumns) {

@@ -1,3 +1,4 @@
+import 'support/protected_challenge_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -56,7 +57,7 @@ void main() {
     );
   });
 
-  test('legacy Front Loader state retires without touching other storage',
+  test('retired legacy challenge is preserved without touching other storage',
       () async {
     final store = MemoryHydrionStore();
     await store.writeString(
@@ -73,10 +74,11 @@ void main() {
     );
     await store.writeString('unrelated-history', 'preserved');
 
-    final repository = await ChallengeRepository.load(store);
+    final repository = await loadTestChallengeRepository(store);
 
     expect(repository.activeChallenge, isNull);
-    expect(await store.readString(ChallengeRepository.storageKey), isNull);
+    expect(repository.storageStatus, ChallengeStorageStatus.corrupt);
+    expect(await store.readString(ChallengeRepository.storageKey), isNotNull);
     expect(await store.readString('unrelated-history'), 'preserved');
   });
 }

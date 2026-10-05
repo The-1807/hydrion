@@ -1,3 +1,4 @@
+import 'support/memory_protected_app_store.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ import 'package:hydrion/ui/screens/mission_screen.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   test('mission handled state persists and legacy completed users are spared',
       () async {
     final legacy = UserSettings.fromJson({
@@ -20,10 +23,12 @@ void main() {
     expect(legacy.missionIntroductionHandled, isTrue);
 
     final store = MemoryHydrionStore();
-    final repository = await UserSettingsRepository.load(store);
+    final repository = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
     expect(repository.settings.missionIntroductionHandled, isFalse);
     await repository.setMissionIntroductionHandled(true);
-    final reloaded = await UserSettingsRepository.load(store);
+    final reloaded = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
     expect(reloaded.settings.missionIntroductionHandled, isTrue);
   });
 
@@ -40,7 +45,10 @@ void main() {
 
     expect(services.guidedTourRepository.shouldShowCoreTour, isFalse);
 
-    await tester.tap(find.byKey(const Key('mission-continue')));
+    final continueAction = tester
+        .widget<FilledButton>(find.byKey(const Key('mission-continue')))
+        .onPressed!;
+    await tester.runAsync(() => (continueAction as Future<void> Function())());
     await tester.pumpAndSettle();
 
     expect(services.guidedTourRepository.shouldShowCoreTour, isTrue);
@@ -60,7 +68,9 @@ void main() {
       UserSettingsRepository.storageKey,
       jsonEncode(settings.toJson()),
     );
-    final services = await HydrionServices.fromStore(store);
+    final services = (await tester.runAsync(() => HydrionServices.fromStore(
+        store,
+        protectedAppStore: protectedSettings)))!;
 
     await tester.pumpWidget(
       HydrionApp(services: services, initialRoute: '/mission'),
@@ -68,12 +78,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Why Hydrion exists'), findsOneWidget);
     expect(find.byKey(const Key('mission-skip')), findsNothing);
-    await tester.tap(find.byKey(const Key('mission-continue')));
+    final continueAction = tester
+        .widget<FilledButton>(find.byKey(const Key('mission-continue')))
+        .onPressed!;
+    await tester.runAsync(() => (continueAction as Future<void> Function())());
     await tester.pumpAndSettle();
     expect(services.settingsRepository.settings.missionIntroductionHandled,
         isTrue);
 
-    final reloaded = await UserSettingsRepository.load(store);
+    final reloaded = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
     expect(reloaded.settings.missionIntroductionHandled, isTrue);
   });
 

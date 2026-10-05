@@ -72,14 +72,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _next() async {
     final messenger = ScaffoldMessenger.of(context);
-    if (_step == UserSettings.maxOnboardingStep) {
-      await _finish();
-      return;
+    final l10n = AppLocalizations.of(context);
+    try {
+      if (_step == UserSettings.maxOnboardingStep) {
+        await _finish();
+        return;
+      }
+      if (!await _persistCurrentStep(messenger)) {
+        return;
+      }
+      await _goToStep(_step + 1);
+    } catch (_) {
+      if (mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l10n.profileStorageIncomplete)));
+      }
     }
-    if (!await _persistCurrentStep(messenger)) {
-      return;
-    }
-    await _goToStep(_step + 1);
   }
 
   bool _profileIsValid() {
@@ -175,8 +183,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return false;
     }
     await repository.setVolumeUnit(_unit);
-    await repository.setDailyGoalMl(goal);
-    await repository.setContainerSizeMl(container);
+    if (!await repository.setDailyGoalMl(goal) ||
+        !await repository.setContainerSizeMl(container)) {
+      if (mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l10n.profileStorageIncomplete)));
+      }
+      return false;
+    }
     await repository.setReusableContainerEnabled(_reusable);
     return true;
   }
@@ -204,12 +218,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return;
     }
 
-    await repository.setProfile(
+    final profileSaved = await repository.setProfile(
       nickname: _nicknameController.text,
       age: _parsedAge(),
       sex: _sex,
     );
-    await repository.setAvatarId(_avatarId);
+    if (!profileSaved || !await repository.setAvatarId(_avatarId)) {
+      if (mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l10n.profileStorageIncomplete)));
+      }
+      return;
+    }
     await repository.setPersonalizedGoalOptions(
       baselineSource: _baselineSource,
       weatherModifierEnabled: repository.settings.weatherModifierEnabled,

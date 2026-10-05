@@ -9,6 +9,30 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get challengeStorageUnavailable =>
+      'Protected challenge storage is unavailable. Existing data is preserved. Retry to restore access.';
+
+  @override
+  String get challengeDeletionPending =>
+      'Challenge deletion is incomplete. Retry to finish local cleanup.';
+
+  @override
+  String get profileStorageUnavailable =>
+      'Protected profile storage is unavailable. Existing data is preserved. Retry to restore access.';
+
+  @override
+  String get profilePhotoMigrationBlocked =>
+      'Your existing photo could not be moved safely. It remains preserved. Retry, or choose a replacement photo.';
+
+  @override
+  String get profilePhotoNotSaved =>
+      'The photo could not be confirmed as fully saved. Use a valid image of at most 720 by 720 pixels and 1,200,000 bytes, or retry protected storage.';
+
+  @override
+  String get profileStorageIncomplete =>
+      'Some profile changes or cleanup remain incomplete. Retry before treating this action as fully saved.';
+
+  @override
   String get healthDataRetrying => 'Retrying health-data synchronization...';
 
   @override
@@ -155,6 +179,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retry => 'Retry';
+
+  @override
+  String get dailyContextUnavailable =>
+      'Protected daily context is unavailable. Existing data is preserved. Retry to restore access.';
+
+  @override
+  String get dailyContextUnsupported =>
+      'Protected daily context is supported on Android and iOS only. Existing data is preserved.';
+
+  @override
+  String get dailyContextNotSaved =>
+      'Daily context was not saved. Your draft remains here. Retry protected storage before saving again.';
+
+  @override
+  String get dailyContextCleanupPending =>
+      'The protected copy is saved, but the old local copy still needs removal. Retry to finish cleanup.';
 
   @override
   String get osNotificationsAvailableSentence =>
@@ -1324,6 +1364,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get bodyMetricsInvalid =>
       'Choose measurements within the displayed safe input range.';
+
+  @override
+  String get bodyMetricsNotSaved =>
+      'Changes could not be confirmed saved securely. Retry storage, then save again. Unsaved edits may be lost when you leave this screen.';
+
+  @override
+  String get bodyMetricsStorageUnavailable =>
+      'Protected body storage is unavailable. Existing data is preserved. Retry to restore secure access.';
 
   @override
   String get bodyMetricsDeleted => 'Body metrics deleted.';

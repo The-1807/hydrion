@@ -441,31 +441,56 @@ class _ProfileEditorState extends State<_ProfileEditor> {
       return;
     }
     if (!mounted) return;
-    final profileSaved = await repository.setProfile(
-      nickname: _nicknameController.text,
-      age: repository.settings.age,
-      sex: repository.settings.sex,
-    );
-    if (!profileSaved) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.editProfileInvalid)),
-      );
+    final nickname = _nicknameController.text;
+    final age = repository.settings.age;
+    final sex = repository.settings.sex;
+    final avatarId = _avatarId;
+    final unit = _unit;
+    final baselineSource = _baselineSource;
+    final weatherModifierEnabled = repository.settings.weatherModifierEnabled;
+    var allSucceeded = true;
+    // Each store retains its acknowledged truth. This action accumulates its
+    // own result so a later success cannot erase an earlier partial failure.
+    final operations = <Future<bool> Function()>[
+      () => repository.setProfile(nickname: nickname, age: age, sex: sex),
+      () => repository.setAvatarId(avatarId),
+      () async {
+        await repository.setVolumeUnit(unit);
+        return true;
+      },
+      () async {
+        await repository.setPersonalizedGoalOptions(
+          baselineSource: baselineSource,
+          weatherModifierEnabled: weatherModifierEnabled,
+        );
+        return true;
+      },
+      () => repository.setDailyGoalMl(
+            goal,
+            updateBaseline:
+                baselineSource != HydrionBaselineSource.personalized,
+          ),
+      () => repository.setContainerSizeMl(container),
+    ];
+    for (final operation in operations) {
+      try {
+        if (!await operation()) allSucceeded = false;
+      } catch (_) {
+        allSucceeded = false;
+      }
+    }
+    if (!allSucceeded) {
+      if (messenger.mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.profileStorageIncomplete)),
+        );
+      }
       return;
     }
-    await repository.setAvatarId(_avatarId);
-    await repository.setVolumeUnit(_unit);
-    await repository.setPersonalizedGoalOptions(
-      baselineSource: _baselineSource,
-      weatherModifierEnabled: repository.settings.weatherModifierEnabled,
-    );
-    await repository.setDailyGoalMl(
-      goal,
-      updateBaseline: _baselineSource != HydrionBaselineSource.personalized,
-    );
-    await repository.setContainerSizeMl(container);
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
+    // Failed attempts may have queued feedback; retire it only after full success.
+    messenger.clearSnackBars();
+    messenger.removeCurrentSnackBar();
     Navigator.of(context).pop();
   }
 
@@ -478,17 +503,30 @@ class _ProfileEditorState extends State<_ProfileEditor> {
     if (!mounted || photo == null) {
       return;
     }
-    final saved = await repository.setProfilePhotoBase64(photo.base64Data);
+    final saved = await repository.setProfilePhotoBytes(photo.bytes);
     if (!mounted) {
       return;
     }
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          saved ? l10n.profilePhotoSaved : l10n.profilePhotoTooLarge,
+          saved ? l10n.profilePhotoSaved : l10n.profilePhotoNotSaved,
         ),
       ),
     );
+  }
+
+  Future<void> _removePhoto() async {
+    final repository = context.read<UserSettingsRepository>();
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    try {
+      await repository.clearProfilePhoto();
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+          .showSnackBar(SnackBar(content: Text(l10n.profileStorageIncomplete)));
+    }
   }
 
   @override
@@ -545,9 +583,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                           key: const Key('profile-remove-photo'),
                           onPressed: settings.profilePhotoBase64 == null
                               ? null
-                              : () => context
-                                  .read<UserSettingsRepository>()
-                                  .clearProfilePhoto(),
+                              : _removePhoto,
                           icon: const Icon(Icons.person_outline),
                           label: Text(l10n.useDefaultAvatar),
                         ),

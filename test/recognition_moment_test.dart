@@ -1,3 +1,4 @@
+import 'support/memory_protected_app_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/l10n/app_localizations.dart';
@@ -6,14 +7,18 @@ import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/ui/components/recognition_moment.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   test('recognition event can be claimed exactly once across restart',
       () async {
     final store = MemoryHydrionStore();
-    final first = await UserSettingsRepository.load(store);
+    final first = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
     expect(await first.claimRecognition('daily-goal:2026-07-30'), isTrue);
     expect(await first.claimRecognition('daily-goal:2026-07-30'), isFalse);
 
-    final second = await UserSettingsRepository.load(store);
+    final second = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
     expect(await second.claimRecognition('daily-goal:2026-07-30'), isFalse);
   });
 

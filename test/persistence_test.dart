@@ -1,7 +1,10 @@
+import 'support/protected_challenge_fixture.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'support/memory_protected_app_store.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hydrion/domain/hydration_contracts.dart';
 import 'package:hydrion/domain/challenge_catalog.dart';
 import 'package:hydrion/main.dart';
@@ -20,10 +23,13 @@ import 'package:hydrion/storage/local_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    FlutterSecureStorage.setMockInitialValues({});
   });
 
   test('hydration logs persist across repository reloads', () async {
@@ -147,12 +153,14 @@ void main() {
 
   test('user locale persists across repository reloads', () async {
     final firstStore = await SharedPreferencesHydrionStore.create();
-    final firstRepository = await UserSettingsRepository.load(firstStore);
+    final firstRepository = await UserSettingsRepository.load(firstStore,
+        protectedStore: protectedSettings);
 
     await firstRepository.setLocale(const Locale('fr', 'FR'));
 
     final secondStore = await SharedPreferencesHydrionStore.create();
-    final secondRepository = await UserSettingsRepository.load(secondStore);
+    final secondRepository = await UserSettingsRepository.load(secondStore,
+        protectedStore: protectedSettings);
 
     expect(secondRepository.settings.locale, const Locale('fr', 'FR'));
   });
@@ -160,7 +168,8 @@ void main() {
   test('system day and night theme preferences persist across restart',
       () async {
     final store = await SharedPreferencesHydrionStore.create();
-    var repository = await UserSettingsRepository.load(store);
+    var repository = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
 
     expect(
       repository.settings.themePreference,
@@ -168,14 +177,14 @@ void main() {
     );
     await repository.setThemePreference(HydrionThemePreference.dark);
     repository = await UserSettingsRepository.load(
-      await SharedPreferencesHydrionStore.create(),
-    );
+        await SharedPreferencesHydrionStore.create(),
+        protectedStore: protectedSettings);
     expect(repository.settings.themePreference, HydrionThemePreference.dark);
 
     await repository.setThemePreference(HydrionThemePreference.light);
     repository = await UserSettingsRepository.load(
-      await SharedPreferencesHydrionStore.create(),
-    );
+        await SharedPreferencesHydrionStore.create(),
+        protectedStore: protectedSettings);
     expect(repository.settings.themePreference, HydrionThemePreference.light);
   });
 
@@ -208,13 +217,15 @@ void main() {
   test('user hydration preferences persist across repository reloads',
       () async {
     final firstStore = await SharedPreferencesHydrionStore.create();
-    final firstRepository = await UserSettingsRepository.load(firstStore);
+    final firstRepository = await UserSettingsRepository.load(firstStore,
+        protectedStore: protectedSettings);
 
     expect(await firstRepository.setDailyGoalMl(1850), isTrue);
     await firstRepository.setReusableContainerEnabled(true);
 
     final secondStore = await SharedPreferencesHydrionStore.create();
-    final secondRepository = await UserSettingsRepository.load(secondStore);
+    final secondRepository = await UserSettingsRepository.load(secondStore,
+        protectedStore: protectedSettings);
 
     expect(secondRepository.settings.dailyGoalMl, 1850);
     expect(secondRepository.settings.reusableContainerEnabled, isTrue);
@@ -242,7 +253,8 @@ void main() {
 
   test('challenge join state persists as app data', () async {
     final firstStore = await SharedPreferencesHydrionStore.create();
-    final firstRepository = await ChallengeRepository.load(firstStore);
+    final firstRepository = await loadTestChallengeRepository(firstStore,
+        protectedStore: protectedSettings);
 
     await firstRepository.join(
       id: 'bottle-bingo',
@@ -254,7 +266,8 @@ void main() {
     );
 
     final secondStore = await SharedPreferencesHydrionStore.create();
-    final secondRepository = await ChallengeRepository.load(secondStore);
+    final secondRepository = await loadTestChallengeRepository(secondStore,
+        protectedStore: protectedSettings);
 
     expect(secondRepository.activeChallenge?.id, 'bottle-bingo');
     expect(secondRepository.activeChallenge?.targetMl, 2000);
@@ -296,7 +309,7 @@ void main() {
         }),
       );
 
-      final repository = await ChallengeRepository.load(store);
+      final repository = await loadTestChallengeRepository(store);
       final challenge = repository.activeChallenge!;
       expect(challenge.id, 'lunch-break-refill');
       expect(challenge.targetMl, 2100);
@@ -312,7 +325,8 @@ void main() {
   }
 
   test('services share one hydration source of truth', () async {
-    final services = await HydrionServices.fromStore(MemoryHydrionStore());
+    final services = await HydrionServices.fromStore(MemoryHydrionStore(),
+        protectedAppStore: protectedSettings);
     final timestamp = DateTime.now();
 
     expect(await services.settingsRepository.setDailyGoalMl(1800), isTrue);
@@ -347,8 +361,10 @@ void main() {
   test('local profile reset clears profile-owned data and survives reload',
       () async {
     final store = MemoryHydrionStore();
+    final protected = MemoryProtectedAppStore();
     final services = await HydrionServices.fromStore(
       store,
+      protectedAppStore: protected,
       notificationAdapter: FakeHydrionNotificationAdapter(),
     );
     final now = DateTime(2026, 7, 23, 9);
@@ -401,6 +417,7 @@ void main() {
     final result = await services.localProfileResetService.resetLocalProfile();
     final reloaded = await HydrionServices.fromStore(
       store,
+      protectedAppStore: protected,
       notificationAdapter: FakeHydrionNotificationAdapter(),
     );
 
@@ -432,7 +449,8 @@ void main() {
         () async {
       final store = MemoryHydrionStore();
       final services = await HydrionServices.fromStore(store,
-          notificationAdapter: FakeHydrionNotificationAdapter());
+          notificationAdapter: FakeHydrionNotificationAdapter(),
+          protectedAppStore: protectedSettings);
       await services.hydrationRepository.addLog(
           volumeMl: 150, timestamp: DateTime.utc(2026, 9, 13), source: 'test');
       var wearableResetCalled = false;
@@ -465,8 +483,10 @@ void main() {
   test('profile deletion continues if Android reminder cancellation fails',
       () async {
     final store = MemoryHydrionStore();
+    final protected = MemoryProtectedAppStore();
     final services = await HydrionServices.fromStore(
       store,
+      protectedAppStore: protected,
       notificationAdapter: FakeHydrionNotificationAdapter(
         failCancelAll: true,
       ),
@@ -507,13 +527,15 @@ void main() {
     final reloaded = await HydrionServices.fromStore(
       store,
       notificationAdapter: FakeHydrionNotificationAdapter(),
+      protectedAppStore: protected,
     );
     await reloaded.notificationService.initialize();
     expect(reloaded.reminderRepository.orphanNotificationIds, isEmpty);
   });
 
   test('hydration context refreshes after new hydration logs', () async {
-    final services = await HydrionServices.fromStore(MemoryHydrionStore());
+    final services = await HydrionServices.fromStore(MemoryHydrionStore(),
+        protectedAppStore: protectedSettings);
     final timestamp = DateTime(2026, 5, 23, 10, 30);
 
     final before = await services.hydrationContextProvider
@@ -585,7 +607,8 @@ void main() {
 
   test('coach and platform services report honest local fallback status',
       () async {
-    final services = await HydrionServices.fromStore(MemoryHydrionStore());
+    final services = await HydrionServices.fromStore(MemoryHydrionStore(),
+        protectedAppStore: protectedSettings);
     final timestamp = DateTime.now();
 
     await services.hydrationRepository.addLog(
@@ -621,7 +644,7 @@ class _FailingStore implements HydrionLocalStore {
   Future<void> remove(String key) async {}
 
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     throw StateError('simulated persistence failure');
   }
 }

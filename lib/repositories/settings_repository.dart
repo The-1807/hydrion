@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -6,6 +7,11 @@ import '../domain/avatar_manifest.dart';
 import '../domain/legal_document_registry.dart';
 import '../storage/local_store.dart';
 import 'storage_recovery.dart';
+import 'settings_protection.dart';
+import '../services/validated_profile_photo.dart';
+import '../storage/app_persistence.dart';
+import '../storage/protected_app_store.dart';
+import '../storage/protected_settings_record.dart';
 
 enum HydrionSex {
   female,
@@ -683,6 +689,64 @@ class UserSettingsRepository extends ChangeNotifier {
   final HydrionLocalStore _store;
   final List<StorageRecoveryEvent> _recoveryEvents;
   UserSettings _settings;
+  UserSettings? _published;
+  SettingsProtection? _protection;
+  ProtectedAppStore? _appStore;
+  bool _ownsAppStore = false;
+  Future<void> _tail = Future.value();
+
+  SettingsProtectionStatus get protectionStatus =>
+      _protection?.status ?? SettingsProtectionStatus.ready;
+  bool get isKnown => _protection?.isKnown ?? true;
+
+  Future<T> _runWithoutKnownProfile<T>(Future<T> Function() operation) =>
+      _runMutation(operation, requireKnown: false);
+
+  Future<T> _runMutation<T>(Future<T> Function() operation,
+      {bool requireKnown = true}) {
+    final result = _tail.then((_) async {
+      _settings = settings;
+      try {
+        if (requireKnown && !isKnown) throw const SettingsProtectionFailure();
+        return await operation();
+      } catch (_) {
+        _publishProtected();
+        notifyListeners();
+        if (T == bool) return false as T;
+        throw const SettingsProtectionFailure();
+      }
+    });
+    _tail = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return result;
+  }
+
+  void _publishProtected() {
+    final protection = _protection;
+    if (protection == null) {
+      _published = _settings;
+      return;
+    }
+    _settings = UserSettings.fromJson({
+      ...protection.ordinary,
+      if (protection.isKnown) ...protection.record!.profile.toJson(),
+      if (protection.isKnown && protection.record!.photo != null)
+        'profilePhotoBase64': base64Encode(protection.record!.photo!.bytes),
+    });
+    _published = _settings;
+  }
+
+  Future<void> retryProtection() => _runWithoutKnownProfile(() async {
+        if (_ownsAppStore) {
+          await _appStore?.close();
+          _appStore = await openProtectedAppStore();
+          _protection!.protected = _appStore is ProtectedSettingsStore
+              ? _appStore as ProtectedSettingsStore
+              : null;
+        }
+        await _protection?.reload();
+        _publishProtected();
+        notifyListeners();
+      });
 
   UserSettingsRepository._(
     this._store,
@@ -728,189 +792,240 @@ class UserSettingsRepository extends ChangeNotifier {
           ),
         );
 
-  static Future<UserSettingsRepository> load(HydrionLocalStore store) async {
-    final raw = await store.readString(storageKey);
-    final result = _decodeSettings(raw);
-    return UserSettingsRepository._(
-      store,
-      result.settings,
-      result.recoveryEvents,
-    );
+  static Future<UserSettingsRepository> load(
+    HydrionLocalStore store, {
+    ProtectedAppStore? protectedStore,
+  }) async {
+    final appStore = protectedStore ?? await openProtectedAppStore();
+    final legacyDecode = _decodeSettings(await store.readString(storageKey));
+    final repository = UserSettingsRepository._(
+        store,
+        const UserSettings(locale: UserSettings.fallbackLocale),
+        legacyDecode.recoveryEvents);
+    repository._appStore = appStore;
+    repository._ownsAppStore = protectedStore == null;
+    repository._protection = SettingsProtection(
+        store,
+        appStore is ProtectedSettingsStore
+            ? appStore as ProtectedSettingsStore
+            : null,
+        (value) => UserSettings.fromJson(value).toJson());
+    await repository._protection!.reload();
+    repository._publishProtected();
+    return repository;
   }
 
-  UserSettings get settings => _settings;
+  UserSettings get settings => _published ?? _settings;
+
+  Future<void> close() async {
+    await _tail;
+    if (_ownsAppStore) await _appStore?.close();
+  }
 
   List<StorageRecoveryEvent> get recoveryEvents => _recoveryEvents;
 
-  Future<void> refreshFromStore() async {
-    final raw = await _store.readString(storageKey);
-    _settings = _decodeSettings(raw).settings;
-    notifyListeners();
-  }
+  Future<void> refreshFromStore() => retryProtection();
 
-  Future<void> setLocale(Locale locale) async {
-    _settings = _settings.copyWith(locale: locale);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> setLocale(Locale locale) => _runWithoutKnownProfile(() async {
+        _settings = _settings.copyWith(locale: locale);
+        await _persist(ordinaryOnly: true);
+        notifyListeners();
+      });
 
-  Future<void> setNonLocalProviderConsentGranted(bool value) async {
-    _settings = _settings.copyWith(nonLocalProviderConsentGranted: value);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> setNonLocalProviderConsentGranted(bool value) =>
+      _runMutation(() async {
+        _settings = _settings.copyWith(nonLocalProviderConsentGranted: value);
+        await _persist();
+        notifyListeners();
+      });
 
   Future<bool> setDailyGoalMl(
     int value, {
     bool updateBaseline = true,
     bool markManualEdit = true,
     DateTime? now,
-  }) async {
-    if (value < UserSettings.minDailyGoalMl ||
-        value > UserSettings.maxDailyGoalMl) {
-      return false;
-    }
-    final previous = _settings;
-    _settings = _settings.copyWith(
-      dailyGoalMl: value,
-      baselineDailyGoalMl:
-          updateBaseline ? value : _settings.baselineDailyGoalMl,
-      weatherAdjustedGoalActive:
-          updateBaseline ? false : _settings.weatherAdjustedGoalActive,
-      lastManualGoalEditAt: markManualEdit ? now ?? DateTime.now() : null,
-      clearLastManualGoalEditAt: !markManualEdit,
-    );
-    try {
-      await _persist();
-    } catch (_) {
-      _settings = previous;
-      notifyListeners();
-      return false;
-    }
-    notifyListeners();
-    return true;
-  }
+  }) =>
+      _runMutation(() async {
+        if (value < UserSettings.minDailyGoalMl ||
+            value > UserSettings.maxDailyGoalMl) {
+          return false;
+        }
+        _settings = _settings.copyWith(
+          dailyGoalMl: value,
+          baselineDailyGoalMl:
+              updateBaseline ? value : _settings.baselineDailyGoalMl,
+          weatherAdjustedGoalActive:
+              updateBaseline ? false : _settings.weatherAdjustedGoalActive,
+          lastManualGoalEditAt: markManualEdit ? now ?? DateTime.now() : null,
+          clearLastManualGoalEditAt: !markManualEdit,
+        );
+        try {
+          await _persist();
+        } catch (_) {
+          _publishProtected();
+          notifyListeners();
+          return false;
+        }
+        notifyListeners();
+        return true;
+      });
 
-  Future<void> setReusableContainerEnabled(bool value) async {
-    _settings = _settings.copyWith(reusableContainerEnabled: value);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> setReusableContainerEnabled(bool value) =>
+      _runWithoutKnownProfile(() async {
+        _settings = _settings.copyWith(reusableContainerEnabled: value);
+        await _persist(ordinaryOnly: true);
+        notifyListeners();
+      });
 
   Future<bool> setProfile({
     required String nickname,
     int? age,
     HydrionSex? sex,
-  }) async {
-    final safeNickname = UserSettings._safeNickname(nickname);
-    if (safeNickname == null) {
-      return false;
+  }) =>
+      _runMutation(() async {
+        final safeNickname = UserSettings._safeNickname(nickname);
+        if (safeNickname == null) {
+          return false;
+        }
+        _settings = _settings.copyWith(
+          nickname: safeNickname,
+          age: age,
+          clearAge: age == null,
+          sex: sex,
+          clearSex: sex == null,
+        );
+        await _persist();
+        notifyListeners();
+        return true;
+      });
+
+  Future<bool> setAvatarId(String avatarId) =>
+      _runWithoutKnownProfile(() async {
+        final safeAvatarId = UserSettings._safeAvatarId(avatarId);
+        if (safeAvatarId != avatarId) {
+          return false;
+        }
+        _settings = _settings.copyWith(avatarId: safeAvatarId);
+        await _persist(ordinaryOnly: true);
+        notifyListeners();
+        return true;
+      });
+
+  Future<bool> setProfilePhotoBase64(String value) =>
+      _runWithoutKnownProfile(() async {
+        try {
+          return await _setValidatedPhoto(
+              await ValidatedProfilePhoto.fromLegacy(value));
+        } on InvalidProfilePhoto {
+          return false;
+        }
+      });
+
+  Future<bool> setProfilePhotoBytes(Uint8List bytes) =>
+      _runWithoutKnownProfile(() async {
+        try {
+          return await _setValidatedPhoto(
+              await ValidatedProfilePhoto.fromBytes(bytes));
+        } on InvalidProfilePhoto {
+          return false;
+        }
+      });
+
+  Future<bool> _setValidatedPhoto(ValidatedProfilePhoto photo) async {
+    if (_protection != null) {
+      await _protection!.setPhoto(photo);
+      _publishProtected();
+    } else {
+      _settings =
+          _settings.copyWith(profilePhotoBase64: base64Encode(photo.bytes));
+      _published = _settings;
     }
-    _settings = _settings.copyWith(
-      nickname: safeNickname,
-      age: age,
-      clearAge: age == null,
-      sex: sex,
-      clearSex: sex == null,
-    );
-    await _persist();
     notifyListeners();
     return true;
   }
 
-  Future<bool> setAvatarId(String avatarId) async {
-    final safeAvatarId = UserSettings._safeAvatarId(avatarId);
-    if (safeAvatarId != avatarId) {
-      return false;
-    }
-    _settings = _settings.copyWith(avatarId: safeAvatarId);
-    await _persist();
-    notifyListeners();
-    return true;
-  }
+  Future<void> clearProfilePhoto() => _runWithoutKnownProfile(() async {
+        if (_protection != null) {
+          await _protection!.deletePhoto();
+          _publishProtected();
+        } else {
+          _settings = _settings.copyWith(clearProfilePhotoBase64: true);
+          _published = _settings;
+        }
+        notifyListeners();
+      });
 
-  Future<bool> setProfilePhotoBase64(String value) async {
-    final safePhoto = UserSettings._safeProfilePhotoBase64(value);
-    if (safePhoto == null) {
-      return false;
-    }
-    _settings = _settings.copyWith(profilePhotoBase64: safePhoto);
-    await _persist();
-    notifyListeners();
-    return true;
-  }
-
-  Future<void> clearProfilePhoto() async {
-    _settings = _settings.copyWith(clearProfilePhotoBase64: true);
-    await _persist();
-    notifyListeners();
-  }
-
-  Future<void> setGoalMode(HydrionGoalMode mode) async {
-    _settings = _settings.copyWith(
-      goalMode: HydrionGoalMode.manual,
-      weatherModifierEnabled: mode == HydrionGoalMode.weatherInformed,
-    );
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> setGoalMode(HydrionGoalMode mode) => _runMutation(() async {
+        _settings = _settings.copyWith(
+          goalMode: HydrionGoalMode.manual,
+          weatherModifierEnabled: mode == HydrionGoalMode.weatherInformed,
+        );
+        await _persist();
+        notifyListeners();
+      });
 
   Future<void> setPersonalizedGoalOptions({
     required HydrionBaselineSource baselineSource,
     required bool weatherModifierEnabled,
-  }) async {
-    _settings = _settings.copyWith(
-      baselineSource: baselineSource,
-      weatherModifierEnabled: weatherModifierEnabled,
-      goalMode: HydrionGoalMode.manual,
-    );
-    await _persist();
-    notifyListeners();
-  }
+  }) =>
+      _runMutation(() async {
+        _settings = _settings.copyWith(
+          baselineSource: baselineSource,
+          weatherModifierEnabled: weatherModifierEnabled,
+          goalMode: HydrionGoalMode.manual,
+        );
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<void> setVolumeUnit(HydrionVolumeUnit unit) async {
-    _settings = _settings.copyWith(volumeUnit: unit);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> setVolumeUnit(HydrionVolumeUnit unit) =>
+      _runWithoutKnownProfile(() async {
+        _settings = _settings.copyWith(volumeUnit: unit);
+        await _persist(ordinaryOnly: true);
+        notifyListeners();
+      });
 
-  Future<void> setThemePreference(HydrionThemePreference preference) async {
-    _settings = _settings.copyWith(themePreference: preference);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> setThemePreference(HydrionThemePreference preference) =>
+      _runWithoutKnownProfile(() async {
+        _settings = _settings.copyWith(themePreference: preference);
+        await _persist(ordinaryOnly: true);
+        notifyListeners();
+      });
 
-  Future<bool> setContainerSizeMl(int value) async {
-    if (value < UserSettings.minContainerSizeMl ||
-        value > UserSettings.maxContainerSizeMl) {
-      return false;
-    }
-    _settings = _settings.copyWith(
-      containerSizeMl: value,
-      reusableContainerEnabled: true,
-    );
-    await _persist();
-    notifyListeners();
-    return true;
-  }
+  Future<bool> setContainerSizeMl(int value) =>
+      _runWithoutKnownProfile(() async {
+        if (value < UserSettings.minContainerSizeMl ||
+            value > UserSettings.maxContainerSizeMl) {
+          return false;
+        }
+        _settings = _settings.copyWith(
+          containerSizeMl: value,
+          reusableContainerEnabled: true,
+        );
+        await _persist(ordinaryOnly: true);
+        notifyListeners();
+        return true;
+      });
 
-  Future<void> clearContainerSize() async {
-    _settings = _settings.copyWith(reusableContainerEnabled: false);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> clearContainerSize() => _runWithoutKnownProfile(() async {
+        _settings = _settings.copyWith(reusableContainerEnabled: false);
+        await _persist(ordinaryOnly: true);
+        notifyListeners();
+      });
 
-  Future<void> setWeatherGoalAutoApplyEnabled(bool value) async {
-    _settings = _settings.copyWith(weatherGoalAutoApplyEnabled: value);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> setWeatherGoalAutoApplyEnabled(bool value) =>
+      _runMutation(() async {
+        _settings = _settings.copyWith(weatherGoalAutoApplyEnabled: value);
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<void> recordWeatherGoalDecision(DateTime value) async {
-    _settings = _settings.copyWith(lastWeatherGoalDecisionAt: value);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> recordWeatherGoalDecision(DateTime value) =>
+      _runMutation(() async {
+        _settings = _settings.copyWith(lastWeatherGoalDecisionAt: value);
+        await _persist();
+        notifyListeners();
+      });
 
   Future<bool> applyWeatherGoal({
     required int goalMl,
@@ -918,24 +1033,25 @@ class UserSettingsRepository extends ChangeNotifier {
     required String explanation,
     required String localDateKey,
     bool autoApplyEnabled = false,
-  }) async {
-    if (goalMl < UserSettings.minDailyGoalMl ||
-        goalMl > UserSettings.maxDailyGoalMl) {
-      return false;
-    }
-    _settings = _settings.copyWith(
-      dailyGoalMl: goalMl,
-      lastWeatherGoalDecisionAt: decidedAt,
-      lastWeatherGoalLocalDate: localDateKey,
-      lastWeatherGoalExplanation: explanation,
-      weatherAdjustedGoalActive: true,
-      weatherGoalAutoApplyEnabled: autoApplyEnabled,
-      clearLastManualGoalEditAt: true,
-    );
-    await _persist();
-    notifyListeners();
-    return true;
-  }
+  }) =>
+      _runMutation(() async {
+        if (goalMl < UserSettings.minDailyGoalMl ||
+            goalMl > UserSettings.maxDailyGoalMl) {
+          return false;
+        }
+        _settings = _settings.copyWith(
+          dailyGoalMl: goalMl,
+          lastWeatherGoalDecisionAt: decidedAt,
+          lastWeatherGoalLocalDate: localDateKey,
+          lastWeatherGoalExplanation: explanation,
+          weatherAdjustedGoalActive: true,
+          weatherGoalAutoApplyEnabled: autoApplyEnabled,
+          clearLastManualGoalEditAt: true,
+        );
+        await _persist();
+        notifyListeners();
+        return true;
+      });
 
   /// Records that the user declined, dismissed, or acknowledged an
   /// unchanged recommendation for [localDateKey].
@@ -950,196 +1066,228 @@ class UserSettingsRepository extends ChangeNotifier {
     required DateTime decidedAt,
     required String localDateKey,
     required String explanation,
-  }) async {
-    _settings = _settings.copyWith(
-      lastWeatherGoalDecisionAt: decidedAt,
-      lastWeatherGoalLocalDate: localDateKey,
-      lastWeatherGoalExplanation: explanation,
-    );
-    await _persist();
-    notifyListeners();
-  }
+  }) =>
+      _runMutation(() async {
+        _settings = _settings.copyWith(
+          lastWeatherGoalDecisionAt: decidedAt,
+          lastWeatherGoalLocalDate: localDateKey,
+          lastWeatherGoalExplanation: explanation,
+        );
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<void> setWeatherGoalDailyConfirmationEnabled(bool value) async {
-    _settings = _settings.copyWith(
-      weatherGoalDailyConfirmationEnabled: value,
-      weatherGoalAutoApplyEnabled: !value,
-    );
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> setWeatherGoalDailyConfirmationEnabled(bool value) =>
+      _runMutation(() async {
+        _settings = _settings.copyWith(
+          weatherGoalDailyConfirmationEnabled: value,
+          weatherGoalAutoApplyEnabled: !value,
+        );
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<void> recordLocationPermissionPrompt(DateTime value) async {
-    _settings = _settings.copyWith(locationPermissionPromptedAt: value);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> recordLocationPermissionPrompt(DateTime value) =>
+      _runMutation(() async {
+        _settings = _settings.copyWith(locationPermissionPromptedAt: value);
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<void> recordNotificationPermissionPrompt(DateTime value) async {
-    _settings = _settings.copyWith(notificationPermissionPromptedAt: value);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> recordNotificationPermissionPrompt(DateTime value) =>
+      _runMutation(() async {
+        _settings = _settings.copyWith(notificationPermissionPromptedAt: value);
+        await _persist();
+        notifyListeners();
+      });
 
   Future<void> setOnboardingCompleted({
     required bool completed,
     required bool legalAndHealthAcknowledged,
-  }) async {
-    final shouldRecordCurrentLegal = completed && legalAndHealthAcknowledged;
-    final now = shouldRecordCurrentLegal ? DateTime.now() : null;
-    _settings = _settings.copyWith(
-      onboardingCompleted: completed,
-      legalAndHealthAcknowledged: legalAndHealthAcknowledged,
-      acceptedTermsVersion: shouldRecordCurrentLegal
-          ? _settings.acceptedTermsVersion ??
-              HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion
-          : null,
-      clearAcceptedTermsVersion: !shouldRecordCurrentLegal,
-      acceptedTermsAt:
-          shouldRecordCurrentLegal ? _settings.acceptedTermsAt ?? now : null,
-      clearAcceptedTermsAt: !shouldRecordCurrentLegal,
-      acknowledgedHealthDisclaimerVersion: shouldRecordCurrentLegal
-          ? _settings.acknowledgedHealthDisclaimerVersion ??
-              HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion
-          : null,
-      clearAcknowledgedHealthDisclaimerVersion: !shouldRecordCurrentLegal,
-      acknowledgedHealthDisclaimerAt: shouldRecordCurrentLegal
-          ? _settings.acknowledgedHealthDisclaimerAt ?? now
-          : null,
-      clearAcknowledgedHealthDisclaimerAt: !shouldRecordCurrentLegal,
-      privacyPolicyVersionShown: shouldRecordCurrentLegal
-          ? _settings.privacyPolicyVersionShown ??
-              HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion
-          : null,
-      clearPrivacyPolicyVersionShown: !shouldRecordCurrentLegal,
-      privacyPolicyShownAt: shouldRecordCurrentLegal
-          ? _settings.privacyPolicyShownAt ?? now
-          : null,
-      clearPrivacyPolicyShownAt: !shouldRecordCurrentLegal,
-      onboardingStep: completed ? 0 : _settings.onboardingStep,
-    );
-    await _persist();
-    notifyListeners();
-  }
+  }) =>
+      _runMutation(() async {
+        final shouldRecordCurrentLegal =
+            completed && legalAndHealthAcknowledged;
+        final now = shouldRecordCurrentLegal ? DateTime.now() : null;
+        _settings = _settings.copyWith(
+          onboardingCompleted: completed,
+          legalAndHealthAcknowledged: legalAndHealthAcknowledged,
+          acceptedTermsVersion: shouldRecordCurrentLegal
+              ? _settings.acceptedTermsVersion ??
+                  HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion
+              : null,
+          clearAcceptedTermsVersion: !shouldRecordCurrentLegal,
+          acceptedTermsAt: shouldRecordCurrentLegal
+              ? _settings.acceptedTermsAt ?? now
+              : null,
+          clearAcceptedTermsAt: !shouldRecordCurrentLegal,
+          acknowledgedHealthDisclaimerVersion: shouldRecordCurrentLegal
+              ? _settings.acknowledgedHealthDisclaimerVersion ??
+                  HydrionLegalAcceptancePolicy
+                      .requiredHealthAcknowledgementVersion
+              : null,
+          clearAcknowledgedHealthDisclaimerVersion: !shouldRecordCurrentLegal,
+          acknowledgedHealthDisclaimerAt: shouldRecordCurrentLegal
+              ? _settings.acknowledgedHealthDisclaimerAt ?? now
+              : null,
+          clearAcknowledgedHealthDisclaimerAt: !shouldRecordCurrentLegal,
+          privacyPolicyVersionShown: shouldRecordCurrentLegal
+              ? _settings.privacyPolicyVersionShown ??
+                  HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion
+              : null,
+          clearPrivacyPolicyVersionShown: !shouldRecordCurrentLegal,
+          privacyPolicyShownAt: shouldRecordCurrentLegal
+              ? _settings.privacyPolicyShownAt ?? now
+              : null,
+          clearPrivacyPolicyShownAt: !shouldRecordCurrentLegal,
+          onboardingStep: completed ? 0 : _settings.onboardingStep,
+        );
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<void> setOnboardingStep(int step) async {
-    final safeStep = step.clamp(0, UserSettings.maxOnboardingStep).toInt();
-    if (_settings.onboardingStep == safeStep) {
-      return;
-    }
-    _settings = _settings.copyWith(onboardingStep: safeStep);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> setOnboardingStep(int step) => _runMutation(() async {
+        final safeStep = step.clamp(0, UserSettings.maxOnboardingStep).toInt();
+        if (_settings.onboardingStep == safeStep) {
+          return;
+        }
+        _settings = _settings.copyWith(onboardingStep: safeStep);
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<void> setMissionIntroductionHandled(bool handled) async {
-    if (_settings.missionIntroductionHandled == handled) return;
-    _settings = _settings.copyWith(missionIntroductionHandled: handled);
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> setMissionIntroductionHandled(bool handled) =>
+      _runMutation(() async {
+        if (_settings.missionIntroductionHandled == handled) return;
+        _settings = _settings.copyWith(missionIntroductionHandled: handled);
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<bool> claimRecognition(String eventId) async {
-    final safeId = eventId.trim();
-    if (safeId.isEmpty ||
-        safeId.length > 160 ||
-        _settings.recognitionEventIds.contains(safeId)) {
-      return false;
-    }
-    _settings = _settings.copyWith(
-      recognitionEventIds: Set<String>.unmodifiable({
-        ..._settings.recognitionEventIds,
-        safeId,
-      }),
-    );
-    await _persist();
-    notifyListeners();
-    return true;
-  }
+  Future<bool> claimRecognition(String eventId) => _runMutation(() async {
+        final safeId = eventId.trim();
+        if (safeId.isEmpty ||
+            safeId.length > 160 ||
+            _settings.recognitionEventIds.contains(safeId)) {
+          return false;
+        }
+        _settings = _settings.copyWith(
+          recognitionEventIds: Set<String>.unmodifiable({
+            ..._settings.recognitionEventIds,
+            safeId,
+          }),
+        );
+        await _persist();
+        notifyListeners();
+        return true;
+      });
 
   Future<void> completeOnboardingWithLegalReview({
     required DateTime reviewedAt,
-  }) async {
-    _settings = _settings.copyWith(
-      onboardingCompleted: true,
-      legalAndHealthAcknowledged: true,
-      acceptedTermsVersion:
-          HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion,
-      acceptedTermsAt: reviewedAt,
-      acknowledgedHealthDisclaimerVersion:
-          HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion,
-      acknowledgedHealthDisclaimerAt: reviewedAt,
-      privacyPolicyVersionShown:
-          HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion,
-      privacyPolicyShownAt: reviewedAt,
-      onboardingStep: 0,
-    );
-    await _persist();
-    notifyListeners();
-  }
+  }) =>
+      _runMutation(() async {
+        _settings = _settings.copyWith(
+          onboardingCompleted: true,
+          legalAndHealthAcknowledged: true,
+          acceptedTermsVersion:
+              HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion,
+          acceptedTermsAt: reviewedAt,
+          acknowledgedHealthDisclaimerVersion:
+              HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion,
+          acknowledgedHealthDisclaimerAt: reviewedAt,
+          privacyPolicyVersionShown:
+              HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion,
+          privacyPolicyShownAt: reviewedAt,
+          onboardingStep: 0,
+        );
+        await _persist();
+        notifyListeners();
+      });
 
   Future<void> recordLegalReview({
     DateTime? reviewedAt,
     String? termsVersion,
     String? healthDisclaimerVersion,
     String? privacyPolicyVersion,
-  }) async {
-    final timestamp = reviewedAt ?? DateTime.now();
-    _settings = _settings.copyWith(
-      legalAndHealthAcknowledged: true,
-      acceptedTermsVersion: termsVersion ??
-          HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion,
-      acceptedTermsAt: timestamp,
-      acknowledgedHealthDisclaimerVersion: healthDisclaimerVersion ??
-          HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion,
-      acknowledgedHealthDisclaimerAt: timestamp,
-      privacyPolicyVersionShown: privacyPolicyVersion ??
-          HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion,
-      privacyPolicyShownAt: timestamp,
-    );
-    await _persist();
-    notifyListeners();
-  }
+  }) =>
+      _runMutation(() async {
+        final timestamp = reviewedAt ?? DateTime.now();
+        _settings = _settings.copyWith(
+          legalAndHealthAcknowledged: true,
+          acceptedTermsVersion: termsVersion ??
+              HydrionLegalAcceptancePolicy.requiredTermsAcceptanceVersion,
+          acceptedTermsAt: timestamp,
+          acknowledgedHealthDisclaimerVersion: healthDisclaimerVersion ??
+              HydrionLegalAcceptancePolicy.requiredHealthAcknowledgementVersion,
+          acknowledgedHealthDisclaimerAt: timestamp,
+          privacyPolicyVersionShown: privacyPolicyVersion ??
+              HydrionLegalAcceptancePolicy.currentPrivacyNoticeVersion,
+          privacyPolicyShownAt: timestamp,
+        );
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<void> reopenOnboarding() async {
-    _settings = _settings.copyWith(
-      onboardingCompleted: false,
-      onboardingStep: 0,
-    );
-    await _persist();
-    notifyListeners();
-  }
+  Future<void> reopenOnboarding() => _runMutation(() async {
+        _settings = _settings.copyWith(
+          onboardingCompleted: false,
+          onboardingStep: 0,
+        );
+        await _persist();
+        notifyListeners();
+      });
 
   Future<void> resetLocalProfile({
     bool preserveLegalAcceptance = true,
-  }) async {
-    final current = _settings;
-    _settings = UserSettings(
-      locale: current.locale,
-      themePreference: current.themePreference,
-      onboardingCompleted: false,
-      legalAndHealthAcknowledged:
-          preserveLegalAcceptance ? current.legalAndHealthAcknowledged : false,
-      acceptedTermsVersion:
-          preserveLegalAcceptance ? current.acceptedTermsVersion : null,
-      acceptedTermsAt: preserveLegalAcceptance ? current.acceptedTermsAt : null,
-      acknowledgedHealthDisclaimerVersion: preserveLegalAcceptance
-          ? current.acknowledgedHealthDisclaimerVersion
-          : null,
-      acknowledgedHealthDisclaimerAt: preserveLegalAcceptance
-          ? current.acknowledgedHealthDisclaimerAt
-          : null,
-      privacyPolicyVersionShown:
-          preserveLegalAcceptance ? current.privacyPolicyVersionShown : null,
-      privacyPolicyShownAt:
-          preserveLegalAcceptance ? current.privacyPolicyShownAt : null,
-    );
-    await _persist();
-    notifyListeners();
-  }
+  }) =>
+      _runWithoutKnownProfile(() async {
+        if (_protection != null) {
+          await _protection!
+              .reset(preserveLegalAcceptance: preserveLegalAcceptance);
+          _publishProtected();
+          notifyListeners();
+          return;
+        }
+        final current = _settings;
+        _settings = UserSettings(
+          locale: current.locale,
+          themePreference: current.themePreference,
+          onboardingCompleted: false,
+          legalAndHealthAcknowledged: preserveLegalAcceptance
+              ? current.legalAndHealthAcknowledged
+              : false,
+          acceptedTermsVersion:
+              preserveLegalAcceptance ? current.acceptedTermsVersion : null,
+          acceptedTermsAt:
+              preserveLegalAcceptance ? current.acceptedTermsAt : null,
+          acknowledgedHealthDisclaimerVersion: preserveLegalAcceptance
+              ? current.acknowledgedHealthDisclaimerVersion
+              : null,
+          acknowledgedHealthDisclaimerAt: preserveLegalAcceptance
+              ? current.acknowledgedHealthDisclaimerAt
+              : null,
+          privacyPolicyVersionShown: preserveLegalAcceptance
+              ? current.privacyPolicyVersionShown
+              : null,
+          privacyPolicyShownAt:
+              preserveLegalAcceptance ? current.privacyPolicyShownAt : null,
+        );
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<void> _persist() async {
-    await _store.writeString(storageKey, jsonEncode(_settings.toJson()));
+  Future<void> _persist({bool ordinaryOnly = false}) async {
+    final protection = _protection;
+    if (protection != null) {
+      await protection.save(_settings.toJson(), ordinaryOnly: ordinaryOnly);
+      _publishProtected();
+    } else {
+      if (!await _store.writeString(
+          storageKey, jsonEncode(_settings.toJson()))) {
+        throw const SettingsProtectionFailure();
+      }
+      _published = _settings;
+    }
   }
 
   static _SettingsDecodeResult _decodeSettings(String? raw) {

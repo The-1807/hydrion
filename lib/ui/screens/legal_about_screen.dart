@@ -273,7 +273,15 @@ class _LegalReviewScreenState extends State<LegalReviewScreen> {
       );
       return;
     }
-    await context.read<UserSettingsRepository>().recordLegalReview();
+    try {
+      await context.read<UserSettingsRepository>().recordLegalReview();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.profileStorageIncomplete)));
+      }
+      return;
+    }
     if (!mounted) {
       return;
     }

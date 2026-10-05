@@ -4,195 +4,260 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/hydration_recommendation.dart';
 import '../domain/challenge_recommendation.dart';
+import '../services/recommendation_input_token.dart';
 import '../storage/local_store.dart';
+
+class PersonalizationPersistenceIncomplete implements Exception {
+  const PersonalizationPersistenceIncomplete();
+  @override
+  String toString() => 'PersonalizationPersistenceIncomplete';
+}
 
 class PersonalizationStateRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.personalization_state.v1';
-  static const schemaVersion = 2;
+  static const schemaVersion = 3;
 
   final HydrionLocalStore _store;
+  final RecommendationInputTokens _tokens;
   String? _lastInputFingerprint;
   HydrationRecommendation? _latestRecommendation;
-  Map<String, Set<String>> _dismissedChallengesByDate;
-  ChallengeRecommendationPreferences _challengePreferences;
-  Map<String, String> _reviewedRecommendationsByDate;
+  Map<String, Set<String>> _dismissedChallengesByDate = {};
+  ChallengeRecommendationPreferences _challengePreferences =
+      const ChallengeRecommendationPreferences();
+  Map<String, String> _reviewedRecommendationsByDate = {};
+  Future<void> _tail = Future.value();
+  int _generation = 0;
+  bool _resetPending = false;
 
-  PersonalizationStateRepository._(
-    this._store,
-    this._lastInputFingerprint,
-    this._dismissedChallengesByDate,
-    this._challengePreferences,
-    this._reviewedRecommendationsByDate,
-  );
+  PersonalizationStateRepository._(this._store, this._tokens);
 
   PersonalizationStateRepository.memory()
-      : this._(
-          MemoryHydrionStore(),
-          null,
-          {},
-          const ChallengeRecommendationPreferences(),
-          {},
-        );
+      : this._(MemoryHydrionStore(), RecommendationInputTokens.memory());
 
   static Future<PersonalizationStateRepository> load(
-    HydrionLocalStore store,
-  ) async {
+    HydrionLocalStore store, {
+    RecommendationInputTokens? tokens,
+  }) async {
+    final repository = PersonalizationStateRepository._(
+        store, tokens ?? RecommendationInputTokens());
     final raw = await store.readString(storageKey);
-    if (raw == null || raw.trim().isEmpty) {
-      return PersonalizationStateRepository._(
-        store,
-        null,
-        {},
-        const ChallengeRecommendationPreferences(),
-        {},
-      );
-    }
+    if (raw == null || raw.trim().isEmpty) return repository;
+    Map decoded;
     try {
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map) {
-        return PersonalizationStateRepository._(
-          store,
-          null,
-          {},
-          const ChallengeRecommendationPreferences(),
-          {},
-        );
-      }
-      final rawDismissals = decoded['dismissedChallengesByDate'];
-      final dismissals = <String, Set<String>>{};
-      if (rawDismissals is Map) {
-        for (final entry in rawDismissals.entries) {
-          final key = entry.key.toString();
-          if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(key) ||
-              entry.value is! List) {
-            continue;
-          }
-          dismissals[key] = (entry.value as List)
-              .map((item) => item.toString())
-              .where((item) => item.isNotEmpty)
-              .toSet();
-        }
-      }
-      final reviewed = <String, String>{};
-      final rawReviewed = decoded['reviewedRecommendationsByDate'];
-      if (rawReviewed is Map) {
-        for (final entry in rawReviewed.entries) {
-          final key = entry.key.toString();
-          final fingerprint = entry.value?.toString() ?? '';
-          if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(key) &&
-              fingerprint.isNotEmpty) {
-            reviewed[key] = fingerprint;
-          }
-        }
-      }
-      return PersonalizationStateRepository._(
-        store,
-        decoded['lastInputFingerprint']?.toString(),
-        dismissals,
-        ChallengeRecommendationPreferences.fromJson(
-          decoded['challengePreferences'],
-        ),
-        reviewed,
-      );
+      final value = jsonDecode(raw);
+      decoded = value is Map ? value : {};
     } on FormatException {
-      return PersonalizationStateRepository._(
-        store,
-        null,
-        {},
-        const ChallengeRecommendationPreferences(),
-        {},
-      );
+      decoded = {};
     }
+    final rawDismissals = decoded['dismissedChallengesByDate'];
+    if (rawDismissals is Map) {
+      for (final entry in rawDismissals.entries) {
+        final key = entry.key.toString();
+        if (!_validDate(key) || entry.value is! List) continue;
+        repository._dismissedChallengesByDate[key] = (entry.value as List)
+            .whereType<String>()
+            .where((item) => item.isNotEmpty)
+            .toSet();
+      }
+    }
+    repository._challengePreferences =
+        ChallengeRecommendationPreferences.fromJson(
+            decoded['challengePreferences']);
+    final mayRestore = decoded['schemaVersion'] == schemaVersion &&
+        await repository._tokens.canPersist();
+    if (mayRestore) {
+      final last = decoded['lastInputFingerprint'];
+      if (RecommendationInputTokens.isPersistable(last)) {
+        repository._lastInputFingerprint = last as String;
+      }
+      final reviewed = decoded['reviewedRecommendationsByDate'];
+      if (reviewed is Map) {
+        for (final entry in reviewed.entries) {
+          if (entry.key is String &&
+              _validDate(entry.key as String) &&
+              RecommendationInputTokens.isPersistable(entry.value)) {
+            repository._reviewedRecommendationsByDate[entry.key as String] =
+                entry.value as String;
+          }
+        }
+      }
+    }
+    // Replace legacy/raw/unknown payloads before exposing a loaded repository.
+    // Failed native acknowledgement is not masked by optimistic cache readback.
+    if (raw != repository._encoded()) await repository._persist();
+    return repository;
   }
+
+  static bool _validDate(String value) =>
+      RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value);
 
   HydrationRecommendation? get latestRecommendation => _latestRecommendation;
   String? get lastInputFingerprint => _lastInputFingerprint;
+  RecommendationTokenStatus get tokenStatus => _tokens.status;
   ChallengeRecommendationPreferences get challengePreferences =>
       _challengePreferences;
+
+  // Local equality, not a remote authentication/MAC-verification boundary.
   bool isRecommendationReviewed({
     required String localDateKey,
     required String inputFingerprint,
   }) =>
       _reviewedRecommendationsByDate[localDateKey] == inputFingerprint;
 
-  Future<void> markRecommendationReviewed({
-    required String localDateKey,
-  }) async {
-    final fingerprint = _lastInputFingerprint;
-    if (fingerprint == null) return;
-    _reviewedRecommendationsByDate = {
-      ..._reviewedRecommendationsByDate,
-      localDateKey: fingerprint,
-    };
-    await _persist();
-    notifyListeners();
+  Future<void> _serial(Future<void> Function() operation) {
+    final result = _tail.then((_) => operation());
+    _tail = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return result;
   }
+
+  Future<void> _mutate(Future<void> Function() operation) {
+    final generation = _generation;
+    return _serial(() async {
+      if (_resetPending || generation != _generation) {
+        throw const PersonalizationPersistenceIncomplete();
+      }
+      final last = _lastInputFingerprint;
+      final latest = _latestRecommendation;
+      final reviewed = Map<String, String>.from(_reviewedRecommendationsByDate);
+      final dismissed = _dismissedChallengesByDate;
+      final preferences = _challengePreferences;
+      try {
+        await operation();
+        if (generation != _generation) {
+          throw const PersonalizationPersistenceIncomplete();
+        }
+      } catch (_) {
+        if (generation == _generation) {
+          _lastInputFingerprint = last;
+          _latestRecommendation = latest;
+          _reviewedRecommendationsByDate = reviewed;
+          _dismissedChallengesByDate = dismissed;
+          _challengePreferences = preferences;
+        }
+        throw const PersonalizationPersistenceIncomplete();
+      }
+    });
+  }
+
+  Future<void> markRecommendationReviewed({required String localDateKey}) =>
+      _mutate(() async {
+        if (!_validDate(localDateKey)) {
+          throw const PersonalizationPersistenceIncomplete();
+        }
+        final fingerprint = _lastInputFingerprint;
+        if (fingerprint == null) return;
+        _reviewedRecommendationsByDate[localDateKey] = fingerprint;
+        await _persist();
+        notifyListeners();
+      });
 
   Future<void> setChallengePreferences(
     ChallengeRecommendationPreferences value, {
     DateTime? now,
-  }) async {
-    _challengePreferences = value.copyWith(updatedAt: now ?? DateTime.now());
-    await _persist();
-    notifyListeners();
-  }
+  }) =>
+      _mutate(() async {
+        _challengePreferences =
+            value.copyWith(updatedAt: now ?? DateTime.now());
+        await _persist();
+        notifyListeners();
+      });
 
   Set<String> dismissedForDate(String localDateKey) =>
       Set.unmodifiable(_dismissedChallengesByDate[localDateKey] ?? const {});
 
   Future<void> recordRecommendation({
-    required String inputFingerprint,
+    required String canonicalInput,
     required HydrationRecommendation recommendation,
-  }) async {
-    if (_lastInputFingerprint == inputFingerprint &&
-        _latestRecommendation?.roundedRecommendedGoalMl ==
-            recommendation.roundedRecommendedGoalMl) {
-      return;
-    }
-    _lastInputFingerprint = inputFingerprint;
-    _latestRecommendation = recommendation;
-    await _persist();
-    notifyListeners();
-  }
+  }) =>
+      _mutate(() async {
+        final generation = _generation;
+        final token = await _tokens.create(canonicalInput);
+        if (_resetPending || generation != _generation) {
+          throw const PersonalizationPersistenceIncomplete();
+        }
+        if (_lastInputFingerprint == token &&
+            _latestRecommendation?.roundedRecommendedGoalMl ==
+                recommendation.roundedRecommendedGoalMl) {
+          return;
+        }
+        _lastInputFingerprint = token;
+        _latestRecommendation = recommendation;
+        if (_tokens.status == RecommendationTokenStatus.memoryOnly) {
+          _reviewedRecommendationsByDate.removeWhere(
+              (_, value) => RecommendationInputTokens.isPersistable(value));
+        }
+        await _persist();
+        notifyListeners();
+      });
 
   Future<void> dismissChallenge({
     required String localDateKey,
     required String challengeId,
-  }) async {
-    final next = {
-      for (final entry in _dismissedChallengesByDate.entries)
-        entry.key: Set<String>.from(entry.value),
-    };
-    next.putIfAbsent(localDateKey, () => <String>{}).add(challengeId);
-    final ordered = next.keys.toList()..sort((a, b) => b.compareTo(a));
-    _dismissedChallengesByDate = {
-      for (final key in ordered.take(14)) key: next[key]!,
-    };
-    await _persist();
-    notifyListeners();
-  }
+  }) =>
+      _mutate(() async {
+        final next = {
+          for (final entry in _dismissedChallengesByDate.entries)
+            entry.key: Set<String>.from(entry.value),
+        };
+        next.putIfAbsent(localDateKey, () => <String>{}).add(challengeId);
+        final ordered = next.keys.toList()..sort((a, b) => b.compareTo(a));
+        _dismissedChallengesByDate = {
+          for (final key in ordered.take(14)) key: next[key]!,
+        };
+        await _persist();
+        notifyListeners();
+      });
 
-  Future<void> clear() async {
+  Future<void> clear() {
+    _generation++;
+    _resetPending = true;
     _lastInputFingerprint = null;
     _latestRecommendation = null;
+    _reviewedRecommendationsByDate = {};
     _dismissedChallengesByDate = {};
     _challengePreferences = const ChallengeRecommendationPreferences();
-    _reviewedRecommendationsByDate = {};
-    await _store.remove(storageKey);
-    notifyListeners();
+    return _serial(() async {
+      try {
+        // First overwrite with acknowledged, verified token-free state. The
+        // shared remove API has no native acknowledgement contract (DATA-005).
+        await _persist();
+        await _tokens.clear();
+        await _store.remove(storageKey);
+        _resetPending = false;
+        notifyListeners();
+      } catch (_) {
+        throw const PersonalizationPersistenceIncomplete();
+      }
+    });
   }
 
-  Future<void> _persist() => _store.writeString(
-        storageKey,
-        jsonEncode({
-          'schemaVersion': schemaVersion,
-          'lastInputFingerprint': _lastInputFingerprint,
-          'challengePreferences': _challengePreferences.toJson(),
-          'reviewedRecommendationsByDate': _reviewedRecommendationsByDate,
-          'dismissedChallengesByDate': {
-            for (final entry in _dismissedChallengesByDate.entries)
-              entry.key: entry.value.toList()..sort(),
-          },
-        }),
-      );
+  String _encoded() => jsonEncode({
+        'schemaVersion': schemaVersion,
+        'lastInputFingerprint':
+            RecommendationInputTokens.isPersistable(_lastInputFingerprint)
+                ? _lastInputFingerprint
+                : null,
+        'challengePreferences': _challengePreferences.toJson(),
+        'reviewedRecommendationsByDate': {
+          for (final entry in _reviewedRecommendationsByDate.entries)
+            if (RecommendationInputTokens.isPersistable(entry.value))
+              entry.key: entry.value,
+        },
+        'dismissedChallengesByDate': {
+          for (final entry in _dismissedChallengesByDate.entries)
+            entry.key: entry.value.toList()..sort(),
+        },
+      });
+
+  Future<void> _persist() async {
+    final value = _encoded();
+    try {
+      if (!await _store.writeString(storageKey, value) ||
+          await _store.readString(storageKey) != value) {
+        throw const PersonalizationPersistenceIncomplete();
+      }
+    } catch (_) {
+      throw const PersonalizationPersistenceIncomplete();
+    }
+  }
 }

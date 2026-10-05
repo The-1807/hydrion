@@ -19,6 +19,8 @@ import 'repositories/challenge_repository.dart';
 import 'repositories/app_locale_repository.dart';
 import 'repositories/body_metrics_repository.dart';
 import 'repositories/daily_hydration_context_repository.dart';
+import 'storage/protected_app_store.dart';
+import 'ui/components/settings_protection_gate.dart';
 import 'repositories/guided_tour_repository.dart';
 import 'repositories/health_data_repository.dart';
 import 'repositories/hydration_repository.dart';
@@ -479,7 +481,8 @@ class HydrionApp extends StatelessWidget {
             ],
             supportedLocales: AppLocalizations.supportedLocales,
             locale: i18n.locale,
-            builder: (context, child) => HydrionSystemUi(child: child!),
+            builder: (context, child) =>
+                HydrionSystemUi(child: SettingsProtectionGate(child: child!)),
             initialRoute: initialRoute,
             routes: routes,
             onGenerateInitialRoutes: (initialRouteName) {
@@ -755,6 +758,7 @@ class HydrionServices {
 
   static Future<HydrionServices> fromStore(
     HydrionLocalStore store, {
+    ProtectedAppStore? protectedAppStore,
     HydrionAiRuntimeConfig aiRuntimeConfig = const HydrionAiRuntimeConfig(),
     HydrionLocationService? locationService,
     HydrionNotificationAdapter? notificationAdapter,
@@ -766,7 +770,8 @@ class HydrionServices {
     ),
   }) async {
     final hydrationRepository = await HydrationRepository.load(store);
-    final settingsRepository = await UserSettingsRepository.load(store);
+    final settingsRepository = await UserSettingsRepository.load(store,
+        protectedStore: protectedAppStore);
     final appLocaleRepository = await AppLocaleRepository.load(
       store,
       legacyLocale: settingsRepository.settings.locale,
@@ -774,13 +779,17 @@ class HydrionServices {
           hydrationRepository.eventCount > 0,
     );
     final reminderRepository = await ReminderRepository.load(store);
-    final challengeRepository = await ChallengeRepository.load(store);
+    final challengeRepository = await ChallengeRepository.load(store,
+        protectedStore: protectedAppStore);
     final bodyMetricsRepository = await BodyMetricsRepository.load(store);
     final dailyHydrationContextRepository =
-        await DailyHydrationContextRepository.load(store);
+        await DailyHydrationContextRepository.load(store,
+            protectedStore: protectedAppStore);
     final personalizationStateRepository =
         await PersonalizationStateRepository.load(store);
-    if (settingsRepository.settings.sex != HydrionSex.female &&
+    if (settingsRepository.isKnown &&
+        bodyMetricsRepository.state.isKnown &&
+        settingsRepository.settings.sex != HydrionSex.female &&
         bodyMetricsRepository.metrics.reproductiveState !=
             HydrionReproductiveHydrationState.none) {
       await bodyMetricsRepository.update(
@@ -1096,6 +1105,9 @@ class HydrionServices {
   }
 
   Future<void> dispose() async {
+    await dailyHydrationContextRepository.close();
+    await challengeRepository.close();
+    await settingsRepository.close();
     await healthDataRepository?.close();
   }
 

@@ -1,3 +1,4 @@
+import 'support/memory_protected_app_store.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -11,6 +12,8 @@ import 'package:hydrion/ui/screens/startup_screen.dart';
 import 'package:lottie/lottie.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   test('shark JSON asset decodes for the startup animation', () async {
     final data = await rootBundle.load(HydrionStartupShark.sharkAssetPath);
     final composition = await LottieComposition.fromByteData(data);
@@ -140,7 +143,9 @@ void main() {
 
   testWidgets('fresh install bootstrap shows buffer before language choice',
       (tester) async {
-    final services = await HydrionServices.fromStore(MemoryHydrionStore());
+    final services = (await tester.runAsync(() => HydrionServices.fromStore(
+        MemoryHydrionStore(),
+        protectedAppStore: protectedSettings)))!;
     final servicesReady = Completer<HydrionServices>();
 
     await tester.pumpWidget(

@@ -1,4 +1,8 @@
+import 'support/protected_challenge_fixture.dart';
+import 'support/memory_protected_app_store.dart';
 import 'dart:io';
+import 'dart:convert';
+import 'support/profile_photo_fixture.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/domain/avatar_manifest.dart';
@@ -21,6 +25,8 @@ import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/ui/presentation/companion_presenter.dart';
 
 void main() {
+  late MemoryProtectedAppStore protectedSettings;
+  setUp(() => protectedSettings = MemoryProtectedAppStore());
   test('avatar manifest preserves supplied shark identities and assets', () {
     expect(HydrionAvatarManifest.mascotAssetPath,
         'assets/pfp_mascot/hydrion_mascot.jpg');
@@ -85,7 +91,8 @@ void main() {
   test('profile and onboarding settings persist across repository reloads',
       () async {
     final store = MemoryHydrionStore();
-    final first = await UserSettingsRepository.load(store);
+    final first = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
 
     expect(first.settings.onboardingCompleted, isFalse);
     expect(
@@ -96,7 +103,8 @@ void main() {
         ),
         isTrue);
     expect(await first.setAvatarId('superhappy_shark'), isTrue);
-    expect(await first.setProfilePhotoBase64('AQIDBA=='), isTrue);
+    final photo = base64Encode(await syntheticPng(20, 20));
+    expect(await first.setProfilePhotoBase64(photo), isTrue);
     await first.setGoalMode(HydrionGoalMode.weatherInformed);
     await first.setVolumeUnit(HydrionVolumeUnit.ounces);
     expect(await first.setContainerSizeMl(750), isTrue);
@@ -105,13 +113,14 @@ void main() {
       legalAndHealthAcknowledged: true,
     );
 
-    final second = await UserSettingsRepository.load(store);
+    final second = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
 
     expect(second.settings.nickname, 'Shark Friend');
     expect(second.settings.age, 29);
     expect(second.settings.sex, HydrionSex.intersex);
     expect(second.settings.avatarId, 'superhappy_shark');
-    expect(second.settings.profilePhotoBase64, 'AQIDBA==');
+    expect(second.settings.profilePhotoBase64, photo);
     expect(second.settings.goalMode, HydrionGoalMode.manual);
     expect(second.settings.weatherModifierEnabled, isTrue);
     expect(second.settings.volumeUnit, HydrionVolumeUnit.ounces);
@@ -133,7 +142,8 @@ void main() {
     );
 
     await second.clearProfilePhoto();
-    final third = await UserSettingsRepository.load(store);
+    final third = await UserSettingsRepository.load(store,
+        protectedStore: protectedSettings);
     expect(third.settings.profilePhotoBase64, isNull);
   });
 
@@ -168,7 +178,8 @@ void main() {
   });
 
   test('one reusable container can be saved, used, and cleared', () async {
-    final repository = await UserSettingsRepository.load(MemoryHydrionStore());
+    final repository = await UserSettingsRepository.load(MemoryHydrionStore(),
+        protectedStore: protectedSettings);
 
     expect(repository.settings.usableContainerSizeMl, isNull);
     expect(await repository.setContainerSizeMl(710), isTrue);
@@ -429,7 +440,7 @@ void main() {
       '{"schemaVersion":2,"id":"temperature-roulette","name":"Temperature Roulette","description":"Legacy","targetMl":2200,"durationDays":5,"joinedAt":"2026-07-16T08:00:00.000"}',
     );
 
-    final repository = await ChallengeRepository.load(store);
+    final repository = await loadTestChallengeRepository(store);
     expect(repository.activeChallenge?.id, 'temperature-roulette');
     expect(repository.activeChallenge?.needsSetup, isTrue);
     expect(
@@ -475,7 +486,7 @@ void main() {
   test('Bottle Bingo manual tiles persist with active challenge state',
       () async {
     final store = MemoryHydrionStore();
-    final first = await ChallengeRepository.load(store);
+    final first = await loadTestChallengeRepository(store);
     final bottleBingo = HydrionChallengeCatalog.byId('bottle-bingo');
 
     await first.join(
@@ -492,11 +503,11 @@ void main() {
     expect(await first.toggleBottleBingoTile(1), isFalse);
     expect(await first.toggleBottleBingoTile(0), isTrue);
 
-    final second = await ChallengeRepository.load(store);
+    final second = await loadTestChallengeRepository(store);
     expect(second.activeChallenge?.bottleBingoCompletedTiles, {0, 2, 5});
 
     expect(await second.resetBottleBingoTiles(), isTrue);
-    final third = await ChallengeRepository.load(store);
+    final third = await loadTestChallengeRepository(store);
     expect(third.activeChallenge?.bottleBingoCompletedTiles, isEmpty);
   });
 

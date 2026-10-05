@@ -115,9 +115,9 @@ class _ValidationStore implements HydrionLocalStore {
   Future<String?> readString(String key) => delegate.readString('$prefix$key');
 
   @override
-  Future<void> writeString(String key, String value) async {
+  Future<bool> writeString(String key, String value) async {
     writtenKeys.add(key);
-    await delegate.writeString('$prefix$key', value);
+    return delegate.writeString('$prefix$key', value);
   }
 
   @override

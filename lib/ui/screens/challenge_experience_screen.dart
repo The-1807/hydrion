@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../components/challenge_storage_notice.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -91,6 +92,9 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     final l10n = AppLocalizations.of(context);
     final copy = ChallengeCopy.forChallenge(context, widget.challenge);
     final challengeRepository = context.watch<ChallengeRepository>();
+    if (challengeRepository.storageStatus != ChallengeStorageStatus.ready) {
+      return const ChallengeStorageNotice();
+    }
     final active = challengeRepository.activeChallengeFor(widget.challenge.id);
     JoinedChallenge? latestHistory;
     for (final item in challengeRepository.challengeHistory) {
@@ -884,6 +888,17 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
   }
 
   Future<void> _activate(BuildContext context) async {
+    try {
+      await _activateWithStorage(context);
+    } on ChallengeStorageUnavailable {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context).unavailable),
+      ));
+    }
+  }
+
+  Future<void> _activateWithStorage(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
     final settingsRepository = context.read<UserSettingsRepository>();
     final repository = context.read<ChallengeRepository>();

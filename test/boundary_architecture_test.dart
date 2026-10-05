@@ -2,7 +2,27 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/architecture_test_support.dart';
+
 void main() {
+  test('INVARIANT domain does not depend on UI', () {
+    expectNoDomainUiDependencies([
+      for (final file in Directory('lib/domain').listSync(recursive: true))
+        if (file is File && file.path.endsWith('.dart'))
+          ...domainUiViolations(file.readAsStringSync(), file.absolute.uri),
+    ]);
+  });
+
+  test('INVARIANT NEGATIVE CONTROL domain does not depend on UI', () {
+    expect(
+      () => expectNoDomainUiDependencies(domainUiViolations(
+        "/* comment */ import '../ui/example.dart';",
+        Uri.parse('file:///repo/lib/domain/example.dart'),
+      )),
+      throwsA(isA<TestFailure>()),
+    );
+  });
+
   final uiFiles = Directory('lib/ui')
       .listSync(recursive: true)
       .whereType<File>()
