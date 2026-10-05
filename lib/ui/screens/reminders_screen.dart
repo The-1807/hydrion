@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/hydration_contracts.dart';
+import '../../domain/time/local_date.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/challenge_localizations.dart';
 import '../../repositories/reminder_repository.dart';
@@ -98,7 +99,7 @@ class RemindersScreen extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _ReminderCard(
                   reminder: reminder,
-                  timestamp: _formatTimestamp(context, reminder.triggerTime),
+                  timestamp: formatTimestamp(context, reminder.triggerTime),
                   status: reminderFeedbackText(
                     l10n,
                     ReminderFeedback.status(reminder),
@@ -290,18 +291,23 @@ class RemindersScreen extends StatelessWidget {
     );
   }
 
-  static String _formatTimestamp(BuildContext context, DateTime time) {
+  @visibleForTesting
+  static String formatTimestamp(
+    BuildContext context,
+    DateTime time, {
+    DateTime? now,
+  }) {
     final local = time.toLocal();
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final day = DateTime(local.year, local.month, local.day);
+    now ??= DateTime.now();
+    final daysAgo = LocalDate.fromDateTime(local)
+        .daysUntil(LocalDate.fromDateTime(now.toLocal()));
     final l10n = AppLocalizations.of(context);
     final material = MaterialLocalizations.of(context);
-    final dayLabel = day == today
-        ? l10n.today
-        : day == today.subtract(const Duration(days: 1))
-            ? l10n.yesterday
-            : material.formatMediumDate(local);
+    final dayLabel = switch (daysAgo) {
+      0 => l10n.today,
+      1 => l10n.yesterday,
+      _ => material.formatMediumDate(local),
+    };
     final timeLabel = material.formatTimeOfDay(
       TimeOfDay.fromDateTime(local),
       alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),

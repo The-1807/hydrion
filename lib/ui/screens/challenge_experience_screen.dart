@@ -11,6 +11,7 @@ import '../../domain/bottle_bingo.dart';
 import '../../domain/challenge_visual_registry.dart';
 import '../../domain/hydration_contracts.dart';
 import '../../domain/pomodoro_session.dart';
+import '../../domain/time/local_date.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/challenge_localizations.dart';
 import '../../repositories/challenge_repository.dart';
@@ -39,6 +40,11 @@ class ChallengeExperienceScreen extends StatefulWidget {
     super.key,
     required this.challenge,
   });
+
+  /// Whole calendar days from the join date to [now]; day one is 0.
+  @visibleForTesting
+  static int elapsedChallengeDays(DateTime joinedAt, DateTime now) =>
+      LocalDate.fromDateTime(joinedAt).daysUntil(LocalDate.fromDateTime(now));
 
   @override
   State<ChallengeExperienceScreen> createState() =>
@@ -559,10 +565,8 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     final settings = context.watch<UserSettingsRepository>().settings;
     final repository = context.read<ChallengeRepository>();
     final now = DateTime.now();
-    final elapsedDays = now
-        .difference(DateTime(
-            active.joinedAt.year, active.joinedAt.month, active.joinedAt.day))
-        .inDays;
+    final elapsedDays =
+        ChallengeExperienceScreen.elapsedChallengeDays(active.joinedAt, now);
     final day = elapsedDays.clamp(0, active.durationDays - 1);
     final challengeComplete = elapsedDays >= active.durationDays;
     final total = hydration.totalForDay(now);

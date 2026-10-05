@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../domain/bottle_bingo.dart';
 import '../../domain/pomodoro_session.dart';
+import '../../domain/time/local_date.dart';
 import '../../repositories/challenge_repository.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
@@ -240,9 +241,9 @@ class ChallengeHistoryPresenter {
   }
 
   static int _dayIndex(DateTime start, DateTime timestamp) {
-    final first = DateTime(start.year, start.month, start.day);
-    final day = DateTime(timestamp.year, timestamp.month, timestamp.day);
-    return day.difference(first).inDays.clamp(0, 1000000);
+    return LocalDate.fromDateTime(start)
+        .daysUntil(LocalDate.fromDateTime(timestamp))
+        .clamp(0, 1000000);
   }
 
   static DateTime? _dateFrom(String action) {

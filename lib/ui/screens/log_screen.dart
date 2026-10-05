@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/time/local_date.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/challenge_localizations.dart';
 import '../../repositories/hydration_repository.dart';
@@ -11,6 +12,30 @@ import '../components/hydrion_viewport.dart';
 
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
+
+  @visibleForTesting
+  static String formatTimestamp(
+    BuildContext context,
+    DateTime time, {
+    DateTime? now,
+  }) {
+    final local = time.toLocal();
+    now ??= DateTime.now();
+    final daysAgo = LocalDate.fromDateTime(local)
+        .daysUntil(LocalDate.fromDateTime(now.toLocal()));
+    final l10n = AppLocalizations.of(context);
+    final material = MaterialLocalizations.of(context);
+    final dayLabel = switch (daysAgo) {
+      0 => l10n.today,
+      1 => l10n.yesterday,
+      _ => material.formatMediumDate(local),
+    };
+    final timeLabel = material.formatTimeOfDay(
+      TimeOfDay.fromDateTime(local),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+    );
+    return l10n.relativeDateTime(date: dayLabel, time: timeLabel);
+  }
 
   @override
   State<LogScreen> createState() => _LogScreenState();
@@ -148,7 +173,8 @@ class _LogScreenState extends State<LogScreen> {
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final log = data[index];
-                  final timestamp = _formatTimestamp(context, log.timestamp);
+                  final timestamp =
+                      LogScreen.formatTimestamp(context, log.timestamp);
                   final deleting = _deletingLogIds.contains(log.id);
 
                   return _ResponsiveLogTile(
@@ -171,25 +197,6 @@ class _LogScreenState extends State<LogScreen> {
               ),
       ),
     );
-  }
-
-  String _formatTimestamp(BuildContext context, DateTime time) {
-    final local = time.toLocal();
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final day = DateTime(local.year, local.month, local.day);
-    final l10n = AppLocalizations.of(context);
-    final material = MaterialLocalizations.of(context);
-    final dayLabel = day == today
-        ? l10n.today
-        : day == today.subtract(const Duration(days: 1))
-            ? l10n.yesterday
-            : material.formatMediumDate(local);
-    final timeLabel = material.formatTimeOfDay(
-      TimeOfDay.fromDateTime(local),
-      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-    );
-    return l10n.relativeDateTime(date: dayLabel, time: timeLabel);
   }
 
   String _sourceLabel(String source, AppLocalizations l10n) {

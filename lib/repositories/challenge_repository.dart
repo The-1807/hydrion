@@ -9,6 +9,7 @@ import '../domain/challenge_experience.dart';
 import '../domain/bottle_bingo.dart';
 import '../domain/hydration_contracts.dart';
 import '../domain/pomodoro_session.dart';
+import '../domain/time/local_date.dart';
 import '../storage/local_store.dart';
 import '../storage/app_persistence.dart';
 import '../storage/protected_app_store.dart';
@@ -1884,13 +1885,8 @@ class ChallengeRepository extends ChangeNotifier {
         ? stored.map((item) => item.toString()).toList(growable: false)
         : HydrionChallengeExperiences.byId(challenge.id).schedule;
     if (schedule.isEmpty) return null;
-    final offset = DateTime(day.year, day.month, day.day)
-        .difference(DateTime(
-          challenge.joinedAt.year,
-          challenge.joinedAt.month,
-          challenge.joinedAt.day,
-        ))
-        .inDays;
+    final offset = LocalDate.fromDateTime(challenge.joinedAt)
+        .daysUntil(LocalDate.fromDateTime(day));
     if (offset < 0) return null;
     return schedule[offset % schedule.length];
   }
@@ -1906,13 +1902,8 @@ class ChallengeRepository extends ChangeNotifier {
         ? stored.map((item) => item.toString()).toList(growable: false)
         : HydrionChallengeExperiences.byId(challenge.id).schedule;
     if (schedule.isEmpty) return null;
-    final offset = DateTime(day.year, day.month, day.day)
-        .difference(DateTime(
-          challenge.joinedAt.year,
-          challenge.joinedAt.month,
-          challenge.joinedAt.day,
-        ))
-        .inDays;
+    final offset = LocalDate.fromDateTime(challenge.joinedAt)
+        .daysUntil(LocalDate.fromDateTime(day));
     if (offset < 0) return null;
     return schedule[offset % schedule.length];
   }
