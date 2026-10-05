@@ -7,6 +7,12 @@ class LocalCoachSuggestionService implements CoachSuggestionService {
   final HydrationAiActionExecutionService _executor;
   final ProviderHealthReporter _providerHealth;
   final Map<String, HydrationAiAction> _pending = <String, HydrationAiAction>{};
+  // Single-flight confirmation: a suggestion is claimed (removed from
+  // [_pending]) before it executes, so a repeated confirm joins the running
+  // execution instead of applying the action twice.
+  final Map<String, Future<CoachSuggestionExecutionView>> _inFlight =
+      <String, Future<CoachSuggestionExecutionView>>{};
+  final Set<String> _dismissedInFlight = <String>{};
   int _nextId = 0;
 
   LocalCoachSuggestionService({
@@ -76,40 +82,61 @@ class LocalCoachSuggestionService implements CoachSuggestionService {
   }
 
   @override
-  Future<CoachSuggestionExecutionView> confirm(String suggestionId) async {
-    final action = _pending[suggestionId];
+  Future<CoachSuggestionExecutionView> confirm(String suggestionId) {
+    final running = _inFlight[suggestionId];
+    if (running != null) return running;
+
+    final action = _pending.remove(suggestionId);
     if (action == null) {
-      return CoachSuggestionExecutionView(
+      return Future.value(CoachSuggestionExecutionView(
         suggestionId: suggestionId,
         status: CoachSuggestionStatus.rejected,
+      ));
+    }
+
+    final execution = _execute(suggestionId, action);
+    _inFlight[suggestionId] = execution;
+    return execution;
+  }
+
+  Future<CoachSuggestionExecutionView> _execute(
+    String suggestionId,
+    HydrationAiAction action,
+  ) async {
+    var restore = true;
+    try {
+      final result = await _executor.execute(
+        action,
+        userConfirmed: true,
       );
+      restore = !result.isApplied;
+      return CoachSuggestionExecutionView(
+        suggestionId: suggestionId,
+        status: switch (result.status) {
+          HydrationAiActionExecutionStatus.applied =>
+            CoachSuggestionStatus.applied,
+          HydrationAiActionExecutionStatus.displayOnly =>
+            CoachSuggestionStatus.displayOnly,
+          HydrationAiActionExecutionStatus.rejected =>
+            CoachSuggestionStatus.rejected,
+        },
+        appliedEntityId: result.appliedEntityId,
+      );
+    } finally {
+      _inFlight.remove(suggestionId);
+      final dismissed = _dismissedInFlight.remove(suggestionId);
+      // A non-applied (or failed) execution returns the claim so the user
+      // can retry, unless the suggestion was dismissed meanwhile.
+      if (restore && !dismissed) _pending[suggestionId] = action;
     }
-
-    final result = await _executor.execute(
-      action,
-      userConfirmed: true,
-    );
-    if (result.isApplied) {
-      _pending.remove(suggestionId);
-    }
-
-    return CoachSuggestionExecutionView(
-      suggestionId: suggestionId,
-      status: switch (result.status) {
-        HydrationAiActionExecutionStatus.applied =>
-          CoachSuggestionStatus.applied,
-        HydrationAiActionExecutionStatus.displayOnly =>
-          CoachSuggestionStatus.displayOnly,
-        HydrationAiActionExecutionStatus.rejected =>
-          CoachSuggestionStatus.rejected,
-      },
-      appliedEntityId: result.appliedEntityId,
-    );
   }
 
   @override
   void dismiss(String suggestionId) {
     _pending.remove(suggestionId);
+    if (_inFlight.containsKey(suggestionId)) {
+      _dismissedInFlight.add(suggestionId);
+    }
   }
 
   CoachSuggestionCard? _cardFromAction({
