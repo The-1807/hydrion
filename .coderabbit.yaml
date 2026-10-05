@@ -1,0 +1,298 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit configuration for Hydrion (Flutter, local-first hydration app).
+# CodeRabbit applies the version of this file on the PR's BASE branch, so a
+# change here takes effect for PRs opened after it is merged into main.
+#
+# Review rules below encode the architecture invariants in HTD.md section 3
+# and the remediation discipline in docs/architecture/REMEDIATION_ACCEPTANCE.md.
+
+language: en-US
+tone_instructions: >-
+  Be a strict senior reviewer: direct, specific, evidence-based. Cite file and
+  line, explain the concrete failure scenario, and propose the fix. No praise or
+  filler. Flag duplicated mechanisms and silent fallbacks firmly.
+early_access: false
+inheritance: false
+
+reviews:
+  profile: assertive
+  # Approve only once CodeRabbit's comments are resolved, the latest commit is
+  # reviewed and no pre-merge check is failing; otherwise request changes.
+  request_changes_workflow: true
+  allow_author_approval: false
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  review_progress: true
+  review_details: true
+  fail_commit_status: true
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  auto_apply_labels: false
+  suggested_reviewers: true
+  auto_assign_reviewers: false
+  poem: false
+  in_progress_fortune: false
+  enable_prompt_for_ai_agents: true
+  abort_on_close: true
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    # main is reviewed by default; also review PRs into develop and release lines.
+    base_branches:
+      - "develop"
+      - "release/.*"
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT REVIEW"
+
+  path_filters:
+    # Generated or vendored output: review the sources, not the artifacts.
+    - "!**/build/**"
+    - "!**/.dart_tool/**"
+    - "!**/*.g.dart"
+    - "!**/*.freezed.dart"
+    - "!**/*.mocks.dart"
+    - "!lib/l10n/app_localizations*.dart"
+    - "!ios/Pods/**"
+    - "!ios/Flutter/ephemeral/**"
+    - "!macos/Flutter/ephemeral/**"
+    - "!**/GeneratedPluginRegistrant.*"
+    - "!**/generated_plugin_registrant.*"
+    - "!**/*.xcworkspace/**"
+
+  path_instructions:
+    - path: "**/*.dart"
+      instructions: |
+        Hydrion is being rebuilt from fragmented feature silos into one coherent
+        system (see HTD.md section 3). Enforce these invariants:
+        - One authority per domain fact and one canonical write path. Flag any
+          new copy of an existing mechanism: date-key/"today" formatting, direct
+          DateTime.now() in domain or repository logic instead of an injected
+          clock, fixed Duration(days: 1)/24h day arithmetic (DST-unsafe),
+          duplicated validation bounds, ad-hoc ID schemes, copied
+          migration/deletion protocols, per-feature retry or rollback blocks.
+          Name the existing component that should be reused.
+        - Unknown or unavailable storage must never be presented as empty or
+          zero state; unavailable must stay distinguishable from absent.
+        - No silent fallback from protected storage to plaintext preferences or
+          memory; failures must be typed and visible.
+        - Never ignore a write acknowledgement (bool/Future result) or swallow
+          errors with catch (_) without a documented, typed outcome.
+        - Diagnostics/logs must never include hydration amounts, body/clinical
+          values, user text, tokens, keys or serialized models.
+        - Calendar days are not fixed 24-hour durations; prefer half-open
+          intervals.
+        - Imported health records and manual hydration events stay distinct.
+    - path: "lib/domain/**"
+      instructions: |
+        Domain code must stay pure: it must not import repositories, services,
+        storage, adapters, Flutter UI or platform channels. Flag any such
+        import and any clock read or I/O.
+    - path: "lib/repositories/**"
+      instructions: |
+        Repositories own persistence for one dataset each. Require: typed
+        unknown/absent/corrupt/unsupported states; acknowledged writes with
+        readback before publishing; deletion intent recorded before
+        destruction and verified absence after; no plaintext copy of protected
+        (class A/B/C) data; serialized mutations (no publish-before-persist, no
+        whole-list rollback that can undo another mutation). Prefer the shared
+        protected-dataset components over another per-feature copy of the
+        migrate/verify/cutover/cleanup protocol.
+    - path: "lib/storage/**"
+      instructions: |
+        Encrypted storage and key handling. Schema upgrades must create each
+        table only in the step that introduced it and must be covered by an
+        upgrade test from every previously released schema version. Never
+        regenerate a key when encrypted data already exists; never fall back
+        to plaintext; keep payloads out of exception messages and toString().
+    - path: "lib/services/**"
+      instructions: |
+        Services must not write another domain's data directly when a canonical
+        command exists (e.g. hydration intake, target commits, reminder
+        scheduling). Check lifecycle work is idempotent, failures are
+        contained per step and typed, and OS side effects (notifications,
+        widgets) happen only after the authoritative state is committed.
+    - path: "lib/ui/**"
+      instructions: |
+        UI renders and dispatches; it must not compute domain truth (totals,
+        streaks, targets) or orchestrate multi-repository writes. Every
+        user-facing string must come from localization (EN/FR/ES). Unknown or
+        failed states need explicit UI, never "empty" or a success message.
+        Check BuildContext use across async gaps and mounted checks.
+    - path: "lib/l10n/*.arb"
+      instructions: |
+        Every key must exist in app_en.arb, app_fr.arb and app_es.arb with the
+        same placeholders. Flag missing keys, untranslated copies of English
+        text and placeholder drift. Generated app_localizations*.dart files
+        must be regenerated, not hand-edited.
+    - path: "test/**"
+      instructions: |
+        Behavior changes need tests at the public boundary, including a
+        negative control that fails on the old behavior. Reject tests that hit
+        the real network or platform channels without mocks, depend on the
+        real clock or local timezone, use unbounded pumpAndSettle with running
+        timers, or only assert the happy path. Prefer shared fixtures in
+        test/support over new per-file fakes.
+    - path: "android/**"
+      instructions: |
+        Native Android: exported components need a justified intent filter and
+        permission; validate every widget/deep-link URI parameter; never log
+        user values; widget tap identifiers must be unique per tap, not per
+        render.
+    - path: "ios/**"
+      instructions: |
+        Native iOS/watchOS: App Group and WatchConnectivity payloads must be
+        minimal and carry freshness/day information; keychain items must use
+        this-device, non-synchronizing accessibility; never log user values.
+    - path: ".github/workflows/**"
+      instructions: |
+        Keep least-privilege permissions, pinned action versions and the cache
+        policy enforced by tool/validate_ci_workflows.dart. A timed-out or
+        incomplete test run must never be reported as a pass.
+    - path: "HTD.md"
+      instructions: |
+        Remediation records: a finding or checkpoint may be marked ACCEPTED only
+        with an independent acceptance reference; the implementer cannot
+        approve their own work. Validation claims must state exact commands,
+        counts and what was NOT run. Historical evidence must be preserved, not
+        rewritten.
+    - path: "REMEDIATION_LEDGER.md"
+      instructions: |
+        Remediation records: a finding or checkpoint may be marked ACCEPTED only
+        with an independent acceptance reference; the implementer cannot
+        approve their own work. Validation claims must state exact commands,
+        counts and what was NOT run. Historical evidence must be preserved, not
+        rewritten.
+    - path: "docs/architecture/**"
+      instructions: |
+        Remediation records: a finding or checkpoint may be marked ACCEPTED only
+        with an independent acceptance reference; the implementer cannot
+        approve their own work. Validation claims must state exact commands,
+        counts and what was NOT run. Historical evidence must be preserved, not
+        rewritten.
+
+  pre_merge_checks:
+    override_requested_reviewers_only: false
+    docstrings:
+      mode: "off"
+    title:
+      mode: warning
+      requirements: >-
+        Use Conventional Commits style: type(scope): summary, where type is one
+        of feat, fix, refactor, perf, test, docs, chore, ci, build, revert, and
+        the summary is imperative and under 72 characters.
+    description:
+      mode: warning
+    issue_assessment:
+      mode: warning
+    custom_checks:
+      - name: "No plaintext fallback for protected data"
+        mode: error
+        instructions: |
+          Fail if the PR adds or changes code so that sensitive data (hydration
+          logs, body/clinical metrics, profile, photo, consent, challenge or
+          reminder state, health records, keys) is written to
+          SharedPreferences, files, logs or memory-only stores as a fallback
+          when protected/encrypted storage is unavailable, unsupported or
+          fails. Pass if no such path is introduced.
+      - name: "Unknown state is not empty state"
+        mode: error
+        instructions: |
+          Fail if the PR makes any repository, service or UI treat an
+          unavailable, corrupt, unsupported or deletion-pending store as an
+          empty collection, zero count, false, or "nothing saved", or lets a
+          write proceed and overwrite preserved source data after a failed
+          load. Pass otherwise.
+      - name: "No self-approved remediation status"
+        mode: error
+        instructions: |
+          Fail if the PR changes HTD.md, REMEDIATION_LEDGER.md or
+          docs/architecture/** to mark a finding, stage or checkpoint ACCEPTED
+          (or equivalent) without citing an independent acceptance reference
+          distinct from the implementer. Pass if no status is promoted or the
+          reference is present.
+      - name: "No new duplicate mechanism"
+        mode: warning
+        instructions: |
+          Warn if the PR introduces a new implementation of something that
+          already exists in lib/ (date-key or day-boundary helpers, clocks,
+          intake validation, ID generation, protected-storage
+          migration/deletion protocol, notification scheduling, retry or
+          rollback logic) instead of reusing or extending the existing
+          component. Name both locations.
+      - name: "Tests with negative controls"
+        mode: warning
+        instructions: |
+          Warn if the PR changes behavior in lib/ without adding or updating
+          tests that cover the change, including at least one case that would
+          fail on the previous behavior. Pure refactors must state which
+          existing tests prove equivalence.
+      - name: "Localization parity"
+        mode: warning
+        instructions: |
+          Warn if the PR adds or changes user-facing text that is not in all of
+          lib/l10n/app_en.arb, app_fr.arb and app_es.arb with matching
+          placeholders, or hard-codes user-facing strings in lib/ui.
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: true
+
+  tools:
+    github-checks:
+      enabled: true
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
+    osvScanner:
+      enabled: true
+    actionlint:
+      enabled: true
+    zizmor:
+      enabled: true
+    yamllint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+    swiftlint:
+      enabled: true
+    detekt:
+      enabled: true
+    semgrep:
+      enabled: true
+    languagetool:
+      enabled: false
+
+chat:
+  auto_reply: true
+  art: false
+  allow_non_org_members: false
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "HTD.md"
+      - "SECURITY.md"
+      - "docs/architecture/HYDRION_CONNECTOR_ARCHITECTURE.md"
+      - "docs/architecture/REMEDIATION_ACCEPTANCE.md"
+  learnings:
+    scope: auto
