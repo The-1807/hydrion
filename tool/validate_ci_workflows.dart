@@ -100,6 +100,43 @@ void main() {
     'release Android build must use bounded diagnostics',
     problems,
   );
+  final qualityGate = _jobBlock(flutterCi, 'quality-gate');
+  for (final (expected, description) in const [
+    (
+      'python3 tool/ci_test_report.py',
+      'test results must be classified by tool/ci_test_report.py',
+    ),
+    (
+      "-p 'test_ci_test_report.py'",
+      'the CI test-report classifier must run its unit tests',
+    ),
+    (
+      '--test-randomize-ordering-seed "\${seed}"',
+      'the full test suite must run with a random ordering seed',
+    ),
+    (
+      'echo "seed=\${seed}" >> "\${GITHUB_OUTPUT}"',
+      'the random ordering seed must be recorded',
+    ),
+    (
+      'if [[ "\${test_result}" != "PASS" ]]; then',
+      'the quality gate must require a PASS test classification',
+    ),
+    (
+      'dart run tool/production_string_audit.dart --summary',
+      'the production literal audit must run in the quality gate',
+    ),
+    (
+      'if [[ "\${literal_exit}" != "0" ]]; then',
+      'the production literal audit must block the quality gate',
+    ),
+  ]) {
+    _requireContains(qualityGate, expected, description, problems);
+  }
+  if (qualityGate.contains('result == "failure"')) {
+    problems.add('test results must not be summarized by inline failure-only '
+        'Python; use tool/ci_test_report.py');
+  }
   _requireContains(
     release,
     'cancel-in-progress: false',
