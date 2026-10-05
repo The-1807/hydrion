@@ -7,6 +7,7 @@ import '../../repositories/settings_repository.dart';
 import '../../repositories/body_metrics_repository.dart';
 import '../../repositories/app_locale_repository.dart';
 import '../../domain/daily_hydration_context.dart';
+import '../../domain/hydration_recommendation.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/weather_localizations.dart';
 import '../../repositories/guided_tour_repository.dart';
@@ -294,6 +295,14 @@ class _HydrionShellState extends State<HydrionShell>
               Text(
                 '${l10n.updatedLabel}: ${TimeOfDay.fromDateTime(forecast.retrievedAt).format(dialogContext)}',
               ),
+              if (personalized.safetyNotices
+                  .contains(HydrationFactorCode.fluidRestriction)) ...[
+                const SizedBox(height: 8),
+                Text(
+                  l10n.restrictionSafetyNotice,
+                  key: const Key('weather-restriction-safety-notice'),
+                ),
+              ],
               const SizedBox(height: 8),
               Text(l10n.weatherSuggestionDisclosure),
             ],

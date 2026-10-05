@@ -124,6 +124,12 @@ class PersonalizedHydrationEngine {
     }
 
     final metrics = inputs.bodyMetrics;
+    // Clinician mode without a valid clinician target (missing, or rejected
+    // by sanitization as outside 500-5000 ml) is still clinician-governed
+    // and fluid-restricted: it must never look like an ordinary goal.
+    final clinicianTargetMissing =
+        metrics.fluidSafetyMode == HydrionFluidSafetyMode.clinicianTarget &&
+            metrics.clinicianTargetMl == null;
     var clinicianOverride = false;
     int finalGoal;
     if (metrics.fluidSafetyMode == HydrionFluidSafetyMode.clinicianTarget &&
@@ -146,7 +152,8 @@ class PersonalizedHydrationEngine {
           userAdjustment;
       if (metrics.fluidSafetyMode ==
               HydrionFluidSafetyMode.fluidRestrictionWithoutTarget ||
-          metrics.fluidSafetyMode == HydrionFluidSafetyMode.unsure) {
+          metrics.fluidSafetyMode == HydrionFluidSafetyMode.unsure ||
+          clinicianTargetMissing) {
         safety.add(HydrationFactorCode.fluidRestriction);
       }
     }
@@ -162,7 +169,8 @@ class PersonalizedHydrationEngine {
 
     final restricted = metrics.fluidSafetyMode ==
             HydrionFluidSafetyMode.fluidRestrictionWithoutTarget ||
-        metrics.fluidSafetyMode == HydrionFluidSafetyMode.unsure;
+        metrics.fluidSafetyMode == HydrionFluidSafetyMode.unsure ||
+        clinicianTargetMissing;
     // A clinician-governed target must never be silently auto-applied,
     // regardless of whether allowAdjustmentsAboveClinicianTarget is set.
     final clinicianGoverned =
