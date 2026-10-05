@@ -953,6 +953,18 @@ ProductionStringFinding _classify(
         'Locale-independent minute abbreviation.',
         allowlistReason: 'The abbreviation min is shared by EN, FR, and ES.');
   }
+  final generic = _genericNonPresentationRule(path, source, token, value);
+  if (generic != null) {
+    return _finding(
+      path,
+      source,
+      token,
+      generic.$1,
+      true,
+      generic.$2,
+      allowlistReason: generic.$3,
+    );
+  }
   return _finding(
       path,
       source,
@@ -963,6 +975,107 @@ ProductionStringFinding _classify(
           ? 'Move accessibility copy into localization.'
           : 'Move user-facing production copy into localization.');
 }
+
+/// Context rules that apply to every production file, so storage, codec and
+/// diagnostic code is not misreported as user-facing copy. Each rule matches
+/// the literal's syntactic role, never a file name; a literal in a visible
+/// widget or a plain returned sentence matches none of them.
+(ProductionStringClassification, String, String)? _genericNonPresentationRule(
+  String path,
+  String source,
+  _StringToken token,
+  String value,
+) {
+  final prefixStart = token.start > 180 ? token.start - 180 : 0;
+  final prefix = source.substring(prefixStart, token.start);
+  final suffixEnd =
+      token.end + 40 < source.length ? token.end + 40 : source.length;
+  final suffix = source.substring(token.end, suffixEnd);
+  final normalizedPath = path.replaceAll('\\', '/');
+
+  if (_toStringOverride.hasMatch(prefix) &&
+      RegExp(r'^[A-Z]\w*\(.*\)$', dotAll: true).hasMatch(value)) {
+    return (
+      ProductionStringClassification.diagnostic,
+      'Typed debug representation from a toString override.',
+      'toString renders only the type name and enum state for logs and test '
+          'failures; presentation maps the typed result to localized copy.',
+    );
+  }
+  if (normalizedPath.startsWith('lib/storage/') &&
+      RegExp(r'^(?:SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|PRAGMA|WITH)\s')
+          .hasMatch(value)) {
+    return (
+      ProductionStringClassification.stableIdentifier,
+      'SQL statement in the storage layer.',
+      'The statement is executed by the local database and is never rendered.',
+    );
+  }
+  if (RegExp(r'^[a-z][A-Za-z0-9_]*$').hasMatch(value) &&
+      ((RegExp(r'[{,]\s*$').hasMatch(prefix) &&
+              RegExp(r'^\s*:').hasMatch(suffix)) ||
+          (RegExp(r'\[\s*$').hasMatch(prefix) &&
+              RegExp(r'^\s*\]').hasMatch(suffix)))) {
+    return (
+      ProductionStringClassification.stableIdentifier,
+      'Serialization map key.',
+      'The camelCase key addresses a JSON/map field in toJson, fromJson or a '
+          'persisted record and is never rendered.',
+    );
+  }
+  if (RegExp(r'\bRegExp\(\s*$').hasMatch(prefix)) {
+    return (
+      ProductionStringClassification.formattingValue,
+      'Regular-expression pattern.',
+      'The literal is a RegExp source used for validation or parsing and is '
+          'never rendered.',
+    );
+  }
+  if (RegExp(r'\b[A-Z]\w*(?:Error|Exception)(?:\.\w+)?\(\s*$')
+      .hasMatch(prefix)) {
+    return (
+      ProductionStringClassification.diagnostic,
+      'Developer exception message.',
+      'Exception text is developer context; callers map failures to typed '
+          'results and localized copy and never render the message.',
+    );
+  }
+  if (RegExp(r'(?:\bdebugPrint|\bprint|\bdeveloper\.log)\(\s*$')
+      .hasMatch(prefix)) {
+    return (
+      ProductionStringClassification.diagnostic,
+      'Developer log message.',
+      'Console diagnostics are never shown in the application UI.',
+    );
+  }
+  if (RegExp(r'^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$').hasMatch(value)) {
+    return (
+      ProductionStringClassification.stableIdentifier,
+      'Stable snake_case code.',
+      'A snake_case reason or state code selects localized copy and is never '
+          'rendered directly.',
+    );
+  }
+  final withoutInterpolation = value
+      .replaceAll(RegExp(r'\$\{[^}]+\}'), '')
+      .replaceAll(RegExp(r'\$[A-Za-z_]\w*'), '');
+  if (value != withoutInterpolation &&
+      RegExp(r'^[a-z0-9_.:-]+$').hasMatch(withoutInterpolation) &&
+      RegExp(r'\b(?:id|[a-z]\w*Id|key|[a-z]\w*Key)\s*=>\s*$')
+          .hasMatch(prefix)) {
+    return (
+      ProductionStringClassification.stableIdentifier,
+      'Interpolated stable identifier.',
+      'An id or key getter composes a machine identifier that is never '
+          'rendered.',
+    );
+  }
+  return null;
+}
+
+final _toStringOverride = RegExp(
+  r'\bString\s+toString\s*\(\s*\)\s*(?:=>|\{\s*return)\s*$',
+);
 
 ProductionStringFinding _finding(
   String path,
