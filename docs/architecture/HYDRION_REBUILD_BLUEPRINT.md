@@ -1,8 +1,10 @@
 # Hydrion Rebuild Blueprint
 
-Status: **DRAFT — awaiting owner approval.** No code changes are authorized
-by this document until the owner approves it and resolves the decisions in
-section 7. Base: `origin/main` at `e7d805d` (includes I09, PR #141).
+Status: **APPROVED by the owner (2026-10-05)**, including every recommended
+default in section 7 (O1–O24). Base: `origin/main` at `e7d805d` (includes I09,
+PR #141). Wave 0 is authorized; each later wave starts only after the previous
+wave passes auditor review and owner sign-off. Pushing to GitHub happens only
+after all waves and tasks are complete (owner instruction).
 
 This blueprint replaces HTD.md's "one repository checkpoint at a time"
 sequencing (owner decision, 2026-10-05). HTD.md remains the authority for
