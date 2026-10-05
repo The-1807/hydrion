@@ -17,6 +17,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'La suppression des défis est incomplète. Réessayez pour terminer le nettoyage local.';
 
   @override
+  String get reminderStorageUnavailable =>
+      'Le stockage protégé des rappels est indisponible. Les rappels existants sont conservés. Réessayez pour rétablir l\'accès.';
+
+  @override
+  String get reminderDeletionPending =>
+      'La suppression des rappels est incomplète. Réessayez pour terminer le nettoyage local.';
+
+  @override
   String get profileStorageUnavailable =>
       'Le stockage protégé du profil est indisponible. Les données existantes sont conservées. Réessayez pour rétablir l’accès.';
 

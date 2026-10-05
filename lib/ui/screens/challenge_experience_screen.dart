@@ -14,6 +14,7 @@ import '../../domain/pomodoro_session.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/challenge_localizations.dart';
 import '../../repositories/challenge_repository.dart';
+import '../../repositories/reminder_repository.dart';
 import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/hydration_repository.dart';
 import '../../repositories/settings_repository.dart';
@@ -1002,8 +1003,14 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     }
     if (existing != null) {
       final notifications = context.read<NotificationService>();
-      for (final reminderId in _activityReminderIds(existing)) {
-        await notifications.deleteReminder(reminderId);
+      if (!await notifications
+          .deleteRemindersIfKnown(_activityReminderIds(existing))) {
+        if (context.mounted) {
+          messenger.showSnackBar(SnackBar(
+              content: Text(
+                  AppLocalizations.of(context).reminderStorageUnavailable)));
+        }
+        return;
       }
       await repository.updateParameters(
         parameters,
@@ -1366,9 +1373,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
       return;
     }
     final change = await repository.completeChallenge(challengeId);
-    for (final reminderId in change.obsoleteReminderIds) {
-      await notifications.deleteReminder(reminderId);
-    }
+    await notifications.deleteRemindersIfKnown(change.obsoleteReminderIds);
     if (change.changed && context.mounted) {
       await RecognitionMoment.showOnce(
         context,
@@ -1503,16 +1508,16 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
                     if (active.id == PomodoroSessionService.challengeId) {
                       await pomodoroSessions.syncReminderPreference();
                     } else if (!enabled) {
-                      for (final key in const [
-                        'timerReminderId',
-                        'challengeReminderId',
-                        'dailyReminderId',
-                      ]) {
-                        final id = active.parameters[key]?.toString();
-                        if (id != null && id.isNotEmpty) {
-                          await notifications.deleteReminder(id);
-                        }
-                      }
+                      await notifications.deleteRemindersIfKnown([
+                        for (final key in const [
+                          'timerReminderId',
+                          'challengeReminderId',
+                          'dailyReminderId',
+                        ])
+                          if (active.parameters[key]?.toString().isNotEmpty ==
+                              true)
+                            active.parameters[key].toString(),
+                      ]);
                     }
                     await notifications.reconcileSchedules();
                     if (sheetContext.mounted) Navigator.pop(sheetContext);
@@ -1687,9 +1692,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     );
     if (confirmed != true || !mounted) return;
     final change = await repository.leaveChallengeWithHistory(active.id);
-    for (final reminderId in change.obsoleteReminderIds) {
-      await notifications.deleteReminder(reminderId);
-    }
+    await notifications.deleteRemindersIfKnown(change.obsoleteReminderIds);
     await _cancelTimedNotification(timedNotifications, active.id);
     if (mounted) navigator.pop();
   }
@@ -1726,9 +1729,7 @@ class _ChallengeExperienceScreenState extends State<ChallengeExperienceScreen> {
     final notifications = context.read<NotificationService>();
     final timedNotifications = context.read<TimedSessionNotificationService>();
     final change = await repository.pauseChallenge(active.id);
-    for (final reminderId in change.obsoleteReminderIds) {
-      await notifications.deleteReminder(reminderId);
-    }
+    await notifications.deleteRemindersIfKnown(change.obsoleteReminderIds);
     await _cancelTimedNotification(timedNotifications, active.id);
   }
 
@@ -2691,9 +2692,7 @@ class _LiveBingoBoardState extends State<_LiveBingoBoard> {
       final notifications = context.read<NotificationService>();
       final change =
           await widget.repository.completeChallenge(widget.active.id);
-      for (final reminderId in change.obsoleteReminderIds) {
-        await notifications.deleteReminder(reminderId);
-      }
+      await notifications.deleteRemindersIfKnown(change.obsoleteReminderIds);
     }
     await HapticFeedback.selectionClick();
     if (!mounted) return;
@@ -3433,8 +3432,9 @@ class _ChallengeActivityPanelState extends State<_ChallengeActivityPanel> {
           final nextParameters = <String, Object?>{...latest.parameters};
           for (final key in keys) {
             final reminderId = nextParameters[key]?.toString() ?? '';
-            if (reminderId.isNotEmpty) {
-              await notifications.deleteReminder(reminderId);
+            // Keep the link when deletion is unconfirmed so it is retried.
+            if (reminderId.isNotEmpty &&
+                await notifications.deleteRemindersIfKnown([reminderId])) {
               nextParameters[key] = '';
             }
           }
@@ -3689,8 +3689,22 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard>
     _syncTicker();
   }
 
+  /// Reminder cancellation could not be confirmed: the timer is unchanged
+  /// so its reminder association stays consistent.
+  Future<void> _reminderSafe(Future<void> Function() transition) async {
+    try {
+      await transition();
+    } on ReminderStorageUnavailable {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text(AppLocalizations.of(context).reminderStorageUnavailable)));
+    }
+  }
+
   Future<void> _pause() async {
-    await context.read<PomodoroSessionService>().pause();
+    final sessions = context.read<PomodoroSessionService>();
+    await _reminderSafe(sessions.pause);
     _syncTicker();
   }
 
@@ -3700,7 +3714,8 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard>
   }
 
   Future<void> _restart() async {
-    await context.read<PomodoroSessionService>().restart();
+    final sessions = context.read<PomodoroSessionService>();
+    await _reminderSafe(sessions.restart);
     _syncTicker();
   }
 
@@ -3710,7 +3725,8 @@ class _PomodoroTimerCardState extends State<_PomodoroTimerCard>
   }
 
   Future<void> _stop() async {
-    await context.read<PomodoroSessionService>().stop();
+    final sessions = context.read<PomodoroSessionService>();
+    await _reminderSafe(sessions.stop);
     _syncTicker();
   }
 

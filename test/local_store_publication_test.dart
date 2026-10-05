@@ -14,6 +14,8 @@ import 'package:hydrion/repositories/reminder_repository.dart';
 import 'package:hydrion/services/notifications.dart';
 import 'package:hydrion/services/policy_service.dart';
 
+import 'support/memory_protected_app_store.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const channel = MethodChannel('plugins.flutter.io/shared_preferences');
@@ -171,21 +173,27 @@ void main() {
     });
   }
 
-  test('native false does not interrupt reminder update notification',
+  // HTD-SEC-001 I09: this formerly characterized a plaintext payload write
+  // whose native false was ignored. Payloads now commit only to the protected
+  // authority; native false on payload-free control metadata is reported.
+  test('native false on reminder control metadata leaves no payload copy',
       () async {
+    final destination = MemoryProtectedAppStore();
     final repo = await ReminderRepository.load(
-        SharedPreferencesHydrionStore(preferences));
+        SharedPreferencesHydrionStore(preferences),
+        protectedStore: destination);
     final saved = await repo.save(
         triggerTime: DateTime(2026, 9, 28, 12), message: 'Before', priority: 1);
     var notifications = 0;
     repo.addListener(() => notifications++);
-    final before = Map.of(native);
     reject = true;
     final updated = await repo.update(id: saved.id, message: 'After');
     expect(updated!.message, 'After');
     expect(notifications, 1);
-    expect(native, before,
-        reason: 'Legacy control flow, not persistence integrity');
+    expect(destination.reminderRecord!.encodePayload(), contains('After'));
+    expect(repo.storageStatus, ReminderStorageStatus.cleanupPending);
+    expect(jsonEncode(native), isNot(contains('Before')));
+    expect(jsonEncode(native), isNot(contains('After')));
   });
 
   test('native false does not freeze locale notification', () async {
@@ -207,7 +215,8 @@ void main() {
       'native false preserves reminder cancellation then replacement scheduling',
       () async {
     final repo = await ReminderRepository.load(
-        SharedPreferencesHydrionStore(preferences));
+        SharedPreferencesHydrionStore(preferences),
+        protectedStore: MemoryProtectedAppStore());
     final notifications = FakeHydrionNotificationAdapter();
     final service = NotificationService(
         reminderPolicy: ReminderPolicy(),
@@ -219,15 +228,14 @@ void main() {
         priority: 1,
         requestPermissionIfNeeded: true);
     final id = initial.reminder!.id;
-    final nativeBefore = Map.of(native);
     reject = true;
     final replacement = await service.updateReminder(id: id, message: 'After');
     expect(replacement.state, ReminderScheduleState.scheduledExactly);
     expect(replacement.reminder!.message, 'After');
     expect(notifications.scheduledIds,
         contains(initial.reminder!.platformNotificationId));
-    expect(native, nativeBefore,
-        reason: 'Existing integrity debt is not repaired here');
+    expect(jsonEncode(native), isNot(contains('After')),
+        reason: 'Reminder payloads are never written to preferences');
   });
 
   test('clean acknowledged writes and reads do not force reloads', () async {

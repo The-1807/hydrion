@@ -52,11 +52,16 @@ class LocalHydrationContextProvider implements HydrationContextProvider {
       ),
       lifetimeMl: _hydrationRepository.totalMl,
       eventCount: _hydrationRepository.eventCount,
-      reminder: ReminderContext(
-        savedReminderCount: reminders.length,
-        nextReminderAt: reminders.isEmpty ? null : reminders.first.triggerTime,
-        osNotificationsAvailable: capabilities.osNotifications,
-      ),
+      reminder: !_reminderRepository.isKnown
+          ? ReminderContext.unavailable(
+              osNotificationsAvailable: capabilities.osNotifications,
+            )
+          : ReminderContext(
+              savedReminderCount: reminders.length,
+              nextReminderAt:
+                  reminders.isEmpty ? null : reminders.first.triggerTime,
+              osNotificationsAvailable: capabilities.osNotifications,
+            ),
       challenge: !_challengeRepository.isKnown
           ? const ChallengeContext.unavailable()
           : activeChallenge == null

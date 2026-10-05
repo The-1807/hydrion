@@ -112,6 +112,18 @@ abstract class AppLocalizations {
   /// **'Challenge deletion is incomplete. Retry to finish local cleanup.'**
   String get challengeDeletionPending;
 
+  /// No description provided for @reminderStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected reminder storage is unavailable. Existing reminders are preserved. Retry to restore access.'**
+  String get reminderStorageUnavailable;
+
+  /// No description provided for @reminderDeletionPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder deletion is incomplete. Retry to finish local cleanup.'**
+  String get reminderDeletionPending;
+
   /// No description provided for @profileStorageUnavailable.
   ///
   /// In en, this message translates to:

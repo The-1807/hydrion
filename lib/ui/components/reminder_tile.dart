@@ -73,7 +73,8 @@ class _ReminderTileState extends State<ReminderTile> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final reminders = context.watch<ReminderRepository>().reminders;
+    final repository = context.watch<ReminderRepository>();
+    final reminders = repository.reminders;
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final nextReminder = reminders.isEmpty ? null : reminders.first;
     final scheduledAt = nextReminder?.triggerTime;
@@ -90,13 +91,16 @@ class _ReminderTileState extends State<ReminderTile> {
         style: Theme.of(context).textTheme.titleMedium,
       ),
       subtitle: Text(
-        scheduledAt == null
-            ? l10n.reminderTileNoSaved(notificationStatus: notificationStatus)
-            : l10n.reminderTileSaved(
-                count: reminders.length,
-                time: TimeOfDay.fromDateTime(scheduledAt).format(context),
-                notificationStatus: notificationStatus,
-              ),
+        !repository.isKnown
+            ? l10n.reminderStorageUnavailable
+            : scheduledAt == null
+                ? l10n.reminderTileNoSaved(
+                    notificationStatus: notificationStatus)
+                : l10n.reminderTileSaved(
+                    count: reminders.length,
+                    time: TimeOfDay.fromDateTime(scheduledAt).format(context),
+                    notificationStatus: notificationStatus,
+                  ),
         style: Theme.of(context)
             .textTheme
             .bodyMedium

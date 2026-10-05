@@ -9,6 +9,7 @@ import '../../services/notifications.dart';
 import '../../services/reminder_feedback.dart';
 import '../presentation/reminder_feedback_presenter.dart';
 import '../components/hydrion_viewport.dart';
+import '../components/reminder_storage_notice.dart';
 
 class RemindersScreen extends StatelessWidget {
   const RemindersScreen({super.key});
@@ -18,6 +19,7 @@ class RemindersScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final repository = context.watch<ReminderRepository>();
     final reminders = repository.reminders;
+    final storageKnown = repository.isKnown;
     final capabilities = context.watch<AppCapabilityReporter>().capabilities;
     final notificationsEnabled = capabilities.osNotifications;
 
@@ -55,7 +57,15 @@ class RemindersScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          if (reminders.isEmpty)
+          if (!storageKnown ||
+              repository.storageStatus == ReminderStorageStatus.cleanupPending)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: ReminderStorageNotice(),
+            ),
+          if (!storageKnown)
+            const SizedBox.shrink()
+          else if (reminders.isEmpty)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -99,15 +109,22 @@ class RemindersScreen extends StatelessWidget {
                   ),
                   onDelete: () async {
                     final messenger = ScaffoldMessenger.of(context);
-                    await context
-                        .read<NotificationService>()
-                        .deleteReminder(reminder.id);
+                    var deleted = false;
+                    try {
+                      deleted = await context
+                          .read<NotificationService>()
+                          .deleteReminder(reminder.id);
+                    } on ReminderStorageUnavailable {
+                      deleted = false;
+                    }
                     if (!context.mounted) {
                       return;
                     }
                     messenger.showSnackBar(
                       SnackBar(
-                        content: Text(l10n.localReminderDeleted),
+                        content: Text(deleted
+                            ? l10n.localReminderDeleted
+                            : l10n.reminderStorageUnavailable),
                       ),
                     );
                   },
@@ -117,12 +134,14 @@ class RemindersScreen extends StatelessWidget {
             }),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const Key('add-reminder-button'),
-        onPressed: () => _showReminderDialog(context),
-        icon: const Icon(Icons.add_alert_outlined),
-        label: Text(l10n.addReminder),
-      ),
+      floatingActionButton: !storageKnown
+          ? null
+          : FloatingActionButton.extended(
+              key: const Key('add-reminder-button'),
+              onPressed: () => _showReminderDialog(context),
+              icon: const Icon(Icons.add_alert_outlined),
+              label: Text(l10n.addReminder),
+            ),
     );
   }
 

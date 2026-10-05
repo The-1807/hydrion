@@ -1,6 +1,7 @@
 import '../domain/pomodoro_session.dart';
 import '../repositories/challenge_repository.dart';
 import '../repositories/hydration_repository.dart';
+import '../repositories/reminder_repository.dart';
 import 'notifications.dart';
 import 'timed_session_notification_service.dart';
 
@@ -178,6 +179,8 @@ class PomodoroSessionService {
       await _persistState(state);
       return state;
     }
+    // Unknown reminder storage is not absence: never schedule a duplicate.
+    if (!_notifications.reminderStorageKnown) return state;
     final reminderStillExists = state.reminderId != null &&
         _notifications.scheduledReminders.any(
           (reminder) => reminder.id == state.reminderId,
@@ -397,7 +400,13 @@ class PomodoroSessionService {
           latest.history.any((entry) => entry.sessionId == sessionId)) {
         return latest;
       }
-      await _cancelReminder(latest.reminderId);
+      try {
+        await _cancelReminder(latest.reminderId);
+      } on ReminderStorageUnavailable {
+        // Natural/early completion is not blocked by reminder storage. The
+        // retained definition's trigger is this completion time; it is
+        // reconciled when reminder storage becomes known again.
+      }
       final history = <PomodoroSessionHistoryEntry>[
         ...latest.history,
         PomodoroSessionHistoryEntry(
@@ -510,7 +519,11 @@ class PomodoroSessionService {
     try {
       await _persistState(scheduled);
     } catch (_) {
-      await _notifications.deleteReminder(result.reminder!.id);
+      try {
+        await _notifications.deleteReminder(result.reminder!.id);
+      } on ReminderStorageUnavailable {
+        // The original challenge failure remains the reported outcome.
+      }
       rethrow;
     }
     return scheduled;

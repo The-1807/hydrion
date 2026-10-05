@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/weather_localizations.dart';
 import '../../repositories/guided_tour_repository.dart';
 import '../../repositories/challenge_repository.dart';
+import '../../repositories/reminder_repository.dart';
 import '../../services/notifications.dart';
 import '../../services/pomodoro_session_service.dart';
 import '../../services/weather_goal_service.dart';
@@ -85,13 +86,14 @@ class _HydrionShellState extends State<HydrionShell>
     final currentWeatherContext = context.read<CurrentWeatherContext>();
     final challengeRepository = context.read<ChallengeRepository>();
     final settingsRepository = context.read<UserSettingsRepository>();
+    final reminderRepository = context.read<ReminderRepository>();
     await permissions.refresh();
     if (!permissions.snapshot.location.isGranted) {
       await weatherService.clearCache();
       currentWeatherContext.clear();
     }
     await _reconcileChallenges(challengeRepository, pomodoroSessionService);
-    await notificationService.reconcileSchedules();
+    await _reconcileReminders(reminderRepository, notificationService);
     if (!mounted) {
       return;
     }
@@ -125,6 +127,18 @@ class _HydrionShellState extends State<HydrionShell>
       await pomodoro.reconcile();
     } on ChallengeStorageUnavailable {
       // The canonical repository retains its degraded status. Other work proceeds.
+    } on ReminderStorageUnavailable {
+      // Reminder storage outage must not block challenge reconciliation.
+    }
+  }
+
+  Future<void> _reconcileReminders(
+      ReminderRepository reminders, NotificationService notifications) async {
+    try {
+      if (!reminders.isKnown) await reminders.refreshFromStore();
+      await notifications.reconcileSchedules();
+    } on ReminderStorageUnavailable {
+      // Unknown reminder storage is skipped, never reconciled as empty.
     }
   }
 
@@ -132,8 +146,9 @@ class _HydrionShellState extends State<HydrionShell>
     final challenges = context.read<ChallengeRepository>();
     final pomodoro = context.read<PomodoroSessionService>();
     final notifications = context.read<NotificationService>();
+    final reminders = context.read<ReminderRepository>();
     await _reconcileChallenges(challenges, pomodoro);
-    await notifications.reconcileSchedules();
+    await _reconcileReminders(reminders, notifications);
     if (mounted) await _evaluateWeatherAssistance();
   }
 

@@ -87,11 +87,22 @@ class LocalHydrationAiActionExecutor
     }
 
     if (safeAction is SuggestReminderAction) {
-      final reminder = await _reminderRepository.save(
-        triggerTime: current.add(safeAction.delay),
-        message: safeAction.message,
-        priority: safeAction.priority,
-      );
+      // Persistence only; scheduling behavior is unchanged (owned by Stage 7).
+      final ScheduledReminder reminder;
+      try {
+        reminder = await _reminderRepository.save(
+          triggerTime: current.add(safeAction.delay),
+          message: safeAction.message,
+          priority: safeAction.priority,
+        );
+      } on ReminderStorageUnavailable {
+        return HydrationAiActionExecutionResult(
+          originalAction: action,
+          validationResult: validation,
+          status: HydrationAiActionExecutionStatus.rejected,
+          messageCode: HydrationAiExecutionMessageCode.validationRejected,
+        );
+      }
       return HydrationAiActionExecutionResult(
         originalAction: action,
         validationResult: validation,

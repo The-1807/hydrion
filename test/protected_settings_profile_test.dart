@@ -629,6 +629,7 @@ void main() {
     raw.execute('PRAGMA key = "x\'$hex\'"');
     raw.execute('DROP TABLE settings_profile');
     raw.execute('DROP TABLE challenge_state');
+    raw.execute('DROP TABLE reminder_state');
     raw.execute('PRAGMA user_version = 1');
     raw.close();
     db = await EncryptedAppStore.open(

@@ -778,7 +778,8 @@ class HydrionServices {
       establishedUser: settingsRepository.settings.onboardingCompleted ||
           hydrationRepository.eventCount > 0,
     );
-    final reminderRepository = await ReminderRepository.load(store);
+    final reminderRepository =
+        await ReminderRepository.load(store, protectedStore: protectedAppStore);
     final challengeRepository = await ChallengeRepository.load(store,
         protectedStore: protectedAppStore);
     final bodyMetricsRepository = await BodyMetricsRepository.load(store);

@@ -199,7 +199,8 @@ class DailyHydrationSummary {
 }
 
 class ReminderContext {
-  final int savedReminderCount;
+  /// Null means unavailable reminder authority, not zero saved reminders.
+  final int? savedReminderCount;
   final DateTime? nextReminderAt;
   final bool osNotificationsAvailable;
 
@@ -211,6 +212,10 @@ class ReminderContext {
 
   const ReminderContext.empty({this.osNotificationsAvailable = false})
       : savedReminderCount = 0,
+        nextReminderAt = null;
+
+  const ReminderContext.unavailable({this.osNotificationsAvailable = false})
+      : savedReminderCount = null,
         nextReminderAt = null;
 }
 

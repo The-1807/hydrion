@@ -1,13 +1,38 @@
 import 'package:hydrion/storage/protected_app_store.dart';
 import 'package:hydrion/storage/protected_settings_record.dart';
 import 'package:hydrion/storage/protected_challenge_record.dart';
+import 'package:hydrion/storage/protected_reminder_record.dart';
 
 /// Explicit test adapter, never a production platform fallback.
 class MemoryProtectedAppStore
     implements
         ProtectedAppStore,
         ProtectedSettingsStore,
-        ProtectedChallengeStore {
+        ProtectedChallengeStore,
+        ProtectedReminderStore {
+  ProtectedReminderRecord? reminderRecord;
+  ProtectedWriteStatus? reminderWriteFailure;
+  ProtectedReadStatus? reminderReadFailure;
+  int reminderWrites = 0;
+  @override
+  Future<ProtectedReminderRead> readReminders() async => reminderReadFailure !=
+          null
+      ? ProtectedReminderRead(reminderReadFailure!)
+      : ProtectedReminderRead(
+          reminderRecord == null ||
+                  reminderRecord!.phase == ContextRecordPhase.deleted
+              ? ProtectedReadStatus.absent
+              : ProtectedReadStatus.found,
+          reminderRecord);
+  @override
+  Future<ProtectedWriteStatus> writeReminders(
+      ProtectedReminderRecord value) async {
+    reminderWrites++;
+    if (reminderWriteFailure != null) return reminderWriteFailure!;
+    reminderRecord = value;
+    return ProtectedWriteStatus.committed;
+  }
+
   ProtectedChallengeRecord? challengeRecord;
   ProtectedWriteStatus? challengeWriteFailure;
   ProtectedReadStatus? challengeReadFailure;

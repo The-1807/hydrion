@@ -8,6 +8,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 import 'protected_app_store.dart';
 import 'protected_settings_record.dart';
 import 'protected_challenge_record.dart';
+import 'protected_reminder_record.dart';
 import '../services/validated_profile_photo.dart';
 
 enum AppStoreStage { schemaCreated, recordWritten, beforeVerification }
@@ -47,8 +48,9 @@ final class EncryptedAppStore
     implements
         ProtectedAppStore,
         ProtectedSettingsStore,
-        ProtectedChallengeStore {
-  static const schemaVersion = 3;
+        ProtectedChallengeStore,
+        ProtectedReminderStore {
+  static const schemaVersion = 4;
   final SqliteDatabase _db;
   final Future<void> Function(AppStoreStage)? _failureInjector;
   Future<void> _tail = Future.value();
@@ -71,10 +73,7 @@ final class EncryptedAppStore
       await db.initialize();
       await db.writeTransaction((tx) async {
         final version = (await tx.get('PRAGMA user_version'))['user_version'];
-        if (version != 0 &&
-            version != 1 &&
-            version != 2 &&
-            version != schemaVersion) {
+        if (version is! int || version < 0 || version > schemaVersion) {
           throw const AppStoreOpenFailure(ProtectedReadStatus.unsupported);
         }
         if (version == 0) {
@@ -114,7 +113,9 @@ final class EncryptedAppStore
         }
         await tx.getAll(
             'SELECT singleton, schema_version, revision, phase, profile, photo, width, height FROM settings_profile');
-        if (version != schemaVersion) {
+        // Each table is created exactly once, by the upgrade step that
+        // introduced it; later upgrades never recreate earlier tables.
+        if (version <= 2) {
           await tx.execute('''CREATE TABLE challenge_state (
             singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
             schema_version INTEGER NOT NULL,
@@ -126,6 +127,18 @@ final class EncryptedAppStore
         }
         await tx.getAll(
             'SELECT singleton, schema_version, revision, phase, payload FROM challenge_state');
+        if (version <= 3) {
+          await tx.execute('''CREATE TABLE reminder_state (
+            singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+            schema_version INTEGER NOT NULL,
+            revision INTEGER NOT NULL CHECK(revision > 0),
+            phase TEXT NOT NULL CHECK(phase IN ('provisional', 'active', 'deleted')),
+            payload TEXT NOT NULL
+          ) STRICT''');
+          await tx.execute('PRAGMA user_version = 4');
+        }
+        await tx.getAll(
+            'SELECT singleton, schema_version, revision, phase, payload FROM reminder_state');
       });
       return store;
     } catch (error) {
@@ -229,6 +242,96 @@ final class EncryptedAppStore
         try {
           await _failureInjector?.call(AppStoreStage.beforeVerification);
           return (await _readChallenges()).record?.equivalentTo(record) == true
+              ? ProtectedWriteStatus.committed
+              : ProtectedWriteStatus.verificationFailed;
+        } catch (_) {
+          return ProtectedWriteStatus.verificationFailed;
+        }
+      });
+
+  ProtectedReminderRecord _reminderFromRow(Map<String, dynamic> row) {
+    if (row['schema_version'] != ProtectedReminderRecord.schemaVersion) {
+      throw const ProtectedContextSchemaUnsupported();
+    }
+    return ProtectedReminderRecord(
+      revision: row['revision'] as int,
+      phase: ContextRecordPhase.values.byName(row['phase'] as String),
+      state:
+          (jsonDecode(row['payload'] as String) as Map).cast<String, Object?>(),
+    );
+  }
+
+  Future<ProtectedReminderRead> _readReminders() async {
+    if (_closed) {
+      return const ProtectedReminderRead(ProtectedReadStatus.unavailable);
+    }
+    try {
+      final rows =
+          await _db.getAll('SELECT * FROM reminder_state WHERE singleton = 1');
+      if (rows.isEmpty) {
+        return const ProtectedReminderRead(ProtectedReadStatus.absent);
+      }
+      final record = _reminderFromRow(rows.single);
+      return ProtectedReminderRead(
+          record.phase == ContextRecordPhase.deleted
+              ? ProtectedReadStatus.absent
+              : ProtectedReadStatus.found,
+          record);
+    } on ProtectedContextSchemaUnsupported {
+      return const ProtectedReminderRead(ProtectedReadStatus.unsupported);
+    } on FormatException {
+      return const ProtectedReminderRead(ProtectedReadStatus.corrupt);
+    } on ArgumentError {
+      return const ProtectedReminderRead(ProtectedReadStatus.corrupt);
+    } on TypeError {
+      return const ProtectedReminderRead(ProtectedReadStatus.corrupt);
+    } catch (_) {
+      return const ProtectedReminderRead(ProtectedReadStatus.unavailable);
+    }
+  }
+
+  @override
+  Future<ProtectedReminderRead> readReminders() => _run(_readReminders);
+
+  @override
+  Future<ProtectedWriteStatus> writeReminders(ProtectedReminderRecord record) =>
+      _run(() async {
+        if (_closed) return ProtectedWriteStatus.unavailable;
+        try {
+          await _db.writeTransaction((tx) async {
+            final rows = await tx
+                .getAll('SELECT * FROM reminder_state WHERE singleton = 1');
+            if (rows.isNotEmpty) {
+              final old = _reminderFromRow(rows.single);
+              final activation = old.phase == ContextRecordPhase.provisional &&
+                  record.phase == ContextRecordPhase.active &&
+                  old.encodePayload() == record.encodePayload();
+              if (old.revision > record.revision ||
+                  (old.revision == record.revision &&
+                      !old.equivalentTo(record) &&
+                      !activation)) {
+                throw const FormatException('Conflicting reminder revision');
+              }
+            }
+            await tx.execute(
+                '''INSERT INTO reminder_state
+          (singleton, schema_version, revision, phase, payload) VALUES(1, ?, ?, ?, ?)
+          ON CONFLICT(singleton) DO UPDATE SET schema_version = excluded.schema_version,
+          revision = excluded.revision, phase = excluded.phase, payload = excluded.payload''',
+                [
+                  ProtectedReminderRecord.schemaVersion,
+                  record.revision,
+                  record.phase.name,
+                  record.encodePayload()
+                ]);
+            await _failureInjector?.call(AppStoreStage.recordWritten);
+          });
+        } catch (_) {
+          return ProtectedWriteStatus.failed;
+        }
+        try {
+          await _failureInjector?.call(AppStoreStage.beforeVerification);
+          return (await _readReminders()).record?.equivalentTo(record) == true
               ? ProtectedWriteStatus.committed
               : ProtectedWriteStatus.verificationFailed;
         } catch (_) {

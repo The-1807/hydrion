@@ -17,6 +17,14 @@ class AppLocalizationsEs extends AppLocalizations {
       'La eliminación de retos está incompleta. Reintenta para completar la limpieza local.';
 
   @override
+  String get reminderStorageUnavailable =>
+      'El almacenamiento protegido de recordatorios no está disponible. Los recordatorios existentes se conservan. Reintenta para recuperar el acceso.';
+
+  @override
+  String get reminderDeletionPending =>
+      'La eliminación de recordatorios está incompleta. Reintenta para completar la limpieza local.';
+
+  @override
   String get profileStorageUnavailable =>
       'El almacenamiento protegido del perfil no está disponible. Los datos existentes se conservan. Reintenta para recuperar el acceso.';
 
