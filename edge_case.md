@@ -39,7 +39,7 @@ Evidence consists of source inspection, existing automated tests executed locall
 
 The user explicitly confirmed during this audit that Health Connect and the existing Hydrion QA app contain only synthetic test records. That confirmation permits synthetic-only runtime checks; it does not authorize inspection of FitPro or HealthLife records. No app-private files, keys, tokens, personal identifiers, or personal health records are exported. Device serial and application-install path random identifiers are omitted.
 
-No physical iPhone, Apple Watch, Wear OS watch, or OEM wearable is exercised in this audit. No operation is run on MrGoldApple. Existing simulator reports are historical evidence, not fresh physical tests. Read-only GitHub inspection does not start new CI.
+No physical iPhone, Apple Watch, Wear OS watch, or OEM wearable is exercised in this audit. No operation is run on a separate development workstation. Existing simulator reports are historical evidence, not fresh physical tests. Read-only GitHub inspection does not start new CI.
 
 An APK is inspected by manifest, ABI, hash, and certificate, not its filename. The package ID isolates QA from production. An APK signature matching a debug certificate proves update compatibility, not production certification.
 
@@ -68,8 +68,8 @@ Levels are scoped to a behavior. L5 synthetic import does not imply that revocat
 | Android/API | Android 13 / API 33 |
 | Primary ABI | `arm64-v8a` |
 | Supported ABIs | `arm64-v8a,armeabi-v7a,armeabi` |
-| Initial `/data` free capacity | 3,170,128 KiB, approximately 3.02 GiB; filesystem 98% used |
-| Initial host free capacity | 30,223,978,496 bytes, approximately 28.15 GiB |
+| Initial `/data` free capacity | Approximately 3 GiB; filesystem 98% used |
+| Initial host free capacity | Sufficient free space for the estimated temporary build use |
 | Existing QA package | `com.the1807.hydrion.hwi_test`, `1.2.0-hwi-test`, code 2005; debuggable, ARM64 |
 | Existing QA APK size | 128,384,374 bytes; executable APK pulled only for identity verification |
 | Existing QA signer | Android Debug, SHA-256 `56fe5c7ae21cd1752bbd3e8e9a46f19f0e3ad8a38b43ceef9dd3578c5f6cd730` |
@@ -77,7 +77,7 @@ Levels are scoped to a behavior. L5 synthetic import does not imply that revocat
 | Installed related applications | Health Connect `com.google.android.apps.healthdata`; FitPro `cn.xiaofengkj.fitpro`; HealthLife/My Health `com.transsion.healthlife`; Health Connect Toolbox `androidx.health.connect.client.devtool` |
 | Installer metadata | QA installer reported `null`; not proof of Play installation |
 
-No current validated QA artifact existed at `build/app/outputs/flutter-apk`. Older unsigned size-audit APKs are not QA candidates. A fresh ARM64 debug build uses the existing `hydrionWearableCertification` Gradle property with build number 2006. Estimated temporary build use was 3-8 GiB against 28.15 GiB free. No source/configuration changes are required.
+No current validated QA artifact existed at `build/app/outputs/flutter-apk`. Older unsigned size-audit APKs are not QA candidates. A fresh ARM64 debug build uses the existing `hydrionWearableCertification` Gradle property with build number 2006. Estimated temporary build use was 3-8 GiB; the development workstation had sufficient free space. No source/configuration changes are required.
 
 ### Verified Artifact and Installation
 
@@ -105,7 +105,7 @@ Performing Streamed Install
 Success
 ```
 
-Installed package metadata subsequently reported code 4006 and `1.2.0-hwi-test`. No production package was touched. `/data` free space after installation was 3,200,384 KiB; local C: free after the first build was 28,535,164,928 bytes. These are filesystem measurements, not exact app-data footprint or isolated build-cost measurements.
+Installed package metadata subsequently reported code 4006 and `1.2.0-hwi-test`. No production package was touched. `/data` retained approximately 3 GiB free after installation; the development workstation retained sufficient free disk space after the first build. These filesystem observations do not measure exact app-data footprint or isolated build cost.
 
 ### Audit-Date Physical Session (2026-09-21)
 
@@ -505,8 +505,8 @@ the final focused suite reran the changed tests afterward.
 Build command from `android/`:
 `gradlew.bat --console=plain -PhydrionWearableCertification=true -Psplit-per-abi=true -Ptarget-platform=android-arm64 -Ptarget=../lib/main.dart assembleDebug`.
 The working invocation resolved the target to its absolute local path; this
-portable equivalent intentionally omits machine-specific paths. Prebuild host
-free space: 29,486,055,424 bytes; estimated temporary use: 3-8 GiB.
+portable equivalent intentionally omits machine-specific paths. The development workstation had sufficient prebuild free space for the
+estimated temporary use of 3-8 GiB.
 
 ### Artifact and installation
 
@@ -550,7 +550,6 @@ Device: Infinix X6835B, Android 13, ARM64. Health Connect version
 | Local wearable deletion | 3 records to 0; source summary and synchronization history cleared | No derived rows were populated physically |
 | Repeated deletion | Remained zero with no error | Idempotency exercised |
 | Disconnect and force-stop | Both manual entries remained: today's 150 ml and yesterday's 150 ml | No full-profile reset |
-| Post-restart wearable state | Consent/disconnected controls, 0 records, no sources, no prior sync timestamps; provider again unavailable | Empty local copy verified independently of binding failure |
 
 The actual XOS background failure remains: native authorization logged
 `Binding to service failed`, `Binding died`, one fresh-client rebind, then
@@ -580,8 +579,8 @@ separately instrumented. Provider discovery measured 9-27 ms in the sampled
 failure sequence; authorization/binding failures measured 1,049-1,192 ms with
 the existing native retry. HC is not required to enter Home.
 
-Pretest `/data`: 3,476,468 KiB free, 97% used; 869,117 free inodes, 94% inode use.
-After tests: 3,443,936 KiB free, 97% used; 860,984 free inodes, 94% inode use.
+Before and after tests, `/data` retained approximately 3 GiB free, with 97%
+filesystem use and 94% inode use.
 These are filesystem measurements, not isolated app data/cache size. Debug mode,
 limited free storage and frame skipping are confounders; no single-cause startup
 claim or performance acceptance is made. Bounded QA PID logs were inspected,
