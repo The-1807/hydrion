@@ -255,7 +255,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(l10n.dailyContextSaved), findsNothing);
       expect(find.text(l10n.dailyContextNotSaved), findsOneWidget);
-      expect(local.snapshot, isEmpty);
+      // Only the payload-free authority marker; the failed save adds no
+      // plaintext and does not advance the marker.
+      expect(
+          local.snapshot, {DailyHydrationContextRepository.authorityKey: '1'});
       protected.writeFailure = null;
       tester.state<ScrollableState>(scroll).position.jumpTo(0);
       await tester.pump();

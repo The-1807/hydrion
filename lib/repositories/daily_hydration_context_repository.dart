@@ -26,6 +26,12 @@ final class DailyContextUnavailable implements Exception {
 class DailyHydrationContextRepository extends ChangeNotifier {
   static const storageKey = 'hydrion.daily_hydration_context.v1';
   static const deletionKey = 'hydrion.daily_hydration_context.deletion.v1';
+
+  /// Payload-free lower bound on the protected record revision. Once
+  /// written, a missing, provisional or older protected record is corrupt,
+  /// never "ready, empty" (for example a lost or recreated protected DB).
+  static const authorityKey = 'hydrion.daily_hydration_context.authority.v1';
+  static const _pendingIntent = '{"schemaVersion":2,"pending":true}';
   static const schemaVersion = 1;
   static const maxRetainedDays = 14;
   final HydrionLocalStore _legacy;
@@ -122,6 +128,18 @@ class DailyHydrationContextRepository extends ChangeNotifier {
         return;
       }
       final record = read.record;
+      final reference = await _legacy.readString(authorityKey);
+      if (reference != null) {
+        final revision = int.tryParse(reference);
+        if (revision == null ||
+            revision < 1 ||
+            record == null ||
+            record.revision < revision ||
+            record.phase == ContextRecordPhase.provisional) {
+          _status = DailyContextStatus.corrupt;
+          return;
+        }
+      }
       if (record != null && record.phase != ContextRecordPhase.provisional) {
         _publish(record);
         await _cleanup();
@@ -165,8 +183,21 @@ class DailyHydrationContextRepository extends ChangeNotifier {
     }
   }
 
+  /// Acknowledged, read-back authority marker for [revision].
+  Future<bool> _writeAuthority(int revision) async {
+    final value = revision.toString();
+    return await _legacy.writeString(authorityKey, value) &&
+        await _legacy.readString(authorityKey) == value;
+  }
+
   Future<void> _cleanup() async {
     try {
+      // The marker must be durable before the legacy source can go; an
+      // existing active record without a marker gains one here.
+      if (!await _writeAuthority(_revision)) {
+        _status = DailyContextStatus.cleanupPending;
+        return;
+      }
       if (await _legacy.readString(storageKey) != null &&
           !await _removeAcknowledged(storageKey)) {
         _status = DailyContextStatus.cleanupPending;
@@ -233,9 +264,11 @@ class DailyHydrationContextRepository extends ChangeNotifier {
         }
         try {
           // Intent must survive restart even when the protected revision
-          // cannot yet be read. It contains no context or guessed revision.
-          final acknowledged = await _legacy.writeString(
-              deletionKey, jsonEncode({'schemaVersion': 2, 'pending': true}));
+          // cannot yet be read. It contains no context or guessed revision,
+          // and it is relied upon only after acknowledged write + readback.
+          final acknowledged =
+              await _legacy.writeString(deletionKey, _pendingIntent) &&
+                  await _legacy.readString(deletionKey) == _pendingIntent;
           if (!acknowledged || !await _finishDeletion()) {
             throw const DailyContextUnavailable();
           }
@@ -261,6 +294,7 @@ class DailyHydrationContextRepository extends ChangeNotifier {
           : (record?.revision ?? 0) + 1;
       if (await _protected.deleteDailyContext(revision) !=
               ProtectedDeleteStatus.verifiedAbsent ||
+          !await _writeAuthority(revision) ||
           !await _removeAcknowledged(storageKey) ||
           !await _removeAcknowledged(deletionKey)) {
         return false;

@@ -14,6 +14,13 @@ import 'support/memory_protected_app_store.dart';
 void main() {
   const sourceKey = DailyHydrationContextRepository.storageKey;
   const intentKey = DailyHydrationContextRepository.deletionKey;
+  const authorityKey = DailyHydrationContextRepository.authorityKey;
+  // Plaintext may hold only the payload-free authority revision (D3).
+  void expectOnlyAuthority(MemoryHydrionStore local) {
+    expect(local.snapshot.keys, [authorityKey]);
+    expect(int.parse(local.snapshot[authorityKey]!), greaterThan(0));
+  }
+
   String legacy([int count = 1]) => jsonEncode({
         'schemaVersion': 1,
         'contexts': List.generate(count, (i) => _context(i + 1).toJson())
@@ -30,7 +37,7 @@ void main() {
     var repo = await DailyHydrationContextRepository.load(local,
         protectedStore: store);
     expect(repo.status, DailyContextStatus.ready);
-    expect(local.snapshot, isEmpty);
+    expectOnlyAuthority(local);
     expect((await store.readDailyContext()).record!.contexts, hasLength(14));
     expect(repo.forDate('2026-09-06'), isNull);
     expect(repo.forDate('2026-09-07'), isNotNull);
@@ -42,7 +49,7 @@ void main() {
         HydrionTemporaryCondition.fever);
     await repo.clear();
     expect(repo.forDate('2026-09-20'), isNull);
-    expect(local.snapshot, isEmpty);
+    expectOnlyAuthority(local);
     await repo.close();
     await directory.delete(recursive: true);
   });
@@ -81,7 +88,7 @@ void main() {
     await repo.retry();
     expect(repo.status, DailyContextStatus.ready);
     expect(protected.record!.phase, ContextRecordPhase.active);
-    expect(local.snapshot, isEmpty);
+    expectOnlyAuthority(local);
   });
 
   test(
@@ -100,7 +107,7 @@ void main() {
         protectedStore: protected);
     expect(restarted.status, DailyContextStatus.ready);
     expect(restarted.forDate('2026-09-02'), isNotNull);
-    expect(local.snapshot, isEmpty);
+    expectOnlyAuthority(local);
   });
 
   test('failed save never publishes new fields or creates plaintext', () async {
@@ -112,7 +119,7 @@ void main() {
     protected.writeFailure = ProtectedWriteStatus.failed;
     expect(await repo.save(_context(2)), isFalse);
     expect(repo.isKnown, isFalse);
-    expect(local.snapshot, isEmpty);
+    expectOnlyAuthority(local);
     protected.writeFailure = null;
     await repo.retry();
     expect(repo.forDate('2026-09-01'), isNotNull);
@@ -139,7 +146,7 @@ void main() {
     await restarted.retry();
     expect(restarted.status, DailyContextStatus.ready);
     expect(restarted.forDate('2026-09-01'), isNull);
-    expect(local.snapshot, isEmpty);
+    expectOnlyAuthority(local);
   });
 
   test('rejected deletion intent does not destroy protected data', () async {
@@ -176,7 +183,7 @@ void main() {
       expect(repo.forDate('2026-09-01'), isNull);
       expect(repo.isKnown, isTrue);
       expect(protected.record!.phase, ContextRecordPhase.deleted);
-      expect(local.snapshot, isEmpty);
+      expectOnlyAuthority(local);
     });
   }
 
@@ -194,7 +201,7 @@ void main() {
     protected.deleteFailure = null;
     await repo.retry();
     expect(repo.isKnown, isTrue);
-    expect(local.snapshot, isEmpty);
+    expectOnlyAuthority(local);
     expect(repo.forDate('2026-09-01'), isNull);
   });
 
@@ -236,7 +243,7 @@ void main() {
       expect(protected.deletedRevisions, [42]);
       expect(protected.record!.contexts, isEmpty);
       expect(restarted.isKnown, isTrue);
-      expect(local.snapshot, isEmpty);
+      expectOnlyAuthority(local);
       await restarted.retry();
       expect(protected.deletedRevisions, [42]);
       expect(restarted.forDate('2026-09-01'), isNull);
@@ -283,7 +290,7 @@ void main() {
     local.rejectRemoval = false;
     await repo.retry();
     expect(protected.deletedRevisions, [2, 2, 2]);
-    expect(local.snapshot, isEmpty);
+    expectOnlyAuthority(local);
     expect(repo.forDate('2026-09-01'), isNull);
   });
 
@@ -299,7 +306,7 @@ void main() {
     await repo.clear();
     expect(protected.deletedRevisions, [1, 1]);
     expect(repo.isKnown, isTrue);
-    expect(local.snapshot, isEmpty);
+    expectOnlyAuthority(local);
   });
 
   test('H1 legacy revision-bearing intent still suppresses active truth',
@@ -317,7 +324,7 @@ void main() {
     expect(protected.deletedRevisions, [9]);
     expect(repo.forDate('2026-09-01'), isNull);
     expect(repo.isKnown, isTrue);
-    expect(local.snapshot, isEmpty);
+    expectOnlyAuthority(local);
   });
 
   test('conflicting provisional history is preserved instead of guessed',
