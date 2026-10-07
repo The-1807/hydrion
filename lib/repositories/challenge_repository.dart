@@ -1026,7 +1026,7 @@ class ChallengeRepository extends ChangeNotifier {
   }) {
     final challenge = activeChallengeFor(challengeId);
     if (challenge == null) return false;
-    final token = _activityDayToken(challenge, day ?? DateTime.now());
+    final token = activityDayToken(challenge, day ?? DateTime.now());
     return challenge.completedActionIds.contains(
       '${challenge.instanceId}:$token:activity:$checkpointId',
     );
@@ -1066,7 +1066,7 @@ class ChallengeRepository extends ChangeNotifier {
         return false;
       }
     }
-    final day = _activityDayToken(challenge, time);
+    final day = activityDayToken(challenge, time);
     final actionId = '${challenge.instanceId}:$day:activity:$checkpointId';
     if (challenge.completedActionIds.contains(actionId)) return false;
     final nextParameters = <String, Object?>{
@@ -1087,21 +1087,24 @@ class ChallengeRepository extends ChangeNotifier {
     return true;
   }
 
-  String _activityDayToken(JoinedChallenge challenge, DateTime time) {
-    if (challenge.id != 'shift-hydration-check') {
-      return _localDayToken(time);
-    }
+  /// The `yyyy-MM-dd` activity-day token that keys [challenge]'s activity
+  /// checkpoints (`<instanceId>:<token>:activity:<checkpointId>`) at [time].
+  ///
+  /// This is the one shared policy for the repository and every projection
+  /// (such as the home-screen widget). It is the calendar day of [time],
+  /// except during an overnight Shift Hydration Check, where the hours after
+  /// midnight and before the shift start still belong to the previous day.
+  static String activityDayToken(JoinedChallenge challenge, DateTime time) {
+    final day = LocalDate.fromDateTime(time);
+    if (challenge.id != 'shift-hydration-check') return day.key;
     final startMinutes =
         ((challenge.parameters['shiftStartMinutes'] as num?) ?? 0).round();
     final durationMinutes =
         ((challenge.parameters['shiftDurationMinutes'] as num?) ?? 0).round();
     final crossesMidnight = startMinutes + durationMinutes > 24 * 60;
     final currentMinutes = time.hour * 60 + time.minute;
-    if (!crossesMidnight || currentMinutes >= startMinutes) {
-      return _localDayToken(time);
-    }
-    final previousDay = DateTime(time.year, time.month, time.day - 1);
-    return _localDayToken(previousDay);
+    if (!crossesMidnight || currentMinutes >= startMinutes) return day.key;
+    return day.addDays(-1).key;
   }
 
   Duration activitySessionElapsed(

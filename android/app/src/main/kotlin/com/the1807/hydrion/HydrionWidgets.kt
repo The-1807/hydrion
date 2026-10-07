@@ -1,7 +1,11 @@
 package com.the1807.hydrion
 
+import android.app.ActivityOptions
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.net.Uri
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
@@ -54,12 +58,30 @@ private fun homeIntent(context: Context) =
         Uri.parse("hydrion://home"),
     )
 
-private fun quickLogIntent(context: Context, amountMl: Int, widgetId: Int) =
-    HomeWidgetLaunchIntent.getActivity(
-        context,
-        MainActivity::class.java,
-        Uri.parse("hydrion://quick-log?amount=$amountMl&tap=${System.currentTimeMillis()}-$widgetId-$amountMl"),
-    )
+// Built at render time, so it must not carry a tap identifier: every tap
+// until the next redraw reuses this PendingIntent. WidgetQuickLogActivity
+// mints a fresh nonce per tap (owner decision O9).
+private fun quickLogIntent(context: Context, amountMl: Int, widgetId: Int): PendingIntent {
+    val intent = Intent(context, WidgetQuickLogActivity::class.java).apply {
+        action = Intent.ACTION_VIEW
+        data = WidgetQuickLogActivity.tapUri(amountMl)
+    }
+    val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    if (Build.VERSION.SDK_INT < 34) {
+        return PendingIntent.getActivity(context, widgetId, intent, flags)
+    }
+    val options = ActivityOptions.makeBasic()
+    if (Build.VERSION.SDK_INT >= 35) {
+        options.setPendingIntentCreatorBackgroundActivityStartMode(
+            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED,
+        )
+    } else {
+        @Suppress("DEPRECATION")
+        options.pendingIntentBackgroundActivityStartMode =
+            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+    }
+    return PendingIntent.getActivity(context, widgetId, intent, flags, options.toBundle())
+}
 
 class HydrionDailyProgressWidget : HomeWidgetProvider() {
     override fun onUpdate(

@@ -44,6 +44,15 @@
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
         </activity>
+        <!-- Quick-log widget trampoline: mints a per-tap nonce (O9). Only this
+             app's own widget PendingIntents can start it. -->
+        <activity
+            android:name=".WidgetQuickLogActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity-alias
             android:name=".ViewHealthPermissionUsageActivity"
             android:exported="true"

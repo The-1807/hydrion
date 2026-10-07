@@ -74,6 +74,7 @@ class AndroidWidgetService {
   static Map<String, Object> snapshotData(
     JoinedChallenge? challenge, {
     Locale locale = const Locale('en'),
+    DateTime? now,
   }) {
     final l10n = lookupAppLocalizations(locale);
     if (challenge == null) {
@@ -86,10 +87,10 @@ class AndroidWidgetService {
       };
     }
     final activity = HydrionChallengeActivities.forId(challenge.id);
-    final today = DateTime.now();
-    final dayToken = '${today.year.toString().padLeft(4, '0')}-'
-        '${today.month.toString().padLeft(2, '0')}-'
-        '${today.day.toString().padLeft(2, '0')}';
+    final dayToken = ChallengeRepository.activityDayToken(
+      challenge,
+      now ?? DateTime.now(),
+    );
     final completed = activity == null
         ? 0
         : activity.checkpoints
