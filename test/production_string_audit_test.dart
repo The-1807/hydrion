@@ -214,6 +214,169 @@ const storageKey = 'challenge_state_v2';
     });
   });
 
+  group('generic non-presentation rules', () {
+    ProductionStringFinding single(String source,
+        {String path = 'lib/repositories/example_repository.dart'}) {
+      final findings = scanDartSource(source, path: path);
+      expect(findings, hasLength(1), reason: source);
+      return findings.single;
+    }
+
+    void expectResolved(
+      ProductionStringFinding finding,
+      ProductionStringClassification classification,
+    ) {
+      expect(finding.resolved, isTrue, reason: finding.expression);
+      expect(finding.classification, classification);
+      expect(finding.allowlistReason, isNotEmpty);
+    }
+
+    void expectUnresolved(ProductionStringFinding finding) {
+      expect(finding.resolved, isFalse, reason: finding.expression);
+      expect(finding.classification, ProductionStringClassification.userFacing);
+    }
+
+    test('typed toString representation is a diagnostic', () {
+      expectResolved(
+        single(r"""class Result {
+  @override
+  String toString() => 'Result(${status.name})';
+}
+Text(Result().toString());"""),
+        ProductionStringClassification.diagnostic,
+      );
+    });
+
+    test('negative control: a toString sentence stays unresolved', () {
+      expectUnresolved(
+          single("String toString() => 'Your profile could not be saved.';"));
+    });
+
+    test('SQL in lib/storage is a stable identifier', () {
+      expectResolved(
+        single(
+          "String q() => 'SELECT * FROM reminder_state WHERE singleton = 1';\n"
+          'Text(q());',
+          path: 'lib/storage/example_store.dart',
+        ),
+        ProductionStringClassification.stableIdentifier,
+      );
+    });
+
+    test('negative control: SQL-like text outside lib/storage is unresolved',
+        () {
+      expectUnresolved(single(
+        "Text('SELECT your bottle size');",
+        path: 'lib/ui/example.dart',
+      ));
+    });
+
+    test('toJson and fromJson keys are serialization keys', () {
+      final findings = scanDartSource(
+        """Map<String, Object?> state() {
+  return {
+    'activeChallenges': active,
+  };
+}
+String read(Map value) {
+  return value['triggerTime'] as String;
+}
+Text(state());
+Text(read(value));""",
+        path: 'lib/storage/example_record.dart',
+      );
+      expect(findings, isNotEmpty);
+      for (final finding in findings) {
+        expectResolved(
+            finding, ProductionStringClassification.stableIdentifier);
+      }
+    });
+
+    test('negative control: ternary branches are not map keys', () {
+      final findings = _dart("""String status(bool done) {
+  return done ? 'finished' : 'waiting';
+}
+Text(status(done));""");
+      expect(findings, hasLength(2));
+      for (final finding in findings) {
+        expectUnresolved(finding);
+      }
+    });
+
+    test('RegExp sources are formatting values', () {
+      expectResolved(
+        single(r"""bool valid(String v) {
+  return RegExp(r'^[A-Za-z0-9._:-]+$').hasMatch(v);
+}
+Text(valid(x));"""),
+        ProductionStringClassification.formattingValue,
+      );
+    });
+
+    test('negative control: pattern-like text in Text stays unresolved', () {
+      expectUnresolved(single("Text('Use letters A-Z and digits only');",
+          path: 'lib/ui/example.dart'));
+    });
+
+    test('exception constructor text is a diagnostic', () {
+      expectResolved(
+        single("throw ArgumentError('Reminder state is outside the schema.');"),
+        ProductionStringClassification.diagnostic,
+      );
+      expectResolved(
+        single("throw StateError('The secure record could not be read.');"),
+        ProductionStringClassification.diagnostic,
+      );
+    });
+
+    test('negative control: error copy in a SnackBar stays unresolved', () {
+      expectUnresolved(single(
+          "SnackBar(content: Text('Error: the reminder could not be saved.'));",
+          path: 'lib/ui/example.dart'));
+    });
+
+    test('debug log text is a diagnostic', () {
+      expectResolved(
+        single("void f() { debugPrint('Hydrion watch sync failed.'); }",
+            path: 'lib/services/example_service.dart'),
+        ProductionStringClassification.diagnostic,
+      );
+    });
+
+    test('negative control: the same sentence returned stays unresolved', () {
+      expectUnresolved(single("String f() => 'Hydrion watch sync failed.';",
+          path: 'lib/services/example_service.dart'));
+    });
+
+    test('snake_case reason codes are stable identifiers', () {
+      expectResolved(
+        single("""String reason() {
+  return code ?? 'provider_refresh_failed';
+}
+Text(reason());"""),
+        ProductionStringClassification.stableIdentifier,
+      );
+    });
+
+    test('negative control: the same words as prose stay unresolved', () {
+      expectUnresolved(single("String reason() => 'Provider refresh failed.';",
+          path: 'lib/services/example_service.dart'));
+    });
+
+    test('interpolated id getters are stable identifiers', () {
+      expectResolved(
+        single(r"String get id => 'operation-$_sequence';"
+            '\nText(id);'),
+        ProductionStringClassification.stableIdentifier,
+      );
+    });
+
+    test('negative control: interpolated title getters stay unresolved', () {
+      expectUnresolved(single(r"String get title => 'Hello $name';"
+          '\nText(title);'));
+    });
+  });
+
   test('detects Android notification source literals', () {
     final findings = scanAndroidSource(
       'builder.setContentTitle(\n  "Visible notification"\n)',

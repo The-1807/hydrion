@@ -19,6 +19,7 @@ import 'package:hydrion/ui/screens/body_metrics_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:hydrion/storage/protected_app_store.dart';
 import 'support/memory_protected_app_store.dart';
+import 'support/controllable_body_metrics_store.dart';
 
 void main() {
   Future<void> pumpScreen(
@@ -290,7 +291,7 @@ void main() {
   for (final locale in ['en', 'fr', 'es']) {
     testWidgets('secure save failure keeps editor draft and retries: $locale',
         (tester) async {
-      final secure = _RetrySaveStore();
+      final secure = ControllableBodyMetricsSecureStore();
       final local = MemoryHydrionStore();
       final body = await BodyMetricsRepository.load(local, secureStore: secure);
       await pumpScreen(tester,
@@ -303,13 +304,13 @@ void main() {
       await tester.tap(find.text(l10n.addHeight));
       await tester.pump();
       await tester.enterText(find.byKey(const Key('manual-height')), '183.5');
-      secure.reject = true;
+      secure.failWrites = true;
       await tester.tap(find.byKey(const Key('save-height')));
       await tester.pumpAndSettle();
       expect(find.text(l10n.bodyMetricsSaved), findsNothing);
       expect(find.text(l10n.bodyMetricsNotSaved), findsWidgets);
       expect(local.snapshot.toString(), isNot(contains('183.5')));
-      secure.reject = false;
+      secure.failWrites = false;
       await tester.tap(find.text(l10n.retry));
       await tester.pumpAndSettle();
       expect(
@@ -330,7 +331,8 @@ void main() {
   for (final retry in [false, true]) {
     testWidgets('H1 deletion completion clears sensitive drafts: retry=$retry',
         (tester) async {
-      final secure = _RetryDeleteStore()..reject = retry;
+      final secure = ControllableBodyMetricsSecureStore()
+        ..deleteFailure = retry ? SensitiveBodyDeleteStatus.failed : null;
       final body = await BodyMetricsRepository.load(MemoryHydrionStore(),
           secureStore: secure);
       await body.save(
@@ -380,7 +382,7 @@ void main() {
       if (retry) {
         expect(find.text('Body metrics deleted.'), findsNothing);
         expect(body.state.status, BodyMetricsStatus.deletionPending);
-        secure.reject = false;
+        secure.deleteFailure = null;
         await tester.tap(find.text('Retry'));
         await tester.pumpAndSettle();
       }
@@ -539,7 +541,8 @@ void main() {
 
   testWidgets('failed body deletion never shows success and retry completes',
       (tester) async {
-    final secure = _RetryDeleteStore();
+    final secure = ControllableBodyMetricsSecureStore()
+      ..deleteFailure = SensitiveBodyDeleteStatus.failed;
     final body = await BodyMetricsRepository.load(MemoryHydrionStore(),
         secureStore: secure);
     await body.save(const HydrionBodyMetrics(weightKg: 70),
@@ -564,7 +567,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('body-metrics-unavailable')), findsOneWidget);
     expect(tester.takeException(), isNull);
-    secure.reject = false;
+    secure.deleteFailure = null;
     await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('body-metrics-unavailable')), findsNothing);
@@ -941,22 +944,6 @@ void main() {
       expect(repository.metrics.heightCm, 170);
     },
   );
-}
-
-class _RetrySaveStore extends MemorySensitiveBodyMetricsStore {
-  bool reject = false;
-  @override
-  Future<void> write(Map<String, Object?> fields) async {
-    if (reject) throw StateError('synthetic secure write rejection');
-    await super.write(fields);
-  }
-}
-
-class _RetryDeleteStore extends MemorySensitiveBodyMetricsStore {
-  bool reject = true;
-  @override
-  Future<SensitiveBodyDeleteStatus> delete() async =>
-      reject ? SensitiveBodyDeleteStatus.failed : await super.delete();
 }
 
 class _DelayedCoordinator extends DailyHydrationRecommendationCoordinator {

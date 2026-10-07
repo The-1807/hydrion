@@ -15,6 +15,7 @@ import 'package:hydrion/services/notifications.dart';
 import 'package:hydrion/services/policy_service.dart';
 
 import 'support/memory_protected_app_store.dart';
+import 'support/controllable_body_metrics_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -289,11 +290,11 @@ void main() {
       'failure of both stores rejects B instead of claiming a recoverable save',
       () async {
     final adapter = SharedPreferencesHydrionStore(preferences);
-    final secure = _RejectSecure();
+    final secure = ControllableBodyMetricsSecureStore();
     final repo = await BodyMetricsRepository.load(adapter, secureStore: secure);
     await repo.save(const HydrionBodyMetrics(weightKg: 70),
         femaleProfile: false);
-    secure.reject = true;
+    secure.failWrites = true;
     reject = true;
     expect(await repo.update(weightKg: 71, femaleProfile: false), isFalse);
     expect(cachedDuringRejection, isNull,
@@ -308,13 +309,4 @@ void main() {
     expect(loaded.metrics.weightKg, 70);
     expect(loaded.state.revision, 1);
   });
-}
-
-class _RejectSecure extends MemorySensitiveBodyMetricsStore {
-  bool reject = false;
-  @override
-  Future<void> write(Map<String, Object?> fields) async {
-    if (reject) throw StateError('synthetic secure rejection');
-    await super.write(fields);
-  }
 }

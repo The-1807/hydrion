@@ -103,6 +103,25 @@ void main() {
     expect(release, contains('cancel-in-progress: false'));
   });
 
+  test('quality gate classifies tests with the tested report script', () {
+    final job = _jobBlock(flutterCiFile.readAsStringSync(), 'quality-gate');
+    expect(File('tool/ci_test_report.py').existsSync(), isTrue);
+    expect(File('tool/tests/test_ci_test_report.py').existsSync(), isTrue);
+    expect(job, contains('python3 tool/ci_test_report.py'));
+    expect(job, contains("-p 'test_ci_test_report.py'"));
+    expect(job, contains(r'--test-randomize-ordering-seed "${seed}"'));
+    expect(job, contains(r'echo "seed=${seed}" >> "${GITHUB_OUTPUT}"'));
+    expect(job, contains(r'--exit-code "${TEST_EXIT_CODE:-not-run}"'));
+    expect(job, contains(r'if [[ "${test_result}" != "PASS" ]]; then'));
+    expect(job, isNot(contains('result == "failure"')));
+  });
+
+  test('production literal audit is a blocking quality-gate step', () {
+    final job = _jobBlock(flutterCiFile.readAsStringSync(), 'quality-gate');
+    expect(job, contains('dart run tool/production_string_audit.dart'));
+    expect(job, contains(r'if [[ "${literal_exit}" != "0" ]]; then'));
+  });
+
   test('Android APK and AAB builds retain bounded diagnostics', () {
     final workflow = flutterCiFile.readAsStringSync();
     final release = releaseFile.readAsStringSync();

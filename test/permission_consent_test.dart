@@ -1,4 +1,5 @@
 import 'support/memory_protected_app_store.dart';
+import 'support/test_services.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -172,9 +173,8 @@ void main() {
       UserSettingsRepository.storageKey,
       jsonEncode(settings.toJson()),
     );
-    final services = (await tester.runAsync(() => HydrionServices.fromStore(
-        store,
-        protectedAppStore: protectedSettings)))!;
+    final services = await composeTestServices(
+        store: store, protectedAppStore: protectedSettings);
     await tester.pumpWidget(
       HydrionApp(services: services, initialRoute: '/onboarding'),
     );

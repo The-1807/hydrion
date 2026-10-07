@@ -1,4 +1,5 @@
 import 'support/memory_protected_app_store.dart';
+import 'support/test_services.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -45,11 +46,7 @@ void main() {
 
     expect(services.guidedTourRepository.shouldShowCoreTour, isFalse);
 
-    final continueAction = tester
-        .widget<FilledButton>(find.byKey(const Key('mission-continue')))
-        .onPressed!;
-    await tester.runAsync(() => (continueAction as Future<void> Function())());
-    await tester.pumpAndSettle();
+    await tapMissionContinue(tester);
 
     expect(services.guidedTourRepository.shouldShowCoreTour, isTrue);
     expect(services.settingsRepository.settings.missionIntroductionHandled,
@@ -68,9 +65,8 @@ void main() {
       UserSettingsRepository.storageKey,
       jsonEncode(settings.toJson()),
     );
-    final services = (await tester.runAsync(() => HydrionServices.fromStore(
-        store,
-        protectedAppStore: protectedSettings)))!;
+    final services = await composeTestServices(
+        store: store, protectedAppStore: protectedSettings);
 
     await tester.pumpWidget(
       HydrionApp(services: services, initialRoute: '/mission'),
@@ -78,11 +74,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Why Hydrion exists'), findsOneWidget);
     expect(find.byKey(const Key('mission-skip')), findsNothing);
-    final continueAction = tester
-        .widget<FilledButton>(find.byKey(const Key('mission-continue')))
-        .onPressed!;
-    await tester.runAsync(() => (continueAction as Future<void> Function())());
-    await tester.pumpAndSettle();
+    await tapMissionContinue(tester);
     expect(services.settingsRepository.settings.missionIntroductionHandled,
         isTrue);
 
@@ -133,4 +125,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Clean start'), findsOneWidget);
   });
+}
+
+Future<void> tapMissionContinue(WidgetTester tester) async {
+  final button = find.byKey(const Key('mission-continue'));
+  expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
+  await tester.ensureVisible(button);
+  await tester.tap(button);
+  await tester.pumpAndSettle();
 }
