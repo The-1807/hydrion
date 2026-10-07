@@ -1,4 +1,5 @@
 import 'support/memory_protected_app_store.dart';
+import 'support/test_services.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -6,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
-import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/ui/components/hydrion_startup_shark.dart';
 import 'package:hydrion/ui/screens/startup_screen.dart';
 import 'package:lottie/lottie.dart';
@@ -143,9 +143,8 @@ void main() {
 
   testWidgets('fresh install bootstrap shows buffer before language choice',
       (tester) async {
-    final services = (await tester.runAsync(() => HydrionServices.fromStore(
-        MemoryHydrionStore(),
-        protectedAppStore: protectedSettings)))!;
+    final services =
+        await composeTestServices(protectedAppStore: protectedSettings);
     final servicesReady = Completer<HydrionServices>();
 
     await tester.pumpWidget(

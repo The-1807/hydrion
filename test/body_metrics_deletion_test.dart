@@ -11,6 +11,7 @@ import 'package:hydrion/services/local_profile_reset_service.dart';
 import 'package:hydrion/services/notifications.dart';
 import 'package:hydrion/services/sensitive_body_metrics_store.dart';
 import 'package:hydrion/storage/local_store.dart';
+import 'support/controllable_hydrion_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -209,11 +210,15 @@ void main() {
     test(
         'local write rejection at deletion phase $blockedWrite stays incomplete',
         () async {
-      final failing = _RejectingLocal(local.snapshot, blockedWrite);
+      final failing = ControllableHydrionStore(local.snapshot);
       // Load before enabling faults: existing authority reconciliation writes.
       final repo =
           await BodyMetricsRepository.load(failing, secureStore: secure);
-      failing.armed = true;
+      // Reject only the blockedWrite-th write after arming.
+      final armedAt = failing.writes;
+      failing
+        ..faultWhen = ((_) => failing.writes - armedAt == blockedWrite)
+        ..writeFault = ControllableStoreFault.reject;
       native.rejectDelete = false;
       await expectLater(
           repo.clear(), throwsA(isA<BodyMetricsDeletionIncomplete>()));
@@ -232,7 +237,7 @@ void main() {
                 .value,
             isNull);
       }
-      failing.armed = false;
+      failing.writeFault = ControllableStoreFault.none;
       await repo.clear();
       expect(repo.state.status, BodyMetricsStatus.absent);
     });
@@ -332,17 +337,5 @@ class _NativeStorage extends FlutterSecureStorage {
         webOptions: webOptions,
         mOptions: mOptions,
         wOptions: wOptions);
-  }
-}
-
-class _RejectingLocal extends MemoryHydrionStore {
-  final int blockedWrite;
-  bool armed = false;
-  int writes = 0;
-  _RejectingLocal(super.initialValues, this.blockedWrite);
-  @override
-  Future<bool> writeString(String key, String value) async {
-    if (armed && ++writes == blockedWrite) return false;
-    return super.writeString(key, value);
   }
 }

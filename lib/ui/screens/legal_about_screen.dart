@@ -75,6 +75,42 @@ class LegalDocumentScreen extends StatefulWidget {
 
 class _LegalDocumentScreenState extends State<LegalDocumentScreen> {
   bool _englishDisclosureAccepted = false;
+  AssetBundle? _bundle;
+  String? _assetPath;
+  Future<String>? _documentText;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _resolveDocumentText();
+  }
+
+  @override
+  void didUpdateWidget(LegalDocumentScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.documentId != widget.documentId) _resolveDocumentText();
+  }
+
+  /// Starts the asset load once per bundle/locale/document instead of in
+  /// [build]. The State owns the Future, so the bundle's process-wide string
+  /// cache is bypassed and a Future started in another zone (for example a
+  /// previous widget test) is never reused.
+  void _resolveDocumentText() {
+    final document = HydrionLegalDocumentRegistry.byId(widget.documentId);
+    if (document == null || document.internalOnly) {
+      _bundle = null;
+      _assetPath = null;
+      _documentText = null;
+      return;
+    }
+    final bundle = DefaultAssetBundle.of(context);
+    final assetPath =
+        document.assetPathFor(Localizations.localeOf(context).languageCode);
+    if (identical(bundle, _bundle) && assetPath == _assetPath) return;
+    _bundle = bundle;
+    _assetPath = assetPath;
+    _documentText = bundle.loadString(assetPath, cache: false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,9 +151,7 @@ class _LegalDocumentScreenState extends State<LegalDocumentScreen> {
                       width: math.min(constraints.maxWidth, 820),
                       height: constraints.maxHeight,
                       child: FutureBuilder<String>(
-                        future: rootBundle.loadString(
-                          document.assetPathFor(languageCode),
-                        ),
+                        future: _documentText,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState !=
                               ConnectionState.done) {

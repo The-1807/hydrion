@@ -5,6 +5,8 @@ import 'package:hydrion/domain/body_metrics.dart';
 import 'package:hydrion/repositories/body_metrics_repository.dart';
 import 'package:hydrion/services/sensitive_body_metrics_store.dart';
 import 'package:hydrion/storage/local_store.dart';
+import 'support/controllable_body_metrics_store.dart';
+import 'support/controllable_hydrion_store.dart';
 
 // Synthetic SEC-001 fixtures; native protection requires separate certification.
 const sample = HydrionBodyMetrics(
@@ -50,10 +52,10 @@ void main() {
   for (final failure in ['write', 'unsupported', 'readback']) {
     test('$failure cannot persist a new sensitive plaintext payload', () async {
       final local = MemoryHydrionStore();
-      final secure = ControlledBodyStore(supported: failure != 'unsupported');
+      final secure = ControllableBodyMetricsSecureStore(supported: failure != 'unsupported');
       final repo = await BodyMetricsRepository.load(local, secureStore: secure);
-      secure.failWrite = failure == 'write';
-      secure.failRead = failure == 'readback';
+      secure.failWrites = failure == 'write';
+      secure.readUnavailable = failure == 'readback';
       final saved = await repo.save(sample, femaleProfile: true, now: stamp);
       // Inspect bytes before asserting the result: this reproduces the leak.
       expectNoPayload(local);
@@ -66,7 +68,7 @@ void main() {
       'successful save protects routines and timestamps as well as clinical data',
       () async {
     final local = MemoryHydrionStore();
-    final secure = ControlledBodyStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repo = await BodyMetricsRepository.load(local, secureStore: secure);
     expect(await repo.save(sample, femaleProfile: true, now: stamp), isTrue);
     expectNoPayload(local);
@@ -82,16 +84,16 @@ void main() {
   test('secure outage after a saved value never publishes a new plaintext edit',
       () async {
     final local = MemoryHydrionStore();
-    final secure = ControlledBodyStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repo = await BodyMetricsRepository.load(local, secureStore: secure);
     await repo.save(sample, femaleProfile: true, now: stamp);
     final before = local.snapshot;
-    secure.failWrite = true;
+    secure.failWrites = true;
     expect(await repo.update(weightKg: 84.625, femaleProfile: true), isFalse);
     expect(local.snapshot, before);
     expect(repo.state.isKnown, isFalse);
     expect(repo.state.revision, 1);
-    secure.failWrite = false;
+    secure.failWrites = false;
     await repo.reload();
     expect(repo.metrics.weightKg, sample.weightKg);
     expect(await repo.update(weightKg: 84.625, femaleProfile: true), isTrue);
@@ -106,9 +108,9 @@ void main() {
         '_bodyAuthority': {'version': 1, 'revision': 8, 'pending': true},
       });
       final local = MemoryHydrionStore({BodyMetricsRepository.storageKey: raw});
-      final secure = ControlledBodyStore(supported: fault != 'unsupported')
-        ..failRead = fault == 'read'
-        ..failWrite = fault == 'write';
+      final secure = ControllableBodyMetricsSecureStore(supported: fault != 'unsupported')
+        ..readUnavailable = fault == 'read'
+        ..failWrites = fault == 'write';
       for (var restart = 0; restart < 2; restart++) {
         final repo =
             await BodyMetricsRepository.load(local, secureStore: secure);
@@ -125,7 +127,7 @@ void main() {
       'legacy newer pending is verified before stripping then restart is idempotent',
       () async {
     final local = MemoryHydrionStore();
-    final secure = ControlledBodyStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final first = await BodyMetricsRepository.load(local, secureStore: secure);
     await first.save(sample.copyWith(weightKg: 60),
         femaleProfile: true, now: stamp);
@@ -183,14 +185,14 @@ void main() {
         '_bodyAuthority': {'version': 1, 'revision': 4, 'pending': false},
       })
     });
-    final secure = ControlledBodyStore();
+    final secure = ControllableBodyMetricsSecureStore();
     await secure.write(fields);
     final before = local.snapshot;
-    secure.failWrite = true;
+    secure.failWrites = true;
     final failed = await BodyMetricsRepository.load(local, secureStore: secure);
     expect(failed.canSave, isFalse);
     expect(local.snapshot, before);
-    secure.failWrite = false;
+    secure.failWrites = false;
     await failed.reload();
     expect(failed.metrics.weightKg, sample.weightKg);
     expect(failed.metrics.wakeMinuteOfDay, 427);
@@ -201,16 +203,16 @@ void main() {
 
   test('local acknowledgement failure cannot advance published authority',
       () async {
-    final local = RejectingBodyPreferences();
-    final secure = ControlledBodyStore();
+    final local = ControllableHydrionStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repo = await BodyMetricsRepository.load(local, secureStore: secure);
-    local.reject = true;
+    local.writeFault = ControllableStoreFault.reject;
     expect(await repo.save(sample, femaleProfile: true, now: stamp), isFalse);
     expect(repo.state.revision, 0);
     expect(repo.state.value, isNull);
     expect(local.snapshot, isEmpty);
     expect(repo.lastWriteStatus, BodyMetricsWriteStatus.localWriteFailed);
-    local.reject = false;
+    local.writeFault = ControllableStoreFault.none;
     await repo.reload();
     expect(repo.metrics.weightKg, sample.weightKg);
     expect(repo.state.revision, 1);
@@ -220,9 +222,9 @@ void main() {
   test('silent secure no-op fails verification without plaintext fallback',
       () async {
     final local = MemoryHydrionStore();
-    final secure = ControlledBodyStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repo = await BodyMetricsRepository.load(local, secureStore: secure);
-    secure.ignoreWrite = true;
+    secure.ignoreWrites = true;
     expect(await repo.save(sample, femaleProfile: true, now: stamp), isFalse);
     expect(repo.lastWriteStatus, BodyMetricsWriteStatus.verificationFailed);
     expectNoPayload(local);
@@ -231,20 +233,20 @@ void main() {
 
   test('legacy cleanup rejection preserves plaintext until verified retry',
       () async {
-    final local = RejectingBodyPreferences();
+    final local = ControllableHydrionStore();
     final legacy = jsonEncode({
       ...sample.toJson(),
       '_bodyAuthority': {'version': 1, 'revision': 8, 'pending': true},
     });
     await local.writeString(BodyMetricsRepository.storageKey, legacy);
-    final secure = ControlledBodyStore();
-    local.reject = true;
+    final secure = ControllableBodyMetricsSecureStore();
+    local.writeFault = ControllableStoreFault.reject;
     final repo = await BodyMetricsRepository.load(local, secureStore: secure);
     expect(repo.state.status, BodyMetricsStatus.pendingSecure);
     expect(repo.canSave, isFalse);
     expect(local.snapshot[BodyMetricsRepository.storageKey], legacy);
     expect((await secure.read())!['weightKg'], sample.weightKg);
-    local.reject = false;
+    local.writeFault = ControllableStoreFault.none;
     await repo.reload();
     expect(repo.state.status, BodyMetricsStatus.available);
     expect(repo.metrics.weightKg, sample.weightKg);
@@ -254,7 +256,7 @@ void main() {
   test('future secure schema and stale core-only downgrade remain unavailable',
       () async {
     final local = MemoryHydrionStore();
-    final secure = ControlledBodyStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repo = await BodyMetricsRepository.load(local, secureStore: secure);
     await repo.save(sample, femaleProfile: true, now: stamp);
     final verified = (await secure.read())!;
@@ -273,13 +275,13 @@ void main() {
   test('read failure and corrupt expanded schema never invent absent state',
       () async {
     final local = MemoryHydrionStore();
-    final secure = ControlledBodyStore()..failRead = true;
+    final secure = ControllableBodyMetricsSecureStore()..readUnavailable = true;
     final unknown =
         await BodyMetricsRepository.load(local, secureStore: secure);
     expect(unknown.state.isKnown, isFalse);
     expect(await unknown.save(sample, femaleProfile: true), isFalse);
     expect(local.snapshot, isEmpty);
-    secure.failRead = false;
+    secure.readUnavailable = false;
     await unknown.reload();
     await unknown.save(sample, femaleProfile: true, now: stamp);
     final malformed = (await secure.read())!..remove('wakeMinuteOfDay');
@@ -295,10 +297,10 @@ void main() {
       'deletion intent outranks secure data and blocks saves without payload metadata',
       () async {
     final local = MemoryHydrionStore();
-    final secure = ControlledBodyStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repo = await BodyMetricsRepository.load(local, secureStore: secure);
     await repo.save(sample, femaleProfile: true, now: stamp);
-    secure.failDelete = true;
+    secure.deleteFailure = SensitiveBodyDeleteStatus.failed;
     await expectLater(
         repo.clear(), throwsA(isA<BodyMetricsDeletionIncomplete>()));
     expectNoPayload(local);
@@ -307,42 +309,11 @@ void main() {
     expect(restarted.state.status, BodyMetricsStatus.deletionPending);
     expect(await restarted.save(sample, femaleProfile: true), isFalse);
     expect(restarted.state.toString(), 'BodyMetricsState(deletionPending)');
-    secure.failDelete = false;
+    secure.deleteFailure = null;
     await restarted.clear();
     await restarted.clear();
     expect(restarted.state.status, BodyMetricsStatus.absent);
     expect(await secure.read(), isNull);
     expectNoPayload(local);
   });
-}
-
-class ControlledBodyStore extends MemorySensitiveBodyMetricsStore {
-  bool failWrite = false;
-  bool ignoreWrite = false;
-  bool failRead = false;
-  bool failDelete = false;
-  void Function()? beforeWrite;
-  ControlledBodyStore({super.supported});
-  @override
-  Future<void> write(Map<String, Object?> fields) async {
-    beforeWrite?.call();
-    if (failWrite) throw StateError('synthetic write failure');
-    if (ignoreWrite) return;
-    await super.write(fields);
-  }
-
-  @override
-  Future<SensitiveBodyRead> readResult() async =>
-      failRead ? const SensitiveBodyRead.unavailable() : super.readResult();
-  @override
-  Future<SensitiveBodyDeleteStatus> delete() => failDelete
-      ? Future.value(SensitiveBodyDeleteStatus.failed)
-      : super.delete();
-}
-
-class RejectingBodyPreferences extends MemoryHydrionStore {
-  bool reject = false;
-  @override
-  Future<bool> writeString(String key, String value) async =>
-      reject ? false : super.writeString(key, value);
 }

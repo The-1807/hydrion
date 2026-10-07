@@ -1,4 +1,5 @@
 import 'support/memory_protected_app_store.dart';
+import 'support/test_services.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -14,16 +15,14 @@ void main() {
   late MemoryProtectedAppStore protectedSettings;
   setUp(() => protectedSettings = MemoryProtectedAppStore());
   Future<HydrionServices> servicesForTest(
-          WidgetTester tester, HydrionLocalStore store) async =>
-      (await tester.runAsync(() => HydrionServices.fromStore(store,
-          protectedAppStore: protectedSettings)))!;
+          WidgetTester tester, HydrionLocalStore store) =>
+      composeTestServices(store: store, protectedAppStore: protectedSettings);
   Future<void> pressNext(WidgetTester tester,
       [String key = 'onboarding-next']) async {
-    final callback =
-        tester.widget<ButtonStyleButton>(find.byKey(Key(key))).onPressed!;
-    await tester.runAsync(() async {
-      await (callback as Future<void> Function())();
-    });
+    final button = find.byKey(Key(key));
+    expect(tester.widget<ButtonStyleButton>(button).onPressed, isNotNull);
+    await tester.ensureVisible(button);
+    await tester.tap(button);
     await tester.pumpAndSettle();
   }
 

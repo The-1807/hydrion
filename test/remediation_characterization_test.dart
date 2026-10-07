@@ -14,6 +14,7 @@ import 'package:hydrion/services/sensitive_body_metrics_store.dart';
 import 'package:hydrion/storage/local_store.dart';
 
 import 'support/architecture_test_support.dart';
+import 'support/controllable_body_metrics_store.dart';
 
 // Synthetic values only. These tests intentionally expose OPEN defects.
 void main() {
@@ -21,7 +22,7 @@ void main() {
     'DATA-007 regression: newer accepted fallback survives restart',
     () async {
       final store = MemoryHydrionStore();
-      final secure = _ControlledSecureStore();
+      final secure = ControllableBodyMetricsSecureStore();
       final repository =
           await BodyMetricsRepository.load(store, secureStore: secure);
       await repository.save(const HydrionBodyMetrics(weightKg: 70),
@@ -51,12 +52,12 @@ void main() {
     'DATA-008 regression: unsuccessful secure delete remains pending without resurrection',
     () async {
       final store = MemoryHydrionStore();
-      final secure = _ControlledSecureStore();
+      final secure = ControllableBodyMetricsSecureStore();
       final repository =
           await BodyMetricsRepository.load(store, secureStore: secure);
       await repository.save(const HydrionBodyMetrics(weightKg: 70),
           femaleProfile: false);
-      secure.ignoreDeletes = true;
+      secure.deleteFailure = SensitiveBodyDeleteStatus.verificationFailed;
       await expectLater(
           repository.clear(), throwsA(isA<BodyMetricsDeletionIncomplete>()));
       expect(repository.state.value, isNull);
@@ -123,23 +124,4 @@ void main() {
     invariant: isFalse,
     counterexample: true,
   );
-}
-
-/// Models supported-but-failing storage, unlike the existing unsupported fake.
-class _ControlledSecureStore extends MemorySensitiveBodyMetricsStore {
-  bool failWrites = false;
-  bool ignoreDeletes = false;
-
-  @override
-  Future<void> write(Map<String, Object?> fields) async {
-    if (failWrites) throw StateError('synthetic write failure');
-    await super.write(fields);
-  }
-
-  @override
-  Future<SensitiveBodyDeleteStatus> delete() async {
-    // Models the native wrapper's swallowed failure, not a successful delete.
-    if (ignoreDeletes) return SensitiveBodyDeleteStatus.verificationFailed;
-    return super.delete();
-  }
 }

@@ -1,4 +1,5 @@
 import 'support/memory_protected_app_store.dart';
+import 'support/test_services.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -385,11 +386,11 @@ void main() {
     final notificationAdapter = FakeHydrionNotificationAdapter(
       permission: HydrionNotificationPermissionState.denied,
     );
-    final services = (await tester.runAsync(() => HydrionServices.fromStore(
-        store,
+    final services = await composeTestServices(
+        store: store,
         locationService: locationService,
         notificationAdapter: notificationAdapter,
-        protectedAppStore: protectedSettings)))!;
+        protectedAppStore: protectedSettings);
 
     await tester.pumpWidget(HydrionApp(services: services));
     await _pumpUntilFound(

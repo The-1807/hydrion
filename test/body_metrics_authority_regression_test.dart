@@ -14,6 +14,8 @@ import 'package:hydrion/services/sensitive_body_metrics_store.dart';
 import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/l10n/app_localizations.dart';
 import 'package:hydrion/ui/screens/body_metrics_screen.dart';
+import 'support/controllable_body_metrics_store.dart';
+import 'support/controllable_hydrion_store.dart';
 
 // DATA-007 desired invariants. Synthetic fixtures only; not native certification.
 void main() {
@@ -32,10 +34,10 @@ void main() {
         '_bodyAuthority': {'version': 1, 'revision': 2, 'pending': true},
       }));
 
-  Future<(MemoryHydrionStore, _ControlledSecureStore, BodyMetricsRepository)>
+  Future<(MemoryHydrionStore, ControllableBodyMetricsSecureStore, BodyMetricsRepository)>
       fixture() async {
     final local = MemoryHydrionStore();
-    final secure = _ControlledSecureStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repo = await BodyMetricsRepository.load(local, secureStore: secure);
     await repo.save(initial, femaleProfile: false, now: now);
     return (local, secure, repo);
@@ -86,7 +88,8 @@ void main() {
         clearClinicianTarget: true,
         femaleProfile: false);
     final settings = UserSettingsRepository.memory(const Locale('en'));
-    final local = _PausedRecommendationStore();
+    final local = ControllableHydrionStore();
+    final hold = local.hold(once: true);
     final state = await PersonalizationStateRepository.load(local);
     final coordinator = DailyHydrationRecommendationCoordinator(
       settingsRepository: settings,
@@ -96,11 +99,11 @@ void main() {
     );
     final goal = settings.settings.dailyGoalMl;
     final calculation = coordinator.calculateResult(now: now);
-    await local.entered.future;
+    await hold.entered;
     expect(state.latestRecommendation!.mayAutoApply, isTrue);
     secure.readUnavailable = true;
     await repo.reload();
-    local.resume.complete();
+    hold.release();
     final result = await calculation;
     expect(result.bodyStatus, BodyMetricsStatus.unavailable);
     expect(result.recommendation, isNull);
@@ -170,14 +173,14 @@ void main() {
   test(
       'secure commit with failed local publication is reconciled without stale rollback',
       () async {
-    final local = _FailingLocalStore();
-    final secure = _ControlledSecureStore();
+    final local = ControllableHydrionStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repo = await BodyMetricsRepository.load(local, secureStore: secure);
     await repo.save(initial, femaleProfile: false);
-    local.failWrites = true;
+    local.writeFault = ControllableStoreFault.throwError;
     expect(await repo.update(weightKg: 71, femaleProfile: false), isFalse);
     expect(repo.state.value, isNull);
-    local.failWrites = false;
+    local.writeFault = ControllableStoreFault.none;
     await repo.reload();
     expect(repo.metrics.weightKg, 71);
     expect(repo.state.revision, 2);
@@ -205,7 +208,7 @@ void main() {
 
   test('secure absence and unavailable infrastructure have different outcomes',
       () async {
-    final secure = _ControlledSecureStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final local = MemoryHydrionStore();
     final absent = await BodyMetricsRepository.load(local, secureStore: secure);
     expect(absent.state.status, BodyMetricsStatus.absent);
@@ -335,18 +338,18 @@ void main() {
   test(
       'failed local publication requires reload without replacing prior record',
       () async {
-    final local = _FailingLocalStore();
-    final secure = _ControlledSecureStore();
+    final local = ControllableHydrionStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repo = await BodyMetricsRepository.load(local, secureStore: secure);
     await repo.save(initial, femaleProfile: false);
     final before = local.snapshot;
-    local.failWrites = true;
+    local.writeFault = ControllableStoreFault.throwError;
     secure.failWrites = true;
     expect(await repo.update(weightKg: 71, femaleProfile: false), isFalse);
     expect(repo.state.isKnown, isFalse);
     expect(repo.lastWriteStatus, BodyMetricsWriteStatus.writeFailed);
     expect(local.snapshot, before);
-    local.failWrites = false;
+    local.writeFault = ControllableStoreFault.none;
     secure.failWrites = false;
     await repo.reload();
     expect(repo.metrics.weightKg, 70);
@@ -398,7 +401,7 @@ void main() {
   test('DATA-007 legacy accepted B survives failed promotion and restart',
       () async {
     final store = MemoryHydrionStore();
-    final secure = _ControlledSecureStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repository =
         await BodyMetricsRepository.load(store, secureStore: secure);
     expect(
@@ -417,7 +420,7 @@ void main() {
   test('DATA-007 unavailable secure state cannot be saved as defaults',
       () async {
     final store = MemoryHydrionStore();
-    final secure = _ControlledSecureStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repository =
         await BodyMetricsRepository.load(store, secureStore: secure);
     await repository.save(initial, femaleProfile: false, now: now);
@@ -440,7 +443,7 @@ void main() {
   test('DATA-007 unavailable clinical state cannot enable automatic targets',
       () async {
     final store = MemoryHydrionStore();
-    final secure = _ControlledSecureStore();
+    final secure = ControllableBodyMetricsSecureStore();
     final repository =
         await BodyMetricsRepository.load(store, secureStore: secure);
     await repository.save(initial, femaleProfile: false, now: now);
@@ -463,41 +466,4 @@ void main() {
     expect(result.mayAutoApply, isFalse,
         reason: 'Unknown clinical state must not become an unrestricted input');
   });
-}
-
-class _FailingLocalStore extends MemoryHydrionStore {
-  bool failWrites = false;
-  @override
-  Future<bool> writeString(String key, String value) async {
-    if (failWrites) throw StateError('synthetic local write failure');
-    return super.writeString(key, value);
-  }
-}
-
-class _PausedRecommendationStore extends MemoryHydrionStore {
-  final entered = Completer<void>();
-  final resume = Completer<void>();
-  @override
-  Future<bool> writeString(String key, String value) async {
-    entered.complete();
-    await resume.future;
-    return super.writeString(key, value);
-  }
-}
-
-class _ControlledSecureStore extends MemorySensitiveBodyMetricsStore {
-  bool failWrites = false;
-  bool readUnavailable = false;
-
-  @override
-  Future<SensitiveBodyRead> readResult() async {
-    if (readUnavailable) return const SensitiveBodyRead.unavailable();
-    return super.readResult();
-  }
-
-  @override
-  Future<void> write(Map<String, Object?> fields) async {
-    if (failWrites) throw StateError('synthetic write failure');
-    await super.write(fields);
-  }
 }

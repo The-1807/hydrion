@@ -48,6 +48,7 @@ import 'services/pomodoro_session_service.dart';
 import 'services/timed_session_notification_service.dart';
 import 'services/provider_health.dart';
 import 'services/profile_photo_service.dart';
+import 'services/sensitive_body_metrics_store.dart';
 import 'services/voice_client.dart';
 import 'services/voice_llm_bridge.dart';
 import 'services/wearable_service.dart';
@@ -765,6 +766,8 @@ class HydrionServices {
     HydrionTimedSessionNotificationAdapter? timedSessionNotificationAdapter,
     DailyWeatherProvider? weatherProvider,
     HydrionProfilePhotoPicker? profilePhotoPicker,
+    SensitiveBodyMetricsStore? bodyMetricsSecureStore,
+    UserManagedHealthDataProvider? healthProvider,
     HealthPersistenceResult healthPersistence = const HealthPersistenceResult(
       HealthPersistenceStatus.unsupportedPlatform,
     ),
@@ -782,7 +785,8 @@ class HydrionServices {
         await ReminderRepository.load(store, protectedStore: protectedAppStore);
     final challengeRepository = await ChallengeRepository.load(store,
         protectedStore: protectedAppStore);
-    final bodyMetricsRepository = await BodyMetricsRepository.load(store);
+    final bodyMetricsRepository = await BodyMetricsRepository.load(store,
+        secureStore: bodyMetricsSecureStore);
     final dailyHydrationContextRepository =
         await DailyHydrationContextRepository.load(store,
             protectedStore: protectedAppStore);
@@ -821,6 +825,7 @@ class HydrionServices {
       timedSessionNotificationAdapter: timedSessionNotificationAdapter,
       weatherProvider: weatherProvider,
       profilePhotoPicker: profilePhotoPicker,
+      healthProvider: healthProvider,
     );
   }
 
@@ -881,6 +886,7 @@ class HydrionServices {
     HydrionTimedSessionNotificationAdapter? timedSessionNotificationAdapter,
     DailyWeatherProvider? weatherProvider,
     HydrionProfilePhotoPicker? profilePhotoPicker,
+    UserManagedHealthDataProvider? healthProvider,
     HealthPersistenceResult healthPersistence = const HealthPersistenceResult(
       HealthPersistenceStatus.unsupportedPlatform,
     ),
@@ -1022,11 +1028,12 @@ class HydrionServices {
     );
     final healthRepository =
         healthPersistence.repository ?? MemoryHealthDataRepository();
-    final healthProvider = _healthProviderForPlatform();
+    final resolvedHealthProvider =
+        healthProvider ?? _healthProviderForPlatform();
     final healthConnectionController = HealthConnectionController(
-      provider: healthProvider,
+      provider: resolvedHealthProvider,
       coordinator: HealthDataSyncCoordinator(
-        providers: [healthProvider],
+        providers: [resolvedHealthProvider],
         repository: healthRepository,
       ),
       repository: healthRepository,

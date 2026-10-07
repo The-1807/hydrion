@@ -16,11 +16,12 @@ import 'package:hydrion/services/timed_session_notification_service.dart';
 import 'package:hydrion/services/weather_goal_service.dart';
 import 'package:hydrion/storage/local_store.dart';
 import 'package:hydrion/storage/protected_app_store.dart';
+import 'support/controllable_hydrion_store.dart';
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
-  Future<HydrionServices> fixture(_PausedStore store,
+  Future<HydrionServices> fixture(ControllableHydrionStore store,
       {required bool auto, MemoryProtectedAppStore? protected}) async {
     final services = await HydrionServices.fromStore(
       protectedAppStore: protected ?? MemoryProtectedAppStore(),
@@ -60,20 +61,20 @@ void main() {
   testWidgets(
       'shell cannot auto-apply when safety disappears during calculation',
       (tester) async {
-    final store = _PausedStore();
+    final store = ControllableHydrionStore();
     final services = await fixture(store, auto: true);
     final goal = services.settingsRepository.settings.dailyGoalMl;
-    store.pause = true;
+    final hold = holdStateWrite(store);
     await tester
         .pumpWidget(HydrionApp(services: services, initialRoute: '/home'));
     await tester.pumpAndSettle();
-    expect(store.entered.isCompleted, isTrue);
+    expect(hold.engaged, isTrue);
     expect(
         services
             .personalizationStateRepository.latestRecommendation!.mayAutoApply,
         isTrue);
     await makeUnknown(services);
-    store.resume.complete();
+    hold.release();
     await tester.pumpAndSettle();
     expect(services.settingsRepository.settings.dailyGoalMl, goal);
     expect(
@@ -85,24 +86,24 @@ void main() {
   for (final auto in [false, true]) {
     testWidgets('daily-context outage blocks shell commit: auto=$auto',
         (tester) async {
-      final local = _PausedStore();
+      final local = ControllableHydrionStore();
       final protected = MemoryProtectedAppStore();
       final services = await fixture(local, auto: auto, protected: protected);
       final goal = services.settingsRepository.settings.dailyGoalMl;
-      local.pause = auto;
+      final hold = auto ? holdStateWrite(local) : null;
       await tester
           .pumpWidget(HydrionApp(services: services, initialRoute: '/home'));
       await tester.pumpAndSettle();
       expect(
           auto
-              ? local.entered.isCompleted
+              ? hold!.engaged
               : find.byType(AlertDialog).evaluate().isNotEmpty,
           isTrue);
       protected.readFailure = ProtectedReadStatus.unavailable;
       await services.dailyHydrationContextRepository.retry();
       expect(services.dailyHydrationContextRepository.isKnown, isFalse);
       if (auto) {
-        local.resume.complete();
+        hold!.release();
       } else {
         final label =
             AppLocalizations.of(tester.element(find.byType(AlertDialog)))
@@ -120,7 +121,7 @@ void main() {
   for (final loseSafety in [false, true]) {
     testWidgets('shell dialog commit respects current safety: lost=$loseSafety',
         (tester) async {
-      final services = await fixture(_PausedStore(), auto: false);
+      final services = await fixture(ControllableHydrionStore(), auto: false);
       final goal = services.settingsRepository.settings.dailyGoalMl;
       await tester
           .pumpWidget(HydrionApp(services: services, initialRoute: '/home'));
@@ -146,21 +147,6 @@ void main() {
   }
 }
 
-class _PausedStore extends MemoryHydrionStore {
-  bool pause = false;
-  final entered = Completer<void>();
-  final resume = Completer<void>();
-  @override
-  Future<bool> writeString(String key, String value) async {
-    if (pause && key == PersonalizationStateRepository.storageKey) {
-      pause = false;
-      entered.complete();
-      await resume.future;
-    }
-    return super.writeString(key, value);
-  }
-}
-
 class _Weather implements DailyWeatherProvider {
   @override
   bool get isConfigured => true;
@@ -174,3 +160,9 @@ class _Weather implements DailyWeatherProvider {
         temperatureC: 32, uvIndex: 5, observedAt: time, retrievedAt: time);
   }
 }
+
+/// Holds the first personalization-state write until released.
+ControllableStoreHold holdStateWrite(ControllableHydrionStore store) =>
+    store.hold(
+        once: true,
+        when: (key) => key == PersonalizationStateRepository.storageKey);

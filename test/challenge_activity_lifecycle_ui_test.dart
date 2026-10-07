@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrion/main.dart';
 import 'package:hydrion/storage/local_store.dart';
+import 'support/controllable_hydrion_store.dart';
 
 // Regression coverage for HYD-CORR-001: `_ChallengeActivityPanelState`
 // accessed `context` from `_syncTicker()` after an `await` gap with no
@@ -24,7 +25,7 @@ void main() {
     (tester) async {
       final harness = await _pumpHomeworkHydration(tester);
 
-      harness.store.holdNextWrite();
+      final hold = harness.store.hold(includeRemovals: true);
       await tester.tap(
         find.byKey(const Key('activity-start-homework-hydration')),
       );
@@ -32,12 +33,12 @@ void main() {
       // the held write. Unmounting the view while that await is still
       // in-flight is exactly the HYD-CORR-001 reproduction.
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
-      harness.store.releaseHold();
+      hold.release();
       await tester.pump();
       await tester.pump();
 
       expect(
-        harness.store.holdEngagedCount,
+        harness.store.holdsEngaged,
         1,
         reason: 'the hold must actually have intercepted a write, or this '
             'test would pass vacuously',
@@ -64,12 +65,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      harness.store.holdNextWrite();
+      final hold = harness.store.hold(includeRemovals: true);
       await tester.tap(
         find.byKey(const Key('activity-pause-homework-hydration')),
       );
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
-      harness.store.releaseHold();
+      hold.release();
       await tester.pump();
       await tester.pump();
 
@@ -90,12 +91,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      harness.store.holdNextWrite();
+      final hold = harness.store.hold(includeRemovals: true);
       await tester.tap(
         find.byKey(const Key('activity-resume-homework-hydration')),
       );
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
-      harness.store.releaseHold();
+      hold.release();
       await tester.pump();
       await tester.pump();
 
@@ -124,7 +125,7 @@ class _Harness {
   _Harness(this.services, this.store);
 
   final HydrionServices services;
-  final _HoldableWriteStore store;
+  final ControllableHydrionStore store;
 }
 
 Future<_Harness> _pumpHomeworkHydration(WidgetTester tester) async {
@@ -132,7 +133,7 @@ Future<_Harness> _pumpHomeworkHydration(WidgetTester tester) async {
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  final store = _HoldableWriteStore(MemoryHydrionStore());
+  final store = ControllableHydrionStore();
   final services = HydrionServices.memory(
     challengeRepository: await loadTestChallengeRepository(store),
   );
@@ -203,42 +204,3 @@ Future<void> revealByScrolling(
 /// time-based, since `flutter_test` virtualizes timers/`Future.delayed` and a
 /// real-time delay would never elapse without independently pumping the fake
 /// clock forward.
-class _HoldableWriteStore implements HydrionLocalStore {
-  _HoldableWriteStore(this._inner);
-
-  final HydrionLocalStore _inner;
-  Completer<void>? _hold;
-  int holdEngagedCount = 0;
-
-  void holdNextWrite() => _hold = Completer<void>();
-
-  void releaseHold() {
-    // Complete (but do not null out) the same Completer instance
-    // `_awaitHold` is awaiting — nulling `_hold` happens on this side only,
-    // after completion, so the in-flight `await` still resolves.
-    _hold?.complete();
-    _hold = null;
-  }
-
-  Future<void> _awaitHold() async {
-    final hold = _hold;
-    if (hold == null) return;
-    holdEngagedCount++;
-    await hold.future;
-  }
-
-  @override
-  Future<String?> readString(String key) => _inner.readString(key);
-
-  @override
-  Future<bool> writeString(String key, String value) async {
-    await _awaitHold();
-    return _inner.writeString(key, value);
-  }
-
-  @override
-  Future<void> remove(String key) async {
-    await _awaitHold();
-    await _inner.remove(key);
-  }
-}
