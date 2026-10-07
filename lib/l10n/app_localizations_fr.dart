@@ -3543,4 +3543,27 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get healthDataReasonOperation =>
       'L\'operation de synchronisation securisee n\'a pas pu aboutir.';
+
+  @override
+  String get startupFailedTitle => 'Hydrion n\'a pas pu démarrer';
+
+  @override
+  String get startupFailedMessage =>
+      'Un problème est survenu à l\'ouverture de l\'application. Veuillez réessayer.';
+
+  @override
+  String startupDegradedNotice({required int count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count fonctions en arrière-plan n\'ont pas fini de démarrer. Les rappels, widgets ou mises à jour de la montre peuvent être retardés.',
+      one:
+          '1 fonction en arrière-plan n\'a pas fini de démarrer. Les rappels, widgets ou mises à jour de la montre peuvent être retardés.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get startupDegradedDismiss => 'Masquer';
 }

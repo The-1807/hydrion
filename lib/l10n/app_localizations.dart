@@ -5995,6 +5995,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The secure synchronization operation could not complete.'**
   String get healthDataReasonOperation;
+
+  /// Title of the startup error screen shown when the app could not be composed.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrion couldn\'t start'**
+  String get startupFailedTitle;
+
+  /// Body of the startup error screen; paired with the Retry button.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong while opening the app. Please try again.'**
+  String get startupFailedMessage;
+
+  /// Banner shown after startup when non-essential background steps failed; the app remains usable.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 background feature didn\'t finish starting. Reminders, widgets or watch updates may be delayed.} other{{count} background features didn\'t finish starting. Reminders, widgets or watch updates may be delayed.}}'**
+  String startupDegradedNotice({required int count});
+
+  /// Button that hides the degraded startup banner for this session.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get startupDegradedDismiss;
 }
 
 class _AppLocalizationsDelegate

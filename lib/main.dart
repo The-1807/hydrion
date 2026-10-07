@@ -107,7 +107,7 @@ class HydrionBootstrapApp extends StatefulWidget {
 }
 
 class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
-  late final Future<HydrionServices> _servicesFuture;
+  Future<HydrionServices>? _servicesFuture;
   HydrionServices? _loadedServices;
   HydrionServices? _services;
   String _initialRoute = '/home';
@@ -116,8 +116,11 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
   void initState() {
     super.initState();
     HydrionStartupTrace.log('HydrionBootstrapApp.initState');
-    _servicesFuture = (widget.servicesLoader ?? HydrionServices.local)();
+    _servicesFuture = _composeServices();
   }
+
+  Future<HydrionServices> _composeServices() =>
+      (widget.servicesLoader ?? HydrionServices.local)();
 
   @override
   void dispose() {
@@ -129,7 +132,16 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
     HydrionStartupTrace.log(
       'HydrionBootstrapApp.warmup gate=services_future status=start',
     );
-    final services = await _servicesFuture;
+    final HydrionServices services;
+    try {
+      // Class (a): composition failed, so the app is unusable. The error
+      // propagates to StartupScreen, which shows a localized Retry; a retry
+      // composes the services again.
+      services = await (_servicesFuture ??= _composeServices());
+    } catch (_) {
+      _servicesFuture = null;
+      rethrow;
+    }
     HydrionStartupTrace.log(
       'HydrionBootstrapApp.warmup gate=services_future status=done',
     );
@@ -137,16 +149,8 @@ class _HydrionBootstrapAppState extends State<HydrionBootstrapApp> {
     if (mounted) {
       setState(() {});
     }
-    HydrionStartupTrace.log(
-      'HydrionBootstrapApp.warmup gate=network_dependent_init status=start',
-    );
-    await Future.wait([
-      services.hydrationSummaryService.getHydrationSummary(),
-      services.hydrationContextProvider.getHydrationContext(),
-    ]);
-    HydrionStartupTrace.log(
-      'HydrionBootstrapApp.warmup gate=network_dependent_init status=done',
-    );
+    // Class (b): warm-up only primes caches; failure degrades, never blocks.
+    await services.startupHealth.run([_warmUpStep(services)]);
     HydrionStartupTrace.log('HydrionBootstrapApp.warmup complete');
   }
 
@@ -328,12 +332,7 @@ class HydrionApp extends StatelessWidget {
     });
     final routes = <String, WidgetBuilder>{
       '/': (_) => StartupScreen(
-            warmUp: () async {
-              await Future.wait([
-                services.hydrationSummaryService.getHydrationSummary(),
-                services.hydrationContextProvider.getHydrationContext(),
-              ]);
-            },
+            warmUp: () => services.startupHealth.run([_warmUpStep(services)]),
             isOnboardingCompleted: () =>
                 services.settingsRepository.settings.onboardingCompleted,
             nextRoute: () {
@@ -481,8 +480,14 @@ class HydrionApp extends StatelessWidget {
             ],
             supportedLocales: AppLocalizations.supportedLocales,
             locale: i18n.locale,
-            builder: (context, child) =>
-                HydrionSystemUi(child: SettingsProtectionGate(child: child!)),
+            builder: (context, child) => HydrionSystemUi(
+              child: SettingsProtectionGate(
+                child: StartupDegradedNotice(
+                  health: services.startupHealth,
+                  child: child!,
+                ),
+              ),
+            ),
             initialRoute: initialRoute,
             routes: routes,
             onGenerateInitialRoutes: (initialRouteName) {
@@ -500,6 +505,17 @@ class HydrionApp extends StatelessWidget {
     );
   }
 }
+
+/// Startup warm-up of the summary and context caches. Non-essential: a
+/// failure is recorded in [HydrionServices.startupHealth] and routing
+/// continues.
+HydrionStartupStep _warmUpStep(HydrionServices services) => HydrionStartupStep(
+      'warm_up',
+      () => Future.wait([
+        services.hydrationSummaryService.getHydrationSummary(),
+        services.hydrationContextProvider.getHydrationContext(),
+      ]),
+    );
 
 Future<void> _syncHomeworkTimedNotification(HydrionServices services) async {
   const challengeId = 'homework-hydration';
@@ -582,6 +598,10 @@ class HydrionServices {
   final LocalProfileResetService localProfileResetService;
   final AndroidWidgetService androidWidgetService;
   final WatchConnectivityService watchConnectivityService;
+
+  /// Typed outcomes of non-essential startup steps; drives the degraded
+  /// startup notice and its Retry.
+  final HydrionStartupHealth startupHealth = HydrionStartupHealth();
 
   HydrionServices({
     this.aiRuntimeConfig = const HydrionAiRuntimeConfig(),
@@ -696,65 +716,53 @@ class HydrionServices {
       'HydrionServices.local gate=dependency_init status=done',
     );
 
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=notification_init status=start',
-    );
-    await services.notificationService.initialize();
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=notification_init status=done',
-    );
-
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=permissions_refresh status=start',
-    );
-    await services.permissions.refresh();
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=permissions_refresh status=done',
-    );
-
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=pomodoro_reconcile status=start',
-    );
-    await services.pomodoroSessionService.reconcile();
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=pomodoro_reconcile status=done',
-    );
-
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=homework_timed_notification status=start',
-    );
-    await _syncHomeworkTimedNotification(services);
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=homework_timed_notification status=done',
-    );
-
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=notification_reconcile_schedules '
-      'status=start',
-    );
-    await services.notificationService.reconcileSchedules();
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=notification_reconcile_schedules '
-      'status=done',
-    );
-
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=android_widget_init status=start',
-    );
-    await services.androidWidgetService.initialize();
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=android_widget_init status=done',
-    );
-
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=watch_connectivity_init status=start',
-    );
-    await services.watchConnectivityService.initialize();
-    HydrionStartupTrace.log(
-      'HydrionServices.local gate=watch_connectivity_init status=done',
-    );
+    await runPostCompositionStartup(services);
     return services;
   }
+
+  /// Non-essential post-composition startup steps (class (b) of D2). Each
+  /// step is contained individually by [HydrionStartupHealth], so a failure
+  /// is recorded and surfaced while later independent steps still run and
+  /// routing continues in a degraded state (owner decision O2).
+  static List<HydrionStartupStep> postCompositionStartupSteps(
+    HydrionServices services,
+  ) =>
+      [
+        HydrionStartupStep(
+          'notification_init',
+          services.notificationService.initialize,
+        ),
+        HydrionStartupStep(
+          'permissions_refresh',
+          services.permissions.refresh,
+        ),
+        HydrionStartupStep(
+          'pomodoro_reconcile',
+          services.pomodoroSessionService.reconcile,
+        ),
+        HydrionStartupStep(
+          'homework_timed_notification',
+          () => _syncHomeworkTimedNotification(services),
+        ),
+        HydrionStartupStep(
+          'notification_reconcile_schedules',
+          services.notificationService.reconcileSchedules,
+          dependsOn: const {'notification_init'},
+        ),
+        HydrionStartupStep(
+          'android_widget_init',
+          services.androidWidgetService.initialize,
+        ),
+        HydrionStartupStep(
+          'watch_connectivity_init',
+          services.watchConnectivityService.initialize,
+        ),
+      ];
+
+  /// Runs [postCompositionStartupSteps] and records their typed outcomes in
+  /// [startupHealth]. Never throws because of a step failure.
+  static Future<void> runPostCompositionStartup(HydrionServices services) =>
+      services.startupHealth.run(postCompositionStartupSteps(services));
 
   static Future<HydrionServices> fromStore(
     HydrionLocalStore store, {

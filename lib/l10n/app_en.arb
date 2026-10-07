@@ -1304,5 +1304,13 @@
   "healthDataReadingSecurely": "Reading authorized records securely. Do not close Hydrion.",
   "healthDataReasonUnavailable": "The health-data provider was unavailable.",
   "healthDataReasonPermission": "Health access was denied or revoked.",
-  "healthDataReasonOperation": "The secure synchronization operation could not complete."
+  "healthDataReasonOperation": "The secure synchronization operation could not complete.",
+  "startupFailedTitle": "Hydrion couldn't start",
+  "@startupFailedTitle": {"description": "Title of the startup error screen shown when the app could not be composed."},
+  "startupFailedMessage": "Something went wrong while opening the app. Please try again.",
+  "@startupFailedMessage": {"description": "Body of the startup error screen; paired with the Retry button."},
+  "startupDegradedNotice": "{count, plural, =1{1 background feature didn't finish starting. Reminders, widgets or watch updates may be delayed.} other{{count} background features didn't finish starting. Reminders, widgets or watch updates may be delayed.}}",
+  "@startupDegradedNotice": {"description": "Banner shown after startup when non-essential background steps failed; the app remains usable.", "placeholders": {"count": {"type": "int"}}},
+  "startupDegradedDismiss": "Dismiss",
+  "@startupDegradedDismiss": {"description": "Button that hides the degraded startup banner for this session."}
 }

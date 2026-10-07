@@ -3487,4 +3487,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get healthDataReasonOperation =>
       'The secure synchronization operation could not complete.';
+
+  @override
+  String get startupFailedTitle => 'Hydrion couldn\'t start';
+
+  @override
+  String get startupFailedMessage =>
+      'Something went wrong while opening the app. Please try again.';
+
+  @override
+  String startupDegradedNotice({required int count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count background features didn\'t finish starting. Reminders, widgets or watch updates may be delayed.',
+      one:
+          '1 background feature didn\'t finish starting. Reminders, widgets or watch updates may be delayed.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get startupDegradedDismiss => 'Dismiss';
 }

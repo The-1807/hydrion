@@ -1063,5 +1063,9 @@
   "healthDataReadingSecurely": "Leyendo de forma segura los registros autorizados. No cierres Hydrion.",
   "healthDataReasonUnavailable": "El proveedor de datos de salud no estaba disponible.",
   "healthDataReasonPermission": "El acceso a los datos de salud fue denegado o revocado.",
-  "healthDataReasonOperation": "La operacion de sincronizacion segura no pudo completarse."
+  "healthDataReasonOperation": "La operacion de sincronizacion segura no pudo completarse.",
+  "startupFailedTitle": "Hydrion no pudo iniciarse",
+  "startupFailedMessage": "Algo salió mal al abrir la aplicación. Vuelve a intentarlo.",
+  "startupDegradedNotice": "{count, plural, =1{1 función en segundo plano no terminó de iniciarse. Los recordatorios, widgets o actualizaciones del reloj pueden retrasarse.} other{{count} funciones en segundo plano no terminaron de iniciarse. Los recordatorios, widgets o actualizaciones del reloj pueden retrasarse.}}",
+  "startupDegradedDismiss": "Descartar"
 }

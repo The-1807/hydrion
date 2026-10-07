@@ -3531,4 +3531,27 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get healthDataReasonOperation =>
       'La operacion de sincronizacion segura no pudo completarse.';
+
+  @override
+  String get startupFailedTitle => 'Hydrion no pudo iniciarse';
+
+  @override
+  String get startupFailedMessage =>
+      'Algo salió mal al abrir la aplicación. Vuelve a intentarlo.';
+
+  @override
+  String startupDegradedNotice({required int count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count funciones en segundo plano no terminaron de iniciarse. Los recordatorios, widgets o actualizaciones del reloj pueden retrasarse.',
+      one:
+          '1 función en segundo plano no terminó de iniciarse. Los recordatorios, widgets o actualizaciones del reloj pueden retrasarse.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get startupDegradedDismiss => 'Descartar';
 }
